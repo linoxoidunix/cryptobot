@@ -1,0 +1,192 @@
+\hypertarget{WSImpl_8h_source}{}\doxysection{WSImpl.\+h}
+\label{WSImpl_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/WSImpl/WSImpl.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/WSImpl/WSImpl.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/beast/core.hpp>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <boost/beast/websocket.hpp>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <boost/beast/websocket/ssl.hpp>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <boost/asio/strand.hpp>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <boost/beast/ssl.hpp>}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include <bybit/Logger.h>}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{keyword}{class }\mbox{\hyperlink{classLoggerI}{LoggerI}};}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }beast = boost::beast;         \textcolor{comment}{// from <boost/beast.hpp>}}
+\DoxyCodeLine{15 \textcolor{keyword}{namespace }http = beast::http;           \textcolor{comment}{// from <boost/beast/http.hpp>}}
+\DoxyCodeLine{16 \textcolor{keyword}{namespace }websocket = beast::websocket; \textcolor{comment}{// from <boost/beast/websocket.hpp>}}
+\DoxyCodeLine{17 \textcolor{keyword}{namespace }net = boost::asio;            \textcolor{comment}{// from <boost/asio.hpp>}}
+\DoxyCodeLine{18 \textcolor{keyword}{namespace }ssl = boost::asio::ssl;       \textcolor{comment}{// from <boost/asio/ssl.hpp>}}
+\DoxyCodeLine{19 \textcolor{keyword}{using }tcp = boost::asio::ip::tcp;       \textcolor{comment}{// from <boost/asio/ip/tcp.hpp>}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 \textcolor{keyword}{class }\mbox{\hyperlink{classWSSession}{WSSession}} : \textcolor{keyword}{public} std::enable\_shared\_from\_this<WSSession>}
+\DoxyCodeLine{22 \{}
+\DoxyCodeLine{23     tcp::resolver resolver\_;}
+\DoxyCodeLine{24     websocket::stream<}
+\DoxyCodeLine{25         beast::ssl\_stream<beast::tcp\_stream>> ws\_;}
+\DoxyCodeLine{26     beast::flat\_buffer buffer\_;}
+\DoxyCodeLine{27     std::string host\_;}
+\DoxyCodeLine{28     std::string text\_;}
+\DoxyCodeLine{29     std::string end\_point\_;}
+\DoxyCodeLine{30     \mbox{\hyperlink{classLoggerI}{LoggerI}}* logger\_;}
+\DoxyCodeLine{31     std::string strbuf;}
+\DoxyCodeLine{32 \textcolor{keyword}{public}:}
+\DoxyCodeLine{33     \textcolor{comment}{// Resolver and socket require an io\_context}}
+\DoxyCodeLine{34     \textcolor{keyword}{explicit}}
+\DoxyCodeLine{35     \mbox{\hyperlink{classWSSession}{WSSession}}(net::io\_context\& ioc, ssl::context\& ctx, \mbox{\hyperlink{classLoggerI}{LoggerI}}* logger)}
+\DoxyCodeLine{36         : resolver\_(net::make\_strand(ioc))}
+\DoxyCodeLine{37         , ws\_(net::make\_strand(ioc), ctx),}
+\DoxyCodeLine{38         logger\_(logger)}
+\DoxyCodeLine{39     \{}
+\DoxyCodeLine{40     \}}
+\DoxyCodeLine{41 }
+\DoxyCodeLine{42     \textcolor{comment}{// Start the asynchronous operation}}
+\DoxyCodeLine{43     \textcolor{keywordtype}{void}}
+\DoxyCodeLine{44     run(}
+\DoxyCodeLine{45         \textcolor{keywordtype}{char} \textcolor{keyword}{const}* host,}
+\DoxyCodeLine{46         \textcolor{keywordtype}{char} \textcolor{keyword}{const}* port,}
+\DoxyCodeLine{47         \textcolor{keywordtype}{char} \textcolor{keyword}{const}* end\_point)}
+\DoxyCodeLine{48     \{}
+\DoxyCodeLine{49         \textcolor{comment}{// Save these for later}}
+\DoxyCodeLine{50         host\_ = host;}
+\DoxyCodeLine{51         end\_point\_ = end\_point;}
+\DoxyCodeLine{52 }
+\DoxyCodeLine{53         \textcolor{comment}{// Look up the domain name}}
+\DoxyCodeLine{54         resolver\_.async\_resolve(}
+\DoxyCodeLine{55             host\_,}
+\DoxyCodeLine{56             port,}
+\DoxyCodeLine{57             beast::bind\_front\_handler(}
+\DoxyCodeLine{58                 \&WSSession::on\_resolve,}
+\DoxyCodeLine{59                 shared\_from\_this()));}
+\DoxyCodeLine{60     \}}
+\DoxyCodeLine{61 }
+\DoxyCodeLine{62     \textcolor{keywordtype}{void}}
+\DoxyCodeLine{63     on\_resolve(}
+\DoxyCodeLine{64         beast::error\_code ec,}
+\DoxyCodeLine{65         tcp::resolver::results\_type results)}
+\DoxyCodeLine{66     \{}
+\DoxyCodeLine{67         Log(ec, \textcolor{stringliteral}{"{}12312321s"{}});}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69         \textcolor{keywordflow}{if}(ec)}
+\DoxyCodeLine{70             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}resolve"{}});}
+\DoxyCodeLine{71 }
+\DoxyCodeLine{72         \textcolor{comment}{// Set a timeout on the operation}}
+\DoxyCodeLine{73         beast::get\_lowest\_layer(ws\_).expires\_after(std::chrono::seconds(30));}
+\DoxyCodeLine{74 }
+\DoxyCodeLine{75         \textcolor{comment}{// Make the connection on the IP address we get from a lookup}}
+\DoxyCodeLine{76         beast::get\_lowest\_layer(ws\_).async\_connect(}
+\DoxyCodeLine{77             results,}
+\DoxyCodeLine{78             beast::bind\_front\_handler(}
+\DoxyCodeLine{79                 \&WSSession::on\_connect,}
+\DoxyCodeLine{80                 shared\_from\_this()));}
+\DoxyCodeLine{81     \}}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{83     \textcolor{keywordtype}{void}}
+\DoxyCodeLine{84     on\_connect(beast::error\_code ec, tcp::resolver::results\_type::endpoint\_type ep)}
+\DoxyCodeLine{85     \{}
+\DoxyCodeLine{86         \textcolor{keywordflow}{if}(ec)}
+\DoxyCodeLine{87             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}connect"{}});}
+\DoxyCodeLine{88 }
+\DoxyCodeLine{89         \textcolor{comment}{// Set a timeout on the operation}}
+\DoxyCodeLine{90         beast::get\_lowest\_layer(ws\_).expires\_after(std::chrono::seconds(30));}
+\DoxyCodeLine{91 }
+\DoxyCodeLine{92         \textcolor{comment}{// Set SNI Hostname (many hosts need this to handshake successfully)}}
+\DoxyCodeLine{93         \textcolor{keywordflow}{if}(! SSL\_set\_tlsext\_host\_name(}
+\DoxyCodeLine{94                 ws\_.next\_layer().native\_handle(),}
+\DoxyCodeLine{95                 host\_.c\_str()))}
+\DoxyCodeLine{96         \{}
+\DoxyCodeLine{97             ec = beast::error\_code(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(::ERR\_get\_error()),}
+\DoxyCodeLine{98                 net::error::get\_ssl\_category());}
+\DoxyCodeLine{99             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}connect"{}});}
+\DoxyCodeLine{100         \}}
+\DoxyCodeLine{101 }
+\DoxyCodeLine{102         \textcolor{comment}{// Update the host\_ string. This will provide the value of the}}
+\DoxyCodeLine{103         \textcolor{comment}{// Host HTTP header during the WebSocket handshake.}}
+\DoxyCodeLine{104         \textcolor{comment}{// See https://tools.ietf.org/html/rfc7230\#section-\/5.4}}
+\DoxyCodeLine{105         host\_ += \textcolor{charliteral}{':'} + std::to\_string(ep.port());}
+\DoxyCodeLine{106         }
+\DoxyCodeLine{107         \textcolor{comment}{//Perform the SSL handshake}}
+\DoxyCodeLine{108         ws\_.next\_layer().async\_handshake(}
+\DoxyCodeLine{109             ssl::stream\_base::client,}
+\DoxyCodeLine{110             beast::bind\_front\_handler(}
+\DoxyCodeLine{111                 \&WSSession::on\_ssl\_handshake,}
+\DoxyCodeLine{112                 shared\_from\_this()));}
+\DoxyCodeLine{113     \}}
+\DoxyCodeLine{114 }
+\DoxyCodeLine{115     \textcolor{keywordtype}{void}}
+\DoxyCodeLine{116     on\_ssl\_handshake(beast::error\_code ec)}
+\DoxyCodeLine{117     \{}
+\DoxyCodeLine{118         \textcolor{keywordflow}{if}(ec)}
+\DoxyCodeLine{119             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}ssl\_handshake"{}});}
+\DoxyCodeLine{120 }
+\DoxyCodeLine{121         \textcolor{comment}{// Turn off the timeout on the tcp\_stream, because}}
+\DoxyCodeLine{122         \textcolor{comment}{// the websocket stream has its own timeout system.}}
+\DoxyCodeLine{123         beast::get\_lowest\_layer(ws\_).expires\_never();}
+\DoxyCodeLine{124 }
+\DoxyCodeLine{125         \textcolor{comment}{// Set suggested timeout settings for the websocket}}
+\DoxyCodeLine{126         ws\_.set\_option(}
+\DoxyCodeLine{127             websocket::stream\_base::timeout::suggested(}
+\DoxyCodeLine{128                 beast::role\_type::client));}
+\DoxyCodeLine{129 }
+\DoxyCodeLine{130         \textcolor{comment}{// Set a decorator to change the User-\/Agent of the handshake}}
+\DoxyCodeLine{131         ws\_.set\_option(websocket::stream\_base::decorator(}
+\DoxyCodeLine{132             [](websocket::request\_type\& req)}
+\DoxyCodeLine{133             \{}
+\DoxyCodeLine{134                 req.set(http::field::user\_agent,}
+\DoxyCodeLine{135                     std::string(BOOST\_BEAST\_VERSION\_STRING) +}
+\DoxyCodeLine{136                         \textcolor{stringliteral}{"{} websocket-\/client-\/async-\/ssl"{}});}
+\DoxyCodeLine{137             \}));}
+\DoxyCodeLine{138 }
+\DoxyCodeLine{139         \textcolor{comment}{// Perform the websocket handshake}}
+\DoxyCodeLine{140         ws\_.async\_handshake(host\_, end\_point\_,}
+\DoxyCodeLine{141             beast::bind\_front\_handler(}
+\DoxyCodeLine{142                 \&WSSession::on\_handshake,}
+\DoxyCodeLine{143                 shared\_from\_this()));}
+\DoxyCodeLine{144     \}}
+\DoxyCodeLine{145 }
+\DoxyCodeLine{146     }
+\DoxyCodeLine{147     \textcolor{keywordtype}{void} on\_handshake(beast::error\_code ec)}
+\DoxyCodeLine{148     \{}
+\DoxyCodeLine{149         \textcolor{keywordflow}{if}(ec)}
+\DoxyCodeLine{150             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}handshake"{}});}
+\DoxyCodeLine{151 }
+\DoxyCodeLine{152         \textcolor{comment}{// Send the message}}
+\DoxyCodeLine{153         ws\_.async\_read(}
+\DoxyCodeLine{154             buffer\_,}
+\DoxyCodeLine{155             beast::bind\_front\_handler(}
+\DoxyCodeLine{156                 \&WSSession::on\_read,}
+\DoxyCodeLine{157                 shared\_from\_this()));}
+\DoxyCodeLine{158     \}}
+\DoxyCodeLine{159     }
+\DoxyCodeLine{160 }
+\DoxyCodeLine{161     \textcolor{keywordtype}{void}}
+\DoxyCodeLine{162     on\_read(}
+\DoxyCodeLine{163         beast::error\_code ec,}
+\DoxyCodeLine{164         std::size\_t bytes\_transferred)}
+\DoxyCodeLine{165     \{}
+\DoxyCodeLine{166         \textcolor{keyword}{auto} size = buffer\_.size();}
+\DoxyCodeLine{167         assert(size == bytes\_transferred);}
+\DoxyCodeLine{168 }
+\DoxyCodeLine{169         strbuf.reserve(size);}
+\DoxyCodeLine{170         strbuf = boost::beast::buffers\_to\_string(buffer\_.data());    }
+\DoxyCodeLine{171         std::cout << strbuf << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{172         buffer\_.consume(buffer\_.size());}
+\DoxyCodeLine{173         ws\_.async\_read(}
+\DoxyCodeLine{174             buffer\_,}
+\DoxyCodeLine{175             beast::bind\_front\_handler(}
+\DoxyCodeLine{176                 \&WSSession::on\_read,}
+\DoxyCodeLine{177                 shared\_from\_this()));}
+\DoxyCodeLine{178         Log(ec, strbuf.c\_str());}
+\DoxyCodeLine{179     \}}
+\DoxyCodeLine{180 \textcolor{keyword}{private}:}
+\DoxyCodeLine{181     \textcolor{keywordtype}{void} Log(beast::error\_code ec, \textcolor{keywordtype}{char} \textcolor{keyword}{const}* what)}
+\DoxyCodeLine{182     \{}
+\DoxyCodeLine{183         logger\_-\/>Log(what);}
+\DoxyCodeLine{184     \}}
+\DoxyCodeLine{185 }
+\DoxyCodeLine{186 \};}
+
+\end{DoxyCode}

@@ -1,0 +1,58 @@
+\hypertarget{classdetail_1_1bigint}{}\doxysection{detail\+::bigint Class Reference}
+\label{classdetail_1_1bigint}\index{detail::bigint@{detail::bigint}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a65d99072dfd6aeefcfef76c7a7f95a08}\label{classdetail_1_1bigint_a65d99072dfd6aeefcfef76c7a7f95a08}} 
+{\bfseries bigint} (uint64\+\_\+t n)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_afcdadd1fb0875d88c5bf5b2e4dcd55bf}\label{classdetail_1_1bigint_afcdadd1fb0875d88c5bf5b2e4dcd55bf}} 
+{\bfseries bigint} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&)=delete
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a5cb74145a0631c08f94f3e07c7f2ba1f}\label{classdetail_1_1bigint_a5cb74145a0631c08f94f3e07c7f2ba1f}} 
+void {\bfseries operator=} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&)=delete
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a6f4b8db79eb3d7ed2b7087a5b7a9005e}\label{classdetail_1_1bigint_a6f4b8db79eb3d7ed2b7087a5b7a9005e}} 
+FMT\+\_\+\+CONSTEXPR20 void {\bfseries assign} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&other)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_aaff1755167354bb39218a6d006d28836}\label{classdetail_1_1bigint_aaff1755167354bb39218a6d006d28836}} 
+{\footnotesize template$<$typename Int $>$ }\\FMT\+\_\+\+CONSTEXPR20 void {\bfseries operator=} (Int n)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a51fb1f372c57b51076abf2c75d0706af}\label{classdetail_1_1bigint_a51fb1f372c57b51076abf2c75d0706af}} 
+FMT\+\_\+\+CONSTEXPR20 int {\bfseries num\+\_\+bigits} () const
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_ab9b2ed908f1bbd68fe873dbefb71452f}\label{classdetail_1_1bigint_ab9b2ed908f1bbd68fe873dbefb71452f}} 
+FMT\+\_\+\+NOINLINE FMT\+\_\+\+CONSTEXPR20 \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \& {\bfseries operator$<$$<$=} (int shift)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a342b2681a89ceeea355cd1895808daab}\label{classdetail_1_1bigint_a342b2681a89ceeea355cd1895808daab}} 
+{\footnotesize template$<$typename Int $>$ }\\FMT\+\_\+\+CONSTEXPR20 \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \& {\bfseries operator$\ast$=} (Int \mbox{\hyperlink{classdetail_1_1value}{value}})
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a8351139b55eb772c8f1c9f86e8e66e8f}\label{classdetail_1_1bigint_a8351139b55eb772c8f1c9f86e8e66e8f}} 
+FMT\+\_\+\+CONSTEXPR20 void {\bfseries assign\+\_\+pow10} (int exp)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a15833eda9c0cc326a77b0a37ac208a20}\label{classdetail_1_1bigint_a15833eda9c0cc326a77b0a37ac208a20}} 
+FMT\+\_\+\+CONSTEXPR20 void {\bfseries square} ()
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_ab3ca9eb9d3e27c8fa43c2ceebabd1a0b}\label{classdetail_1_1bigint_ab3ca9eb9d3e27c8fa43c2ceebabd1a0b}} 
+FMT\+\_\+\+CONSTEXPR20 void {\bfseries align} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&other)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_ab561a060f7cd8cfb75d62eda2826f749}\label{classdetail_1_1bigint_ab561a060f7cd8cfb75d62eda2826f749}} 
+FMT\+\_\+\+CONSTEXPR20 int {\bfseries divmod\+\_\+assign} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&divisor)
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a2cd69505524105acb7ee0daf64b55996}\label{classdetail_1_1bigint_a2cd69505524105acb7ee0daf64b55996}} 
+struct {\bfseries formatter$<$ bigint $>$}
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a13d78570d65d5e24201e795cea3549f4}\label{classdetail_1_1bigint_a13d78570d65d5e24201e795cea3549f4}} 
+FMT\+\_\+\+CONSTEXPR20 int {\bfseries compare} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&lhs, const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&rhs)
+\item 
+\mbox{\Hypertarget{classdetail_1_1bigint_a7bd684152457f6d907eb639ca0f6de78}\label{classdetail_1_1bigint_a7bd684152457f6d907eb639ca0f6de78}} 
+FMT\+\_\+\+CONSTEXPR20 int {\bfseries add\+\_\+compare} (const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&lhs1, const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&lhs2, const \mbox{\hyperlink{classdetail_1_1bigint}{bigint}} \&rhs)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/bybit/third\+\_\+party/fmt/format.\+h\end{DoxyCompactItemize}

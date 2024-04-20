@@ -1,0 +1,202 @@
+\hypertarget{classfmtlogDetailT}{}\doxysection{fmtlog\+DetailT\texorpdfstring{$<$}{<} \+\_\+\+\_\+\+\_\+ \texorpdfstring{$>$}{>} Class Template Reference}
+\label{classfmtlogDetailT}\index{fmtlogDetailT$<$ \_\_\_ $>$@{fmtlogDetailT$<$ \_\_\_ $>$}}
+
+
+Collaboration diagram for fmtlog\+DetailT\texorpdfstring{$<$}{<} \+\_\+\+\_\+\+\_\+ \texorpdfstring{$>$}{>}\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classfmtlogDetailT__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structfmtlogDetailT_1_1HeapNode}{Heap\+Node}}
+\item 
+struct \mbox{\hyperlink{structfmtlogDetailT_1_1StaticLogInfo}{Static\+Log\+Info}}
+\item 
+class \mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}
+\item 
+class \mbox{\hyperlink{classfmtlogDetailT_1_1ThreadBufferDestroyer}{Thread\+Buffer\+Destroyer}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a52261a4e5d0d4885ae3b8192b81e0b35}\label{classfmtlogDetailT_a52261a4e5d0d4885ae3b8192b81e0b35}} 
+void {\bfseries set\+Header\+Pattern} (const char $\ast$pattern)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a56a6acb425a1bc1e28f17dc8faf929ae}\label{classfmtlogDetailT_a56a6acb425a1bc1e28f17dc8faf929ae}} 
+void {\bfseries reset\+Date} ()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a0d967bf1a3e45b75fa49d0e9f7e0b7b0}\label{classfmtlogDetailT_a0d967bf1a3e45b75fa49d0e9f7e0b7b0}} 
+void {\bfseries preallocate} ()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a758522925071d9789be2fd06681c2926}\label{classfmtlogDetailT_a758522925071d9789be2fd06681c2926}} 
+{\footnotesize template$<$size\+\_\+t I, typename T $>$ }\\void {\bfseries set\+Arg} (const T \&arg)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a6684503632c84135c42ac9d493559eb0}\label{classfmtlogDetailT_a6684503632c84135c42ac9d493559eb0}} 
+{\footnotesize template$<$size\+\_\+t I, typename T $>$ }\\void {\bfseries set\+Arg\+Val} (const T \&arg)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a79e1644685375e715f8b9f1dfe100188}\label{classfmtlogDetailT_a79e1644685375e715f8b9f1dfe100188}} 
+void {\bfseries flush\+Log\+File} ()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_aa29d19abe9da1f181d75e51d40f74e18}\label{classfmtlogDetailT_aa29d19abe9da1f181d75e51d40f74e18}} 
+void {\bfseries close\+Log\+File} ()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a9e7a3d403be1cf20ca888f250818473f}\label{classfmtlogDetailT_a9e7a3d403be1cf20ca888f250818473f}} 
+void {\bfseries start\+Polling\+Thread} (int64\+\_\+t poll\+Interval)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ab7986f3c8c2a5efec942fcaaa9f0319b}\label{classfmtlogDetailT_ab7986f3c8c2a5efec942fcaaa9f0319b}} 
+void {\bfseries stop\+Polling\+Thread} ()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ac8c91e0ff464c619fe556dd6deee6b73}\label{classfmtlogDetailT_ac8c91e0ff464c619fe556dd6deee6b73}} 
+void {\bfseries handle\+Log} (fmt\+::string\+\_\+view thread\+Name, const fmtlog\+::\+SPSCVar\+Queue\+OPT\+::\+Msg\+Header $\ast$header)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ae81b7c9c2bf10a3376e515daee095bf9}\label{classfmtlogDetailT_ae81b7c9c2bf10a3376e515daee095bf9}} 
+void {\bfseries adjust\+Heap} (size\+\_\+t i)
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a6c7edffaecdad35ceec08c26d7e47b8b}\label{classfmtlogDetailT_a6c7edffaecdad35ceec08c26d7e47b8b}} 
+void {\bfseries poll} (bool force\+Flush)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a535d7a8d011c1c8836b2ca1b6e47428d}\label{classfmtlogDetailT_a535d7a8d011c1c8836b2ca1b6e47428d}} 
+int64\+\_\+t {\bfseries midnight\+Ns}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a3dcf79a1fcc2fe38777d54064c7a1475}\label{classfmtlogDetailT_a3dcf79a1fcc2fe38777d54064c7a1475}} 
+fmt\+::string\+\_\+view {\bfseries header\+Pattern}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a06dd58af2e485b36de1780f1046a9ddd}\label{classfmtlogDetailT_a06dd58af2e485b36de1780f1046a9ddd}} 
+bool {\bfseries should\+Deallocate\+Header} = false
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ae4ad5ca19ba636d36a7183bb625c70c7}\label{classfmtlogDetailT_ae4ad5ca19ba636d36a7183bb625c70c7}} 
+FILE $\ast$ {\bfseries output\+Fp} = nullptr
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a28ed1410d13ec713dbb829761e3cadc4}\label{classfmtlogDetailT_a28ed1410d13ec713dbb829761e3cadc4}} 
+bool {\bfseries manage\+Fp} = false
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_aaa355ef2444bedf44fcaa2a8b4238ee1}\label{classfmtlogDetailT_aaa355ef2444bedf44fcaa2a8b4238ee1}} 
+size\+\_\+t {\bfseries fpos} = 0
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a4a742512ae4add423c1bc614abb767bc}\label{classfmtlogDetailT_a4a742512ae4add423c1bc614abb767bc}} 
+int64\+\_\+t {\bfseries flush\+Delay}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a1c36edacade2da1959ab7644b3c4f96c}\label{classfmtlogDetailT_a1c36edacade2da1959ab7644b3c4f96c}} 
+int64\+\_\+t {\bfseries next\+Flush\+Time} = (std\+::numeric\+\_\+limits$<$int64\+\_\+t$>$\+::max)()
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a9a3a4f78d2ed90f5f24a6460bcfbd508}\label{classfmtlogDetailT_a9a3a4f78d2ed90f5f24a6460bcfbd508}} 
+uint32\+\_\+t {\bfseries flush\+Buf\+Size} = 8 $\ast$ 1024
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_afb32b29be8e340b3aa7a8c9eee7068ff}\label{classfmtlogDetailT_afb32b29be8e340b3aa7a8c9eee7068ff}} 
+fmtlog\+::\+Log\+Level {\bfseries flush\+Log\+Level} = fmtlog\+::\+OFF
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ac357e95219fe6b77e522d8e3f30311ec}\label{classfmtlogDetailT_ac357e95219fe6b77e522d8e3f30311ec}} 
+std\+::mutex {\bfseries buffer\+Mutex}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ac7c496b33dfc15f313e71dbdbf27d4df}\label{classfmtlogDetailT_ac7c496b33dfc15f313e71dbdbf27d4df}} 
+std\+::vector$<$ \mbox{\hyperlink{structfmtlogT_1_1ThreadBuffer}{fmtlog\+::\+Thread\+Buffer}} $\ast$ $>$ {\bfseries thread\+Buffers}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a494d71dfcc8c3fb764a2226df44c3982}\label{classfmtlogDetailT_a494d71dfcc8c3fb764a2226df44c3982}} 
+std\+::vector$<$ \mbox{\hyperlink{structfmtlogDetailT_1_1HeapNode}{Heap\+Node}} $>$ {\bfseries bg\+Thread\+Buffers}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a3ceee813411751e08c108f407a72271b}\label{classfmtlogDetailT_a3ceee813411751e08c108f407a72271b}} 
+std\+::mutex {\bfseries log\+Info\+Mutex}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ab42d14b9e397a54c4ffbe5437b310ee1}\label{classfmtlogDetailT_ab42d14b9e397a54c4ffbe5437b310ee1}} 
+std\+::vector$<$ \mbox{\hyperlink{structfmtlogDetailT_1_1StaticLogInfo}{Static\+Log\+Info}} $>$ {\bfseries log\+Infos}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a8ebb6ce802d26675c911b5db0f9dcaf5}\label{classfmtlogDetailT_a8ebb6ce802d26675c911b5db0f9dcaf5}} 
+std\+::vector$<$ \mbox{\hyperlink{structfmtlogDetailT_1_1StaticLogInfo}{Static\+Log\+Info}} $>$ {\bfseries bg\+Log\+Infos}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a917b280902c9af59ed1dc737723675fb}\label{classfmtlogDetailT_a917b280902c9af59ed1dc737723675fb}} 
+fmtlog\+::\+Log\+CBFn {\bfseries log\+CB} = nullptr
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_accff3e66da34d0a85f7c44d9c2d30b48}\label{classfmtlogDetailT_accff3e66da34d0a85f7c44d9c2d30b48}} 
+fmtlog\+::\+Log\+Level {\bfseries min\+CBLog\+Level}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a558d758eb5913f32de43a17d2e2de73e}\label{classfmtlogDetailT_a558d758eb5913f32de43a17d2e2de73e}} 
+fmtlog\+::\+Log\+QFull\+CBFn {\bfseries log\+QFull\+CB} = fmtlog\+Empty\+Fun
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a8fa7ff9e3e8f2a75b20276b4055bc711}\label{classfmtlogDetailT_a8fa7ff9e3e8f2a75b20276b4055bc711}} 
+void $\ast$ {\bfseries log\+QFull\+CBArg} = nullptr
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ae9561dba99767419e87e2dd17ad25737}\label{classfmtlogDetailT_ae9561dba99767419e87e2dd17ad25737}} 
+fmtlog\+::\+Memory\+Buffer {\bfseries membuf}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_aa143144ae532b867a15c32062eeb444f}\label{classfmtlogDetailT_aa143144ae532b867a15c32062eeb444f}} 
+uint32\+\_\+t {\bfseries reorder\+Idx} \mbox{[}partten\+Arg\+Size\mbox{]}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a803f7a29eeea5a53855fd309cf5ae1e2}\label{classfmtlogDetailT_a803f7a29eeea5a53855fd309cf5ae1e2}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 3 $>$ {\bfseries weekday\+Name}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a583e1aff5aa6e8fc82668f4accd12717}\label{classfmtlogDetailT_a583e1aff5aa6e8fc82668f4accd12717}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 3 $>$ {\bfseries month\+Name}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_abe538fb1153588ba47f23f9b2117bd1b}\label{classfmtlogDetailT_abe538fb1153588ba47f23f9b2117bd1b}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 4 $>$ {\bfseries year}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a18f10644cafeb126065177673c3e77b1}\label{classfmtlogDetailT_a18f10644cafeb126065177673c3e77b1}} 
+char {\bfseries dash1} = \textquotesingle{}-\/\textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a91da71128e2ab60adfaefeb564d500c5}\label{classfmtlogDetailT_a91da71128e2ab60adfaefeb564d500c5}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 2 $>$ {\bfseries month}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a6aa23992f6ac0f4a4a7958b416a623d8}\label{classfmtlogDetailT_a6aa23992f6ac0f4a4a7958b416a623d8}} 
+char {\bfseries dash2} = \textquotesingle{}-\/\textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a119cf352b798d5981b65f6f4eba2cb67}\label{classfmtlogDetailT_a119cf352b798d5981b65f6f4eba2cb67}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 2 $>$ {\bfseries day}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a9943f2a40da19417578ab2cf19e6e8d5}\label{classfmtlogDetailT_a9943f2a40da19417578ab2cf19e6e8d5}} 
+char {\bfseries space} = \textquotesingle{} \textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a6085def611280bf68328c67758b37641}\label{classfmtlogDetailT_a6085def611280bf68328c67758b37641}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 2 $>$ {\bfseries hour}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_adf6b916a794dc9e6cd85451fe90a7155}\label{classfmtlogDetailT_adf6b916a794dc9e6cd85451fe90a7155}} 
+char {\bfseries colon1} = \textquotesingle{}\+:\textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ab7c1c8df393e2df4e53d3d03affb49fd}\label{classfmtlogDetailT_ab7c1c8df393e2df4e53d3d03affb49fd}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 2 $>$ {\bfseries minute}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a9b1e74c83d58951ddc617805c6c5bc25}\label{classfmtlogDetailT_a9b1e74c83d58951ddc617805c6c5bc25}} 
+char {\bfseries colon2} = \textquotesingle{}\+:\textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_abb6b7909a72e2bc988787b60b6e4bb86}\label{classfmtlogDetailT_abb6b7909a72e2bc988787b60b6e4bb86}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 2 $>$ {\bfseries second}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a48ff7ec1bdb15534b1c89d398f2a5cb3}\label{classfmtlogDetailT_a48ff7ec1bdb15534b1c89d398f2a5cb3}} 
+char {\bfseries dot1} = \textquotesingle{}.\textquotesingle{}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a1b9a99ef3b41c0f666f82c17b685ee1e}\label{classfmtlogDetailT_a1b9a99ef3b41c0f666f82c17b685ee1e}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 9 $>$ {\bfseries nanosecond}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_aae6d24f2a3f80af6507d7e3f6813e276}\label{classfmtlogDetailT_aae6d24f2a3f80af6507d7e3f6813e276}} 
+\mbox{\hyperlink{classfmtlogDetailT_1_1Str}{Str}}$<$ 3 $>$ {\bfseries log\+Level}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a814052f0a01845b1ef2fd401b5dca2f4}\label{classfmtlogDetailT_a814052f0a01845b1ef2fd401b5dca2f4}} 
+std\+::vector$<$ fmt\+::basic\+\_\+format\+\_\+arg$<$ fmtlog\+::\+Context $>$ $>$ {\bfseries args}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_a2bbc2773942fb40f5ca10e8b311638b9}\label{classfmtlogDetailT_a2bbc2773942fb40f5ca10e8b311638b9}} 
+volatile bool {\bfseries thread\+Running} = false
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_aa5328eb72dac500d8fba22148b977afc}\label{classfmtlogDetailT_aa5328eb72dac500d8fba22148b977afc}} 
+std\+::thread {\bfseries thr}
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_af43bd72a408bd3e25e30de1b1c79d452}\label{classfmtlogDetailT_af43bd72a408bd3e25e30de1b1c79d452}} 
+static thread\+\_\+local \mbox{\hyperlink{classfmtlogDetailT_1_1ThreadBufferDestroyer}{Thread\+Buffer\+Destroyer}} {\bfseries sbc}
+\item 
+\mbox{\Hypertarget{classfmtlogDetailT_ad7c1347bdf90c440a334af5957476167}\label{classfmtlogDetailT_ad7c1347bdf90c440a334af5957476167}} 
+static const int {\bfseries partten\+Arg\+Size} = 25
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/bybit/third\+\_\+party/fmtlog-\/inl.\+h\end{DoxyCompactItemize}

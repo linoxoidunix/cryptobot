@@ -1,0 +1,2182 @@
+\hypertarget{chrono_8h_source}{}\doxysection{chrono.\+h}
+\label{chrono_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/chrono.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/chrono.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// Formatting library for C++ -\/ chrono support}}
+\DoxyCodeLine{2 \textcolor{comment}{//}}
+\DoxyCodeLine{3 \textcolor{comment}{// Copyright (c) 2012 -\/ present, Victor Zverovich}}
+\DoxyCodeLine{4 \textcolor{comment}{// All rights reserved.}}
+\DoxyCodeLine{5 \textcolor{comment}{//}}
+\DoxyCodeLine{6 \textcolor{comment}{// For the license information refer to format.h.}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#ifndef FMT\_CHRONO\_H\_}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#define FMT\_CHRONO\_H\_}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include <algorithm>}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include <cmath>}    \textcolor{comment}{// std::isfinite}}
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include <cstring>}  \textcolor{comment}{// std::memcpy}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include <ctime>}}
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include <iterator>}}
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#include <locale>}}
+\DoxyCodeLine{18 \textcolor{preprocessor}{\#include <ostream>}}
+\DoxyCodeLine{19 \textcolor{preprocessor}{\#include <type\_traits>}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 \textcolor{preprocessor}{\#include "{}format.h"{}}}
+\DoxyCodeLine{22 }
+\DoxyCodeLine{23 FMT\_BEGIN\_NAMESPACE}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25 \textcolor{comment}{// Check if std::chrono::local\_t is available.}}
+\DoxyCodeLine{26 \textcolor{preprocessor}{\#ifndef FMT\_USE\_LOCAL\_TIME}}
+\DoxyCodeLine{27 \textcolor{preprocessor}{\#  ifdef \_\_cpp\_lib\_chrono}}
+\DoxyCodeLine{28 \textcolor{preprocessor}{\#    define FMT\_USE\_LOCAL\_TIME (\_\_cpp\_lib\_chrono >= 201907L)}}
+\DoxyCodeLine{29 \textcolor{preprocessor}{\#  else}}
+\DoxyCodeLine{30 \textcolor{preprocessor}{\#    define FMT\_USE\_LOCAL\_TIME 0}}
+\DoxyCodeLine{31 \textcolor{preprocessor}{\#  endif}}
+\DoxyCodeLine{32 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{33 }
+\DoxyCodeLine{34 \textcolor{comment}{// Check if std::chrono::utc\_timestamp is available.}}
+\DoxyCodeLine{35 \textcolor{preprocessor}{\#ifndef FMT\_USE\_UTC\_TIME}}
+\DoxyCodeLine{36 \textcolor{preprocessor}{\#  ifdef \_\_cpp\_lib\_chrono}}
+\DoxyCodeLine{37 \textcolor{preprocessor}{\#    define FMT\_USE\_UTC\_TIME (\_\_cpp\_lib\_chrono >= 201907L)}}
+\DoxyCodeLine{38 \textcolor{preprocessor}{\#  else}}
+\DoxyCodeLine{39 \textcolor{preprocessor}{\#    define FMT\_USE\_UTC\_TIME 0}}
+\DoxyCodeLine{40 \textcolor{preprocessor}{\#  endif}}
+\DoxyCodeLine{41 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43 \textcolor{comment}{// Enable tzset.}}
+\DoxyCodeLine{44 \textcolor{preprocessor}{\#ifndef FMT\_USE\_TZSET}}
+\DoxyCodeLine{45 \textcolor{comment}{// UWP doesn't provide \_tzset.}}
+\DoxyCodeLine{46 \textcolor{preprocessor}{\#  if FMT\_HAS\_INCLUDE("{}winapifamily.h"{}})}
+\DoxyCodeLine{47 \textcolor{preprocessor}{\#    include <winapifamily.h>}}
+\DoxyCodeLine{48 \textcolor{preprocessor}{\#  endif}}
+\DoxyCodeLine{49 \textcolor{preprocessor}{\#  if defined(\_WIN32) \&\& (!defined(WINAPI\_FAMILY) || \(\backslash\)}}
+\DoxyCodeLine{50 \textcolor{preprocessor}{                          (WINAPI\_FAMILY == WINAPI\_FAMILY\_DESKTOP\_APP))}}
+\DoxyCodeLine{51 \textcolor{preprocessor}{\#    define FMT\_USE\_TZSET 1}}
+\DoxyCodeLine{52 \textcolor{preprocessor}{\#  else}}
+\DoxyCodeLine{53 \textcolor{preprocessor}{\#    define FMT\_USE\_TZSET 0}}
+\DoxyCodeLine{54 \textcolor{preprocessor}{\#  endif}}
+\DoxyCodeLine{55 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{56 }
+\DoxyCodeLine{57 \textcolor{comment}{// Enable safe chrono durations, unless explicitly disabled.}}
+\DoxyCodeLine{58 \textcolor{preprocessor}{\#ifndef FMT\_SAFE\_DURATION\_CAST}}
+\DoxyCodeLine{59 \textcolor{preprocessor}{\#  define FMT\_SAFE\_DURATION\_CAST 1}}
+\DoxyCodeLine{60 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{61 \textcolor{preprocessor}{\#if FMT\_SAFE\_DURATION\_CAST}}
+\DoxyCodeLine{62 }
+\DoxyCodeLine{63 \textcolor{comment}{// For conversion between std::chrono::durations without undefined}}
+\DoxyCodeLine{64 \textcolor{comment}{// behaviour or erroneous results.}}
+\DoxyCodeLine{65 \textcolor{comment}{// This is a stripped down version of duration\_cast, for inclusion in fmt.}}
+\DoxyCodeLine{66 \textcolor{comment}{// See https://github.com/pauldreik/safe\_duration\_cast}}
+\DoxyCodeLine{67 \textcolor{comment}{//}}
+\DoxyCodeLine{68 \textcolor{comment}{// Copyright Paul Dreik 2019}}
+\DoxyCodeLine{69 \textcolor{keyword}{namespace }safe\_duration\_cast \{}
+\DoxyCodeLine{70 }
+\DoxyCodeLine{71 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} From,}
+\DoxyCodeLine{72           FMT\_ENABLE\_IF(!std::is\_same<From, To>::value \&\&}
+\DoxyCodeLine{73                         std::numeric\_limits<From>::is\_signed ==}
+\DoxyCodeLine{74                             std::numeric\_limits<To>::is\_signed)>}
+\DoxyCodeLine{75 FMT\_CONSTEXPR To lossless\_integral\_conversion(\textcolor{keyword}{const} From from, \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{76   ec = 0;}
+\DoxyCodeLine{77   \textcolor{keyword}{using }F = std::numeric\_limits<From>;}
+\DoxyCodeLine{78   \textcolor{keyword}{using }T = std::numeric\_limits<To>;}
+\DoxyCodeLine{79   \textcolor{keyword}{static\_assert}(F::is\_integer, \textcolor{stringliteral}{"{}From must be integral"{}});}
+\DoxyCodeLine{80   \textcolor{keyword}{static\_assert}(T::is\_integer, \textcolor{stringliteral}{"{}To must be integral"{}});}
+\DoxyCodeLine{81 }
+\DoxyCodeLine{82   \textcolor{comment}{// A and B are both signed, or both unsigned.}}
+\DoxyCodeLine{83   \textcolor{keywordflow}{if} (detail::const\_check(F::digits <= T::digits)) \{}
+\DoxyCodeLine{84     \textcolor{comment}{// From fits in To without any problem.}}
+\DoxyCodeLine{85   \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{86     \textcolor{comment}{// From does not always fit in To, resort to a dynamic check.}}
+\DoxyCodeLine{87     \textcolor{keywordflow}{if} (from < (T::min)() || from > (T::max)()) \{}
+\DoxyCodeLine{88       \textcolor{comment}{// outside range.}}
+\DoxyCodeLine{89       ec = 1;}
+\DoxyCodeLine{90       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{91     \}}
+\DoxyCodeLine{92   \}}
+\DoxyCodeLine{93   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}To\textcolor{keyword}{>}(from);}
+\DoxyCodeLine{94 \}}
+\DoxyCodeLine{95 }
+\DoxyCodeLine{100 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} From,}
+\DoxyCodeLine{101           FMT\_ENABLE\_IF(!std::is\_same<From, To>::value \&\&}
+\DoxyCodeLine{102                         std::numeric\_limits<From>::is\_signed !=}
+\DoxyCodeLine{103                             std::numeric\_limits<To>::is\_signed)>}
+\DoxyCodeLine{104 FMT\_CONSTEXPR To lossless\_integral\_conversion(\textcolor{keyword}{const} From from, \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{105   ec = 0;}
+\DoxyCodeLine{106   \textcolor{keyword}{using }F = std::numeric\_limits<From>;}
+\DoxyCodeLine{107   \textcolor{keyword}{using }T = std::numeric\_limits<To>;}
+\DoxyCodeLine{108   \textcolor{keyword}{static\_assert}(F::is\_integer, \textcolor{stringliteral}{"{}From must be integral"{}});}
+\DoxyCodeLine{109   \textcolor{keyword}{static\_assert}(T::is\_integer, \textcolor{stringliteral}{"{}To must be integral"{}});}
+\DoxyCodeLine{110 }
+\DoxyCodeLine{111   \textcolor{keywordflow}{if} (detail::const\_check(F::is\_signed \&\& !T::is\_signed)) \{}
+\DoxyCodeLine{112     \textcolor{comment}{// From may be negative, not allowed!}}
+\DoxyCodeLine{113     \textcolor{keywordflow}{if} (fmt::detail::is\_negative(from)) \{}
+\DoxyCodeLine{114       ec = 1;}
+\DoxyCodeLine{115       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{116     \}}
+\DoxyCodeLine{117     \textcolor{comment}{// From is positive. Can it always fit in To?}}
+\DoxyCodeLine{118     \textcolor{keywordflow}{if} (detail::const\_check(F::digits > T::digits) \&\&}
+\DoxyCodeLine{119         from > \textcolor{keyword}{static\_cast<}From\textcolor{keyword}{>}(detail::max\_value<To>())) \{}
+\DoxyCodeLine{120       ec = 1;}
+\DoxyCodeLine{121       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{122     \}}
+\DoxyCodeLine{123   \}}
+\DoxyCodeLine{124 }
+\DoxyCodeLine{125   \textcolor{keywordflow}{if} (detail::const\_check(!F::is\_signed \&\& T::is\_signed \&\&}
+\DoxyCodeLine{126                           F::digits >= T::digits) \&\&}
+\DoxyCodeLine{127       from > \textcolor{keyword}{static\_cast<}From\textcolor{keyword}{>}(detail::max\_value<To>())) \{}
+\DoxyCodeLine{128     ec = 1;}
+\DoxyCodeLine{129     \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{130   \}}
+\DoxyCodeLine{131   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}To\textcolor{keyword}{>}(from);  \textcolor{comment}{// Lossless conversion.}}
+\DoxyCodeLine{132 \}}
+\DoxyCodeLine{133 }
+\DoxyCodeLine{134 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} From,}
+\DoxyCodeLine{135           FMT\_ENABLE\_IF(std::is\_same<From, To>::value)>}
+\DoxyCodeLine{136 FMT\_CONSTEXPR To lossless\_integral\_conversion(\textcolor{keyword}{const} From from, \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{137   ec = 0;}
+\DoxyCodeLine{138   \textcolor{keywordflow}{return} from;}
+\DoxyCodeLine{139 \}  \textcolor{comment}{// function}}
+\DoxyCodeLine{140 }
+\DoxyCodeLine{141 \textcolor{comment}{// clang-\/format off}}
+\DoxyCodeLine{154 \textcolor{comment}{}\textcolor{comment}{// clang-\/format on}}
+\DoxyCodeLine{155 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} From,}
+\DoxyCodeLine{156           FMT\_ENABLE\_IF(!std::is\_same<From, To>::value)>}
+\DoxyCodeLine{157 FMT\_CONSTEXPR To safe\_float\_conversion(\textcolor{keyword}{const} From from, \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{158   ec = 0;}
+\DoxyCodeLine{159   \textcolor{keyword}{using }T = std::numeric\_limits<To>;}
+\DoxyCodeLine{160   \textcolor{keyword}{static\_assert}(std::is\_floating\_point<From>::value, \textcolor{stringliteral}{"{}From must be floating"{}});}
+\DoxyCodeLine{161   \textcolor{keyword}{static\_assert}(std::is\_floating\_point<To>::value, \textcolor{stringliteral}{"{}To must be floating"{}});}
+\DoxyCodeLine{162 }
+\DoxyCodeLine{163   \textcolor{comment}{// catch the only happy case}}
+\DoxyCodeLine{164   \textcolor{keywordflow}{if} (std::isfinite(from)) \{}
+\DoxyCodeLine{165     \textcolor{keywordflow}{if} (from >= T::lowest() \&\& from <= (T::max)()) \{}
+\DoxyCodeLine{166       \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}To\textcolor{keyword}{>}(from);}
+\DoxyCodeLine{167     \}}
+\DoxyCodeLine{168     \textcolor{comment}{// not within range.}}
+\DoxyCodeLine{169     ec = 1;}
+\DoxyCodeLine{170     \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{171   \}}
+\DoxyCodeLine{172 }
+\DoxyCodeLine{173   \textcolor{comment}{// nan and inf will be preserved}}
+\DoxyCodeLine{174   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}To\textcolor{keyword}{>}(from);}
+\DoxyCodeLine{175 \}  \textcolor{comment}{// function}}
+\DoxyCodeLine{176 }
+\DoxyCodeLine{177 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} From,}
+\DoxyCodeLine{178           FMT\_ENABLE\_IF(std::is\_same<From, To>::value)>}
+\DoxyCodeLine{179 FMT\_CONSTEXPR To safe\_float\_conversion(\textcolor{keyword}{const} From from, \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{180   ec = 0;}
+\DoxyCodeLine{181   \textcolor{keyword}{static\_assert}(std::is\_floating\_point<From>::value, \textcolor{stringliteral}{"{}From must be floating"{}});}
+\DoxyCodeLine{182   \textcolor{keywordflow}{return} from;}
+\DoxyCodeLine{183 \}}
+\DoxyCodeLine{184 }
+\DoxyCodeLine{188 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} FromRep, \textcolor{keyword}{typename} FromPeriod,}
+\DoxyCodeLine{189           FMT\_ENABLE\_IF(std::is\_integral<FromRep>::value),}
+\DoxyCodeLine{190           FMT\_ENABLE\_IF(std::is\_integral<typename To::rep>::value)>}
+\DoxyCodeLine{191 To safe\_duration\_cast(std::chrono::duration<FromRep, FromPeriod> from,}
+\DoxyCodeLine{192                       \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{193   \textcolor{keyword}{using }From = std::chrono::duration<FromRep, FromPeriod>;}
+\DoxyCodeLine{194   ec = 0;}
+\DoxyCodeLine{195   \textcolor{comment}{// the basic idea is that we need to convert from count() in the from type}}
+\DoxyCodeLine{196   \textcolor{comment}{// to count() in the To type, by multiplying it with this:}}
+\DoxyCodeLine{197   \textcolor{keyword}{struct }Factor}
+\DoxyCodeLine{198       : std::ratio\_divide<typename From::period, typename To::period> \{\};}
+\DoxyCodeLine{199 }
+\DoxyCodeLine{200   \textcolor{keyword}{static\_assert}(Factor::num > 0, \textcolor{stringliteral}{"{}num must be positive"{}});}
+\DoxyCodeLine{201   \textcolor{keyword}{static\_assert}(Factor::den > 0, \textcolor{stringliteral}{"{}den must be positive"{}});}
+\DoxyCodeLine{202 }
+\DoxyCodeLine{203   \textcolor{comment}{// the conversion is like this: multiply from.count() with Factor::num}}
+\DoxyCodeLine{204   \textcolor{comment}{// /Factor::den and convert it to To::rep, all this without}}
+\DoxyCodeLine{205   \textcolor{comment}{// overflow/underflow. let's start by finding a suitable type that can hold}}
+\DoxyCodeLine{206   \textcolor{comment}{// both To, From and Factor::num}}
+\DoxyCodeLine{207   \textcolor{keyword}{using }IntermediateRep =}
+\DoxyCodeLine{208       \textcolor{keyword}{typename} std::common\_type<\textcolor{keyword}{typename} From::rep, \textcolor{keyword}{typename} To::rep,}
+\DoxyCodeLine{209                                 \textcolor{keyword}{decltype}(Factor::num)>::type;}
+\DoxyCodeLine{210 }
+\DoxyCodeLine{211   \textcolor{comment}{// safe conversion to IntermediateRep}}
+\DoxyCodeLine{212   IntermediateRep count =}
+\DoxyCodeLine{213       lossless\_integral\_conversion<IntermediateRep>(from.count(), ec);}
+\DoxyCodeLine{214   \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{215   \textcolor{comment}{// multiply with Factor::num without overflow or underflow}}
+\DoxyCodeLine{216   \textcolor{keywordflow}{if} (detail::const\_check(Factor::num != 1)) \{}
+\DoxyCodeLine{217     \textcolor{keyword}{const} \textcolor{keyword}{auto} max1 = detail::max\_value<IntermediateRep>() / Factor::num;}
+\DoxyCodeLine{218     \textcolor{keywordflow}{if} (count > max1) \{}
+\DoxyCodeLine{219       ec = 1;}
+\DoxyCodeLine{220       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{221     \}}
+\DoxyCodeLine{222     \textcolor{keyword}{const} \textcolor{keyword}{auto} min1 =}
+\DoxyCodeLine{223         (std::numeric\_limits<IntermediateRep>::min)() / Factor::num;}
+\DoxyCodeLine{224     \textcolor{keywordflow}{if} (detail::const\_check(!std::is\_unsigned<IntermediateRep>::value) \&\&}
+\DoxyCodeLine{225         count < min1) \{}
+\DoxyCodeLine{226       ec = 1;}
+\DoxyCodeLine{227       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{228     \}}
+\DoxyCodeLine{229     count *= Factor::num;}
+\DoxyCodeLine{230   \}}
+\DoxyCodeLine{231 }
+\DoxyCodeLine{232   \textcolor{keywordflow}{if} (detail::const\_check(Factor::den != 1)) count /= Factor::den;}
+\DoxyCodeLine{233   \textcolor{keyword}{auto} tocount = lossless\_integral\_conversion<typename To::rep>(count, ec);}
+\DoxyCodeLine{234   \textcolor{keywordflow}{return} ec ? To() : To(tocount);}
+\DoxyCodeLine{235 \}}
+\DoxyCodeLine{236 }
+\DoxyCodeLine{240 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} FromRep, \textcolor{keyword}{typename} FromPeriod,}
+\DoxyCodeLine{241           FMT\_ENABLE\_IF(std::is\_floating\_point<FromRep>::value),}
+\DoxyCodeLine{242           FMT\_ENABLE\_IF(std::is\_floating\_point<typename To::rep>::value)>}
+\DoxyCodeLine{243 To safe\_duration\_cast(std::chrono::duration<FromRep, FromPeriod> from,}
+\DoxyCodeLine{244                       \textcolor{keywordtype}{int}\& ec) \{}
+\DoxyCodeLine{245   \textcolor{keyword}{using }From = std::chrono::duration<FromRep, FromPeriod>;}
+\DoxyCodeLine{246   ec = 0;}
+\DoxyCodeLine{247   \textcolor{keywordflow}{if} (std::isnan(from.count())) \{}
+\DoxyCodeLine{248     \textcolor{comment}{// nan in, gives nan out. easy.}}
+\DoxyCodeLine{249     \textcolor{keywordflow}{return} To\{std::numeric\_limits<typename To::rep>::quiet\_NaN()\};}
+\DoxyCodeLine{250   \}}
+\DoxyCodeLine{251   \textcolor{comment}{// maybe we should also check if from is denormal, and decide what to do about}}
+\DoxyCodeLine{252   \textcolor{comment}{// it.}}
+\DoxyCodeLine{253 }
+\DoxyCodeLine{254   \textcolor{comment}{// +-\/inf should be preserved.}}
+\DoxyCodeLine{255   \textcolor{keywordflow}{if} (std::isinf(from.count())) \{}
+\DoxyCodeLine{256     \textcolor{keywordflow}{return} To\{from.count()\};}
+\DoxyCodeLine{257   \}}
+\DoxyCodeLine{258 }
+\DoxyCodeLine{259   \textcolor{comment}{// the basic idea is that we need to convert from count() in the from type}}
+\DoxyCodeLine{260   \textcolor{comment}{// to count() in the To type, by multiplying it with this:}}
+\DoxyCodeLine{261   \textcolor{keyword}{struct }Factor}
+\DoxyCodeLine{262       : std::ratio\_divide<typename From::period, typename To::period> \{\};}
+\DoxyCodeLine{263 }
+\DoxyCodeLine{264   \textcolor{keyword}{static\_assert}(Factor::num > 0, \textcolor{stringliteral}{"{}num must be positive"{}});}
+\DoxyCodeLine{265   \textcolor{keyword}{static\_assert}(Factor::den > 0, \textcolor{stringliteral}{"{}den must be positive"{}});}
+\DoxyCodeLine{266 }
+\DoxyCodeLine{267   \textcolor{comment}{// the conversion is like this: multiply from.count() with Factor::num}}
+\DoxyCodeLine{268   \textcolor{comment}{// /Factor::den and convert it to To::rep, all this without}}
+\DoxyCodeLine{269   \textcolor{comment}{// overflow/underflow. let's start by finding a suitable type that can hold}}
+\DoxyCodeLine{270   \textcolor{comment}{// both To, From and Factor::num}}
+\DoxyCodeLine{271   \textcolor{keyword}{using }IntermediateRep =}
+\DoxyCodeLine{272       \textcolor{keyword}{typename} std::common\_type<\textcolor{keyword}{typename} From::rep, \textcolor{keyword}{typename} To::rep,}
+\DoxyCodeLine{273                                 \textcolor{keyword}{decltype}(Factor::num)>::type;}
+\DoxyCodeLine{274 }
+\DoxyCodeLine{275   \textcolor{comment}{// force conversion of From::rep -\/> IntermediateRep to be safe,}}
+\DoxyCodeLine{276   \textcolor{comment}{// even if it will never happen be narrowing in this context.}}
+\DoxyCodeLine{277   IntermediateRep count =}
+\DoxyCodeLine{278       safe\_float\_conversion<IntermediateRep>(from.count(), ec);}
+\DoxyCodeLine{279   \textcolor{keywordflow}{if} (ec) \{}
+\DoxyCodeLine{280     \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{281   \}}
+\DoxyCodeLine{282 }
+\DoxyCodeLine{283   \textcolor{comment}{// multiply with Factor::num without overflow or underflow}}
+\DoxyCodeLine{284   \textcolor{keywordflow}{if} (detail::const\_check(Factor::num != 1)) \{}
+\DoxyCodeLine{285     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} max1 = detail::max\_value<IntermediateRep>() /}
+\DoxyCodeLine{286                           \textcolor{keyword}{static\_cast<}IntermediateRep\textcolor{keyword}{>}(Factor::num);}
+\DoxyCodeLine{287     \textcolor{keywordflow}{if} (count > max1) \{}
+\DoxyCodeLine{288       ec = 1;}
+\DoxyCodeLine{289       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{290     \}}
+\DoxyCodeLine{291     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} min1 = std::numeric\_limits<IntermediateRep>::lowest() /}
+\DoxyCodeLine{292                           \textcolor{keyword}{static\_cast<}IntermediateRep\textcolor{keyword}{>}(Factor::num);}
+\DoxyCodeLine{293     \textcolor{keywordflow}{if} (count < min1) \{}
+\DoxyCodeLine{294       ec = 1;}
+\DoxyCodeLine{295       \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{296     \}}
+\DoxyCodeLine{297     count *= \textcolor{keyword}{static\_cast<}IntermediateRep\textcolor{keyword}{>}(Factor::num);}
+\DoxyCodeLine{298   \}}
+\DoxyCodeLine{299 }
+\DoxyCodeLine{300   \textcolor{comment}{// this can't go wrong, right? den>0 is checked earlier.}}
+\DoxyCodeLine{301   \textcolor{keywordflow}{if} (detail::const\_check(Factor::den != 1)) \{}
+\DoxyCodeLine{302     \textcolor{keyword}{using }common\_t = \textcolor{keyword}{typename} std::common\_type<IntermediateRep, intmax\_t>::type;}
+\DoxyCodeLine{303     count /= \textcolor{keyword}{static\_cast<}common\_t\textcolor{keyword}{>}(Factor::den);}
+\DoxyCodeLine{304   \}}
+\DoxyCodeLine{305 }
+\DoxyCodeLine{306   \textcolor{comment}{// convert to the to type, safely}}
+\DoxyCodeLine{307   \textcolor{keyword}{using }ToRep = \textcolor{keyword}{typename} To::rep;}
+\DoxyCodeLine{308 }
+\DoxyCodeLine{309   \textcolor{keyword}{const} ToRep tocount = safe\_float\_conversion<ToRep>(count, ec);}
+\DoxyCodeLine{310   \textcolor{keywordflow}{if} (ec) \{}
+\DoxyCodeLine{311     \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{312   \}}
+\DoxyCodeLine{313   \textcolor{keywordflow}{return} To\{tocount\};}
+\DoxyCodeLine{314 \}}
+\DoxyCodeLine{315 \}  \textcolor{comment}{// namespace safe\_duration\_cast}}
+\DoxyCodeLine{316 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{317 }
+\DoxyCodeLine{318 \textcolor{comment}{// Prevents expansion of a preceding token as a function-\/style macro.}}
+\DoxyCodeLine{319 \textcolor{comment}{// Usage: f FMT\_NOMACRO()}}
+\DoxyCodeLine{320 \textcolor{preprocessor}{\#define FMT\_NOMACRO}}
+\DoxyCodeLine{321 }
+\DoxyCodeLine{322 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{323 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T = \textcolor{keywordtype}{void}> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1null}{null}} \{\};}
+\DoxyCodeLine{324 \textcolor{keyword}{inline} \mbox{\hyperlink{structdetail_1_1null}{null<>}} localtime\_r FMT\_NOMACRO(...) \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{structdetail_1_1null}{null<>}}(); \}}
+\DoxyCodeLine{325 \textcolor{keyword}{inline} null<> localtime\_s(...) \{ \textcolor{keywordflow}{return} null<>(); \}}
+\DoxyCodeLine{326 \textcolor{keyword}{inline} null<> gmtime\_r(...) \{ \textcolor{keywordflow}{return} null<>(); \}}
+\DoxyCodeLine{327 \textcolor{keyword}{inline} null<> gmtime\_s(...) \{ \textcolor{keywordflow}{return} null<>(); \}}
+\DoxyCodeLine{328 }
+\DoxyCodeLine{329 \textcolor{keyword}{inline} \textcolor{keyword}{const} std::locale\& get\_classic\_locale() \{}
+\DoxyCodeLine{330   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keyword}{auto}\& locale = std::locale::classic();}
+\DoxyCodeLine{331   \textcolor{keywordflow}{return} locale;}
+\DoxyCodeLine{332 \}}
+\DoxyCodeLine{333 }
+\DoxyCodeLine{334 \textcolor{keyword}{template} <\textcolor{keyword}{typename} CodeUnit> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1codecvt__result}{codecvt\_result}} \{}
+\DoxyCodeLine{335   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} max\_size = 32;}
+\DoxyCodeLine{336   CodeUnit buf[max\_size];}
+\DoxyCodeLine{337   CodeUnit* end;}
+\DoxyCodeLine{338 \};}
+\DoxyCodeLine{339 \textcolor{keyword}{template} <\textcolor{keyword}{typename} CodeUnit>}
+\DoxyCodeLine{340 \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} \mbox{\hyperlink{structdetail_1_1codecvt__result}{codecvt\_result<CodeUnit>::max\_size}};}
+\DoxyCodeLine{341 }
+\DoxyCodeLine{342 \textcolor{keyword}{template} <\textcolor{keyword}{typename} CodeUnit>}
+\DoxyCodeLine{343 \textcolor{keywordtype}{void} write\_codecvt(\mbox{\hyperlink{structdetail_1_1codecvt__result}{codecvt\_result<CodeUnit>}}\& out, \mbox{\hyperlink{classbasic__string__view}{string\_view}} in\_buf,}
+\DoxyCodeLine{344                    \textcolor{keyword}{const} std::locale\& loc) \{}
+\DoxyCodeLine{345 \textcolor{preprocessor}{\#if FMT\_CLANG\_VERSION}}
+\DoxyCodeLine{346 \textcolor{preprocessor}{\#  pragma clang diagnostic push}}
+\DoxyCodeLine{347 \textcolor{preprocessor}{\#  pragma clang diagnostic ignored "{}-\/Wdeprecated"{}}}
+\DoxyCodeLine{348   \textcolor{keyword}{auto}\& f = std::use\_facet<std::codecvt<CodeUnit, char, std::mbstate\_t>>(loc);}
+\DoxyCodeLine{349 \textcolor{preprocessor}{\#  pragma clang diagnostic pop}}
+\DoxyCodeLine{350 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{351   \textcolor{keyword}{auto}\& f = std::use\_facet<std::codecvt<CodeUnit, char, std::mbstate\_t>>(loc);}
+\DoxyCodeLine{352 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{353   \textcolor{keyword}{auto} mb = std::mbstate\_t();}
+\DoxyCodeLine{354   \textcolor{keyword}{const} \textcolor{keywordtype}{char}* from\_next = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{355   \textcolor{keyword}{auto} result = f.in(mb, in\_buf.begin(), in\_buf.end(), from\_next,}
+\DoxyCodeLine{356                      std::begin(out.buf), std::end(out.buf), out.end);}
+\DoxyCodeLine{357   \textcolor{keywordflow}{if} (result != std::codecvt\_base::ok)}
+\DoxyCodeLine{358     FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}failed to format time"{}}));}
+\DoxyCodeLine{359 \}}
+\DoxyCodeLine{360 }
+\DoxyCodeLine{361 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{362 \textcolor{keyword}{auto} write\_encoded\_tm\_str(OutputIt out, \mbox{\hyperlink{classbasic__string__view}{string\_view}} in, \textcolor{keyword}{const} std::locale\& loc)}
+\DoxyCodeLine{363     -\/> OutputIt \{}
+\DoxyCodeLine{364   \textcolor{keywordflow}{if} (detail::is\_utf8() \&\& loc != get\_classic\_locale()) \{}
+\DoxyCodeLine{365     \textcolor{comment}{// char16\_t and char32\_t codecvts are broken in MSVC (linkage errors) and}}
+\DoxyCodeLine{366     \textcolor{comment}{// gcc-\/4.}}
+\DoxyCodeLine{367 \textcolor{preprocessor}{\#if FMT\_MSC\_VERSION != 0 || \(\backslash\)}}
+\DoxyCodeLine{368 \textcolor{preprocessor}{    (defined(\_\_GLIBCXX\_\_) \&\& !defined(\_GLIBCXX\_USE\_DUAL\_ABI))}}
+\DoxyCodeLine{369     \textcolor{comment}{// The \_GLIBCXX\_USE\_DUAL\_ABI macro is always defined in libstdc++ from gcc-\/5}}
+\DoxyCodeLine{370     \textcolor{comment}{// and newer.}}
+\DoxyCodeLine{371     \textcolor{keyword}{using }code\_unit = wchar\_t;}
+\DoxyCodeLine{372 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{373     \textcolor{keyword}{using }code\_unit = char32\_t;}
+\DoxyCodeLine{374 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{375 }
+\DoxyCodeLine{376     \textcolor{keyword}{using }unit\_t = codecvt\_result<code\_unit>;}
+\DoxyCodeLine{377     unit\_t unit;}
+\DoxyCodeLine{378     write\_codecvt(unit, in, loc);}
+\DoxyCodeLine{379     \textcolor{comment}{// In UTF-\/8 is used one to four one-\/byte code units.}}
+\DoxyCodeLine{380     \textcolor{keyword}{auto} u =}
+\DoxyCodeLine{381         to\_utf8<code\_unit, basic\_memory\_buffer<char, unit\_t::max\_size * 4>>();}
+\DoxyCodeLine{382     \textcolor{keywordflow}{if} (!u.convert(\{unit.buf, to\_unsigned(unit.end -\/ unit.buf)\}))}
+\DoxyCodeLine{383       FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}failed to format time"{}}));}
+\DoxyCodeLine{384     \textcolor{keywordflow}{return} copy\_str<char>(u.c\_str(), u.c\_str() + u.size(), out);}
+\DoxyCodeLine{385   \}}
+\DoxyCodeLine{386   \textcolor{keywordflow}{return} copy\_str<char>(in.data(), in.data() + in.size(), out);}
+\DoxyCodeLine{387 \}}
+\DoxyCodeLine{388 }
+\DoxyCodeLine{389 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{390           FMT\_ENABLE\_IF(!std::is\_same<Char, char>::value)>}
+\DoxyCodeLine{391 \textcolor{keyword}{auto} write\_tm\_str(OutputIt out, \mbox{\hyperlink{classbasic__string__view}{string\_view}} sv, \textcolor{keyword}{const} std::locale\& loc)}
+\DoxyCodeLine{392     -\/> OutputIt \{}
+\DoxyCodeLine{393   codecvt\_result<Char> unit;}
+\DoxyCodeLine{394   write\_codecvt(unit, sv, loc);}
+\DoxyCodeLine{395   \textcolor{keywordflow}{return} copy\_str<Char>(unit.buf, unit.end, out);}
+\DoxyCodeLine{396 \}}
+\DoxyCodeLine{397 }
+\DoxyCodeLine{398 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{399           FMT\_ENABLE\_IF(std::is\_same<Char, char>::value)>}
+\DoxyCodeLine{400 \textcolor{keyword}{auto} write\_tm\_str(OutputIt out, \mbox{\hyperlink{classbasic__string__view}{string\_view}} sv, \textcolor{keyword}{const} std::locale\& loc)}
+\DoxyCodeLine{401     -\/> OutputIt \{}
+\DoxyCodeLine{402   \textcolor{keywordflow}{return} write\_encoded\_tm\_str(out, sv, loc);}
+\DoxyCodeLine{403 \}}
+\DoxyCodeLine{404 }
+\DoxyCodeLine{405 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{406 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} do\_write(buffer<Char>\& buf, \textcolor{keyword}{const} std::tm\& time,}
+\DoxyCodeLine{407                      \textcolor{keyword}{const} std::locale\& loc, \textcolor{keywordtype}{char} format, \textcolor{keywordtype}{char} modifier) \{}
+\DoxyCodeLine{408   \textcolor{keyword}{auto}\&\& format\_buf = formatbuf<std::basic\_streambuf<Char>>(buf);}
+\DoxyCodeLine{409   \textcolor{keyword}{auto}\&\& os = std::basic\_ostream<Char>(\&format\_buf);}
+\DoxyCodeLine{410   os.imbue(loc);}
+\DoxyCodeLine{411   \textcolor{keyword}{using }iterator = std::ostreambuf\_iterator<Char>;}
+\DoxyCodeLine{412   \textcolor{keyword}{const} \textcolor{keyword}{auto}\& facet = std::use\_facet<std::time\_put<Char, iterator>>(loc);}
+\DoxyCodeLine{413   \textcolor{keyword}{auto} end = facet.put(os, os, Char(\textcolor{charliteral}{' '}), \&time, format, modifier);}
+\DoxyCodeLine{414   \textcolor{keywordflow}{if} (end.failed()) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}failed to format time"{}}));}
+\DoxyCodeLine{415 \}}
+\DoxyCodeLine{416 }
+\DoxyCodeLine{417 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{418           FMT\_ENABLE\_IF(!std::is\_same<Char, char>::value)>}
+\DoxyCodeLine{419 \textcolor{keyword}{auto} write(OutputIt out, \textcolor{keyword}{const} std::tm\& time, \textcolor{keyword}{const} std::locale\& loc,}
+\DoxyCodeLine{420            \textcolor{keywordtype}{char} format, \textcolor{keywordtype}{char} modifier = 0) -\/> OutputIt \{}
+\DoxyCodeLine{421   \textcolor{keyword}{auto}\&\& buf = get\_buffer<Char>(out);}
+\DoxyCodeLine{422   do\_write<Char>(buf, time, loc, format, modifier);}
+\DoxyCodeLine{423   \textcolor{keywordflow}{return} get\_iterator(buf, out);}
+\DoxyCodeLine{424 \}}
+\DoxyCodeLine{425 }
+\DoxyCodeLine{426 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{427           FMT\_ENABLE\_IF(std::is\_same<Char, char>::value)>}
+\DoxyCodeLine{428 \textcolor{keyword}{auto} write(OutputIt out, \textcolor{keyword}{const} std::tm\& time, \textcolor{keyword}{const} std::locale\& loc,}
+\DoxyCodeLine{429            \textcolor{keywordtype}{char} format, \textcolor{keywordtype}{char} modifier = 0) -\/> OutputIt \{}
+\DoxyCodeLine{430   \textcolor{keyword}{auto}\&\& buf = \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}}();}
+\DoxyCodeLine{431   do\_write<char>(buf, time, loc, format, modifier);}
+\DoxyCodeLine{432   \textcolor{keywordflow}{return} write\_encoded\_tm\_str(out, \mbox{\hyperlink{classbasic__string__view}{string\_view}}(buf.data(), buf.size()), loc);}
+\DoxyCodeLine{433 \}}
+\DoxyCodeLine{434 }
+\DoxyCodeLine{435 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{436 }
+\DoxyCodeLine{437 FMT\_BEGIN\_EXPORT}
+\DoxyCodeLine{438 }
+\DoxyCodeLine{444 \textcolor{keyword}{inline} std::tm localtime(std::time\_t time) \{}
+\DoxyCodeLine{445   \textcolor{keyword}{struct }dispatcher \{}
+\DoxyCodeLine{446     std::time\_t time\_;}
+\DoxyCodeLine{447     std::tm tm\_;}
+\DoxyCodeLine{448 }
+\DoxyCodeLine{449     dispatcher(std::time\_t t) : time\_(t) \{\}}
+\DoxyCodeLine{450 }
+\DoxyCodeLine{451     \textcolor{keywordtype}{bool} run() \{}
+\DoxyCodeLine{452       \textcolor{keyword}{using namespace }fmt::detail;}
+\DoxyCodeLine{453       \textcolor{keywordflow}{return} handle(localtime\_r(\&time\_, \&tm\_));}
+\DoxyCodeLine{454     \}}
+\DoxyCodeLine{455 }
+\DoxyCodeLine{456     \textcolor{keywordtype}{bool} handle(std::tm* tm) \{ \textcolor{keywordflow}{return} tm != \textcolor{keyword}{nullptr}; \}}
+\DoxyCodeLine{457 }
+\DoxyCodeLine{458     \textcolor{keywordtype}{bool} handle(\mbox{\hyperlink{structdetail_1_1null}{detail::null<>}}) \{}
+\DoxyCodeLine{459       \textcolor{keyword}{using namespace }fmt::detail;}
+\DoxyCodeLine{460       \textcolor{keywordflow}{return} fallback(localtime\_s(\&tm\_, \&time\_));}
+\DoxyCodeLine{461     \}}
+\DoxyCodeLine{462 }
+\DoxyCodeLine{463     \textcolor{keywordtype}{bool} fallback(\textcolor{keywordtype}{int} res) \{ \textcolor{keywordflow}{return} res == 0; \}}
+\DoxyCodeLine{464 }
+\DoxyCodeLine{465 \textcolor{preprocessor}{\#if !FMT\_MSC\_VERSION}}
+\DoxyCodeLine{466     \textcolor{keywordtype}{bool} fallback(\mbox{\hyperlink{structdetail_1_1null}{detail::null<>}}) \{}
+\DoxyCodeLine{467       \textcolor{keyword}{using namespace }fmt::detail;}
+\DoxyCodeLine{468       std::tm* tm = std::localtime(\&time\_);}
+\DoxyCodeLine{469       \textcolor{keywordflow}{if} (tm) tm\_ = *tm;}
+\DoxyCodeLine{470       \textcolor{keywordflow}{return} tm != \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{471     \}}
+\DoxyCodeLine{472 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{473   \};}
+\DoxyCodeLine{474   dispatcher lt(time);}
+\DoxyCodeLine{475   \textcolor{comment}{// Too big time values may be unsupported.}}
+\DoxyCodeLine{476   \textcolor{keywordflow}{if} (!lt.run()) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}time\_t value out of range"{}}));}
+\DoxyCodeLine{477   \textcolor{keywordflow}{return} lt.tm\_;}
+\DoxyCodeLine{478 \}}
+\DoxyCodeLine{479 }
+\DoxyCodeLine{480 \textcolor{preprocessor}{\#if FMT\_USE\_LOCAL\_TIME}}
+\DoxyCodeLine{481 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{482 \textcolor{keyword}{inline} \textcolor{keyword}{auto} localtime(std::chrono::local\_time<Duration> time) -\/> std::tm \{}
+\DoxyCodeLine{483   \textcolor{keywordflow}{return} localtime(std::chrono::system\_clock::to\_time\_t(}
+\DoxyCodeLine{484       std::chrono::current\_zone()-\/>to\_sys(time)));}
+\DoxyCodeLine{485 \}}
+\DoxyCodeLine{486 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{487 }
+\DoxyCodeLine{493 \textcolor{keyword}{inline} std::tm gmtime(std::time\_t time) \{}
+\DoxyCodeLine{494   \textcolor{keyword}{struct }dispatcher \{}
+\DoxyCodeLine{495     std::time\_t time\_;}
+\DoxyCodeLine{496     std::tm tm\_;}
+\DoxyCodeLine{497 }
+\DoxyCodeLine{498     dispatcher(std::time\_t t) : time\_(t) \{\}}
+\DoxyCodeLine{499 }
+\DoxyCodeLine{500     \textcolor{keywordtype}{bool} run() \{}
+\DoxyCodeLine{501       \textcolor{keyword}{using namespace }fmt::detail;}
+\DoxyCodeLine{502       \textcolor{keywordflow}{return} handle(gmtime\_r(\&time\_, \&tm\_));}
+\DoxyCodeLine{503     \}}
+\DoxyCodeLine{504 }
+\DoxyCodeLine{505     \textcolor{keywordtype}{bool} handle(std::tm* tm) \{ \textcolor{keywordflow}{return} tm != \textcolor{keyword}{nullptr}; \}}
+\DoxyCodeLine{506 }
+\DoxyCodeLine{507     \textcolor{keywordtype}{bool} handle(\mbox{\hyperlink{structdetail_1_1null}{detail::null<>}}) \{}
+\DoxyCodeLine{508       \textcolor{keyword}{using namespace }fmt::detail;}
+\DoxyCodeLine{509       \textcolor{keywordflow}{return} fallback(gmtime\_s(\&tm\_, \&time\_));}
+\DoxyCodeLine{510     \}}
+\DoxyCodeLine{511 }
+\DoxyCodeLine{512     \textcolor{keywordtype}{bool} fallback(\textcolor{keywordtype}{int} res) \{ \textcolor{keywordflow}{return} res == 0; \}}
+\DoxyCodeLine{513 }
+\DoxyCodeLine{514 \textcolor{preprocessor}{\#if !FMT\_MSC\_VERSION}}
+\DoxyCodeLine{515     \textcolor{keywordtype}{bool} fallback(\mbox{\hyperlink{structdetail_1_1null}{detail::null<>}}) \{}
+\DoxyCodeLine{516       std::tm* tm = std::gmtime(\&time\_);}
+\DoxyCodeLine{517       \textcolor{keywordflow}{if} (tm) tm\_ = *tm;}
+\DoxyCodeLine{518       \textcolor{keywordflow}{return} tm != \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{519     \}}
+\DoxyCodeLine{520 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{521   \};}
+\DoxyCodeLine{522   \textcolor{keyword}{auto} gt = dispatcher(time);}
+\DoxyCodeLine{523   \textcolor{comment}{// Too big time values may be unsupported.}}
+\DoxyCodeLine{524   \textcolor{keywordflow}{if} (!gt.run()) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}time\_t value out of range"{}}));}
+\DoxyCodeLine{525   \textcolor{keywordflow}{return} gt.tm\_;}
+\DoxyCodeLine{526 \}}
+\DoxyCodeLine{527 }
+\DoxyCodeLine{528 \textcolor{keyword}{inline} std::tm gmtime(}
+\DoxyCodeLine{529     std::chrono::time\_point<std::chrono::system\_clock> time\_point) \{}
+\DoxyCodeLine{530   \textcolor{keywordflow}{return} gmtime(std::chrono::system\_clock::to\_time\_t(time\_point));}
+\DoxyCodeLine{531 \}}
+\DoxyCodeLine{532 }
+\DoxyCodeLine{533 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{534 }
+\DoxyCodeLine{535 \textcolor{comment}{// Writes two-\/digit numbers a, b and c separated by sep to buf.}}
+\DoxyCodeLine{536 \textcolor{comment}{// The method by Pavel Novikov based on}}
+\DoxyCodeLine{537 \textcolor{comment}{// https://johnnylee-\/sde.github.io/Fast-\/unsigned-\/integer-\/to-\/time-\/string/.}}
+\DoxyCodeLine{538 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} write\_digit2\_separated(\textcolor{keywordtype}{char}* buf, \textcolor{keywordtype}{unsigned} a, \textcolor{keywordtype}{unsigned} b,}
+\DoxyCodeLine{539                                    \textcolor{keywordtype}{unsigned} c, \textcolor{keywordtype}{char} sep) \{}
+\DoxyCodeLine{540   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} digits =}
+\DoxyCodeLine{541       a | (b << 24) | (static\_cast<unsigned long long>(c) << 48);}
+\DoxyCodeLine{542   \textcolor{comment}{// Convert each value to BCD.}}
+\DoxyCodeLine{543   \textcolor{comment}{// We have x = a * 10 + b and we want to convert it to BCD y = a * 16 + b.}}
+\DoxyCodeLine{544   \textcolor{comment}{// The difference is}}
+\DoxyCodeLine{545   \textcolor{comment}{//   y -\/ x = a * 6}}
+\DoxyCodeLine{546   \textcolor{comment}{// a can be found from x:}}
+\DoxyCodeLine{547   \textcolor{comment}{//   a = floor(x / 10)}}
+\DoxyCodeLine{548   \textcolor{comment}{// then}}
+\DoxyCodeLine{549   \textcolor{comment}{//   y = x + a * 6 = x + floor(x / 10) * 6}}
+\DoxyCodeLine{550   \textcolor{comment}{// floor(x / 10) is (x * 205) >> 11 (needs 16 bits).}}
+\DoxyCodeLine{551   digits += (((digits * 205) >> 11) \& 0x000f00000f00000f) * 6;}
+\DoxyCodeLine{552   \textcolor{comment}{// Put low nibbles to high bytes and high nibbles to low bytes.}}
+\DoxyCodeLine{553   digits = ((digits \& 0x00f00000f00000f0) >> 4) |}
+\DoxyCodeLine{554            ((digits \& 0x000f00000f00000f) << 8);}
+\DoxyCodeLine{555   \textcolor{keyword}{auto} usep = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long}\textcolor{keyword}{>}(sep);}
+\DoxyCodeLine{556   \textcolor{comment}{// Add ASCII '0' to each digit byte and insert separators.}}
+\DoxyCodeLine{557   digits |= 0x3030003030003030 | (usep << 16) | (usep << 40);}
+\DoxyCodeLine{558 }
+\DoxyCodeLine{559   \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} len = 8;}
+\DoxyCodeLine{560   \textcolor{keywordflow}{if} (const\_check(is\_big\_endian())) \{}
+\DoxyCodeLine{561     \textcolor{keywordtype}{char} tmp[len];}
+\DoxyCodeLine{562     std::memcpy(tmp, \&digits, len);}
+\DoxyCodeLine{563     std::reverse\_copy(tmp, tmp + len, buf);}
+\DoxyCodeLine{564   \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{565     std::memcpy(buf, \&digits, len);}
+\DoxyCodeLine{566   \}}
+\DoxyCodeLine{567 \}}
+\DoxyCodeLine{568 }
+\DoxyCodeLine{569 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Period> FMT\_CONSTEXPR \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* get\_units() \{}
+\DoxyCodeLine{570   \textcolor{keywordflow}{if} (std::is\_same<Period, std::atto>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}as"{}};}
+\DoxyCodeLine{571   \textcolor{keywordflow}{if} (std::is\_same<Period, std::femto>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}fs"{}};}
+\DoxyCodeLine{572   \textcolor{keywordflow}{if} (std::is\_same<Period, std::pico>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ps"{}};}
+\DoxyCodeLine{573   \textcolor{keywordflow}{if} (std::is\_same<Period, std::nano>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ns"{}};}
+\DoxyCodeLine{574   \textcolor{keywordflow}{if} (std::is\_same<Period, std::micro>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}µs"{}};}
+\DoxyCodeLine{575   \textcolor{keywordflow}{if} (std::is\_same<Period, std::milli>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ms"{}};}
+\DoxyCodeLine{576   \textcolor{keywordflow}{if} (std::is\_same<Period, std::centi>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}cs"{}};}
+\DoxyCodeLine{577   \textcolor{keywordflow}{if} (std::is\_same<Period, std::deci>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ds"{}};}
+\DoxyCodeLine{578   \textcolor{keywordflow}{if} (std::is\_same<Period, std::ratio<1>>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}s"{}};}
+\DoxyCodeLine{579   \textcolor{keywordflow}{if} (std::is\_same<Period, std::deca>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}das"{}};}
+\DoxyCodeLine{580   \textcolor{keywordflow}{if} (std::is\_same<Period, std::hecto>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}hs"{}};}
+\DoxyCodeLine{581   \textcolor{keywordflow}{if} (std::is\_same<Period, std::kilo>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ks"{}};}
+\DoxyCodeLine{582   \textcolor{keywordflow}{if} (std::is\_same<Period, std::mega>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}Ms"{}};}
+\DoxyCodeLine{583   \textcolor{keywordflow}{if} (std::is\_same<Period, std::giga>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}Gs"{}};}
+\DoxyCodeLine{584   \textcolor{keywordflow}{if} (std::is\_same<Period, std::tera>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}Ts"{}};}
+\DoxyCodeLine{585   \textcolor{keywordflow}{if} (std::is\_same<Period, std::peta>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}Ps"{}};}
+\DoxyCodeLine{586   \textcolor{keywordflow}{if} (std::is\_same<Period, std::exa>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}Es"{}};}
+\DoxyCodeLine{587   \textcolor{keywordflow}{if} (std::is\_same<Period, std::ratio<60>>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}m"{}};}
+\DoxyCodeLine{588   \textcolor{keywordflow}{if} (std::is\_same<Period, std::ratio<3600>>::value) \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}h"{}};}
+\DoxyCodeLine{589   \textcolor{keywordflow}{return} \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{590 \}}
+\DoxyCodeLine{591 }
+\DoxyCodeLine{592 \textcolor{keyword}{enum class} numeric\_system \{}
+\DoxyCodeLine{593   standard,}
+\DoxyCodeLine{594   \textcolor{comment}{// Alternative numeric system, e.g. 十二 instead of 12 in ja\_JP locale.}}
+\DoxyCodeLine{595   alternative}
+\DoxyCodeLine{596 \};}
+\DoxyCodeLine{597 }
+\DoxyCodeLine{598 \textcolor{comment}{// Glibc extensions for formatting numeric values.}}
+\DoxyCodeLine{599 \textcolor{keyword}{enum class} pad\_type \{}
+\DoxyCodeLine{600   unspecified,}
+\DoxyCodeLine{601   \textcolor{comment}{// Do not pad a numeric result string.}}
+\DoxyCodeLine{602   none,}
+\DoxyCodeLine{603   \textcolor{comment}{// Pad a numeric result string with zeros even if the conversion specifier}}
+\DoxyCodeLine{604   \textcolor{comment}{// character uses space-\/padding by default.}}
+\DoxyCodeLine{605   zero,}
+\DoxyCodeLine{606   \textcolor{comment}{// Pad a numeric result string with spaces.}}
+\DoxyCodeLine{607   space,}
+\DoxyCodeLine{608 \};}
+\DoxyCodeLine{609 }
+\DoxyCodeLine{610 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{611 \textcolor{keyword}{auto} write\_padding(OutputIt out, pad\_type pad, \textcolor{keywordtype}{int} width) -\/> OutputIt \{}
+\DoxyCodeLine{612   \textcolor{keywordflow}{if} (pad == pad\_type::none) \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{613   \textcolor{keywordflow}{return} std::fill\_n(out, width, pad == pad\_type::space ? \textcolor{charliteral}{' '} : \textcolor{charliteral}{'0'});}
+\DoxyCodeLine{614 \}}
+\DoxyCodeLine{615 }
+\DoxyCodeLine{616 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{617 \textcolor{keyword}{auto} write\_padding(OutputIt out, pad\_type pad) -\/> OutputIt \{}
+\DoxyCodeLine{618   \textcolor{keywordflow}{if} (pad != pad\_type::none) *out++ = pad == pad\_type::space ? \textcolor{charliteral}{' '} : \textcolor{charliteral}{'0'};}
+\DoxyCodeLine{619   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{620 \}}
+\DoxyCodeLine{621 }
+\DoxyCodeLine{622 \textcolor{comment}{// Parses a put\_time-\/like format string and invokes handler actions.}}
+\DoxyCodeLine{623 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Handler>}
+\DoxyCodeLine{624 FMT\_CONSTEXPR \textcolor{keyword}{const} Char* parse\_chrono\_format(\textcolor{keyword}{const} Char* begin,}
+\DoxyCodeLine{625                                               \textcolor{keyword}{const} Char* end,}
+\DoxyCodeLine{626                                               Handler\&\& handler) \{}
+\DoxyCodeLine{627   \textcolor{keywordflow}{if} (begin == end || *begin == \textcolor{charliteral}{'\}'}) \textcolor{keywordflow}{return} begin;}
+\DoxyCodeLine{628   \textcolor{keywordflow}{if} (*begin != \textcolor{charliteral}{'\%'}) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{629   \textcolor{keyword}{auto} ptr = begin;}
+\DoxyCodeLine{630   pad\_type pad = pad\_type::unspecified;}
+\DoxyCodeLine{631   \textcolor{keywordflow}{while} (ptr != end) \{}
+\DoxyCodeLine{632     \textcolor{keyword}{auto} c = *ptr;}
+\DoxyCodeLine{633     \textcolor{keywordflow}{if} (c == \textcolor{charliteral}{'\}'}) \textcolor{keywordflow}{break};}
+\DoxyCodeLine{634     \textcolor{keywordflow}{if} (c != \textcolor{charliteral}{'\%'}) \{}
+\DoxyCodeLine{635       ++ptr;}
+\DoxyCodeLine{636       \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{637     \}}
+\DoxyCodeLine{638     \textcolor{keywordflow}{if} (begin != ptr) handler.on\_text(begin, ptr);}
+\DoxyCodeLine{639     ++ptr;  \textcolor{comment}{// consume '\%'}}
+\DoxyCodeLine{640     \textcolor{keywordflow}{if} (ptr == end) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{641     c = *ptr;}
+\DoxyCodeLine{642     \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{643     \textcolor{keywordflow}{case} \textcolor{charliteral}{'\_'}:}
+\DoxyCodeLine{644       pad = pad\_type::space;}
+\DoxyCodeLine{645       ++ptr;}
+\DoxyCodeLine{646       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{647     \textcolor{keywordflow}{case} \textcolor{charliteral}{'-\/'}:}
+\DoxyCodeLine{648       pad = pad\_type::none;}
+\DoxyCodeLine{649       ++ptr;}
+\DoxyCodeLine{650       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{651     \textcolor{keywordflow}{case} \textcolor{charliteral}{'0'}:}
+\DoxyCodeLine{652       pad = pad\_type::zero;}
+\DoxyCodeLine{653       ++ptr;}
+\DoxyCodeLine{654       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{655     \}}
+\DoxyCodeLine{656     \textcolor{keywordflow}{if} (ptr == end) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{657     c = *ptr++;}
+\DoxyCodeLine{658     \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{659     \textcolor{keywordflow}{case} \textcolor{charliteral}{'\%'}:}
+\DoxyCodeLine{660       handler.on\_text(ptr -\/ 1, ptr);}
+\DoxyCodeLine{661       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{662     \textcolor{keywordflow}{case} \textcolor{charliteral}{'n'}: \{}
+\DoxyCodeLine{663       \textcolor{keyword}{const} Char newline[] = \{\textcolor{charliteral}{'\(\backslash\)n'}\};}
+\DoxyCodeLine{664       handler.on\_text(newline, newline + 1);}
+\DoxyCodeLine{665       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{666     \}}
+\DoxyCodeLine{667     \textcolor{keywordflow}{case} \textcolor{charliteral}{'t'}: \{}
+\DoxyCodeLine{668       \textcolor{keyword}{const} Char tab[] = \{\textcolor{charliteral}{'\(\backslash\)t'}\};}
+\DoxyCodeLine{669       handler.on\_text(tab, tab + 1);}
+\DoxyCodeLine{670       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{671     \}}
+\DoxyCodeLine{672     \textcolor{comment}{// Year:}}
+\DoxyCodeLine{673     \textcolor{keywordflow}{case} \textcolor{charliteral}{'Y'}:}
+\DoxyCodeLine{674       handler.on\_year(numeric\_system::standard);}
+\DoxyCodeLine{675       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{676     \textcolor{keywordflow}{case} \textcolor{charliteral}{'y'}:}
+\DoxyCodeLine{677       handler.on\_short\_year(numeric\_system::standard);}
+\DoxyCodeLine{678       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{679     \textcolor{keywordflow}{case} \textcolor{charliteral}{'C'}:}
+\DoxyCodeLine{680       handler.on\_century(numeric\_system::standard);}
+\DoxyCodeLine{681       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{682     \textcolor{keywordflow}{case} \textcolor{charliteral}{'G'}:}
+\DoxyCodeLine{683       handler.on\_iso\_week\_based\_year();}
+\DoxyCodeLine{684       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{685     \textcolor{keywordflow}{case} \textcolor{charliteral}{'g'}:}
+\DoxyCodeLine{686       handler.on\_iso\_week\_based\_short\_year();}
+\DoxyCodeLine{687       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{688     \textcolor{comment}{// Day of the week:}}
+\DoxyCodeLine{689     \textcolor{keywordflow}{case} \textcolor{charliteral}{'a'}:}
+\DoxyCodeLine{690       handler.on\_abbr\_weekday();}
+\DoxyCodeLine{691       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{692     \textcolor{keywordflow}{case} \textcolor{charliteral}{'A'}:}
+\DoxyCodeLine{693       handler.on\_full\_weekday();}
+\DoxyCodeLine{694       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{695     \textcolor{keywordflow}{case} \textcolor{charliteral}{'w'}:}
+\DoxyCodeLine{696       handler.on\_dec0\_weekday(numeric\_system::standard);}
+\DoxyCodeLine{697       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{698     \textcolor{keywordflow}{case} \textcolor{charliteral}{'u'}:}
+\DoxyCodeLine{699       handler.on\_dec1\_weekday(numeric\_system::standard);}
+\DoxyCodeLine{700       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{701     \textcolor{comment}{// Month:}}
+\DoxyCodeLine{702     \textcolor{keywordflow}{case} \textcolor{charliteral}{'b'}:}
+\DoxyCodeLine{703     \textcolor{keywordflow}{case} \textcolor{charliteral}{'h'}:}
+\DoxyCodeLine{704       handler.on\_abbr\_month();}
+\DoxyCodeLine{705       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{706     \textcolor{keywordflow}{case} \textcolor{charliteral}{'B'}:}
+\DoxyCodeLine{707       handler.on\_full\_month();}
+\DoxyCodeLine{708       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{709     \textcolor{keywordflow}{case} \textcolor{charliteral}{'m'}:}
+\DoxyCodeLine{710       handler.on\_dec\_month(numeric\_system::standard);}
+\DoxyCodeLine{711       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{712     \textcolor{comment}{// Day of the year/month:}}
+\DoxyCodeLine{713     \textcolor{keywordflow}{case} \textcolor{charliteral}{'U'}:}
+\DoxyCodeLine{714       handler.on\_dec0\_week\_of\_year(numeric\_system::standard);}
+\DoxyCodeLine{715       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{716     \textcolor{keywordflow}{case} \textcolor{charliteral}{'W'}:}
+\DoxyCodeLine{717       handler.on\_dec1\_week\_of\_year(numeric\_system::standard);}
+\DoxyCodeLine{718       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{719     \textcolor{keywordflow}{case} \textcolor{charliteral}{'V'}:}
+\DoxyCodeLine{720       handler.on\_iso\_week\_of\_year(numeric\_system::standard);}
+\DoxyCodeLine{721       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{722     \textcolor{keywordflow}{case} \textcolor{charliteral}{'j'}:}
+\DoxyCodeLine{723       handler.on\_day\_of\_year();}
+\DoxyCodeLine{724       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{725     \textcolor{keywordflow}{case} \textcolor{charliteral}{'d'}:}
+\DoxyCodeLine{726       handler.on\_day\_of\_month(numeric\_system::standard);}
+\DoxyCodeLine{727       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{728     \textcolor{keywordflow}{case} \textcolor{charliteral}{'e'}:}
+\DoxyCodeLine{729       handler.on\_day\_of\_month\_space(numeric\_system::standard);}
+\DoxyCodeLine{730       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{731     \textcolor{comment}{// Hour, minute, second:}}
+\DoxyCodeLine{732     \textcolor{keywordflow}{case} \textcolor{charliteral}{'H'}:}
+\DoxyCodeLine{733       handler.on\_24\_hour(numeric\_system::standard, pad);}
+\DoxyCodeLine{734       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{735     \textcolor{keywordflow}{case} \textcolor{charliteral}{'I'}:}
+\DoxyCodeLine{736       handler.on\_12\_hour(numeric\_system::standard, pad);}
+\DoxyCodeLine{737       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{738     \textcolor{keywordflow}{case} \textcolor{charliteral}{'M'}:}
+\DoxyCodeLine{739       handler.on\_minute(numeric\_system::standard, pad);}
+\DoxyCodeLine{740       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{741     \textcolor{keywordflow}{case} \textcolor{charliteral}{'S'}:}
+\DoxyCodeLine{742       handler.on\_second(numeric\_system::standard, pad);}
+\DoxyCodeLine{743       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{744     \textcolor{comment}{// Other:}}
+\DoxyCodeLine{745     \textcolor{keywordflow}{case} \textcolor{charliteral}{'c'}:}
+\DoxyCodeLine{746       handler.on\_datetime(numeric\_system::standard);}
+\DoxyCodeLine{747       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{748     \textcolor{keywordflow}{case} \textcolor{charliteral}{'x'}:}
+\DoxyCodeLine{749       handler.on\_loc\_date(numeric\_system::standard);}
+\DoxyCodeLine{750       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{751     \textcolor{keywordflow}{case} \textcolor{charliteral}{'X'}:}
+\DoxyCodeLine{752       handler.on\_loc\_time(numeric\_system::standard);}
+\DoxyCodeLine{753       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{754     \textcolor{keywordflow}{case} \textcolor{charliteral}{'D'}:}
+\DoxyCodeLine{755       handler.on\_us\_date();}
+\DoxyCodeLine{756       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{757     \textcolor{keywordflow}{case} \textcolor{charliteral}{'F'}:}
+\DoxyCodeLine{758       handler.on\_iso\_date();}
+\DoxyCodeLine{759       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{760     \textcolor{keywordflow}{case} \textcolor{charliteral}{'r'}:}
+\DoxyCodeLine{761       handler.on\_12\_hour\_time();}
+\DoxyCodeLine{762       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{763     \textcolor{keywordflow}{case} \textcolor{charliteral}{'R'}:}
+\DoxyCodeLine{764       handler.on\_24\_hour\_time();}
+\DoxyCodeLine{765       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{766     \textcolor{keywordflow}{case} \textcolor{charliteral}{'T'}:}
+\DoxyCodeLine{767       handler.on\_iso\_time();}
+\DoxyCodeLine{768       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{769     \textcolor{keywordflow}{case} \textcolor{charliteral}{'p'}:}
+\DoxyCodeLine{770       handler.on\_am\_pm();}
+\DoxyCodeLine{771       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{772     \textcolor{keywordflow}{case} \textcolor{charliteral}{'Q'}:}
+\DoxyCodeLine{773       handler.on\_duration\_value();}
+\DoxyCodeLine{774       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{775     \textcolor{keywordflow}{case} \textcolor{charliteral}{'q'}:}
+\DoxyCodeLine{776       handler.on\_duration\_unit();}
+\DoxyCodeLine{777       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{778     \textcolor{keywordflow}{case} \textcolor{charliteral}{'z'}:}
+\DoxyCodeLine{779       handler.on\_utc\_offset(numeric\_system::standard);}
+\DoxyCodeLine{780       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{781     \textcolor{keywordflow}{case} \textcolor{charliteral}{'Z'}:}
+\DoxyCodeLine{782       handler.on\_tz\_name();}
+\DoxyCodeLine{783       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{784     \textcolor{comment}{// Alternative representation:}}
+\DoxyCodeLine{785     \textcolor{keywordflow}{case} \textcolor{charliteral}{'E'}: \{}
+\DoxyCodeLine{786       \textcolor{keywordflow}{if} (ptr == end) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{787       c = *ptr++;}
+\DoxyCodeLine{788       \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{789       \textcolor{keywordflow}{case} \textcolor{charliteral}{'Y'}:}
+\DoxyCodeLine{790         handler.on\_year(numeric\_system::alternative);}
+\DoxyCodeLine{791         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{792       \textcolor{keywordflow}{case} \textcolor{charliteral}{'y'}:}
+\DoxyCodeLine{793         handler.on\_offset\_year();}
+\DoxyCodeLine{794         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{795       \textcolor{keywordflow}{case} \textcolor{charliteral}{'C'}:}
+\DoxyCodeLine{796         handler.on\_century(numeric\_system::alternative);}
+\DoxyCodeLine{797         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{798       \textcolor{keywordflow}{case} \textcolor{charliteral}{'c'}:}
+\DoxyCodeLine{799         handler.on\_datetime(numeric\_system::alternative);}
+\DoxyCodeLine{800         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{801       \textcolor{keywordflow}{case} \textcolor{charliteral}{'x'}:}
+\DoxyCodeLine{802         handler.on\_loc\_date(numeric\_system::alternative);}
+\DoxyCodeLine{803         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{804       \textcolor{keywordflow}{case} \textcolor{charliteral}{'X'}:}
+\DoxyCodeLine{805         handler.on\_loc\_time(numeric\_system::alternative);}
+\DoxyCodeLine{806         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{807       \textcolor{keywordflow}{case} \textcolor{charliteral}{'z'}:}
+\DoxyCodeLine{808         handler.on\_utc\_offset(numeric\_system::alternative);}
+\DoxyCodeLine{809         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{810       \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{811         FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{812       \}}
+\DoxyCodeLine{813       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{814     \}}
+\DoxyCodeLine{815     \textcolor{keywordflow}{case} \textcolor{charliteral}{'O'}:}
+\DoxyCodeLine{816       \textcolor{keywordflow}{if} (ptr == end) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{817       c = *ptr++;}
+\DoxyCodeLine{818       \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{819       \textcolor{keywordflow}{case} \textcolor{charliteral}{'y'}:}
+\DoxyCodeLine{820         handler.on\_short\_year(numeric\_system::alternative);}
+\DoxyCodeLine{821         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{822       \textcolor{keywordflow}{case} \textcolor{charliteral}{'m'}:}
+\DoxyCodeLine{823         handler.on\_dec\_month(numeric\_system::alternative);}
+\DoxyCodeLine{824         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{825       \textcolor{keywordflow}{case} \textcolor{charliteral}{'U'}:}
+\DoxyCodeLine{826         handler.on\_dec0\_week\_of\_year(numeric\_system::alternative);}
+\DoxyCodeLine{827         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{828       \textcolor{keywordflow}{case} \textcolor{charliteral}{'W'}:}
+\DoxyCodeLine{829         handler.on\_dec1\_week\_of\_year(numeric\_system::alternative);}
+\DoxyCodeLine{830         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{831       \textcolor{keywordflow}{case} \textcolor{charliteral}{'V'}:}
+\DoxyCodeLine{832         handler.on\_iso\_week\_of\_year(numeric\_system::alternative);}
+\DoxyCodeLine{833         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{834       \textcolor{keywordflow}{case} \textcolor{charliteral}{'d'}:}
+\DoxyCodeLine{835         handler.on\_day\_of\_month(numeric\_system::alternative);}
+\DoxyCodeLine{836         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{837       \textcolor{keywordflow}{case} \textcolor{charliteral}{'e'}:}
+\DoxyCodeLine{838         handler.on\_day\_of\_month\_space(numeric\_system::alternative);}
+\DoxyCodeLine{839         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{840       \textcolor{keywordflow}{case} \textcolor{charliteral}{'w'}:}
+\DoxyCodeLine{841         handler.on\_dec0\_weekday(numeric\_system::alternative);}
+\DoxyCodeLine{842         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{843       \textcolor{keywordflow}{case} \textcolor{charliteral}{'u'}:}
+\DoxyCodeLine{844         handler.on\_dec1\_weekday(numeric\_system::alternative);}
+\DoxyCodeLine{845         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{846       \textcolor{keywordflow}{case} \textcolor{charliteral}{'H'}:}
+\DoxyCodeLine{847         handler.on\_24\_hour(numeric\_system::alternative, pad);}
+\DoxyCodeLine{848         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{849       \textcolor{keywordflow}{case} \textcolor{charliteral}{'I'}:}
+\DoxyCodeLine{850         handler.on\_12\_hour(numeric\_system::alternative, pad);}
+\DoxyCodeLine{851         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{852       \textcolor{keywordflow}{case} \textcolor{charliteral}{'M'}:}
+\DoxyCodeLine{853         handler.on\_minute(numeric\_system::alternative, pad);}
+\DoxyCodeLine{854         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{855       \textcolor{keywordflow}{case} \textcolor{charliteral}{'S'}:}
+\DoxyCodeLine{856         handler.on\_second(numeric\_system::alternative, pad);}
+\DoxyCodeLine{857         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{858       \textcolor{keywordflow}{case} \textcolor{charliteral}{'z'}:}
+\DoxyCodeLine{859         handler.on\_utc\_offset(numeric\_system::alternative);}
+\DoxyCodeLine{860         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{861       \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{862         FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{863       \}}
+\DoxyCodeLine{864       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{865     \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{866       FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format"{}}));}
+\DoxyCodeLine{867     \}}
+\DoxyCodeLine{868     begin = ptr;}
+\DoxyCodeLine{869   \}}
+\DoxyCodeLine{870   \textcolor{keywordflow}{if} (begin != ptr) handler.on\_text(begin, ptr);}
+\DoxyCodeLine{871   \textcolor{keywordflow}{return} ptr;}
+\DoxyCodeLine{872 \}}
+\DoxyCodeLine{873 }
+\DoxyCodeLine{874 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Derived> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1null__chrono__spec__handler}{null\_chrono\_spec\_handler}} \{}
+\DoxyCodeLine{875   FMT\_CONSTEXPR \textcolor{keywordtype}{void} unsupported() \{}
+\DoxyCodeLine{876     \textcolor{keyword}{static\_cast<}Derived*\textcolor{keyword}{>}(\textcolor{keyword}{this})-\/>unsupported();}
+\DoxyCodeLine{877   \}}
+\DoxyCodeLine{878   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_year(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{879   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_short\_year(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{880   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_offset\_year() \{ unsupported(); \}}
+\DoxyCodeLine{881   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_century(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{882   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_based\_year() \{ unsupported(); \}}
+\DoxyCodeLine{883   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_based\_short\_year() \{ unsupported(); \}}
+\DoxyCodeLine{884   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_abbr\_weekday() \{ unsupported(); \}}
+\DoxyCodeLine{885   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_full\_weekday() \{ unsupported(); \}}
+\DoxyCodeLine{886   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec0\_weekday(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{887   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec1\_weekday(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{888   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_abbr\_month() \{ unsupported(); \}}
+\DoxyCodeLine{889   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_full\_month() \{ unsupported(); \}}
+\DoxyCodeLine{890   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec\_month(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{891   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec0\_week\_of\_year(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{892   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec1\_week\_of\_year(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{893   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_of\_year(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{894   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_year() \{ unsupported(); \}}
+\DoxyCodeLine{895   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_month(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{896   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_month\_space(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{897   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{898   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{899   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_minute(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{900   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_second(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{901   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_datetime(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{902   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_loc\_date(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{903   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_loc\_time(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{904   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_us\_date() \{ unsupported(); \}}
+\DoxyCodeLine{905   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_date() \{ unsupported(); \}}
+\DoxyCodeLine{906   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour\_time() \{ unsupported(); \}}
+\DoxyCodeLine{907   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour\_time() \{ unsupported(); \}}
+\DoxyCodeLine{908   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_time() \{ unsupported(); \}}
+\DoxyCodeLine{909   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_am\_pm() \{ unsupported(); \}}
+\DoxyCodeLine{910   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_duration\_value() \{ unsupported(); \}}
+\DoxyCodeLine{911   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_duration\_unit() \{ unsupported(); \}}
+\DoxyCodeLine{912   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_utc\_offset(numeric\_system) \{ unsupported(); \}}
+\DoxyCodeLine{913   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_tz\_name() \{ unsupported(); \}}
+\DoxyCodeLine{914 \};}
+\DoxyCodeLine{915 }
+\DoxyCodeLine{916 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1tm__format__checker}{tm\_format\_checker}} : \mbox{\hyperlink{structdetail_1_1null__chrono__spec__handler}{null\_chrono\_spec\_handler}}<tm\_format\_checker> \{}
+\DoxyCodeLine{917   FMT\_NORETURN \textcolor{keywordtype}{void} unsupported() \{ FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}no format"{}})); \}}
+\DoxyCodeLine{918 }
+\DoxyCodeLine{919   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{920   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_text(\textcolor{keyword}{const} Char*, \textcolor{keyword}{const} Char*) \{\}}
+\DoxyCodeLine{921   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_year(numeric\_system) \{\}}
+\DoxyCodeLine{922   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_short\_year(numeric\_system) \{\}}
+\DoxyCodeLine{923   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_offset\_year() \{\}}
+\DoxyCodeLine{924   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_century(numeric\_system) \{\}}
+\DoxyCodeLine{925   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_based\_year() \{\}}
+\DoxyCodeLine{926   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_based\_short\_year() \{\}}
+\DoxyCodeLine{927   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_abbr\_weekday() \{\}}
+\DoxyCodeLine{928   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_full\_weekday() \{\}}
+\DoxyCodeLine{929   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec0\_weekday(numeric\_system) \{\}}
+\DoxyCodeLine{930   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec1\_weekday(numeric\_system) \{\}}
+\DoxyCodeLine{931   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_abbr\_month() \{\}}
+\DoxyCodeLine{932   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_full\_month() \{\}}
+\DoxyCodeLine{933   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec\_month(numeric\_system) \{\}}
+\DoxyCodeLine{934   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec0\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{935   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_dec1\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{936   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{937   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_year() \{\}}
+\DoxyCodeLine{938   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_month(numeric\_system) \{\}}
+\DoxyCodeLine{939   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_day\_of\_month\_space(numeric\_system) \{\}}
+\DoxyCodeLine{940   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{941   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{942   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_minute(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{943   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_second(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{944   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_datetime(numeric\_system) \{\}}
+\DoxyCodeLine{945   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_loc\_date(numeric\_system) \{\}}
+\DoxyCodeLine{946   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_loc\_time(numeric\_system) \{\}}
+\DoxyCodeLine{947   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_us\_date() \{\}}
+\DoxyCodeLine{948   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_date() \{\}}
+\DoxyCodeLine{949   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour\_time() \{\}}
+\DoxyCodeLine{950   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour\_time() \{\}}
+\DoxyCodeLine{951   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_time() \{\}}
+\DoxyCodeLine{952   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_am\_pm() \{\}}
+\DoxyCodeLine{953   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_utc\_offset(numeric\_system) \{\}}
+\DoxyCodeLine{954   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_tz\_name() \{\}}
+\DoxyCodeLine{955 \};}
+\DoxyCodeLine{956 }
+\DoxyCodeLine{957 \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* tm\_wday\_full\_name(\textcolor{keywordtype}{int} wday) \{}
+\DoxyCodeLine{958   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* full\_name\_list[] = \{}
+\DoxyCodeLine{959       \textcolor{stringliteral}{"{}Sunday"{}},   \textcolor{stringliteral}{"{}Monday"{}}, \textcolor{stringliteral}{"{}Tuesday"{}}, \textcolor{stringliteral}{"{}Wednesday"{}},}
+\DoxyCodeLine{960       \textcolor{stringliteral}{"{}Thursday"{}}, \textcolor{stringliteral}{"{}Friday"{}}, \textcolor{stringliteral}{"{}Saturday"{}}\};}
+\DoxyCodeLine{961   \textcolor{keywordflow}{return} wday >= 0 \&\& wday <= 6 ? full\_name\_list[wday] : \textcolor{stringliteral}{"{}?"{}};}
+\DoxyCodeLine{962 \}}
+\DoxyCodeLine{963 \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* tm\_wday\_short\_name(\textcolor{keywordtype}{int} wday) \{}
+\DoxyCodeLine{964   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* short\_name\_list[] = \{\textcolor{stringliteral}{"{}Sun"{}}, \textcolor{stringliteral}{"{}Mon"{}}, \textcolor{stringliteral}{"{}Tue"{}}, \textcolor{stringliteral}{"{}Wed"{}},}
+\DoxyCodeLine{965                                                     \textcolor{stringliteral}{"{}Thu"{}}, \textcolor{stringliteral}{"{}Fri"{}}, \textcolor{stringliteral}{"{}Sat"{}}\};}
+\DoxyCodeLine{966   \textcolor{keywordflow}{return} wday >= 0 \&\& wday <= 6 ? short\_name\_list[wday] : \textcolor{stringliteral}{"{}???"{}};}
+\DoxyCodeLine{967 \}}
+\DoxyCodeLine{968 }
+\DoxyCodeLine{969 \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* tm\_mon\_full\_name(\textcolor{keywordtype}{int} mon) \{}
+\DoxyCodeLine{970   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* full\_name\_list[] = \{}
+\DoxyCodeLine{971       \textcolor{stringliteral}{"{}January"{}}, \textcolor{stringliteral}{"{}February"{}}, \textcolor{stringliteral}{"{}March"{}},     \textcolor{stringliteral}{"{}April"{}},   \textcolor{stringliteral}{"{}May"{}},      \textcolor{stringliteral}{"{}June"{}},}
+\DoxyCodeLine{972       \textcolor{stringliteral}{"{}July"{}},    \textcolor{stringliteral}{"{}August"{}},   \textcolor{stringliteral}{"{}September"{}}, \textcolor{stringliteral}{"{}October"{}}, \textcolor{stringliteral}{"{}November"{}}, \textcolor{stringliteral}{"{}December"{}}\};}
+\DoxyCodeLine{973   \textcolor{keywordflow}{return} mon >= 0 \&\& mon <= 11 ? full\_name\_list[mon] : \textcolor{stringliteral}{"{}?"{}};}
+\DoxyCodeLine{974 \}}
+\DoxyCodeLine{975 \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* tm\_mon\_short\_name(\textcolor{keywordtype}{int} mon) \{}
+\DoxyCodeLine{976   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* short\_name\_list[] = \{}
+\DoxyCodeLine{977       \textcolor{stringliteral}{"{}Jan"{}}, \textcolor{stringliteral}{"{}Feb"{}}, \textcolor{stringliteral}{"{}Mar"{}}, \textcolor{stringliteral}{"{}Apr"{}}, \textcolor{stringliteral}{"{}May"{}}, \textcolor{stringliteral}{"{}Jun"{}},}
+\DoxyCodeLine{978       \textcolor{stringliteral}{"{}Jul"{}}, \textcolor{stringliteral}{"{}Aug"{}}, \textcolor{stringliteral}{"{}Sep"{}}, \textcolor{stringliteral}{"{}Oct"{}}, \textcolor{stringliteral}{"{}Nov"{}}, \textcolor{stringliteral}{"{}Dec"{}},}
+\DoxyCodeLine{979   \};}
+\DoxyCodeLine{980   \textcolor{keywordflow}{return} mon >= 0 \&\& mon <= 11 ? short\_name\_list[mon] : \textcolor{stringliteral}{"{}???"{}};}
+\DoxyCodeLine{981 \}}
+\DoxyCodeLine{982 }
+\DoxyCodeLine{983 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{984 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__data__tm__gmtoff}{has\_member\_data\_tm\_gmtoff}} : std::false\_type \{\};}
+\DoxyCodeLine{985 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{986 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__data__tm__gmtoff}{has\_member\_data\_tm\_gmtoff}}<T, void\_t<decltype(T::tm\_gmtoff)>>}
+\DoxyCodeLine{987     : std::true\_type \{\};}
+\DoxyCodeLine{988 }
+\DoxyCodeLine{989 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{990 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__data__tm__zone}{has\_member\_data\_tm\_zone}} : std::false\_type \{\};}
+\DoxyCodeLine{991 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{992 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__data__tm__zone}{has\_member\_data\_tm\_zone}}<T, void\_t<decltype(T::tm\_zone)>>}
+\DoxyCodeLine{993     : std::true\_type \{\};}
+\DoxyCodeLine{994 }
+\DoxyCodeLine{995 \textcolor{preprocessor}{\#if FMT\_USE\_TZSET}}
+\DoxyCodeLine{996 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} tzset\_once() \{}
+\DoxyCodeLine{997   \textcolor{keyword}{static} \textcolor{keywordtype}{bool} init = []() -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{998     \_tzset();}
+\DoxyCodeLine{999     \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{1000   \}();}
+\DoxyCodeLine{1001   ignore\_unused(init);}
+\DoxyCodeLine{1002 \}}
+\DoxyCodeLine{1003 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1004 }
+\DoxyCodeLine{1005 \textcolor{comment}{// Converts value to Int and checks that it's in the range [0, upper).}}
+\DoxyCodeLine{1006 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Int, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{1007 \textcolor{keyword}{inline} Int to\_nonnegative\_int(T value, Int upper) \{}
+\DoxyCodeLine{1008   FMT\_ASSERT(std::is\_unsigned<Int>::value ||}
+\DoxyCodeLine{1009                  (value >= 0 \&\& to\_unsigned(value) <= to\_unsigned(upper)),}
+\DoxyCodeLine{1010              \textcolor{stringliteral}{"{}invalid value"{}});}
+\DoxyCodeLine{1011   (void)upper;}
+\DoxyCodeLine{1012   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}Int\textcolor{keyword}{>}(value);}
+\DoxyCodeLine{1013 \}}
+\DoxyCodeLine{1014 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Int, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{1015 \textcolor{keyword}{inline} Int to\_nonnegative\_int(T value, Int upper) \{}
+\DoxyCodeLine{1016   \textcolor{keywordflow}{if} (value < 0 || value > \textcolor{keyword}{static\_cast<}T\textcolor{keyword}{>}(upper))}
+\DoxyCodeLine{1017     FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid value"{}}));}
+\DoxyCodeLine{1018   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}Int\textcolor{keyword}{>}(value);}
+\DoxyCodeLine{1019 \}}
+\DoxyCodeLine{1020 }
+\DoxyCodeLine{1021 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} pow10(std::uint32\_t n) \{}
+\DoxyCodeLine{1022   \textcolor{keywordflow}{return} n == 0 ? 1 : 10 * pow10(n -\/ 1);}
+\DoxyCodeLine{1023 \}}
+\DoxyCodeLine{1024 }
+\DoxyCodeLine{1025 \textcolor{comment}{// Counts the number of fractional digits in the range [0, 18] according to the}}
+\DoxyCodeLine{1026 \textcolor{comment}{// C++20 spec. If more than 18 fractional digits are required then returns 6 for}}
+\DoxyCodeLine{1027 \textcolor{comment}{// microseconds precision.}}
+\DoxyCodeLine{1028 \textcolor{keyword}{template} <\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} Num, \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} Den, \textcolor{keywordtype}{int} N = 0,}
+\DoxyCodeLine{1029           \textcolor{keywordtype}{bool} Enabled = (N < 19) \&\& (Num <= max\_value<long long>() / 10)>}
+\DoxyCodeLine{1030 \textcolor{keyword}{struct} \mbox{\hyperlink{structdetail_1_1count__fractional__digits}{count\_fractional\_digits}} \{}
+\DoxyCodeLine{1031   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{1032       Num \% Den == 0 ? N : \mbox{\hyperlink{structdetail_1_1count__fractional__digits}{count\_fractional\_digits<Num * 10, Den, N + 1>::value}};}
+\DoxyCodeLine{1033 \};}
+\DoxyCodeLine{1034 }
+\DoxyCodeLine{1035 \textcolor{comment}{// Base case that doesn't instantiate any more templates}}
+\DoxyCodeLine{1036 \textcolor{comment}{// in order to avoid overflow.}}
+\DoxyCodeLine{1037 \textcolor{keyword}{template} <\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} Num, \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} Den, \textcolor{keywordtype}{int} N>}
+\DoxyCodeLine{1038 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1count__fractional__digits_3_01Num_00_01Den_00_01N_00_01false_01_4}{count\_fractional\_digits<Num, Den, N, false>}} \{}
+\DoxyCodeLine{1039   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1value}{value}} = (Num \% Den == 0) ? N : 6;}
+\DoxyCodeLine{1040 \};}
+\DoxyCodeLine{1041 }
+\DoxyCodeLine{1042 \textcolor{comment}{// Format subseconds which are given as an integer type with an appropriate}}
+\DoxyCodeLine{1043 \textcolor{comment}{// number of digits.}}
+\DoxyCodeLine{1044 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt, \textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{1045 \textcolor{keywordtype}{void} write\_fractional\_seconds(OutputIt\& out, Duration d, \textcolor{keywordtype}{int} precision = -\/1) \{}
+\DoxyCodeLine{1046   \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} num\_fractional\_digits =}
+\DoxyCodeLine{1047       \mbox{\hyperlink{structdetail_1_1count__fractional__digits}{count\_fractional\_digits}}<Duration::period::num,}
+\DoxyCodeLine{1048                               Duration::period::den>::value;}
+\DoxyCodeLine{1049 }
+\DoxyCodeLine{1050   \textcolor{keyword}{using }subsecond\_precision = std::chrono::duration<}
+\DoxyCodeLine{1051       \textcolor{keyword}{typename} std::common\_type<\textcolor{keyword}{typename} Duration::rep,}
+\DoxyCodeLine{1052                                 std::chrono::seconds::rep>::type,}
+\DoxyCodeLine{1053       std::ratio<1, detail::pow10(num\_fractional\_digits)>>;}
+\DoxyCodeLine{1054 }
+\DoxyCodeLine{1055   \textcolor{keyword}{const} \textcolor{keyword}{auto} fractional =}
+\DoxyCodeLine{1056       d -\/ std::chrono::duration\_cast<std::chrono::seconds>(d);}
+\DoxyCodeLine{1057   \textcolor{keyword}{const} \textcolor{keyword}{auto} subseconds =}
+\DoxyCodeLine{1058       std::chrono::treat\_as\_floating\_point<}
+\DoxyCodeLine{1059           \textcolor{keyword}{typename} subsecond\_precision::rep>::value}
+\DoxyCodeLine{1060           ? fractional.count()}
+\DoxyCodeLine{1061           : std::chrono::duration\_cast<subsecond\_precision>(fractional).count();}
+\DoxyCodeLine{1062   \textcolor{keyword}{auto} n = \textcolor{keyword}{static\_cast<}uint32\_or\_64\_or\_128\_t<long long>\textcolor{keyword}{>}(subseconds);}
+\DoxyCodeLine{1063   \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_digits = detail::count\_digits(n);}
+\DoxyCodeLine{1064 }
+\DoxyCodeLine{1065   \textcolor{keywordtype}{int} leading\_zeroes = (std::max)(0, num\_fractional\_digits -\/ num\_digits);}
+\DoxyCodeLine{1066   \textcolor{keywordflow}{if} (precision < 0) \{}
+\DoxyCodeLine{1067     FMT\_ASSERT(!std::is\_floating\_point<typename Duration::rep>::value, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1068     \textcolor{keywordflow}{if} (std::ratio\_less<\textcolor{keyword}{typename} subsecond\_precision::period,}
+\DoxyCodeLine{1069                         std::chrono::seconds::period>::value) \{}
+\DoxyCodeLine{1070       *out++ = \textcolor{charliteral}{'.'};}
+\DoxyCodeLine{1071       out = std::fill\_n(out, leading\_zeroes, \textcolor{charliteral}{'0'});}
+\DoxyCodeLine{1072       out = format\_decimal<Char>(out, n, num\_digits).end;}
+\DoxyCodeLine{1073     \}}
+\DoxyCodeLine{1074   \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1075     *out++ = \textcolor{charliteral}{'.'};}
+\DoxyCodeLine{1076     leading\_zeroes = (std::min)(leading\_zeroes, precision);}
+\DoxyCodeLine{1077     out = std::fill\_n(out, leading\_zeroes, \textcolor{charliteral}{'0'});}
+\DoxyCodeLine{1078     \textcolor{keywordtype}{int} remaining = precision -\/ leading\_zeroes;}
+\DoxyCodeLine{1079     \textcolor{keywordflow}{if} (remaining != 0 \&\& remaining < num\_digits) \{}
+\DoxyCodeLine{1080       n /= to\_unsigned(detail::pow10(to\_unsigned(num\_digits -\/ remaining)));}
+\DoxyCodeLine{1081       out = format\_decimal<Char>(out, n, remaining).end;}
+\DoxyCodeLine{1082       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1083     \}}
+\DoxyCodeLine{1084     out = format\_decimal<Char>(out, n, num\_digits).end;}
+\DoxyCodeLine{1085     remaining -\/= num\_digits;}
+\DoxyCodeLine{1086     out = std::fill\_n(out, remaining, \textcolor{charliteral}{'0'});}
+\DoxyCodeLine{1087   \}}
+\DoxyCodeLine{1088 \}}
+\DoxyCodeLine{1089 }
+\DoxyCodeLine{1090 \textcolor{comment}{// Format subseconds which are given as a floating point type with an}}
+\DoxyCodeLine{1091 \textcolor{comment}{// appropriate number of digits. We cannot pass the Duration here, as we}}
+\DoxyCodeLine{1092 \textcolor{comment}{// explicitly need to pass the Rep value in the chrono\_formatter.}}
+\DoxyCodeLine{1093 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{1094 \textcolor{keywordtype}{void} write\_floating\_seconds(\mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}\& buf, Duration duration,}
+\DoxyCodeLine{1095                             \textcolor{keywordtype}{int} num\_fractional\_digits = -\/1) \{}
+\DoxyCodeLine{1096   \textcolor{keyword}{using }rep = \textcolor{keyword}{typename} Duration::rep;}
+\DoxyCodeLine{1097   FMT\_ASSERT(std::is\_floating\_point<rep>::value, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1098 }
+\DoxyCodeLine{1099   \textcolor{keyword}{auto} val = duration.count();}
+\DoxyCodeLine{1100 }
+\DoxyCodeLine{1101   \textcolor{keywordflow}{if} (num\_fractional\_digits < 0) \{}
+\DoxyCodeLine{1102     \textcolor{comment}{// For `std::round` with fallback to `round`:}}
+\DoxyCodeLine{1103     \textcolor{comment}{// On some toolchains `std::round` is not available (e.g. GCC 6).}}
+\DoxyCodeLine{1104     \textcolor{keyword}{using namespace }std;}
+\DoxyCodeLine{1105     num\_fractional\_digits =}
+\DoxyCodeLine{1106         count\_fractional\_digits<Duration::period::num,}
+\DoxyCodeLine{1107                                 Duration::period::den>::value;}
+\DoxyCodeLine{1108     \textcolor{keywordflow}{if} (num\_fractional\_digits < 6 \&\& \textcolor{keyword}{static\_cast<}rep\textcolor{keyword}{>}(round(val)) != val)}
+\DoxyCodeLine{1109       num\_fractional\_digits = 6;}
+\DoxyCodeLine{1110   \}}
+\DoxyCodeLine{1111 }
+\DoxyCodeLine{1112   format\_to(std::back\_inserter(buf), FMT\_STRING(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}),}
+\DoxyCodeLine{1113             std::fmod(val * \textcolor{keyword}{static\_cast<}rep\textcolor{keyword}{>}(Duration::period::num) /}
+\DoxyCodeLine{1114                           \textcolor{keyword}{static\_cast<}rep\textcolor{keyword}{>}(Duration::period::den),}
+\DoxyCodeLine{1115                       \textcolor{keyword}{static\_cast<}rep\textcolor{keyword}{>}(60)),}
+\DoxyCodeLine{1116             num\_fractional\_digits);}
+\DoxyCodeLine{1117 \}}
+\DoxyCodeLine{1118 }
+\DoxyCodeLine{1119 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt, \textcolor{keyword}{typename} Char,}
+\DoxyCodeLine{1120           \textcolor{keyword}{typename} Duration = std::chrono::seconds>}
+\DoxyCodeLine{1121 \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1tm__writer}{tm\_writer}} \{}
+\DoxyCodeLine{1122  \textcolor{keyword}{private}:}
+\DoxyCodeLine{1123   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{int} days\_per\_week = 7;}
+\DoxyCodeLine{1124 }
+\DoxyCodeLine{1125   \textcolor{keyword}{const} std::locale\& loc\_;}
+\DoxyCodeLine{1126   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} is\_classic\_;}
+\DoxyCodeLine{1127   OutputIt out\_;}
+\DoxyCodeLine{1128   \textcolor{keyword}{const} Duration* subsecs\_;}
+\DoxyCodeLine{1129   \textcolor{keyword}{const} std::tm\& tm\_;}
+\DoxyCodeLine{1130 }
+\DoxyCodeLine{1131   \textcolor{keyword}{auto} tm\_sec() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1132     FMT\_ASSERT(tm\_.tm\_sec >= 0 \&\& tm\_.tm\_sec <= 61, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1133     \textcolor{keywordflow}{return} tm\_.tm\_sec;}
+\DoxyCodeLine{1134   \}}
+\DoxyCodeLine{1135   \textcolor{keyword}{auto} tm\_min() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1136     FMT\_ASSERT(tm\_.tm\_min >= 0 \&\& tm\_.tm\_min <= 59, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1137     \textcolor{keywordflow}{return} tm\_.tm\_min;}
+\DoxyCodeLine{1138   \}}
+\DoxyCodeLine{1139   \textcolor{keyword}{auto} tm\_hour() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1140     FMT\_ASSERT(tm\_.tm\_hour >= 0 \&\& tm\_.tm\_hour <= 23, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1141     \textcolor{keywordflow}{return} tm\_.tm\_hour;}
+\DoxyCodeLine{1142   \}}
+\DoxyCodeLine{1143   \textcolor{keyword}{auto} tm\_mday() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1144     FMT\_ASSERT(tm\_.tm\_mday >= 1 \&\& tm\_.tm\_mday <= 31, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1145     \textcolor{keywordflow}{return} tm\_.tm\_mday;}
+\DoxyCodeLine{1146   \}}
+\DoxyCodeLine{1147   \textcolor{keyword}{auto} tm\_mon() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1148     FMT\_ASSERT(tm\_.tm\_mon >= 0 \&\& tm\_.tm\_mon <= 11, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1149     \textcolor{keywordflow}{return} tm\_.tm\_mon;}
+\DoxyCodeLine{1150   \}}
+\DoxyCodeLine{1151   \textcolor{keyword}{auto} tm\_year() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \{ \textcolor{keywordflow}{return} 1900ll + tm\_.tm\_year; \}}
+\DoxyCodeLine{1152   \textcolor{keyword}{auto} tm\_wday() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1153     FMT\_ASSERT(tm\_.tm\_wday >= 0 \&\& tm\_.tm\_wday <= 6, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1154     \textcolor{keywordflow}{return} tm\_.tm\_wday;}
+\DoxyCodeLine{1155   \}}
+\DoxyCodeLine{1156   \textcolor{keyword}{auto} tm\_yday() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1157     FMT\_ASSERT(tm\_.tm\_yday >= 0 \&\& tm\_.tm\_yday <= 365, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1158     \textcolor{keywordflow}{return} tm\_.tm\_yday;}
+\DoxyCodeLine{1159   \}}
+\DoxyCodeLine{1160 }
+\DoxyCodeLine{1161   \textcolor{keyword}{auto} tm\_hour12() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1162     \textcolor{keyword}{const} \textcolor{keyword}{auto} h = tm\_hour();}
+\DoxyCodeLine{1163     \textcolor{keyword}{const} \textcolor{keyword}{auto} z = h < 12 ? h : h -\/ 12;}
+\DoxyCodeLine{1164     \textcolor{keywordflow}{return} z == 0 ? 12 : z;}
+\DoxyCodeLine{1165   \}}
+\DoxyCodeLine{1166 }
+\DoxyCodeLine{1167   \textcolor{comment}{// POSIX and the C Standard are unclear or inconsistent about what \%C and \%y}}
+\DoxyCodeLine{1168   \textcolor{comment}{// do if the year is negative or exceeds 9999. Use the convention that \%C}}
+\DoxyCodeLine{1169   \textcolor{comment}{// concatenated with \%y yields the same output as \%Y, and that \%Y contains at}}
+\DoxyCodeLine{1170   \textcolor{comment}{// least 4 characters, with more only if necessary.}}
+\DoxyCodeLine{1171   \textcolor{keyword}{auto} split\_year\_lower(\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} year) \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1172     \textcolor{keyword}{auto} l = year \% 100;}
+\DoxyCodeLine{1173     \textcolor{keywordflow}{if} (l < 0) l = -\/l;  \textcolor{comment}{// l in [0, 99]}}
+\DoxyCodeLine{1174     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(l);}
+\DoxyCodeLine{1175   \}}
+\DoxyCodeLine{1176 }
+\DoxyCodeLine{1177   \textcolor{comment}{// Algorithm:}}
+\DoxyCodeLine{1178   \textcolor{comment}{// https://en.wikipedia.org/wiki/ISO\_week\_date\#Calculating\_the\_week\_number\_from\_a\_month\_and\_day\_of\_the\_month\_or\_ordinal\_date}}
+\DoxyCodeLine{1179   \textcolor{keyword}{auto} iso\_year\_weeks(\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} curr\_year) \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1180     \textcolor{keyword}{const} \textcolor{keyword}{auto} prev\_year = curr\_year -\/ 1;}
+\DoxyCodeLine{1181     \textcolor{keyword}{const} \textcolor{keyword}{auto} curr\_p =}
+\DoxyCodeLine{1182         (curr\_year + curr\_year / 4 -\/ curr\_year / 100 + curr\_year / 400) \%}
+\DoxyCodeLine{1183         days\_per\_week;}
+\DoxyCodeLine{1184     \textcolor{keyword}{const} \textcolor{keyword}{auto} prev\_p =}
+\DoxyCodeLine{1185         (prev\_year + prev\_year / 4 -\/ prev\_year / 100 + prev\_year / 400) \%}
+\DoxyCodeLine{1186         days\_per\_week;}
+\DoxyCodeLine{1187     \textcolor{keywordflow}{return} 52 + ((curr\_p == 4 || prev\_p == 3) ? 1 : 0);}
+\DoxyCodeLine{1188   \}}
+\DoxyCodeLine{1189   \textcolor{keyword}{auto} iso\_week\_num(\textcolor{keywordtype}{int} tm\_yday, \textcolor{keywordtype}{int} tm\_wday) \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1190     \textcolor{keywordflow}{return} (tm\_yday + 11 -\/ (tm\_wday == 0 ? days\_per\_week : tm\_wday)) /}
+\DoxyCodeLine{1191            days\_per\_week;}
+\DoxyCodeLine{1192   \}}
+\DoxyCodeLine{1193   \textcolor{keyword}{auto} tm\_iso\_week\_year() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \{}
+\DoxyCodeLine{1194     \textcolor{keyword}{const} \textcolor{keyword}{auto} year = tm\_year();}
+\DoxyCodeLine{1195     \textcolor{keyword}{const} \textcolor{keyword}{auto} w = iso\_week\_num(tm\_yday(), tm\_wday());}
+\DoxyCodeLine{1196     \textcolor{keywordflow}{if} (w < 1) \textcolor{keywordflow}{return} year -\/ 1;}
+\DoxyCodeLine{1197     \textcolor{keywordflow}{if} (w > iso\_year\_weeks(year)) \textcolor{keywordflow}{return} year + 1;}
+\DoxyCodeLine{1198     \textcolor{keywordflow}{return} year;}
+\DoxyCodeLine{1199   \}}
+\DoxyCodeLine{1200   \textcolor{keyword}{auto} tm\_iso\_week\_of\_year() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{1201     \textcolor{keyword}{const} \textcolor{keyword}{auto} year = tm\_year();}
+\DoxyCodeLine{1202     \textcolor{keyword}{const} \textcolor{keyword}{auto} w = iso\_week\_num(tm\_yday(), tm\_wday());}
+\DoxyCodeLine{1203     \textcolor{keywordflow}{if} (w < 1) \textcolor{keywordflow}{return} iso\_year\_weeks(year -\/ 1);}
+\DoxyCodeLine{1204     \textcolor{keywordflow}{if} (w > iso\_year\_weeks(year)) \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{1205     \textcolor{keywordflow}{return} w;}
+\DoxyCodeLine{1206   \}}
+\DoxyCodeLine{1207 }
+\DoxyCodeLine{1208   \textcolor{keywordtype}{void} write1(\textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{1209     *out\_++ = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + to\_unsigned(\mbox{\hyperlink{classdetail_1_1value}{value}}) \% 10);}
+\DoxyCodeLine{1210   \}}
+\DoxyCodeLine{1211   \textcolor{keywordtype}{void} write2(\textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{1212     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* d = digits2(to\_unsigned(\mbox{\hyperlink{classdetail_1_1value}{value}}) \% 100);}
+\DoxyCodeLine{1213     *out\_++ = *d++;}
+\DoxyCodeLine{1214     *out\_++ = *d;}
+\DoxyCodeLine{1215   \}}
+\DoxyCodeLine{1216   \textcolor{keywordtype}{void} write2(\textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1value}{value}}, pad\_type pad) \{}
+\DoxyCodeLine{1217     \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} v = to\_unsigned(\mbox{\hyperlink{classdetail_1_1value}{value}}) \% 100;}
+\DoxyCodeLine{1218     \textcolor{keywordflow}{if} (v >= 10) \{}
+\DoxyCodeLine{1219       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* d = digits2(v);}
+\DoxyCodeLine{1220       *out\_++ = *d++;}
+\DoxyCodeLine{1221       *out\_++ = *d;}
+\DoxyCodeLine{1222     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1223       out\_ = detail::write\_padding(out\_, pad);}
+\DoxyCodeLine{1224       *out\_++ = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + v);}
+\DoxyCodeLine{1225     \}}
+\DoxyCodeLine{1226   \}}
+\DoxyCodeLine{1227 }
+\DoxyCodeLine{1228   \textcolor{keywordtype}{void} write\_year\_extended(\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} year) \{}
+\DoxyCodeLine{1229     \textcolor{comment}{// At least 4 characters.}}
+\DoxyCodeLine{1230     \textcolor{keywordtype}{int} width = 4;}
+\DoxyCodeLine{1231     \textcolor{keywordflow}{if} (year < 0) \{}
+\DoxyCodeLine{1232       *out\_++ = \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{1233       year = 0 -\/ year;}
+\DoxyCodeLine{1234       -\/-\/width;}
+\DoxyCodeLine{1235     \}}
+\DoxyCodeLine{1236     uint32\_or\_64\_or\_128\_t<long long> n = to\_unsigned(year);}
+\DoxyCodeLine{1237     \textcolor{keyword}{const} \textcolor{keywordtype}{int} num\_digits = count\_digits(n);}
+\DoxyCodeLine{1238     \textcolor{keywordflow}{if} (width > num\_digits) out\_ = std::fill\_n(out\_, width -\/ num\_digits, \textcolor{charliteral}{'0'});}
+\DoxyCodeLine{1239     out\_ = format\_decimal<Char>(out\_, n, num\_digits).end;}
+\DoxyCodeLine{1240   \}}
+\DoxyCodeLine{1241   \textcolor{keywordtype}{void} write\_year(\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} year) \{}
+\DoxyCodeLine{1242     \textcolor{keywordflow}{if} (year >= 0 \&\& year < 10000) \{}
+\DoxyCodeLine{1243       write2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(year / 100));}
+\DoxyCodeLine{1244       write2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(year \% 100));}
+\DoxyCodeLine{1245     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1246       write\_year\_extended(year);}
+\DoxyCodeLine{1247     \}}
+\DoxyCodeLine{1248   \}}
+\DoxyCodeLine{1249 }
+\DoxyCodeLine{1250   \textcolor{keywordtype}{void} write\_utc\_offset(\textcolor{keywordtype}{long} offset, numeric\_system ns) \{}
+\DoxyCodeLine{1251     \textcolor{keywordflow}{if} (offset < 0) \{}
+\DoxyCodeLine{1252       *out\_++ = \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{1253       offset = -\/offset;}
+\DoxyCodeLine{1254     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1255       *out\_++ = \textcolor{charliteral}{'+'};}
+\DoxyCodeLine{1256     \}}
+\DoxyCodeLine{1257     offset /= 60;}
+\DoxyCodeLine{1258     write2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(offset / 60));}
+\DoxyCodeLine{1259     \textcolor{keywordflow}{if} (ns != numeric\_system::standard) *out\_++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1260     write2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(offset \% 60));}
+\DoxyCodeLine{1261   \}}
+\DoxyCodeLine{1262   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(has\_member\_data\_tm\_gmtoff<T>::value)>}
+\DoxyCodeLine{1263   \textcolor{keywordtype}{void} format\_utc\_offset\_impl(\textcolor{keyword}{const} T\& tm, numeric\_system ns) \{}
+\DoxyCodeLine{1264     write\_utc\_offset(tm.tm\_gmtoff, ns);}
+\DoxyCodeLine{1265   \}}
+\DoxyCodeLine{1266   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!has\_member\_data\_tm\_gmtoff<T>::value)>}
+\DoxyCodeLine{1267   \textcolor{keywordtype}{void} format\_utc\_offset\_impl(\textcolor{keyword}{const} T\& tm, numeric\_system ns) \{}
+\DoxyCodeLine{1268 \textcolor{preprocessor}{\#if defined(\_WIN32) \&\& defined(\_UCRT)}}
+\DoxyCodeLine{1269 \textcolor{preprocessor}{\#  if FMT\_USE\_TZSET}}
+\DoxyCodeLine{1270     tzset\_once();}
+\DoxyCodeLine{1271 \textcolor{preprocessor}{\#  endif}}
+\DoxyCodeLine{1272     \textcolor{keywordtype}{long} offset = 0;}
+\DoxyCodeLine{1273     \_get\_timezone(\&offset);}
+\DoxyCodeLine{1274     \textcolor{keywordflow}{if} (tm.tm\_isdst) \{}
+\DoxyCodeLine{1275       \textcolor{keywordtype}{long} dstbias = 0;}
+\DoxyCodeLine{1276       \_get\_dstbias(\&dstbias);}
+\DoxyCodeLine{1277       offset += dstbias;}
+\DoxyCodeLine{1278     \}}
+\DoxyCodeLine{1279     write\_utc\_offset(-\/offset, ns);}
+\DoxyCodeLine{1280 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1281     \textcolor{keywordflow}{if} (ns == numeric\_system::standard) \textcolor{keywordflow}{return} format\_localized(\textcolor{charliteral}{'z'});}
+\DoxyCodeLine{1282 }
+\DoxyCodeLine{1283     \textcolor{comment}{// Extract timezone offset from timezone conversion functions.}}
+\DoxyCodeLine{1284     std::tm gtm = tm;}
+\DoxyCodeLine{1285     std::time\_t gt = std::mktime(\&gtm);}
+\DoxyCodeLine{1286     std::tm ltm = gmtime(gt);}
+\DoxyCodeLine{1287     std::time\_t lt = std::mktime(\&ltm);}
+\DoxyCodeLine{1288     \textcolor{keywordtype}{long} offset = gt -\/ lt;}
+\DoxyCodeLine{1289     write\_utc\_offset(offset, ns);}
+\DoxyCodeLine{1290 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1291   \}}
+\DoxyCodeLine{1292 }
+\DoxyCodeLine{1293   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(has\_member\_data\_tm\_zone<T>::value)>}
+\DoxyCodeLine{1294   \textcolor{keywordtype}{void} format\_tz\_name\_impl(\textcolor{keyword}{const} T\& tm) \{}
+\DoxyCodeLine{1295     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1296       out\_ = write\_tm\_str<Char>(out\_, tm.tm\_zone, loc\_);}
+\DoxyCodeLine{1297     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1298       format\_localized(\textcolor{charliteral}{'Z'});}
+\DoxyCodeLine{1299   \}}
+\DoxyCodeLine{1300   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!has\_member\_data\_tm\_zone<T>::value)>}
+\DoxyCodeLine{1301   \textcolor{keywordtype}{void} format\_tz\_name\_impl(\textcolor{keyword}{const} T\&) \{}
+\DoxyCodeLine{1302     format\_localized(\textcolor{charliteral}{'Z'});}
+\DoxyCodeLine{1303   \}}
+\DoxyCodeLine{1304 }
+\DoxyCodeLine{1305   \textcolor{keywordtype}{void} format\_localized(\textcolor{keywordtype}{char} format, \textcolor{keywordtype}{char} modifier = 0) \{}
+\DoxyCodeLine{1306     out\_ = write<Char>(out\_, tm\_, loc\_, format, modifier);}
+\DoxyCodeLine{1307   \}}
+\DoxyCodeLine{1308 }
+\DoxyCodeLine{1309  \textcolor{keyword}{public}:}
+\DoxyCodeLine{1310   \mbox{\hyperlink{classdetail_1_1tm__writer}{tm\_writer}}(\textcolor{keyword}{const} std::locale\& loc, OutputIt out, \textcolor{keyword}{const} std::tm\& tm,}
+\DoxyCodeLine{1311             \textcolor{keyword}{const} Duration* subsecs = \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{1312       : loc\_(loc),}
+\DoxyCodeLine{1313         is\_classic\_(loc\_ == get\_classic\_locale()),}
+\DoxyCodeLine{1314         out\_(out),}
+\DoxyCodeLine{1315         subsecs\_(subsecs),}
+\DoxyCodeLine{1316         tm\_(tm) \{\}}
+\DoxyCodeLine{1317 }
+\DoxyCodeLine{1318   OutputIt out()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} out\_; \}}
+\DoxyCodeLine{1319 }
+\DoxyCodeLine{1320   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_text(\textcolor{keyword}{const} Char* begin, \textcolor{keyword}{const} Char* end) \{}
+\DoxyCodeLine{1321     out\_ = copy\_str<Char>(begin, end, out\_);}
+\DoxyCodeLine{1322   \}}
+\DoxyCodeLine{1323 }
+\DoxyCodeLine{1324   \textcolor{keywordtype}{void} on\_abbr\_weekday() \{}
+\DoxyCodeLine{1325     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1326       out\_ = write(out\_, tm\_wday\_short\_name(tm\_wday()));}
+\DoxyCodeLine{1327     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1328       format\_localized(\textcolor{charliteral}{'a'});}
+\DoxyCodeLine{1329   \}}
+\DoxyCodeLine{1330   \textcolor{keywordtype}{void} on\_full\_weekday() \{}
+\DoxyCodeLine{1331     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1332       out\_ = write(out\_, tm\_wday\_full\_name(tm\_wday()));}
+\DoxyCodeLine{1333     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1334       format\_localized(\textcolor{charliteral}{'A'});}
+\DoxyCodeLine{1335   \}}
+\DoxyCodeLine{1336   \textcolor{keywordtype}{void} on\_dec0\_weekday(numeric\_system ns) \{}
+\DoxyCodeLine{1337     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \textcolor{keywordflow}{return} write1(tm\_wday());}
+\DoxyCodeLine{1338     format\_localized(\textcolor{charliteral}{'w'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1339   \}}
+\DoxyCodeLine{1340   \textcolor{keywordtype}{void} on\_dec1\_weekday(numeric\_system ns) \{}
+\DoxyCodeLine{1341     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1342       \textcolor{keyword}{auto} wday = tm\_wday();}
+\DoxyCodeLine{1343       write1(wday == 0 ? days\_per\_week : wday);}
+\DoxyCodeLine{1344     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1345       format\_localized(\textcolor{charliteral}{'u'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1346     \}}
+\DoxyCodeLine{1347   \}}
+\DoxyCodeLine{1348 }
+\DoxyCodeLine{1349   \textcolor{keywordtype}{void} on\_abbr\_month() \{}
+\DoxyCodeLine{1350     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1351       out\_ = write(out\_, tm\_mon\_short\_name(tm\_mon()));}
+\DoxyCodeLine{1352     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1353       format\_localized(\textcolor{charliteral}{'b'});}
+\DoxyCodeLine{1354   \}}
+\DoxyCodeLine{1355   \textcolor{keywordtype}{void} on\_full\_month() \{}
+\DoxyCodeLine{1356     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1357       out\_ = write(out\_, tm\_mon\_full\_name(tm\_mon()));}
+\DoxyCodeLine{1358     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1359       format\_localized(\textcolor{charliteral}{'B'});}
+\DoxyCodeLine{1360   \}}
+\DoxyCodeLine{1361 }
+\DoxyCodeLine{1362   \textcolor{keywordtype}{void} on\_datetime(numeric\_system ns) \{}
+\DoxyCodeLine{1363     \textcolor{keywordflow}{if} (is\_classic\_) \{}
+\DoxyCodeLine{1364       on\_abbr\_weekday();}
+\DoxyCodeLine{1365       *out\_++ = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{1366       on\_abbr\_month();}
+\DoxyCodeLine{1367       *out\_++ = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{1368       on\_day\_of\_month\_space(numeric\_system::standard);}
+\DoxyCodeLine{1369       *out\_++ = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{1370       on\_iso\_time();}
+\DoxyCodeLine{1371       *out\_++ = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{1372       on\_year(numeric\_system::standard);}
+\DoxyCodeLine{1373     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1374       format\_localized(\textcolor{charliteral}{'c'}, ns == numeric\_system::standard ? \textcolor{charliteral}{'\(\backslash\)0'} : \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1375     \}}
+\DoxyCodeLine{1376   \}}
+\DoxyCodeLine{1377   \textcolor{keywordtype}{void} on\_loc\_date(numeric\_system ns) \{}
+\DoxyCodeLine{1378     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1379       on\_us\_date();}
+\DoxyCodeLine{1380     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1381       format\_localized(\textcolor{charliteral}{'x'}, ns == numeric\_system::standard ? \textcolor{charliteral}{'\(\backslash\)0'} : \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1382   \}}
+\DoxyCodeLine{1383   \textcolor{keywordtype}{void} on\_loc\_time(numeric\_system ns) \{}
+\DoxyCodeLine{1384     \textcolor{keywordflow}{if} (is\_classic\_)}
+\DoxyCodeLine{1385       on\_iso\_time();}
+\DoxyCodeLine{1386     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{1387       format\_localized(\textcolor{charliteral}{'X'}, ns == numeric\_system::standard ? \textcolor{charliteral}{'\(\backslash\)0'} : \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1388   \}}
+\DoxyCodeLine{1389   \textcolor{keywordtype}{void} on\_us\_date() \{}
+\DoxyCodeLine{1390     \textcolor{keywordtype}{char} buf[8];}
+\DoxyCodeLine{1391     write\_digit2\_separated(buf, to\_unsigned(tm\_mon() + 1),}
+\DoxyCodeLine{1392                            to\_unsigned(tm\_mday()),}
+\DoxyCodeLine{1393                            to\_unsigned(split\_year\_lower(tm\_year())), \textcolor{charliteral}{'/'});}
+\DoxyCodeLine{1394     out\_ = copy\_str<Char>(std::begin(buf), std::end(buf), out\_);}
+\DoxyCodeLine{1395   \}}
+\DoxyCodeLine{1396   \textcolor{keywordtype}{void} on\_iso\_date() \{}
+\DoxyCodeLine{1397     \textcolor{keyword}{auto} year = tm\_year();}
+\DoxyCodeLine{1398     \textcolor{keywordtype}{char} buf[10];}
+\DoxyCodeLine{1399     \textcolor{keywordtype}{size\_t} offset = 0;}
+\DoxyCodeLine{1400     \textcolor{keywordflow}{if} (year >= 0 \&\& year < 10000) \{}
+\DoxyCodeLine{1401       copy2(buf, digits2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(year / 100)));}
+\DoxyCodeLine{1402     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1403       offset = 4;}
+\DoxyCodeLine{1404       write\_year\_extended(year);}
+\DoxyCodeLine{1405       year = 0;}
+\DoxyCodeLine{1406     \}}
+\DoxyCodeLine{1407     write\_digit2\_separated(buf + 2, \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\textcolor{keyword}{>}(year \% 100),}
+\DoxyCodeLine{1408                            to\_unsigned(tm\_mon() + 1), to\_unsigned(tm\_mday()),}
+\DoxyCodeLine{1409                            \textcolor{charliteral}{'-\/'});}
+\DoxyCodeLine{1410     out\_ = copy\_str<Char>(std::begin(buf) + offset, std::end(buf), out\_);}
+\DoxyCodeLine{1411   \}}
+\DoxyCodeLine{1412 }
+\DoxyCodeLine{1413   \textcolor{keywordtype}{void} on\_utc\_offset(numeric\_system ns) \{ format\_utc\_offset\_impl(tm\_, ns); \}}
+\DoxyCodeLine{1414   \textcolor{keywordtype}{void} on\_tz\_name() \{ format\_tz\_name\_impl(tm\_); \}}
+\DoxyCodeLine{1415 }
+\DoxyCodeLine{1416   \textcolor{keywordtype}{void} on\_year(numeric\_system ns) \{}
+\DoxyCodeLine{1417     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1418       \textcolor{keywordflow}{return} write\_year(tm\_year());}
+\DoxyCodeLine{1419     format\_localized(\textcolor{charliteral}{'Y'}, \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1420   \}}
+\DoxyCodeLine{1421   \textcolor{keywordtype}{void} on\_short\_year(numeric\_system ns) \{}
+\DoxyCodeLine{1422     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1423       \textcolor{keywordflow}{return} write2(split\_year\_lower(tm\_year()));}
+\DoxyCodeLine{1424     format\_localized(\textcolor{charliteral}{'y'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1425   \}}
+\DoxyCodeLine{1426   \textcolor{keywordtype}{void} on\_offset\_year() \{}
+\DoxyCodeLine{1427     \textcolor{keywordflow}{if} (is\_classic\_) \textcolor{keywordflow}{return} write2(split\_year\_lower(tm\_year()));}
+\DoxyCodeLine{1428     format\_localized(\textcolor{charliteral}{'y'}, \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1429   \}}
+\DoxyCodeLine{1430 }
+\DoxyCodeLine{1431   \textcolor{keywordtype}{void} on\_century(numeric\_system ns) \{}
+\DoxyCodeLine{1432     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1433       \textcolor{keyword}{auto} year = tm\_year();}
+\DoxyCodeLine{1434       \textcolor{keyword}{auto} upper = year / 100;}
+\DoxyCodeLine{1435       \textcolor{keywordflow}{if} (year >= -\/99 \&\& year < 0) \{}
+\DoxyCodeLine{1436         \textcolor{comment}{// Zero upper on negative year.}}
+\DoxyCodeLine{1437         *out\_++ = \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{1438         *out\_++ = \textcolor{charliteral}{'0'};}
+\DoxyCodeLine{1439       \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (upper >= 0 \&\& upper < 100) \{}
+\DoxyCodeLine{1440         write2(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(upper));}
+\DoxyCodeLine{1441       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1442         out\_ = write<Char>(out\_, upper);}
+\DoxyCodeLine{1443       \}}
+\DoxyCodeLine{1444     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1445       format\_localized(\textcolor{charliteral}{'C'}, \textcolor{charliteral}{'E'});}
+\DoxyCodeLine{1446     \}}
+\DoxyCodeLine{1447   \}}
+\DoxyCodeLine{1448 }
+\DoxyCodeLine{1449   \textcolor{keywordtype}{void} on\_dec\_month(numeric\_system ns) \{}
+\DoxyCodeLine{1450     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1451       \textcolor{keywordflow}{return} write2(tm\_mon() + 1);}
+\DoxyCodeLine{1452     format\_localized(\textcolor{charliteral}{'m'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1453   \}}
+\DoxyCodeLine{1454 }
+\DoxyCodeLine{1455   \textcolor{keywordtype}{void} on\_dec0\_week\_of\_year(numeric\_system ns) \{}
+\DoxyCodeLine{1456     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1457       \textcolor{keywordflow}{return} write2((tm\_yday() + days\_per\_week -\/ tm\_wday()) / days\_per\_week);}
+\DoxyCodeLine{1458     format\_localized(\textcolor{charliteral}{'U'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1459   \}}
+\DoxyCodeLine{1460   \textcolor{keywordtype}{void} on\_dec1\_week\_of\_year(numeric\_system ns) \{}
+\DoxyCodeLine{1461     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1462       \textcolor{keyword}{auto} wday = tm\_wday();}
+\DoxyCodeLine{1463       write2((tm\_yday() + days\_per\_week -\/}
+\DoxyCodeLine{1464               (wday == 0 ? (days\_per\_week -\/ 1) : (wday -\/ 1))) /}
+\DoxyCodeLine{1465              days\_per\_week);}
+\DoxyCodeLine{1466     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1467       format\_localized(\textcolor{charliteral}{'W'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1468     \}}
+\DoxyCodeLine{1469   \}}
+\DoxyCodeLine{1470   \textcolor{keywordtype}{void} on\_iso\_week\_of\_year(numeric\_system ns) \{}
+\DoxyCodeLine{1471     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1472       \textcolor{keywordflow}{return} write2(tm\_iso\_week\_of\_year());}
+\DoxyCodeLine{1473     format\_localized(\textcolor{charliteral}{'V'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1474   \}}
+\DoxyCodeLine{1475 }
+\DoxyCodeLine{1476   \textcolor{keywordtype}{void} on\_iso\_week\_based\_year() \{ write\_year(tm\_iso\_week\_year()); \}}
+\DoxyCodeLine{1477   \textcolor{keywordtype}{void} on\_iso\_week\_based\_short\_year() \{}
+\DoxyCodeLine{1478     write2(split\_year\_lower(tm\_iso\_week\_year()));}
+\DoxyCodeLine{1479   \}}
+\DoxyCodeLine{1480 }
+\DoxyCodeLine{1481   \textcolor{keywordtype}{void} on\_day\_of\_year() \{}
+\DoxyCodeLine{1482     \textcolor{keyword}{auto} yday = tm\_yday() + 1;}
+\DoxyCodeLine{1483     write1(yday / 100);}
+\DoxyCodeLine{1484     write2(yday \% 100);}
+\DoxyCodeLine{1485   \}}
+\DoxyCodeLine{1486   \textcolor{keywordtype}{void} on\_day\_of\_month(numeric\_system ns) \{}
+\DoxyCodeLine{1487     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \textcolor{keywordflow}{return} write2(tm\_mday());}
+\DoxyCodeLine{1488     format\_localized(\textcolor{charliteral}{'d'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1489   \}}
+\DoxyCodeLine{1490   \textcolor{keywordtype}{void} on\_day\_of\_month\_space(numeric\_system ns) \{}
+\DoxyCodeLine{1491     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1492       \textcolor{keyword}{auto} mday = to\_unsigned(tm\_mday()) \% 100;}
+\DoxyCodeLine{1493       \textcolor{keyword}{const} \textcolor{keywordtype}{char}* d2 = digits2(mday);}
+\DoxyCodeLine{1494       *out\_++ = mday < 10 ? \textcolor{charliteral}{' '} : d2[0];}
+\DoxyCodeLine{1495       *out\_++ = d2[1];}
+\DoxyCodeLine{1496     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1497       format\_localized(\textcolor{charliteral}{'e'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1498     \}}
+\DoxyCodeLine{1499   \}}
+\DoxyCodeLine{1500 }
+\DoxyCodeLine{1501   \textcolor{keywordtype}{void} on\_24\_hour(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1502     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1503       \textcolor{keywordflow}{return} write2(tm\_hour(), pad);}
+\DoxyCodeLine{1504     format\_localized(\textcolor{charliteral}{'H'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1505   \}}
+\DoxyCodeLine{1506   \textcolor{keywordtype}{void} on\_12\_hour(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1507     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1508       \textcolor{keywordflow}{return} write2(tm\_hour12(), pad);}
+\DoxyCodeLine{1509     format\_localized(\textcolor{charliteral}{'I'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1510   \}}
+\DoxyCodeLine{1511   \textcolor{keywordtype}{void} on\_minute(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1512     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard)}
+\DoxyCodeLine{1513       \textcolor{keywordflow}{return} write2(tm\_min(), pad);}
+\DoxyCodeLine{1514     format\_localized(\textcolor{charliteral}{'M'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1515   \}}
+\DoxyCodeLine{1516 }
+\DoxyCodeLine{1517   \textcolor{keywordtype}{void} on\_second(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1518     \textcolor{keywordflow}{if} (is\_classic\_ || ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1519       write2(tm\_sec(), pad);}
+\DoxyCodeLine{1520       \textcolor{keywordflow}{if} (subsecs\_) \{}
+\DoxyCodeLine{1521         \textcolor{keywordflow}{if} (std::is\_floating\_point<typename Duration::rep>::value) \{}
+\DoxyCodeLine{1522           \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{1523           write\_floating\_seconds(buf, *subsecs\_);}
+\DoxyCodeLine{1524           \textcolor{keywordflow}{if} (buf.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}() > 1) \{}
+\DoxyCodeLine{1525             \textcolor{comment}{// Remove the leading "{}0"{}, write something like "{}.123"{}.}}
+\DoxyCodeLine{1526             out\_ = std::copy(buf.begin() + 1, buf.end(), out\_);}
+\DoxyCodeLine{1527           \}}
+\DoxyCodeLine{1528         \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1529           write\_fractional\_seconds<Char>(out\_, *subsecs\_);}
+\DoxyCodeLine{1530         \}}
+\DoxyCodeLine{1531       \}}
+\DoxyCodeLine{1532     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1533       \textcolor{comment}{// Currently no formatting of subseconds when a locale is set.}}
+\DoxyCodeLine{1534       format\_localized(\textcolor{charliteral}{'S'}, \textcolor{charliteral}{'O'});}
+\DoxyCodeLine{1535     \}}
+\DoxyCodeLine{1536   \}}
+\DoxyCodeLine{1537 }
+\DoxyCodeLine{1538   \textcolor{keywordtype}{void} on\_12\_hour\_time() \{}
+\DoxyCodeLine{1539     \textcolor{keywordflow}{if} (is\_classic\_) \{}
+\DoxyCodeLine{1540       \textcolor{keywordtype}{char} buf[8];}
+\DoxyCodeLine{1541       write\_digit2\_separated(buf, to\_unsigned(tm\_hour12()),}
+\DoxyCodeLine{1542                              to\_unsigned(tm\_min()), to\_unsigned(tm\_sec()), \textcolor{charliteral}{':'});}
+\DoxyCodeLine{1543       out\_ = copy\_str<Char>(std::begin(buf), std::end(buf), out\_);}
+\DoxyCodeLine{1544       *out\_++ = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{1545       on\_am\_pm();}
+\DoxyCodeLine{1546     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1547       format\_localized(\textcolor{charliteral}{'r'});}
+\DoxyCodeLine{1548     \}}
+\DoxyCodeLine{1549   \}}
+\DoxyCodeLine{1550   \textcolor{keywordtype}{void} on\_24\_hour\_time() \{}
+\DoxyCodeLine{1551     write2(tm\_hour());}
+\DoxyCodeLine{1552     *out\_++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1553     write2(tm\_min());}
+\DoxyCodeLine{1554   \}}
+\DoxyCodeLine{1555   \textcolor{keywordtype}{void} on\_iso\_time() \{}
+\DoxyCodeLine{1556     on\_24\_hour\_time();}
+\DoxyCodeLine{1557     *out\_++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1558     on\_second(numeric\_system::standard, pad\_type::unspecified);}
+\DoxyCodeLine{1559   \}}
+\DoxyCodeLine{1560 }
+\DoxyCodeLine{1561   \textcolor{keywordtype}{void} on\_am\_pm() \{}
+\DoxyCodeLine{1562     \textcolor{keywordflow}{if} (is\_classic\_) \{}
+\DoxyCodeLine{1563       *out\_++ = tm\_hour() < 12 ? \textcolor{charliteral}{'A'} : \textcolor{charliteral}{'P'};}
+\DoxyCodeLine{1564       *out\_++ = \textcolor{charliteral}{'M'};}
+\DoxyCodeLine{1565     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1566       format\_localized(\textcolor{charliteral}{'p'});}
+\DoxyCodeLine{1567     \}}
+\DoxyCodeLine{1568   \}}
+\DoxyCodeLine{1569 }
+\DoxyCodeLine{1570   \textcolor{comment}{// These apply to chrono durations but not tm.}}
+\DoxyCodeLine{1571   \textcolor{keywordtype}{void} on\_duration\_value() \{\}}
+\DoxyCodeLine{1572   \textcolor{keywordtype}{void} on\_duration\_unit() \{\}}
+\DoxyCodeLine{1573 \};}
+\DoxyCodeLine{1574 }
+\DoxyCodeLine{1575 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1chrono__format__checker}{chrono\_format\_checker}} : \mbox{\hyperlink{structdetail_1_1null__chrono__spec__handler}{null\_chrono\_spec\_handler}}<chrono\_format\_checker> \{}
+\DoxyCodeLine{1576   \textcolor{keywordtype}{bool} has\_precision\_integral = \textcolor{keyword}{false};}
+\DoxyCodeLine{1577 }
+\DoxyCodeLine{1578   FMT\_NORETURN \textcolor{keywordtype}{void} unsupported() \{ FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}no date"{}})); \}}
+\DoxyCodeLine{1579 }
+\DoxyCodeLine{1580   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{1581   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_text(\textcolor{keyword}{const} Char*, \textcolor{keyword}{const} Char*) \{\}}
+\DoxyCodeLine{1582   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{1583   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{1584   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_minute(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{1585   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_second(numeric\_system, pad\_type) \{\}}
+\DoxyCodeLine{1586   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_12\_hour\_time() \{\}}
+\DoxyCodeLine{1587   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_24\_hour\_time() \{\}}
+\DoxyCodeLine{1588   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_iso\_time() \{\}}
+\DoxyCodeLine{1589   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_am\_pm() \{\}}
+\DoxyCodeLine{1590   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_duration\_value()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{1591     \textcolor{keywordflow}{if} (has\_precision\_integral) \{}
+\DoxyCodeLine{1592       FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}precision not allowed for this argument type"{}}));}
+\DoxyCodeLine{1593     \}}
+\DoxyCodeLine{1594   \}}
+\DoxyCodeLine{1595   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_duration\_unit() \{\}}
+\DoxyCodeLine{1596 \};}
+\DoxyCodeLine{1597 }
+\DoxyCodeLine{1598 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T,}
+\DoxyCodeLine{1599           FMT\_ENABLE\_IF(std::is\_integral<T>::value\&\& \mbox{\hyperlink{structdetail_1_1has__isfinite}{has\_isfinite<T>::value}})>}
+\DoxyCodeLine{1600 \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} isfinite(T) \{}
+\DoxyCodeLine{1601   \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{1602 \}}
+\DoxyCodeLine{1603 }
+\DoxyCodeLine{1604 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{1605 \textcolor{keyword}{inline} T mod(T x, \textcolor{keywordtype}{int} y) \{}
+\DoxyCodeLine{1606   \textcolor{keywordflow}{return} x \% \textcolor{keyword}{static\_cast<}T\textcolor{keyword}{>}(y);}
+\DoxyCodeLine{1607 \}}
+\DoxyCodeLine{1608 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{float}ing\_po\textcolor{keywordtype}{int}<T>::value)>}
+\DoxyCodeLine{1609 \textcolor{keyword}{inline} T mod(T x, \textcolor{keywordtype}{int} y) \{}
+\DoxyCodeLine{1610   \textcolor{keywordflow}{return} std::fmod(x, \textcolor{keyword}{static\_cast<}T\textcolor{keyword}{>}(y));}
+\DoxyCodeLine{1611 \}}
+\DoxyCodeLine{1612 }
+\DoxyCodeLine{1613 \textcolor{comment}{// If T is an integral type, maps T to its unsigned counterpart, otherwise}}
+\DoxyCodeLine{1614 \textcolor{comment}{// leaves it unchanged (unlike std::make\_unsigned).}}
+\DoxyCodeLine{1615 template <typename T, bool INTEGRAL = std::is\_integral<T>::value>}
+\DoxyCodeLine{1616 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__unsigned__or__unchanged}{make\_unsigned\_or\_unchanged}} \{}
+\DoxyCodeLine{1617   \textcolor{keyword}{using }type = T;}
+\DoxyCodeLine{1618 \};}
+\DoxyCodeLine{1619 }
+\DoxyCodeLine{1620 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__unsigned__or__unchanged}{make\_unsigned\_or\_unchanged}}<T, true> \{}
+\DoxyCodeLine{1621   \textcolor{keyword}{using }type = \textcolor{keyword}{typename} std::make\_unsigned<T>::type;}
+\DoxyCodeLine{1622 \};}
+\DoxyCodeLine{1623 }
+\DoxyCodeLine{1624 \textcolor{preprocessor}{\#if FMT\_SAFE\_DURATION\_CAST}}
+\DoxyCodeLine{1625 \textcolor{comment}{// throwing version of safe\_duration\_cast}}
+\DoxyCodeLine{1626 \textcolor{keyword}{template} <\textcolor{keyword}{typename} To, \textcolor{keyword}{typename} FromRep, \textcolor{keyword}{typename} FromPeriod>}
+\DoxyCodeLine{1627 To fmt\_safe\_duration\_cast(std::chrono::duration<FromRep, FromPeriod> from) \{}
+\DoxyCodeLine{1628   \textcolor{keywordtype}{int} ec;}
+\DoxyCodeLine{1629   To to = safe\_duration\_cast::safe\_duration\_cast<To>(from, ec);}
+\DoxyCodeLine{1630   \textcolor{keywordflow}{if} (ec) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}cannot format duration"{}}));}
+\DoxyCodeLine{1631   \textcolor{keywordflow}{return} to;}
+\DoxyCodeLine{1632 \}}
+\DoxyCodeLine{1633 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1634 }
+\DoxyCodeLine{1635 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Rep, \textcolor{keyword}{typename} Period,}
+\DoxyCodeLine{1636           FMT\_ENABLE\_IF(std::is\_integral<Rep>::value)>}
+\DoxyCodeLine{1637 \textcolor{keyword}{inline} std::chrono::duration<Rep, std::milli> get\_milliseconds(}
+\DoxyCodeLine{1638     std::chrono::duration<Rep, Period> d) \{}
+\DoxyCodeLine{1639   \textcolor{comment}{// this may overflow and/or the result may not fit in the}}
+\DoxyCodeLine{1640   \textcolor{comment}{// target type.}}
+\DoxyCodeLine{1641 \textcolor{preprocessor}{\#if FMT\_SAFE\_DURATION\_CAST}}
+\DoxyCodeLine{1642   \textcolor{keyword}{using }CommonSecondsType =}
+\DoxyCodeLine{1643       \textcolor{keyword}{typename} std::common\_type<\textcolor{keyword}{decltype}(d), std::chrono::seconds>::type;}
+\DoxyCodeLine{1644   \textcolor{keyword}{const} \textcolor{keyword}{auto} d\_as\_common = fmt\_safe\_duration\_cast<CommonSecondsType>(d);}
+\DoxyCodeLine{1645   \textcolor{keyword}{const} \textcolor{keyword}{auto} d\_as\_whole\_seconds =}
+\DoxyCodeLine{1646       fmt\_safe\_duration\_cast<std::chrono::seconds>(d\_as\_common);}
+\DoxyCodeLine{1647   \textcolor{comment}{// this conversion should be nonproblematic}}
+\DoxyCodeLine{1648   \textcolor{keyword}{const} \textcolor{keyword}{auto} diff = d\_as\_common -\/ d\_as\_whole\_seconds;}
+\DoxyCodeLine{1649   \textcolor{keyword}{const} \textcolor{keyword}{auto} ms =}
+\DoxyCodeLine{1650       fmt\_safe\_duration\_cast<std::chrono::duration<Rep, std::milli>>(diff);}
+\DoxyCodeLine{1651   \textcolor{keywordflow}{return} ms;}
+\DoxyCodeLine{1652 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1653   \textcolor{keyword}{auto} s = std::chrono::duration\_cast<std::chrono::seconds>(d);}
+\DoxyCodeLine{1654   \textcolor{keywordflow}{return} std::chrono::duration\_cast<std::chrono::milliseconds>(d -\/ s);}
+\DoxyCodeLine{1655 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1656 \}}
+\DoxyCodeLine{1657 }
+\DoxyCodeLine{1658 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Rep, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{1659           FMT\_ENABLE\_IF(std::is\_integral<Rep>::value)>}
+\DoxyCodeLine{1660 OutputIt format\_duration\_value(OutputIt out, Rep val, \textcolor{keywordtype}{int}) \{}
+\DoxyCodeLine{1661   \textcolor{keywordflow}{return} write<Char>(out, val);}
+\DoxyCodeLine{1662 \}}
+\DoxyCodeLine{1663 }
+\DoxyCodeLine{1664 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Rep, \textcolor{keyword}{typename} OutputIt,}
+\DoxyCodeLine{1665           FMT\_ENABLE\_IF(std::is\_floating\_point<Rep>::value)>}
+\DoxyCodeLine{1666 OutputIt format\_duration\_value(OutputIt out, Rep val, \textcolor{keywordtype}{int} precision) \{}
+\DoxyCodeLine{1667   \textcolor{keyword}{auto} specs = \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}();}
+\DoxyCodeLine{1668   specs.precision = precision;}
+\DoxyCodeLine{1669   specs.type = precision >= 0 ? presentation\_type::fixed\_lower}
+\DoxyCodeLine{1670                               : presentation\_type::general\_lower;}
+\DoxyCodeLine{1671   \textcolor{keywordflow}{return} write<Char>(out, val, specs);}
+\DoxyCodeLine{1672 \}}
+\DoxyCodeLine{1673 }
+\DoxyCodeLine{1674 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{1675 OutputIt copy\_unit(\mbox{\hyperlink{classbasic__string__view}{string\_view}} unit, OutputIt out, Char) \{}
+\DoxyCodeLine{1676   \textcolor{keywordflow}{return} std::copy(unit.begin(), unit.end(), out);}
+\DoxyCodeLine{1677 \}}
+\DoxyCodeLine{1678 }
+\DoxyCodeLine{1679 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{1680 OutputIt copy\_unit(\mbox{\hyperlink{classbasic__string__view}{string\_view}} unit, OutputIt out, \textcolor{keywordtype}{wchar\_t}) \{}
+\DoxyCodeLine{1681   \textcolor{comment}{// This works when wchar\_t is UTF-\/32 because units only contain characters}}
+\DoxyCodeLine{1682   \textcolor{comment}{// that have the same representation in UTF-\/16 and UTF-\/32.}}
+\DoxyCodeLine{1683   utf8\_to\_utf16 u(unit);}
+\DoxyCodeLine{1684   \textcolor{keywordflow}{return} std::copy(u.c\_str(), u.c\_str() + u.size(), out);}
+\DoxyCodeLine{1685 \}}
+\DoxyCodeLine{1686 }
+\DoxyCodeLine{1687 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Period, \textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{1688 OutputIt format\_duration\_unit(OutputIt out) \{}
+\DoxyCodeLine{1689   \textcolor{keywordflow}{if} (\textcolor{keyword}{const} \textcolor{keywordtype}{char}* unit = get\_units<Period>())}
+\DoxyCodeLine{1690     \textcolor{keywordflow}{return} copy\_unit(\mbox{\hyperlink{classbasic__string__view}{string\_view}}(unit), out, Char());}
+\DoxyCodeLine{1691   *out++ = \textcolor{charliteral}{'['};}
+\DoxyCodeLine{1692   out = write<Char>(out, Period::num);}
+\DoxyCodeLine{1693   \textcolor{keywordflow}{if} (const\_check(Period::den != 1)) \{}
+\DoxyCodeLine{1694     *out++ = \textcolor{charliteral}{'/'};}
+\DoxyCodeLine{1695     out = write<Char>(out, Period::den);}
+\DoxyCodeLine{1696   \}}
+\DoxyCodeLine{1697   *out++ = \textcolor{charliteral}{']'};}
+\DoxyCodeLine{1698   *out++ = \textcolor{charliteral}{'s'};}
+\DoxyCodeLine{1699   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{1700 \}}
+\DoxyCodeLine{1701 }
+\DoxyCodeLine{1702 \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1get__locale}{get\_locale}} \{}
+\DoxyCodeLine{1703  \textcolor{keyword}{private}:}
+\DoxyCodeLine{1704   \textcolor{keyword}{union }\{}
+\DoxyCodeLine{1705     std::locale locale\_;}
+\DoxyCodeLine{1706   \};}
+\DoxyCodeLine{1707   \textcolor{keywordtype}{bool} has\_locale\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{1708 }
+\DoxyCodeLine{1709  \textcolor{keyword}{public}:}
+\DoxyCodeLine{1710   \mbox{\hyperlink{classdetail_1_1get__locale}{get\_locale}}(\textcolor{keywordtype}{bool} localized, \mbox{\hyperlink{classdetail_1_1locale__ref}{locale\_ref}} loc) : has\_locale\_(localized) \{}
+\DoxyCodeLine{1711     \textcolor{keywordflow}{if} (localized)}
+\DoxyCodeLine{1712       ::new (\&locale\_) std::locale(loc.template get<std::locale>());}
+\DoxyCodeLine{1713   \}}
+\DoxyCodeLine{1714   \mbox{\hyperlink{classdetail_1_1get__locale}{\string~get\_locale}}() \{}
+\DoxyCodeLine{1715     \textcolor{keywordflow}{if} (has\_locale\_) locale\_.\string~locale();}
+\DoxyCodeLine{1716   \}}
+\DoxyCodeLine{1717   \textcolor{keyword}{operator} \textcolor{keyword}{const} std::locale\&() \textcolor{keyword}{const} \{}
+\DoxyCodeLine{1718     \textcolor{keywordflow}{return} has\_locale\_ ? locale\_ : get\_classic\_locale();}
+\DoxyCodeLine{1719   \}}
+\DoxyCodeLine{1720 \};}
+\DoxyCodeLine{1721 }
+\DoxyCodeLine{1722 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext, \textcolor{keyword}{typename} OutputIt, \textcolor{keyword}{typename} Rep,}
+\DoxyCodeLine{1723           \textcolor{keyword}{typename} Period>}
+\DoxyCodeLine{1724 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1chrono__formatter}{chrono\_formatter}} \{}
+\DoxyCodeLine{1725   FormatContext\& context;}
+\DoxyCodeLine{1726   OutputIt out;}
+\DoxyCodeLine{1727   \textcolor{keywordtype}{int} precision;}
+\DoxyCodeLine{1728   \textcolor{keywordtype}{bool} localized = \textcolor{keyword}{false};}
+\DoxyCodeLine{1729   \textcolor{comment}{// rep is unsigned to avoid overflow.}}
+\DoxyCodeLine{1730   \textcolor{keyword}{using }rep =}
+\DoxyCodeLine{1731       conditional\_t<std::is\_integral<Rep>::value \&\& \textcolor{keyword}{sizeof}(Rep) < \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),}
+\DoxyCodeLine{1732                     unsigned, \textcolor{keyword}{typename} make\_unsigned\_or\_unchanged<Rep>::type>;}
+\DoxyCodeLine{1733   rep val;}
+\DoxyCodeLine{1734   \textcolor{keyword}{using }seconds = std::chrono::duration<rep>;}
+\DoxyCodeLine{1735   seconds s;}
+\DoxyCodeLine{1736   \textcolor{keyword}{using }milliseconds = std::chrono::duration<rep, std::milli>;}
+\DoxyCodeLine{1737   \textcolor{keywordtype}{bool} negative;}
+\DoxyCodeLine{1738 }
+\DoxyCodeLine{1739   \textcolor{keyword}{using }char\_type = \textcolor{keyword}{typename} FormatContext::char\_type;}
+\DoxyCodeLine{1740   \textcolor{keyword}{using }\mbox{\hyperlink{classdetail_1_1tm__writer}{tm\_writer\_type}} = \mbox{\hyperlink{classdetail_1_1tm__writer}{tm\_writer<OutputIt, char\_type>}};}
+\DoxyCodeLine{1741 }
+\DoxyCodeLine{1742   \mbox{\hyperlink{structdetail_1_1chrono__formatter}{chrono\_formatter}}(FormatContext\& ctx, OutputIt o,}
+\DoxyCodeLine{1743                    std::chrono::duration<Rep, Period> d)}
+\DoxyCodeLine{1744       : context(ctx),}
+\DoxyCodeLine{1745         out(o),}
+\DoxyCodeLine{1746         val(\textcolor{keyword}{static\_cast<}rep\textcolor{keyword}{>}(d.count())),}
+\DoxyCodeLine{1747         negative(\textcolor{keyword}{false}) \{}
+\DoxyCodeLine{1748     \textcolor{keywordflow}{if} (d.count() < 0) \{}
+\DoxyCodeLine{1749       val = 0 -\/ val;}
+\DoxyCodeLine{1750       negative = \textcolor{keyword}{true};}
+\DoxyCodeLine{1751     \}}
+\DoxyCodeLine{1752 }
+\DoxyCodeLine{1753     \textcolor{comment}{// this may overflow and/or the result may not fit in the}}
+\DoxyCodeLine{1754     \textcolor{comment}{// target type.}}
+\DoxyCodeLine{1755 \textcolor{preprocessor}{\#if FMT\_SAFE\_DURATION\_CAST}}
+\DoxyCodeLine{1756     \textcolor{comment}{// might need checked conversion (rep!=Rep)}}
+\DoxyCodeLine{1757     \textcolor{keyword}{auto} tmpval = std::chrono::duration<rep, Period>(val);}
+\DoxyCodeLine{1758     s = fmt\_safe\_duration\_cast<seconds>(tmpval);}
+\DoxyCodeLine{1759 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1760     s = std::chrono::duration\_cast<seconds>(}
+\DoxyCodeLine{1761         std::chrono::duration<rep, Period>(val));}
+\DoxyCodeLine{1762 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1763   \}}
+\DoxyCodeLine{1764 }
+\DoxyCodeLine{1765   \textcolor{comment}{// returns true if nan or inf, writes to out.}}
+\DoxyCodeLine{1766   \textcolor{keywordtype}{bool} handle\_nan\_inf() \{}
+\DoxyCodeLine{1767     \textcolor{keywordflow}{if} (isfinite(val)) \{}
+\DoxyCodeLine{1768       \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1769     \}}
+\DoxyCodeLine{1770     \textcolor{keywordflow}{if} (isnan(val)) \{}
+\DoxyCodeLine{1771       write\_nan();}
+\DoxyCodeLine{1772       \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{1773     \}}
+\DoxyCodeLine{1774     \textcolor{comment}{// must be +-\/inf}}
+\DoxyCodeLine{1775     \textcolor{keywordflow}{if} (val > 0) \{}
+\DoxyCodeLine{1776       write\_pinf();}
+\DoxyCodeLine{1777     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1778       write\_ninf();}
+\DoxyCodeLine{1779     \}}
+\DoxyCodeLine{1780     \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{1781   \}}
+\DoxyCodeLine{1782 }
+\DoxyCodeLine{1783   Rep hour()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}Rep\textcolor{keyword}{>}(mod((s.count() / 3600), 24)); \}}
+\DoxyCodeLine{1784 }
+\DoxyCodeLine{1785   Rep hour12()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{1786     Rep hour = \textcolor{keyword}{static\_cast<}Rep\textcolor{keyword}{>}(mod((s.count() / 3600), 12));}
+\DoxyCodeLine{1787     \textcolor{keywordflow}{return} hour <= 0 ? 12 : hour;}
+\DoxyCodeLine{1788   \}}
+\DoxyCodeLine{1789 }
+\DoxyCodeLine{1790   Rep minute()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}Rep\textcolor{keyword}{>}(mod((s.count() / 60), 60)); \}}
+\DoxyCodeLine{1791   Rep second()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}Rep\textcolor{keyword}{>}(mod(s.count(), 60)); \}}
+\DoxyCodeLine{1792 }
+\DoxyCodeLine{1793   std::tm time()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{1794     \textcolor{keyword}{auto} time = std::tm();}
+\DoxyCodeLine{1795     time.tm\_hour = to\_nonnegative\_int(hour(), 24);}
+\DoxyCodeLine{1796     time.tm\_min = to\_nonnegative\_int(minute(), 60);}
+\DoxyCodeLine{1797     time.tm\_sec = to\_nonnegative\_int(second(), 60);}
+\DoxyCodeLine{1798     \textcolor{keywordflow}{return} time;}
+\DoxyCodeLine{1799   \}}
+\DoxyCodeLine{1800 }
+\DoxyCodeLine{1801   \textcolor{keywordtype}{void} write\_sign() \{}
+\DoxyCodeLine{1802     \textcolor{keywordflow}{if} (negative) \{}
+\DoxyCodeLine{1803       *out++ = \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{1804       negative = \textcolor{keyword}{false};}
+\DoxyCodeLine{1805     \}}
+\DoxyCodeLine{1806   \}}
+\DoxyCodeLine{1807 }
+\DoxyCodeLine{1808   \textcolor{keywordtype}{void} write(Rep \mbox{\hyperlink{classdetail_1_1value}{value}}, \textcolor{keywordtype}{int} width, pad\_type pad = pad\_type::unspecified) \{}
+\DoxyCodeLine{1809     write\_sign();}
+\DoxyCodeLine{1810     \textcolor{keywordflow}{if} (isnan(\mbox{\hyperlink{classdetail_1_1value}{value}})) \textcolor{keywordflow}{return} write\_nan();}
+\DoxyCodeLine{1811     uint32\_or\_64\_or\_128\_t<int> n =}
+\DoxyCodeLine{1812         to\_unsigned(to\_nonnegative\_int(\mbox{\hyperlink{classdetail_1_1value}{value}}, max\_value<int>()));}
+\DoxyCodeLine{1813     \textcolor{keywordtype}{int} num\_digits = detail::count\_digits(n);}
+\DoxyCodeLine{1814     \textcolor{keywordflow}{if} (width > num\_digits) \{}
+\DoxyCodeLine{1815       out = detail::write\_padding(out, pad, width -\/ num\_digits);}
+\DoxyCodeLine{1816     \}}
+\DoxyCodeLine{1817     out = format\_decimal<char\_type>(out, n, num\_digits).end;}
+\DoxyCodeLine{1818   \}}
+\DoxyCodeLine{1819 }
+\DoxyCodeLine{1820   \textcolor{keywordtype}{void} write\_nan() \{ std::copy\_n(\textcolor{stringliteral}{"{}nan"{}}, 3, out); \}}
+\DoxyCodeLine{1821   \textcolor{keywordtype}{void} write\_pinf() \{ std::copy\_n(\textcolor{stringliteral}{"{}inf"{}}, 3, out); \}}
+\DoxyCodeLine{1822   \textcolor{keywordtype}{void} write\_ninf() \{ std::copy\_n(\textcolor{stringliteral}{"{}-\/inf"{}}, 4, out); \}}
+\DoxyCodeLine{1823 }
+\DoxyCodeLine{1824   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Callback, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{1825   \textcolor{keywordtype}{void} format\_tm(\textcolor{keyword}{const} tm\& time, Callback cb, \mbox{\hyperlink{classArgs}{Args}}... args) \{}
+\DoxyCodeLine{1826     \textcolor{keywordflow}{if} (isnan(val)) \textcolor{keywordflow}{return} write\_nan();}
+\DoxyCodeLine{1827     \mbox{\hyperlink{classdetail_1_1get__locale}{get\_locale}} loc(localized, context.locale());}
+\DoxyCodeLine{1828     \textcolor{keyword}{auto} w = \mbox{\hyperlink{classdetail_1_1tm__writer}{tm\_writer\_type}}(loc, out, time);}
+\DoxyCodeLine{1829     (w.*cb)(args...);}
+\DoxyCodeLine{1830     out = w.out();}
+\DoxyCodeLine{1831   \}}
+\DoxyCodeLine{1832 }
+\DoxyCodeLine{1833   \textcolor{keywordtype}{void} on\_text(\textcolor{keyword}{const} char\_type* begin, \textcolor{keyword}{const} char\_type* end) \{}
+\DoxyCodeLine{1834     std::copy(begin, end, out);}
+\DoxyCodeLine{1835   \}}
+\DoxyCodeLine{1836 }
+\DoxyCodeLine{1837   \textcolor{comment}{// These are not implemented because durations don't have date information.}}
+\DoxyCodeLine{1838   \textcolor{keywordtype}{void} on\_abbr\_weekday() \{\}}
+\DoxyCodeLine{1839   \textcolor{keywordtype}{void} on\_full\_weekday() \{\}}
+\DoxyCodeLine{1840   \textcolor{keywordtype}{void} on\_dec0\_weekday(numeric\_system) \{\}}
+\DoxyCodeLine{1841   \textcolor{keywordtype}{void} on\_dec1\_weekday(numeric\_system) \{\}}
+\DoxyCodeLine{1842   \textcolor{keywordtype}{void} on\_abbr\_month() \{\}}
+\DoxyCodeLine{1843   \textcolor{keywordtype}{void} on\_full\_month() \{\}}
+\DoxyCodeLine{1844   \textcolor{keywordtype}{void} on\_datetime(numeric\_system) \{\}}
+\DoxyCodeLine{1845   \textcolor{keywordtype}{void} on\_loc\_date(numeric\_system) \{\}}
+\DoxyCodeLine{1846   \textcolor{keywordtype}{void} on\_loc\_time(numeric\_system) \{\}}
+\DoxyCodeLine{1847   \textcolor{keywordtype}{void} on\_us\_date() \{\}}
+\DoxyCodeLine{1848   \textcolor{keywordtype}{void} on\_iso\_date() \{\}}
+\DoxyCodeLine{1849   \textcolor{keywordtype}{void} on\_utc\_offset(numeric\_system) \{\}}
+\DoxyCodeLine{1850   \textcolor{keywordtype}{void} on\_tz\_name() \{\}}
+\DoxyCodeLine{1851   \textcolor{keywordtype}{void} on\_year(numeric\_system) \{\}}
+\DoxyCodeLine{1852   \textcolor{keywordtype}{void} on\_short\_year(numeric\_system) \{\}}
+\DoxyCodeLine{1853   \textcolor{keywordtype}{void} on\_offset\_year() \{\}}
+\DoxyCodeLine{1854   \textcolor{keywordtype}{void} on\_century(numeric\_system) \{\}}
+\DoxyCodeLine{1855   \textcolor{keywordtype}{void} on\_iso\_week\_based\_year() \{\}}
+\DoxyCodeLine{1856   \textcolor{keywordtype}{void} on\_iso\_week\_based\_short\_year() \{\}}
+\DoxyCodeLine{1857   \textcolor{keywordtype}{void} on\_dec\_month(numeric\_system) \{\}}
+\DoxyCodeLine{1858   \textcolor{keywordtype}{void} on\_dec0\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{1859   \textcolor{keywordtype}{void} on\_dec1\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{1860   \textcolor{keywordtype}{void} on\_iso\_week\_of\_year(numeric\_system) \{\}}
+\DoxyCodeLine{1861   \textcolor{keywordtype}{void} on\_day\_of\_year() \{\}}
+\DoxyCodeLine{1862   \textcolor{keywordtype}{void} on\_day\_of\_month(numeric\_system) \{\}}
+\DoxyCodeLine{1863   \textcolor{keywordtype}{void} on\_day\_of\_month\_space(numeric\_system) \{\}}
+\DoxyCodeLine{1864 }
+\DoxyCodeLine{1865   \textcolor{keywordtype}{void} on\_24\_hour(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1866     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1867 }
+\DoxyCodeLine{1868     \textcolor{keywordflow}{if} (ns == numeric\_system::standard) \textcolor{keywordflow}{return} write(hour(), 2, pad);}
+\DoxyCodeLine{1869     \textcolor{keyword}{auto} time = tm();}
+\DoxyCodeLine{1870     time.tm\_hour = to\_nonnegative\_int(hour(), 24);}
+\DoxyCodeLine{1871     format\_tm(time, \&tm\_writer\_type::on\_24\_hour, ns, pad);}
+\DoxyCodeLine{1872   \}}
+\DoxyCodeLine{1873 }
+\DoxyCodeLine{1874   \textcolor{keywordtype}{void} on\_12\_hour(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1875     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1876 }
+\DoxyCodeLine{1877     \textcolor{keywordflow}{if} (ns == numeric\_system::standard) \textcolor{keywordflow}{return} write(hour12(), 2, pad);}
+\DoxyCodeLine{1878     \textcolor{keyword}{auto} time = tm();}
+\DoxyCodeLine{1879     time.tm\_hour = to\_nonnegative\_int(hour12(), 12);}
+\DoxyCodeLine{1880     format\_tm(time, \&tm\_writer\_type::on\_12\_hour, ns, pad);}
+\DoxyCodeLine{1881   \}}
+\DoxyCodeLine{1882 }
+\DoxyCodeLine{1883   \textcolor{keywordtype}{void} on\_minute(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1884     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1885 }
+\DoxyCodeLine{1886     \textcolor{keywordflow}{if} (ns == numeric\_system::standard) \textcolor{keywordflow}{return} write(minute(), 2, pad);}
+\DoxyCodeLine{1887     \textcolor{keyword}{auto} time = tm();}
+\DoxyCodeLine{1888     time.tm\_min = to\_nonnegative\_int(minute(), 60);}
+\DoxyCodeLine{1889     format\_tm(time, \&tm\_writer\_type::on\_minute, ns, pad);}
+\DoxyCodeLine{1890   \}}
+\DoxyCodeLine{1891 }
+\DoxyCodeLine{1892   \textcolor{keywordtype}{void} on\_second(numeric\_system ns, pad\_type pad) \{}
+\DoxyCodeLine{1893     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1894 }
+\DoxyCodeLine{1895     \textcolor{keywordflow}{if} (ns == numeric\_system::standard) \{}
+\DoxyCodeLine{1896       \textcolor{keywordflow}{if} (std::is\_floating\_point<rep>::value) \{}
+\DoxyCodeLine{1897         \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{1898         write\_floating\_seconds(buf, std::chrono::duration<rep, Period>(val),}
+\DoxyCodeLine{1899                                precision);}
+\DoxyCodeLine{1900         \textcolor{keywordflow}{if} (negative) *out++ = \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{1901         \textcolor{keywordflow}{if} (buf.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}() < 2 || buf[1] == \textcolor{charliteral}{'.'}) \{}
+\DoxyCodeLine{1902           out = detail::write\_padding(out, pad);}
+\DoxyCodeLine{1903         \}}
+\DoxyCodeLine{1904         out = std::copy(buf.begin(), buf.end(), out);}
+\DoxyCodeLine{1905       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1906         write(second(), 2, pad);}
+\DoxyCodeLine{1907         write\_fractional\_seconds<char\_type>(}
+\DoxyCodeLine{1908             out, std::chrono::duration<rep, Period>(val), precision);}
+\DoxyCodeLine{1909       \}}
+\DoxyCodeLine{1910       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1911     \}}
+\DoxyCodeLine{1912     \textcolor{keyword}{auto} time = tm();}
+\DoxyCodeLine{1913     time.tm\_sec = to\_nonnegative\_int(second(), 60);}
+\DoxyCodeLine{1914     format\_tm(time, \&tm\_writer\_type::on\_second, ns, pad);}
+\DoxyCodeLine{1915   \}}
+\DoxyCodeLine{1916 }
+\DoxyCodeLine{1917   \textcolor{keywordtype}{void} on\_12\_hour\_time() \{}
+\DoxyCodeLine{1918     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1919     format\_tm(time(), \&tm\_writer\_type::on\_12\_hour\_time);}
+\DoxyCodeLine{1920   \}}
+\DoxyCodeLine{1921 }
+\DoxyCodeLine{1922   \textcolor{keywordtype}{void} on\_24\_hour\_time() \{}
+\DoxyCodeLine{1923     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \{}
+\DoxyCodeLine{1924       *out++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1925       handle\_nan\_inf();}
+\DoxyCodeLine{1926       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1927     \}}
+\DoxyCodeLine{1928 }
+\DoxyCodeLine{1929     write(hour(), 2);}
+\DoxyCodeLine{1930     *out++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1931     write(minute(), 2);}
+\DoxyCodeLine{1932   \}}
+\DoxyCodeLine{1933 }
+\DoxyCodeLine{1934   \textcolor{keywordtype}{void} on\_iso\_time() \{}
+\DoxyCodeLine{1935     on\_24\_hour\_time();}
+\DoxyCodeLine{1936     *out++ = \textcolor{charliteral}{':'};}
+\DoxyCodeLine{1937     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1938     on\_second(numeric\_system::standard, pad\_type::unspecified);}
+\DoxyCodeLine{1939   \}}
+\DoxyCodeLine{1940 }
+\DoxyCodeLine{1941   \textcolor{keywordtype}{void} on\_am\_pm() \{}
+\DoxyCodeLine{1942     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1943     format\_tm(time(), \&tm\_writer\_type::on\_am\_pm);}
+\DoxyCodeLine{1944   \}}
+\DoxyCodeLine{1945 }
+\DoxyCodeLine{1946   \textcolor{keywordtype}{void} on\_duration\_value() \{}
+\DoxyCodeLine{1947     \textcolor{keywordflow}{if} (handle\_nan\_inf()) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1948     write\_sign();}
+\DoxyCodeLine{1949     out = format\_duration\_value<char\_type>(out, val, precision);}
+\DoxyCodeLine{1950   \}}
+\DoxyCodeLine{1951 }
+\DoxyCodeLine{1952   \textcolor{keywordtype}{void} on\_duration\_unit() \{}
+\DoxyCodeLine{1953     out = format\_duration\_unit<char\_type, Period>(out);}
+\DoxyCodeLine{1954   \}}
+\DoxyCodeLine{1955 \};}
+\DoxyCodeLine{1956 }
+\DoxyCodeLine{1957 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{1958 }
+\DoxyCodeLine{1959 \textcolor{preprocessor}{\#if defined(\_\_cpp\_lib\_chrono) \&\& \_\_cpp\_lib\_chrono >= 201907}}
+\DoxyCodeLine{1960 \textcolor{keyword}{using }\mbox{\hyperlink{classweekday}{weekday}} = std::chrono::weekday;}
+\DoxyCodeLine{1961 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1962 \textcolor{comment}{// A fallback version of weekday.}}
+\DoxyCodeLine{1963 \textcolor{keyword}{class }\mbox{\hyperlink{classweekday}{weekday}} \{}
+\DoxyCodeLine{1964  \textcolor{keyword}{private}:}
+\DoxyCodeLine{1965   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} value;}
+\DoxyCodeLine{1966 }
+\DoxyCodeLine{1967  \textcolor{keyword}{public}:}
+\DoxyCodeLine{1968   \mbox{\hyperlink{classweekday}{weekday}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{1969   \textcolor{keyword}{explicit} \textcolor{keyword}{constexpr} \mbox{\hyperlink{classweekday}{weekday}}(\textcolor{keywordtype}{unsigned} wd) noexcept}
+\DoxyCodeLine{1970       : value(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}\textcolor{keyword}{>}(wd != 7 ? wd : 0)) \{\}}
+\DoxyCodeLine{1971   \textcolor{keyword}{constexpr} \textcolor{keywordtype}{unsigned} c\_encoding() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{ \textcolor{keywordflow}{return} value; \}}
+\DoxyCodeLine{1972 \};}
+\DoxyCodeLine{1973 }
+\DoxyCodeLine{1974 \textcolor{keyword}{class }\mbox{\hyperlink{classyear__month__day}{year\_month\_day}} \{\};}
+\DoxyCodeLine{1975 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1976 }
+\DoxyCodeLine{1977 \textcolor{comment}{// A rudimentary weekday formatter.}}
+\DoxyCodeLine{1978 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<\mbox{\hyperlink{classweekday}{weekday}}, Char> \{}
+\DoxyCodeLine{1979  \textcolor{keyword}{private}:}
+\DoxyCodeLine{1980   \textcolor{keywordtype}{bool} localized = \textcolor{keyword}{false};}
+\DoxyCodeLine{1981 }
+\DoxyCodeLine{1982  \textcolor{keyword}{public}:}
+\DoxyCodeLine{1983   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(\mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}}\& ctx)}
+\DoxyCodeLine{1984       -\/> \textcolor{keyword}{decltype}(ctx.\mbox{\hyperlink{classbasic__format__parse__context_afb21ddaa0d32b5430f99eed530666ea9}{begin}}()) \{}
+\DoxyCodeLine{1985     \textcolor{keyword}{auto} begin = ctx.\mbox{\hyperlink{classbasic__format__parse__context_afb21ddaa0d32b5430f99eed530666ea9}{begin}}(), end = ctx.\mbox{\hyperlink{classbasic__format__parse__context_a6a0fc217fe680a1b23eada2a53870c41}{end}}();}
+\DoxyCodeLine{1986     \textcolor{keywordflow}{if} (begin != end \&\& *begin == \textcolor{charliteral}{'L'}) \{}
+\DoxyCodeLine{1987       ++begin;}
+\DoxyCodeLine{1988       localized = \textcolor{keyword}{true};}
+\DoxyCodeLine{1989     \}}
+\DoxyCodeLine{1990     \textcolor{keywordflow}{return} begin;}
+\DoxyCodeLine{1991   \}}
+\DoxyCodeLine{1992 }
+\DoxyCodeLine{1993   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{1994   \textcolor{keyword}{auto} format(\mbox{\hyperlink{classweekday}{weekday}} wd, FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{1995     \textcolor{keyword}{auto} time = std::tm();}
+\DoxyCodeLine{1996     time.tm\_wday = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(wd.c\_encoding());}
+\DoxyCodeLine{1997     \mbox{\hyperlink{classdetail_1_1get__locale}{detail::get\_locale}} loc(localized, ctx.locale());}
+\DoxyCodeLine{1998     \textcolor{keyword}{auto} w = \mbox{\hyperlink{classdetail_1_1tm__writer}{detail::tm\_writer}}<\textcolor{keyword}{decltype}(ctx.out()), Char>(loc, ctx.out(), time);}
+\DoxyCodeLine{1999     w.on\_abbr\_weekday();}
+\DoxyCodeLine{2000     \textcolor{keywordflow}{return} w.out();}
+\DoxyCodeLine{2001   \}}
+\DoxyCodeLine{2002 \};}
+\DoxyCodeLine{2003 }
+\DoxyCodeLine{2004 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Rep, \textcolor{keyword}{typename} Period, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{2005 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<std::chrono::duration<Rep, Period>, Char> \{}
+\DoxyCodeLine{2006  \textcolor{keyword}{private}:}
+\DoxyCodeLine{2007   \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}} specs\_;}
+\DoxyCodeLine{2008   \mbox{\hyperlink{structdetail_1_1arg__ref}{detail::arg\_ref<Char>}} width\_ref\_;}
+\DoxyCodeLine{2009   \mbox{\hyperlink{structdetail_1_1arg__ref}{detail::arg\_ref<Char>}} precision\_ref\_;}
+\DoxyCodeLine{2010   \textcolor{keywordtype}{bool} localized\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{2011   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} format\_str\_;}
+\DoxyCodeLine{2012 }
+\DoxyCodeLine{2013  \textcolor{keyword}{public}:}
+\DoxyCodeLine{2014   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(\mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}}\& ctx)}
+\DoxyCodeLine{2015       -\/> \textcolor{keyword}{decltype}(ctx.\mbox{\hyperlink{classbasic__format__parse__context_afb21ddaa0d32b5430f99eed530666ea9}{begin}}()) \{}
+\DoxyCodeLine{2016     \textcolor{keyword}{auto} it = ctx.\mbox{\hyperlink{classbasic__format__parse__context_afb21ddaa0d32b5430f99eed530666ea9}{begin}}(), end = ctx.\mbox{\hyperlink{classbasic__format__parse__context_a6a0fc217fe680a1b23eada2a53870c41}{end}}();}
+\DoxyCodeLine{2017     \textcolor{keywordflow}{if} (it == end || *it == \textcolor{charliteral}{'\}'}) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2018 }
+\DoxyCodeLine{2019     it = detail::parse\_align(it, end, specs\_);}
+\DoxyCodeLine{2020     \textcolor{keywordflow}{if} (it == end) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2021 }
+\DoxyCodeLine{2022     it = detail::parse\_dynamic\_spec(it, end, specs\_.width, width\_ref\_, ctx);}
+\DoxyCodeLine{2023     \textcolor{keywordflow}{if} (it == end) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2024 }
+\DoxyCodeLine{2025     \textcolor{keyword}{auto} checker = \mbox{\hyperlink{structdetail_1_1chrono__format__checker}{detail::chrono\_format\_checker}}();}
+\DoxyCodeLine{2026     \textcolor{keywordflow}{if} (*it == \textcolor{charliteral}{'.'}) \{}
+\DoxyCodeLine{2027       checker.has\_precision\_integral = !std::is\_floating\_point<Rep>::value;}
+\DoxyCodeLine{2028       it = detail::parse\_precision(it, end, specs\_.precision, precision\_ref\_,}
+\DoxyCodeLine{2029                                    ctx);}
+\DoxyCodeLine{2030     \}}
+\DoxyCodeLine{2031     \textcolor{keywordflow}{if} (it != end \&\& *it == \textcolor{charliteral}{'L'}) \{}
+\DoxyCodeLine{2032       localized\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{2033       ++it;}
+\DoxyCodeLine{2034     \}}
+\DoxyCodeLine{2035     end = detail::parse\_chrono\_format(it, end, checker);}
+\DoxyCodeLine{2036     format\_str\_ = \{it, detail::to\_unsigned(end -\/ it)\};}
+\DoxyCodeLine{2037     \textcolor{keywordflow}{return} end;}
+\DoxyCodeLine{2038   \}}
+\DoxyCodeLine{2039 }
+\DoxyCodeLine{2040   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{2041   \textcolor{keyword}{auto} format(std::chrono::duration<Rep, Period> d, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{2042       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2043     \textcolor{keyword}{auto} specs = specs\_;}
+\DoxyCodeLine{2044     \textcolor{keyword}{auto} precision = specs.precision;}
+\DoxyCodeLine{2045     specs.precision = -\/1;}
+\DoxyCodeLine{2046     \textcolor{keyword}{auto} begin = format\_str\_.begin(), end = format\_str\_.end();}
+\DoxyCodeLine{2047     \textcolor{comment}{// As a possible future optimization, we could avoid extra copying if width}}
+\DoxyCodeLine{2048     \textcolor{comment}{// is not specified.}}
+\DoxyCodeLine{2049     \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}}();}
+\DoxyCodeLine{2050     \textcolor{keyword}{auto} out = std::back\_inserter(buf);}
+\DoxyCodeLine{2051     detail::handle\_dynamic\_spec<detail::width\_checker>(specs.width, width\_ref\_,}
+\DoxyCodeLine{2052                                                        ctx);}
+\DoxyCodeLine{2053     detail::handle\_dynamic\_spec<detail::precision\_checker>(precision,}
+\DoxyCodeLine{2054                                                            precision\_ref\_, ctx);}
+\DoxyCodeLine{2055     \textcolor{keywordflow}{if} (begin == end || *begin == \textcolor{charliteral}{'\}'}) \{}
+\DoxyCodeLine{2056       out = detail::format\_duration\_value<Char>(out, d.count(), precision);}
+\DoxyCodeLine{2057       detail::format\_duration\_unit<Char, Period>(out);}
+\DoxyCodeLine{2058     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{2059       \textcolor{keyword}{using }chrono\_formatter =}
+\DoxyCodeLine{2060           \mbox{\hyperlink{structdetail_1_1chrono__formatter}{detail::chrono\_formatter}}<FormatContext, \textcolor{keyword}{decltype}(out), Rep, Period>;}
+\DoxyCodeLine{2061       \textcolor{keyword}{auto} f = chrono\_formatter(ctx, out, d);}
+\DoxyCodeLine{2062       f.precision = precision;}
+\DoxyCodeLine{2063       f.localized = localized\_;}
+\DoxyCodeLine{2064       detail::parse\_chrono\_format(begin, end, f);}
+\DoxyCodeLine{2065     \}}
+\DoxyCodeLine{2066     \textcolor{keywordflow}{return} detail::write(}
+\DoxyCodeLine{2067         ctx.out(), \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(buf.\mbox{\hyperlink{classdetail_1_1buffer_aeb33e0a2d2be2bbca9e0236c148089c8}{data}}(), buf.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}()), specs);}
+\DoxyCodeLine{2068   \}}
+\DoxyCodeLine{2069 \};}
+\DoxyCodeLine{2070 }
+\DoxyCodeLine{2071 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{2072 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<std::chrono::time\_point<std::chrono::system\_clock, Duration>,}
+\DoxyCodeLine{2073                  Char> : \mbox{\hyperlink{structformatter}{formatter}}<std::tm, Char> \{}
+\DoxyCodeLine{2074   FMT\_CONSTEXPR \mbox{\hyperlink{structformatter}{formatter}}() \{}
+\DoxyCodeLine{2075     this-\/>format\_str\_ = \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, '\%', 'F', ' ', '\%', 'T'>}}\{\};}
+\DoxyCodeLine{2076   \}}
+\DoxyCodeLine{2077 }
+\DoxyCodeLine{2078   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{2079   \textcolor{keyword}{auto} format(std::chrono::time\_point<std::chrono::system\_clock, Duration> val,}
+\DoxyCodeLine{2080               FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2081     \textcolor{keyword}{using }period = \textcolor{keyword}{typename} Duration::period;}
+\DoxyCodeLine{2082     \textcolor{keywordflow}{if} (detail::const\_check(}
+\DoxyCodeLine{2083             period::num != 1 || period::den != 1 ||}
+\DoxyCodeLine{2084             std::is\_floating\_point<typename Duration::rep>::value)) \{}
+\DoxyCodeLine{2085       \textcolor{keyword}{const} \textcolor{keyword}{auto} epoch = val.time\_since\_epoch();}
+\DoxyCodeLine{2086       \textcolor{keyword}{auto} subsecs = std::chrono::duration\_cast<Duration>(}
+\DoxyCodeLine{2087           epoch -\/ std::chrono::duration\_cast<std::chrono::seconds>(epoch));}
+\DoxyCodeLine{2088 }
+\DoxyCodeLine{2089       \textcolor{keywordflow}{if} (subsecs.count() < 0) \{}
+\DoxyCodeLine{2090         \textcolor{keyword}{auto} second =}
+\DoxyCodeLine{2091             std::chrono::duration\_cast<Duration>(std::chrono::seconds(1));}
+\DoxyCodeLine{2092         \textcolor{keywordflow}{if} (epoch.count() < ((Duration::min)() + second).count())}
+\DoxyCodeLine{2093           FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}duration is too small"{}}));}
+\DoxyCodeLine{2094         subsecs += second;}
+\DoxyCodeLine{2095         val -\/= second;}
+\DoxyCodeLine{2096       \}}
+\DoxyCodeLine{2097 }
+\DoxyCodeLine{2098       \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter<std::tm, Char>::do\_format}}(}
+\DoxyCodeLine{2099           gmtime(std::chrono::time\_point\_cast<std::chrono::seconds>(val)), ctx,}
+\DoxyCodeLine{2100           \&subsecs);}
+\DoxyCodeLine{2101     \}}
+\DoxyCodeLine{2102 }
+\DoxyCodeLine{2103     \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter<std::tm, Char>::format}}(}
+\DoxyCodeLine{2104         gmtime(std::chrono::time\_point\_cast<std::chrono::seconds>(val)), ctx);}
+\DoxyCodeLine{2105   \}}
+\DoxyCodeLine{2106 \};}
+\DoxyCodeLine{2107 }
+\DoxyCodeLine{2108 \textcolor{preprocessor}{\#if FMT\_USE\_LOCAL\_TIME}}
+\DoxyCodeLine{2109 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{2110 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<std::chrono::local\_time<Duration>, Char>}
+\DoxyCodeLine{2111     : \mbox{\hyperlink{structformatter}{formatter}}<std::tm, Char> \{}
+\DoxyCodeLine{2112   FMT\_CONSTEXPR \mbox{\hyperlink{structformatter}{formatter}}() \{}
+\DoxyCodeLine{2113     this-\/>format\_str\_ = \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, '\%', 'F', ' ', '\%', 'T'>}}\{\};}
+\DoxyCodeLine{2114   \}}
+\DoxyCodeLine{2115 }
+\DoxyCodeLine{2116   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{2117   \textcolor{keyword}{auto} format(std::chrono::local\_time<Duration> val, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{2118       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2119     \textcolor{keyword}{using }period = \textcolor{keyword}{typename} Duration::period;}
+\DoxyCodeLine{2120     \textcolor{keywordflow}{if} (period::num != 1 || period::den != 1 ||}
+\DoxyCodeLine{2121         std::is\_floating\_point<typename Duration::rep>::value) \{}
+\DoxyCodeLine{2122       \textcolor{keyword}{const} \textcolor{keyword}{auto} epoch = val.time\_since\_epoch();}
+\DoxyCodeLine{2123       \textcolor{keyword}{const} \textcolor{keyword}{auto} subsecs = std::chrono::duration\_cast<Duration>(}
+\DoxyCodeLine{2124           epoch -\/ std::chrono::duration\_cast<std::chrono::seconds>(epoch));}
+\DoxyCodeLine{2125 }
+\DoxyCodeLine{2126       \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter<std::tm, Char>::do\_format}}(}
+\DoxyCodeLine{2127           localtime(std::chrono::time\_point\_cast<std::chrono::seconds>(val)),}
+\DoxyCodeLine{2128           ctx, \&subsecs);}
+\DoxyCodeLine{2129     \}}
+\DoxyCodeLine{2130 }
+\DoxyCodeLine{2131     \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter<std::tm, Char>::format}}(}
+\DoxyCodeLine{2132         localtime(std::chrono::time\_point\_cast<std::chrono::seconds>(val)),}
+\DoxyCodeLine{2133         ctx);}
+\DoxyCodeLine{2134   \}}
+\DoxyCodeLine{2135 \};}
+\DoxyCodeLine{2136 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{2137 }
+\DoxyCodeLine{2138 \textcolor{preprocessor}{\#if FMT\_USE\_UTC\_TIME}}
+\DoxyCodeLine{2139 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{2140 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<std::chrono::time\_point<std::chrono::utc\_clock, Duration>,}
+\DoxyCodeLine{2141                  Char>}
+\DoxyCodeLine{2142     : \mbox{\hyperlink{structformatter}{formatter}}<std::chrono::time\_point<std::chrono::system\_clock, Duration>,}
+\DoxyCodeLine{2143                 Char> \{}
+\DoxyCodeLine{2144   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{2145   \textcolor{keyword}{auto} format(std::chrono::time\_point<std::chrono::utc\_clock, Duration> val,}
+\DoxyCodeLine{2146               FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2147     \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter}}<}
+\DoxyCodeLine{2148         std::chrono::time\_point<std::chrono::system\_clock, Duration>,}
+\DoxyCodeLine{2149         Char>::format(std::chrono::utc\_clock::to\_sys(val), ctx);}
+\DoxyCodeLine{2150   \}}
+\DoxyCodeLine{2151 \};}
+\DoxyCodeLine{2152 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{2153 }
+\DoxyCodeLine{2154 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<std::tm, Char> \{}
+\DoxyCodeLine{2155  \textcolor{keyword}{private}:}
+\DoxyCodeLine{2156   \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}} specs\_;}
+\DoxyCodeLine{2157   \mbox{\hyperlink{structdetail_1_1arg__ref}{detail::arg\_ref<Char>}} width\_ref\_;}
+\DoxyCodeLine{2158 }
+\DoxyCodeLine{2159  \textcolor{keyword}{protected}:}
+\DoxyCodeLine{2160   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} format\_str\_;}
+\DoxyCodeLine{2161 }
+\DoxyCodeLine{2162   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext, \textcolor{keyword}{typename} Duration>}
+\DoxyCodeLine{2163   \textcolor{keyword}{auto} do\_format(\textcolor{keyword}{const} std::tm\& tm, FormatContext\& ctx,}
+\DoxyCodeLine{2164                  \textcolor{keyword}{const} Duration* subsecs) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2165     \textcolor{keyword}{auto} specs = specs\_;}
+\DoxyCodeLine{2166     \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}}();}
+\DoxyCodeLine{2167     \textcolor{keyword}{auto} out = std::back\_inserter(buf);}
+\DoxyCodeLine{2168     detail::handle\_dynamic\_spec<detail::width\_checker>(specs.width, width\_ref\_,}
+\DoxyCodeLine{2169                                                        ctx);}
+\DoxyCodeLine{2170 }
+\DoxyCodeLine{2171     \textcolor{keyword}{auto} loc\_ref = ctx.locale();}
+\DoxyCodeLine{2172     \mbox{\hyperlink{classdetail_1_1get__locale}{detail::get\_locale}} loc(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{bool}\textcolor{keyword}{>}(loc\_ref), loc\_ref);}
+\DoxyCodeLine{2173     \textcolor{keyword}{auto} w =}
+\DoxyCodeLine{2174         \mbox{\hyperlink{classdetail_1_1tm__writer}{detail::tm\_writer<decltype(out), Char, Duration>}}(loc, out, tm, subsecs);}
+\DoxyCodeLine{2175     detail::parse\_chrono\_format(format\_str\_.begin(), format\_str\_.end(), w);}
+\DoxyCodeLine{2176     \textcolor{keywordflow}{return} detail::write(}
+\DoxyCodeLine{2177         ctx.out(), \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(buf.\mbox{\hyperlink{classdetail_1_1buffer_aeb33e0a2d2be2bbca9e0236c148089c8}{data}}(), buf.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}()), specs);}
+\DoxyCodeLine{2178   \}}
+\DoxyCodeLine{2179 }
+\DoxyCodeLine{2180  \textcolor{keyword}{public}:}
+\DoxyCodeLine{2181   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(\mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}}\& ctx)}
+\DoxyCodeLine{2182       -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{2183     \textcolor{keyword}{auto} it = ctx.begin(), end = ctx.end();}
+\DoxyCodeLine{2184     \textcolor{keywordflow}{if} (it == end || *it == \textcolor{charliteral}{'\}'}) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2185 }
+\DoxyCodeLine{2186     it = detail::parse\_align(it, end, specs\_);}
+\DoxyCodeLine{2187     \textcolor{keywordflow}{if} (it == end) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2188 }
+\DoxyCodeLine{2189     it = detail::parse\_dynamic\_spec(it, end, specs\_.width, width\_ref\_, ctx);}
+\DoxyCodeLine{2190     \textcolor{keywordflow}{if} (it == end) \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{2191 }
+\DoxyCodeLine{2192     end = detail::parse\_chrono\_format(it, end, \mbox{\hyperlink{structdetail_1_1tm__format__checker}{detail::tm\_format\_checker}}());}
+\DoxyCodeLine{2193     \textcolor{comment}{// Replace the default format\_str only if the new spec is not empty.}}
+\DoxyCodeLine{2194     \textcolor{keywordflow}{if} (end != it) format\_str\_ = \{it, detail::to\_unsigned(end -\/ it)\};}
+\DoxyCodeLine{2195     \textcolor{keywordflow}{return} end;}
+\DoxyCodeLine{2196   \}}
+\DoxyCodeLine{2197 }
+\DoxyCodeLine{2198   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{2199   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} std::tm\& tm, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{2200       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{2201     \textcolor{keywordflow}{return} do\_format<FormatContext, std::chrono::seconds>(tm, ctx, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{2202   \}}
+\DoxyCodeLine{2203 \};}
+\DoxyCodeLine{2204 }
+\DoxyCodeLine{2205 FMT\_END\_EXPORT}
+\DoxyCodeLine{2206 FMT\_END\_NAMESPACE}
+\DoxyCodeLine{2207 }
+\DoxyCodeLine{2208 \textcolor{preprocessor}{\#endif  }\textcolor{comment}{// FMT\_CHRONO\_H\_}}
+
+\end{DoxyCode}

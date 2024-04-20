@@ -1,0 +1,49 @@
+\hypertarget{classWSSession}{}\doxysection{WSSession Class Reference}
+\label{classWSSession}\index{WSSession@{WSSession}}
+
+
+Inheritance diagram for WSSession\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=224pt]{classWSSession__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for WSSession\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=224pt]{classWSSession__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classWSSession_aaffb41413a847c830899621457cf94d6}\label{classWSSession_aaffb41413a847c830899621457cf94d6}} 
+{\bfseries WSSession} (net\+::io\+\_\+context \&ioc, ssl\+::context \&ctx, \mbox{\hyperlink{classLoggerI}{LoggerI}} $\ast$logger)
+\item 
+\mbox{\Hypertarget{classWSSession_a899e91dc9eddc4e458dc625dee58b096}\label{classWSSession_a899e91dc9eddc4e458dc625dee58b096}} 
+void {\bfseries run} (char const $\ast$host, char const $\ast$port, char const $\ast$end\+\_\+point)
+\item 
+\mbox{\Hypertarget{classWSSession_aed6cfb18c169c12923e0342ad6463e39}\label{classWSSession_aed6cfb18c169c12923e0342ad6463e39}} 
+void {\bfseries on\+\_\+resolve} (beast\+::error\+\_\+code ec, tcp\+::resolver\+::results\+\_\+type results)
+\item 
+\mbox{\Hypertarget{classWSSession_a93cb69842a2e6f55869231a6a7608334}\label{classWSSession_a93cb69842a2e6f55869231a6a7608334}} 
+void {\bfseries on\+\_\+connect} (beast\+::error\+\_\+code ec, tcp\+::resolver\+::results\+\_\+type\+::endpoint\+\_\+type ep)
+\item 
+\mbox{\Hypertarget{classWSSession_aba16fd710ecf39c22b28fa6dd492f654}\label{classWSSession_aba16fd710ecf39c22b28fa6dd492f654}} 
+void {\bfseries on\+\_\+ssl\+\_\+handshake} (beast\+::error\+\_\+code ec)
+\item 
+\mbox{\Hypertarget{classWSSession_a1396fef77db260c34df9c674beaf511f}\label{classWSSession_a1396fef77db260c34df9c674beaf511f}} 
+void {\bfseries on\+\_\+handshake} (beast\+::error\+\_\+code ec)
+\item 
+\mbox{\Hypertarget{classWSSession_a44ade1899976679aa758c3a6dbbe5b54}\label{classWSSession_a44ade1899976679aa758c3a6dbbe5b54}} 
+void {\bfseries on\+\_\+read} (beast\+::error\+\_\+code ec, std\+::size\+\_\+t bytes\+\_\+transferred)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/bybit/\+WSImpl/WSImpl.\+h\end{DoxyCompactItemize}

@@ -5,7 +5,6 @@
 
 int main()
 {
-    auto asdasd = binance::s1();
     Logger log("logfile.txt");
     
     return 0;

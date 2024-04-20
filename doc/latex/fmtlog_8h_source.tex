@@ -1,0 +1,832 @@
+\hypertarget{fmtlog_8h_source}{}\doxysection{fmtlog.\+h}
+\label{fmtlog_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmtlog.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmtlog.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{/*}}
+\DoxyCodeLine{2 \textcolor{comment}{MIT License}}
+\DoxyCodeLine{3 \textcolor{comment}{}}
+\DoxyCodeLine{4 \textcolor{comment}{Copyright (c) 2021 Meng Rao <raomeng1@gmail.com>}}
+\DoxyCodeLine{5 \textcolor{comment}{}}
+\DoxyCodeLine{6 \textcolor{comment}{Permission is hereby granted, free of charge, to any person obtaining a copy}}
+\DoxyCodeLine{7 \textcolor{comment}{of this software and associated documentation files (the "{}Software"{}), to deal}}
+\DoxyCodeLine{8 \textcolor{comment}{in the Software without restriction, including without limitation the rights}}
+\DoxyCodeLine{9 \textcolor{comment}{to use, copy, modify, merge, publish, distribute, sublicense, and/or sell}}
+\DoxyCodeLine{10 \textcolor{comment}{copies of the Software, and to permit persons to whom the Software is}}
+\DoxyCodeLine{11 \textcolor{comment}{furnished to do so, subject to the following conditions:}}
+\DoxyCodeLine{12 \textcolor{comment}{}}
+\DoxyCodeLine{13 \textcolor{comment}{The above copyright notice and this permission notice shall be included in all}}
+\DoxyCodeLine{14 \textcolor{comment}{copies or substantial portions of the Software.}}
+\DoxyCodeLine{15 \textcolor{comment}{}}
+\DoxyCodeLine{16 \textcolor{comment}{THE SOFTWARE IS PROVIDED "{}AS IS"{}, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR}}
+\DoxyCodeLine{17 \textcolor{comment}{IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,}}
+\DoxyCodeLine{18 \textcolor{comment}{FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE}}
+\DoxyCodeLine{19 \textcolor{comment}{AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER}}
+\DoxyCodeLine{20 \textcolor{comment}{LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,}}
+\DoxyCodeLine{21 \textcolor{comment}{OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE}}
+\DoxyCodeLine{22 \textcolor{comment}{SOFTWARE.}}
+\DoxyCodeLine{23 \textcolor{comment}{*/}}
+\DoxyCodeLine{24 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{25 \textcolor{comment}{//\#define FMT\_HEADER\_ONLY}}
+\DoxyCodeLine{26 \textcolor{preprocessor}{\#include "{}fmt/format.h"{}}}
+\DoxyCodeLine{27 \textcolor{preprocessor}{\#include <type\_traits>}}
+\DoxyCodeLine{28 \textcolor{preprocessor}{\#include <vector>}}
+\DoxyCodeLine{29 \textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{30 \textcolor{preprocessor}{\#include <atomic>}}
+\DoxyCodeLine{31 \textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{32 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{33 }
+\DoxyCodeLine{34 \textcolor{preprocessor}{\#ifdef \_MSC\_VER}}
+\DoxyCodeLine{35 \textcolor{preprocessor}{\#include <intrin.h>}}
+\DoxyCodeLine{36 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{38 \textcolor{preprocessor}{\#ifdef \_WIN32}}
+\DoxyCodeLine{39 \textcolor{preprocessor}{\#define FAST\_THREAD\_LOCAL thread\_local}}
+\DoxyCodeLine{40 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{41 \textcolor{preprocessor}{\#define FAST\_THREAD\_LOCAL \_\_thread}}
+\DoxyCodeLine{42 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{43 }
+\DoxyCodeLine{44 \textcolor{comment}{// define FMTLOG\_BLOCK=1 if log statment should be blocked when queue is full, instead of discarding the msg}}
+\DoxyCodeLine{45 \textcolor{preprocessor}{\#ifndef FMTLOG\_BLOCK}}
+\DoxyCodeLine{46 \textcolor{preprocessor}{\#define FMTLOG\_BLOCK 0}}
+\DoxyCodeLine{47 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{49 \textcolor{preprocessor}{\#define FMTLOG\_LEVEL\_DBG 0}}
+\DoxyCodeLine{50 \textcolor{preprocessor}{\#define FMTLOG\_LEVEL\_INF 1}}
+\DoxyCodeLine{51 \textcolor{preprocessor}{\#define FMTLOG\_LEVEL\_WRN 2}}
+\DoxyCodeLine{52 \textcolor{preprocessor}{\#define FMTLOG\_LEVEL\_ERR 3}}
+\DoxyCodeLine{53 \textcolor{preprocessor}{\#define FMTLOG\_LEVEL\_OFF 4}}
+\DoxyCodeLine{54 }
+\DoxyCodeLine{55 \textcolor{comment}{// define FMTLOG\_ACTIVE\_LEVEL to turn off low log level in compile time}}
+\DoxyCodeLine{56 \textcolor{preprocessor}{\#ifndef FMTLOG\_ACTIVE\_LEVEL}}
+\DoxyCodeLine{57 \textcolor{preprocessor}{\#define FMTLOG\_ACTIVE\_LEVEL FMTLOG\_LEVEL\_DBG}}
+\DoxyCodeLine{58 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{59 }
+\DoxyCodeLine{60 \textcolor{preprocessor}{\#ifndef FMTLOG\_QUEUE\_SIZE}}
+\DoxyCodeLine{61 \textcolor{preprocessor}{\#define FMTLOG\_QUEUE\_SIZE (1 << 20)}}
+\DoxyCodeLine{62 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{63 }
+\DoxyCodeLine{64 \textcolor{keyword}{namespace }fmtlogdetail \{}
+\DoxyCodeLine{65 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{66 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}} : std::false\_type}
+\DoxyCodeLine{67 \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69 \textcolor{keyword}{template}<>}
+\DoxyCodeLine{70 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}}<char*> : std::false\_type}
+\DoxyCodeLine{71 \{ \textcolor{keyword}{using }type = \textcolor{keywordtype}{char}*; \};}
+\DoxyCodeLine{72 }
+\DoxyCodeLine{73 \textcolor{keyword}{template}<>}
+\DoxyCodeLine{74 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}}<void*> : std::false\_type}
+\DoxyCodeLine{75 \{ \textcolor{keyword}{using }type = \textcolor{keywordtype}{void}*; \};}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{77 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{78 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}}<std::shared\_ptr<Arg>> : std::true\_type}
+\DoxyCodeLine{79 \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename} D>}
+\DoxyCodeLine{82 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}}<std::unique\_ptr<Arg, D>> : std::true\_type}
+\DoxyCodeLine{83 \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{84 }
+\DoxyCodeLine{85 \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{86 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr}}<Arg*> : std::true\_type}
+\DoxyCodeLine{87 \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{88 }
+\DoxyCodeLine{89 \}; \textcolor{comment}{// namespace fmtlogdetail}}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_\_ = 0>}
+\DoxyCodeLine{92 \textcolor{keyword}{class }\mbox{\hyperlink{classfmtlogT}{fmtlogT}}}
+\DoxyCodeLine{93 \{}
+\DoxyCodeLine{94 \textcolor{keyword}{public}:}
+\DoxyCodeLine{95   \textcolor{keyword}{enum} LogLevel : uint8\_t}
+\DoxyCodeLine{96   \{}
+\DoxyCodeLine{97     DBG = 0,}
+\DoxyCodeLine{98     INF,}
+\DoxyCodeLine{99     WRN,}
+\DoxyCodeLine{100     ERR,}
+\DoxyCodeLine{101     OFF}
+\DoxyCodeLine{102   \};}
+\DoxyCodeLine{103 }
+\DoxyCodeLine{104   \textcolor{comment}{// Preallocate thread queue for current thread}}
+\DoxyCodeLine{105   \textcolor{keyword}{static} \textcolor{keywordtype}{void} preallocate() \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{106 }
+\DoxyCodeLine{107   \textcolor{comment}{// Set the file for logging}}
+\DoxyCodeLine{108   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setLogFile(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* filename, \textcolor{keywordtype}{bool} truncate = \textcolor{keyword}{false});}
+\DoxyCodeLine{109 }
+\DoxyCodeLine{110   \textcolor{comment}{// Set an existing FILE* for logging, if manageFp is false fmtlog will not buffer log internally}}
+\DoxyCodeLine{111   \textcolor{comment}{// and will not close the FILE*}}
+\DoxyCodeLine{112   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setLogFile(FILE* fp, \textcolor{keywordtype}{bool} manageFp = \textcolor{keyword}{false});}
+\DoxyCodeLine{113 }
+\DoxyCodeLine{114   \textcolor{comment}{// Collect log msgs from all threads and write to log file}}
+\DoxyCodeLine{115   \textcolor{comment}{// If forceFlush = true, internal file buffer is flushed}}
+\DoxyCodeLine{116   \textcolor{comment}{// User need to call poll() repeatedly if startPollingThread is not used}}
+\DoxyCodeLine{117   \textcolor{keyword}{static} \textcolor{keywordtype}{void} poll(\textcolor{keywordtype}{bool} forceFlush = \textcolor{keyword}{false});}
+\DoxyCodeLine{118 }
+\DoxyCodeLine{119   \textcolor{comment}{// Set flush delay in nanosecond}}
+\DoxyCodeLine{120   \textcolor{comment}{// If there's msg older than ns in the buffer, flush will be triggered}}
+\DoxyCodeLine{121   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setFlushDelay(int64\_t ns) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{122 }
+\DoxyCodeLine{123   \textcolor{comment}{// If current msg has level >= flushLogLevel, flush will be triggered}}
+\DoxyCodeLine{124   \textcolor{keyword}{static} \textcolor{keywordtype}{void} flushOn(LogLevel flushLogLevel) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{125 }
+\DoxyCodeLine{126   \textcolor{comment}{// If file buffer has more than specified bytes, flush will be triggered}}
+\DoxyCodeLine{127   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setFlushBufSize(uint32\_t \mbox{\hyperlink{classbytes}{bytes}}) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{128 }
+\DoxyCodeLine{129   \textcolor{comment}{// callback signature user can register}}
+\DoxyCodeLine{130   \textcolor{comment}{// ns: nanosecond timestamp}}
+\DoxyCodeLine{131   \textcolor{comment}{// level: logLevel}}
+\DoxyCodeLine{132   \textcolor{comment}{// location: full file path with line num, e.g: /home/raomeng/fmtlog/fmtlog.h:45}}
+\DoxyCodeLine{133   \textcolor{comment}{// basePos: file base index in the location}}
+\DoxyCodeLine{134   \textcolor{comment}{// threadName: thread id or the name user set with setThreadName}}
+\DoxyCodeLine{135   \textcolor{comment}{// msg: full log msg with header}}
+\DoxyCodeLine{136   \textcolor{comment}{// bodyPos: log body index in the msg}}
+\DoxyCodeLine{137   \textcolor{comment}{// logFilePos: log file position of this msg}}
+\DoxyCodeLine{138   \textcolor{keyword}{typedef} void (*LogCBFn)(int64\_t ns, LogLevel level, fmt::string\_view location, \textcolor{keywordtype}{size\_t} basePos,}
+\DoxyCodeLine{139                           fmt::string\_view threadName, fmt::string\_view msg, \textcolor{keywordtype}{size\_t} bodyPos,}
+\DoxyCodeLine{140                           \textcolor{keywordtype}{size\_t} logFilePos);}
+\DoxyCodeLine{141 }
+\DoxyCodeLine{142   \textcolor{comment}{// Set a callback function for all log msgs with a mininum log level}}
+\DoxyCodeLine{143   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setLogCB(LogCBFn cb, LogLevel minCBLogLevel) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{144 }
+\DoxyCodeLine{145   \textcolor{keyword}{typedef} void (*LogQFullCBFn)(\textcolor{keywordtype}{void}* userData);}
+\DoxyCodeLine{146   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setLogQFullCB(LogQFullCBFn cb, \textcolor{keywordtype}{void}* userData) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{147 }
+\DoxyCodeLine{148   \textcolor{comment}{// Close the log file and subsequent msgs will not be written into the file,}}
+\DoxyCodeLine{149   \textcolor{comment}{// but callback function can still be used}}
+\DoxyCodeLine{150   \textcolor{keyword}{static} \textcolor{keywordtype}{void} closeLogFile() \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{151 }
+\DoxyCodeLine{152   \textcolor{comment}{// Set log header pattern with fmt named arguments}}
+\DoxyCodeLine{153   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setHeaderPattern(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* pattern);}
+\DoxyCodeLine{154 }
+\DoxyCodeLine{155   \textcolor{comment}{// Set a name for current thread, it'll be shown in \{t\} part in header pattern}}
+\DoxyCodeLine{156   \textcolor{keyword}{static} \textcolor{keywordtype}{void} setThreadName(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* name) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{157 }
+\DoxyCodeLine{158   \textcolor{comment}{// Set current log level, lower level log msgs will be discarded}}
+\DoxyCodeLine{159   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} setLogLevel(LogLevel logLevel) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{160 }
+\DoxyCodeLine{161   \textcolor{comment}{// Get current log level}}
+\DoxyCodeLine{162   \textcolor{keyword}{static} \textcolor{keyword}{inline} LogLevel getLogLevel() \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{163 }
+\DoxyCodeLine{164   \textcolor{comment}{// return true if passed log level is not lower than current log level}}
+\DoxyCodeLine{165   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} checkLogLevel(LogLevel logLevel) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{166 }
+\DoxyCodeLine{167   \textcolor{comment}{// Run a polling thread in the background with a polling interval in ns}}
+\DoxyCodeLine{168   \textcolor{comment}{// Note that user must not call poll() himself when the thread is running}}
+\DoxyCodeLine{169   \textcolor{keyword}{static} \textcolor{keywordtype}{void} startPollingThread(int64\_t pollInterval = 1000000000) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{170 }
+\DoxyCodeLine{171   \textcolor{comment}{// Stop the polling thread}}
+\DoxyCodeLine{172   \textcolor{keyword}{static} \textcolor{keywordtype}{void} stopPollingThread() \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{173 }
+\DoxyCodeLine{174   \textcolor{comment}{// https://github.com/MengRao/SPSC\_Queue}}
+\DoxyCodeLine{175   \textcolor{keyword}{class }\mbox{\hyperlink{classfmtlogT_1_1SPSCVarQueueOPT}{SPSCVarQueueOPT}}}
+\DoxyCodeLine{176   \{}
+\DoxyCodeLine{177   \textcolor{keyword}{public}:}
+\DoxyCodeLine{178     \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}}}
+\DoxyCodeLine{179     \{}
+\DoxyCodeLine{180       \textcolor{keyword}{inline} \textcolor{keywordtype}{void} push(uint32\_t sz) \{ *(\textcolor{keyword}{volatile} uint32\_t*)\&size = sz + \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}}); \}}
+\DoxyCodeLine{181 }
+\DoxyCodeLine{182       uint32\_t size;}
+\DoxyCodeLine{183       uint32\_t logId;}
+\DoxyCodeLine{184     \};}
+\DoxyCodeLine{185     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} uint32\_t BLK\_CNT = FMTLOG\_QUEUE\_SIZE / \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}});}
+\DoxyCodeLine{186 }
+\DoxyCodeLine{187     \mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}}* allocMsg(uint32\_t size) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{188 }
+\DoxyCodeLine{189     \mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}}* alloc(uint32\_t size) \{}
+\DoxyCodeLine{190       size += \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}});}
+\DoxyCodeLine{191       uint32\_t blk\_sz = (size + \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}}) -\/ 1) / \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structfmtlogT_1_1SPSCVarQueueOPT_1_1MsgHeader}{MsgHeader}});}
+\DoxyCodeLine{192       \textcolor{keywordflow}{if} (blk\_sz >= free\_write\_cnt) \{}
+\DoxyCodeLine{193         uint32\_t read\_idx\_cache = *(\textcolor{keyword}{volatile} uint32\_t*)\&read\_idx;}
+\DoxyCodeLine{194         \textcolor{keywordflow}{if} (read\_idx\_cache <= write\_idx) \{}
+\DoxyCodeLine{195           free\_write\_cnt = BLK\_CNT -\/ write\_idx;}
+\DoxyCodeLine{196           \textcolor{keywordflow}{if} (blk\_sz >= free\_write\_cnt \&\& read\_idx\_cache != 0) \{ \textcolor{comment}{// wrap around}}
+\DoxyCodeLine{197             blk[0].size = 0;}
+\DoxyCodeLine{198             blk[write\_idx].size = 1;}
+\DoxyCodeLine{199             write\_idx = 0;}
+\DoxyCodeLine{200             free\_write\_cnt = read\_idx\_cache;}
+\DoxyCodeLine{201           \}}
+\DoxyCodeLine{202         \}}
+\DoxyCodeLine{203         \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{204           free\_write\_cnt = read\_idx\_cache -\/ write\_idx;}
+\DoxyCodeLine{205         \}}
+\DoxyCodeLine{206         \textcolor{keywordflow}{if} (free\_write\_cnt <= blk\_sz) \{}
+\DoxyCodeLine{207           \textcolor{keywordflow}{return} \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{208         \}}
+\DoxyCodeLine{209       \}}
+\DoxyCodeLine{210       MsgHeader* ret = \&blk[write\_idx];}
+\DoxyCodeLine{211       write\_idx += blk\_sz;}
+\DoxyCodeLine{212       free\_write\_cnt -\/= blk\_sz;}
+\DoxyCodeLine{213       blk[write\_idx].size = 0;}
+\DoxyCodeLine{214       \textcolor{keywordflow}{return} ret;}
+\DoxyCodeLine{215     \}}
+\DoxyCodeLine{216 }
+\DoxyCodeLine{217     \textcolor{keyword}{inline} \textcolor{keyword}{const} MsgHeader* front() \{}
+\DoxyCodeLine{218       uint32\_t size = blk[read\_idx].size;}
+\DoxyCodeLine{219       \textcolor{keywordflow}{if} (size == 1) \{ \textcolor{comment}{// wrap around}}
+\DoxyCodeLine{220         read\_idx = 0;}
+\DoxyCodeLine{221         size = blk[0].size;}
+\DoxyCodeLine{222       \}}
+\DoxyCodeLine{223       \textcolor{keywordflow}{if} (size == 0) \textcolor{keywordflow}{return} \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{224       \textcolor{keywordflow}{return} \&blk[read\_idx];}
+\DoxyCodeLine{225     \}}
+\DoxyCodeLine{226 }
+\DoxyCodeLine{227     \textcolor{keyword}{inline} \textcolor{keywordtype}{void} pop() \{}
+\DoxyCodeLine{228       uint32\_t blk\_sz = (blk[read\_idx].size + \textcolor{keyword}{sizeof}(MsgHeader) -\/ 1) / \textcolor{keyword}{sizeof}(MsgHeader);}
+\DoxyCodeLine{229       *(\textcolor{keyword}{volatile} uint32\_t*)\&read\_idx = read\_idx + blk\_sz;}
+\DoxyCodeLine{230     \}}
+\DoxyCodeLine{231 }
+\DoxyCodeLine{232   \textcolor{keyword}{private}:}
+\DoxyCodeLine{233     \textcolor{keyword}{alignas}(64) MsgHeader blk[BLK\_CNT] = \{\};}
+\DoxyCodeLine{234     uint32\_t write\_idx = 0;}
+\DoxyCodeLine{235     uint32\_t free\_write\_cnt = BLK\_CNT;}
+\DoxyCodeLine{236 }
+\DoxyCodeLine{237     \textcolor{keyword}{alignas}(128) uint32\_t read\_idx = 0;}
+\DoxyCodeLine{238   \};}
+\DoxyCodeLine{239 }
+\DoxyCodeLine{240   \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogT_1_1ThreadBuffer}{ThreadBuffer}}}
+\DoxyCodeLine{241   \{}
+\DoxyCodeLine{242     \mbox{\hyperlink{classfmtlogT_1_1SPSCVarQueueOPT}{SPSCVarQueueOPT}} varq;}
+\DoxyCodeLine{243     \textcolor{keywordtype}{bool} shouldDeallocate = \textcolor{keyword}{false};}
+\DoxyCodeLine{244     \textcolor{keywordtype}{char} name[32];}
+\DoxyCodeLine{245     \textcolor{keywordtype}{size\_t} nameSize;}
+\DoxyCodeLine{246   \};}
+\DoxyCodeLine{247 }
+\DoxyCodeLine{248   \textcolor{comment}{// https://github.com/MengRao/tscns}}
+\DoxyCodeLine{249   \textcolor{keyword}{class }\mbox{\hyperlink{classfmtlogT_1_1TSCNS}{TSCNS}}}
+\DoxyCodeLine{250   \{}
+\DoxyCodeLine{251   \textcolor{keyword}{public}:}
+\DoxyCodeLine{252     \textcolor{keyword}{static} \textcolor{keyword}{const} int64\_t NsPerSec = 1000000000;}
+\DoxyCodeLine{253 }
+\DoxyCodeLine{254     \textcolor{keywordtype}{void} init(int64\_t init\_calibrate\_ns = 20000000, int64\_t calibrate\_interval\_ns = 3 * NsPerSec) \{}
+\DoxyCodeLine{255       calibate\_interval\_ns\_ = calibrate\_interval\_ns;}
+\DoxyCodeLine{256       int64\_t base\_tsc, base\_ns;}
+\DoxyCodeLine{257       syncTime(base\_tsc, base\_ns);}
+\DoxyCodeLine{258       int64\_t expire\_ns = base\_ns + init\_calibrate\_ns;}
+\DoxyCodeLine{259       \textcolor{keywordflow}{while} (rdsysns() < expire\_ns) std::this\_thread::yield();}
+\DoxyCodeLine{260       int64\_t delayed\_tsc, delayed\_ns;}
+\DoxyCodeLine{261       syncTime(delayed\_tsc, delayed\_ns);}
+\DoxyCodeLine{262       \textcolor{keywordtype}{double} init\_ns\_per\_tsc = (double)(delayed\_ns -\/ base\_ns) / (delayed\_tsc -\/ base\_tsc);}
+\DoxyCodeLine{263       saveParam(base\_tsc, base\_ns, base\_ns, init\_ns\_per\_tsc);}
+\DoxyCodeLine{264     \}}
+\DoxyCodeLine{265 }
+\DoxyCodeLine{266     \textcolor{keywordtype}{void} calibrate() \{}
+\DoxyCodeLine{267       \textcolor{keywordflow}{if} (rdtsc() < next\_calibrate\_tsc\_) \textcolor{keywordflow}{return};}
+\DoxyCodeLine{268       int64\_t tsc, ns;}
+\DoxyCodeLine{269       syncTime(tsc, ns);}
+\DoxyCodeLine{270       int64\_t calulated\_ns = tsc2ns(tsc);}
+\DoxyCodeLine{271       int64\_t ns\_err = calulated\_ns -\/ ns;}
+\DoxyCodeLine{272       int64\_t expected\_err\_at\_next\_calibration =}
+\DoxyCodeLine{273         ns\_err + (ns\_err -\/ base\_ns\_err\_) * calibate\_interval\_ns\_ / (ns -\/ base\_ns\_ + base\_ns\_err\_);}
+\DoxyCodeLine{274       \textcolor{keywordtype}{double} new\_ns\_per\_tsc =}
+\DoxyCodeLine{275         ns\_per\_tsc\_ * (1.0 -\/ (double)expected\_err\_at\_next\_calibration / calibate\_interval\_ns\_);}
+\DoxyCodeLine{276       saveParam(tsc, calulated\_ns, ns, new\_ns\_per\_tsc);}
+\DoxyCodeLine{277     \}}
+\DoxyCodeLine{278 }
+\DoxyCodeLine{279     \textcolor{keyword}{static} \textcolor{keyword}{inline} int64\_t rdtsc() \{}
+\DoxyCodeLine{280 \textcolor{preprocessor}{\#ifdef \_MSC\_VER}}
+\DoxyCodeLine{281       \textcolor{keywordflow}{return} \_\_rdtsc();}
+\DoxyCodeLine{282 \textcolor{preprocessor}{\#elif defined(\_\_i386\_\_) || defined(\_\_x86\_64\_\_) || defined(\_\_amd64\_\_)}}
+\DoxyCodeLine{283       \textcolor{keywordflow}{return} \_\_builtin\_ia32\_rdtsc();}
+\DoxyCodeLine{284 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{285       \textcolor{keywordflow}{return} rdsysns();}
+\DoxyCodeLine{286 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{287     \}}
+\DoxyCodeLine{288 }
+\DoxyCodeLine{289     \textcolor{keyword}{inline} int64\_t tsc2ns(int64\_t tsc)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{290       \textcolor{keywordflow}{while} (\textcolor{keyword}{true}) \{}
+\DoxyCodeLine{291         uint32\_t before\_seq = param\_seq\_.load(std::memory\_order\_acquire) \& \string~1;}
+\DoxyCodeLine{292         std::atomic\_signal\_fence(std::memory\_order\_acq\_rel);}
+\DoxyCodeLine{293         int64\_t ns = base\_ns\_ + (int64\_t)((tsc -\/ base\_tsc\_) * ns\_per\_tsc\_);}
+\DoxyCodeLine{294         std::atomic\_signal\_fence(std::memory\_order\_acq\_rel);}
+\DoxyCodeLine{295         uint32\_t after\_seq = param\_seq\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{296         \textcolor{keywordflow}{if} (before\_seq == after\_seq) \textcolor{keywordflow}{return} ns;}
+\DoxyCodeLine{297       \}}
+\DoxyCodeLine{298     \}}
+\DoxyCodeLine{299 }
+\DoxyCodeLine{300     \textcolor{keyword}{inline} int64\_t rdns()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} tsc2ns(rdtsc()); \}}
+\DoxyCodeLine{301 }
+\DoxyCodeLine{302     \textcolor{keyword}{static} \textcolor{keyword}{inline} int64\_t rdsysns() \{}
+\DoxyCodeLine{303       \textcolor{keyword}{using namespace }std::chrono;}
+\DoxyCodeLine{304       \textcolor{keywordflow}{return} duration\_cast<nanoseconds>(system\_clock::now().time\_since\_epoch()).count();}
+\DoxyCodeLine{305     \}}
+\DoxyCodeLine{306 }
+\DoxyCodeLine{307     \textcolor{keywordtype}{double} getTscGhz()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} 1.0 / ns\_per\_tsc\_; \}}
+\DoxyCodeLine{308 }
+\DoxyCodeLine{309     \textcolor{comment}{// Linux kernel sync time by finding the first trial with tsc diff < 50000}}
+\DoxyCodeLine{310     \textcolor{comment}{// We try several times and return the one with the mininum tsc diff.}}
+\DoxyCodeLine{311     \textcolor{comment}{// Note that MSVC has a 100ns resolution clock, so we need to combine those ns with the same}}
+\DoxyCodeLine{312     \textcolor{comment}{// value, and drop the first and the last value as they may not scan a full 100ns range}}
+\DoxyCodeLine{313     \textcolor{keyword}{static} \textcolor{keywordtype}{void} syncTime(int64\_t\& tsc\_out, int64\_t\& ns\_out) \{}
+\DoxyCodeLine{314 \textcolor{preprocessor}{\#ifdef \_MSC\_VER}}
+\DoxyCodeLine{315       \textcolor{keyword}{const} \textcolor{keywordtype}{int} N = 15;}
+\DoxyCodeLine{316 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{317       \textcolor{keyword}{const} \textcolor{keywordtype}{int} N = 3;}
+\DoxyCodeLine{318 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{319       int64\_t tsc[N + 1];}
+\DoxyCodeLine{320       int64\_t ns[N + 1];}
+\DoxyCodeLine{321 }
+\DoxyCodeLine{322       tsc[0] = rdtsc();}
+\DoxyCodeLine{323       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 1; i <= N; i++) \{}
+\DoxyCodeLine{324         ns[i] = rdsysns();}
+\DoxyCodeLine{325         tsc[i] = rdtsc();}
+\DoxyCodeLine{326       \}}
+\DoxyCodeLine{327 }
+\DoxyCodeLine{328 \textcolor{preprocessor}{\#ifdef \_MSC\_VER}}
+\DoxyCodeLine{329       \textcolor{keywordtype}{int} j = 1;}
+\DoxyCodeLine{330       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 2; i <= N; i++) \{}
+\DoxyCodeLine{331         \textcolor{keywordflow}{if} (ns[i] == ns[i -\/ 1]) \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{332         tsc[j -\/ 1] = tsc[i -\/ 1];}
+\DoxyCodeLine{333         ns[j++] = ns[i];}
+\DoxyCodeLine{334       \}}
+\DoxyCodeLine{335       j-\/-\/;}
+\DoxyCodeLine{336 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{337       \textcolor{keywordtype}{int} j = N + 1;}
+\DoxyCodeLine{338 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{339 }
+\DoxyCodeLine{340       \textcolor{keywordtype}{int} best = 1;}
+\DoxyCodeLine{341       \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 2; i < j; i++) \{}
+\DoxyCodeLine{342         \textcolor{keywordflow}{if} (tsc[i] -\/ tsc[i -\/ 1] < tsc[best] -\/ tsc[best -\/ 1]) best = i;}
+\DoxyCodeLine{343       \}}
+\DoxyCodeLine{344       tsc\_out = (tsc[best] + tsc[best -\/ 1]) >> 1;}
+\DoxyCodeLine{345       ns\_out = ns[best];}
+\DoxyCodeLine{346     \}}
+\DoxyCodeLine{347 }
+\DoxyCodeLine{348     \textcolor{keywordtype}{void} saveParam(int64\_t base\_tsc, int64\_t base\_ns, int64\_t sys\_ns, \textcolor{keywordtype}{double} new\_ns\_per\_tsc) \{}
+\DoxyCodeLine{349       base\_ns\_err\_ = base\_ns -\/ sys\_ns;}
+\DoxyCodeLine{350       next\_calibrate\_tsc\_ = base\_tsc + (int64\_t)((calibate\_interval\_ns\_ -\/ 1000) / new\_ns\_per\_tsc);}
+\DoxyCodeLine{351       uint32\_t seq = param\_seq\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{352       param\_seq\_.store(++seq, std::memory\_order\_release);}
+\DoxyCodeLine{353       std::atomic\_signal\_fence(std::memory\_order\_acq\_rel);}
+\DoxyCodeLine{354       base\_tsc\_ = base\_tsc;}
+\DoxyCodeLine{355       base\_ns\_ = base\_ns;}
+\DoxyCodeLine{356       ns\_per\_tsc\_ = new\_ns\_per\_tsc;}
+\DoxyCodeLine{357       std::atomic\_signal\_fence(std::memory\_order\_acq\_rel);}
+\DoxyCodeLine{358       param\_seq\_.store(++seq, std::memory\_order\_release);}
+\DoxyCodeLine{359     \}}
+\DoxyCodeLine{360 }
+\DoxyCodeLine{361     \textcolor{keyword}{alignas}(64) std::atomic<uint32\_t> param\_seq\_ = 0;}
+\DoxyCodeLine{362     \textcolor{keywordtype}{double} ns\_per\_tsc\_;}
+\DoxyCodeLine{363     int64\_t base\_tsc\_;}
+\DoxyCodeLine{364     int64\_t base\_ns\_;}
+\DoxyCodeLine{365     int64\_t calibate\_interval\_ns\_;}
+\DoxyCodeLine{366     int64\_t base\_ns\_err\_;}
+\DoxyCodeLine{367     int64\_t next\_calibrate\_tsc\_;}
+\DoxyCodeLine{368   \};}
+\DoxyCodeLine{369 }
+\DoxyCodeLine{370   \textcolor{keywordtype}{void} init() \{}
+\DoxyCodeLine{371     tscns.init();}
+\DoxyCodeLine{372     currentLogLevel = INF;}
+\DoxyCodeLine{373   \}}
+\DoxyCodeLine{374 }
+\DoxyCodeLine{375   \textcolor{keyword}{using }Context = fmt::format\_context;}
+\DoxyCodeLine{376   \textcolor{keyword}{using }MemoryBuffer = fmt::basic\_memory\_buffer<char, 10000>;}
+\DoxyCodeLine{377   \textcolor{keyword}{typedef} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* (*FormatToFn)(fmt::string\_view format, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* data, MemoryBuffer\& out,}
+\DoxyCodeLine{378                                     \textcolor{keywordtype}{int}\& argIdx, std::vector<fmt::basic\_format\_arg<Context>>\& args);}
+\DoxyCodeLine{379 }
+\DoxyCodeLine{380   \textcolor{keyword}{static} \textcolor{keywordtype}{void} registerLogInfo(uint32\_t\& logId, FormatToFn fn, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* location, LogLevel level,}
+\DoxyCodeLine{381                               fmt::string\_view fmtString) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{382 }
+\DoxyCodeLine{383   \textcolor{keyword}{static} \textcolor{keywordtype}{void} vformat\_to(MemoryBuffer\& out, fmt::string\_view fmt, fmt::format\_args args);}
+\DoxyCodeLine{384 }
+\DoxyCodeLine{385   \textcolor{keyword}{static} \textcolor{keywordtype}{size\_t} formatted\_size(fmt::string\_view fmt, fmt::format\_args args);}
+\DoxyCodeLine{386 }
+\DoxyCodeLine{387   \textcolor{keyword}{static} \textcolor{keywordtype}{void} vformat\_to(\textcolor{keywordtype}{char}* out, fmt::string\_view fmt, fmt::format\_args args);}
+\DoxyCodeLine{388 }
+\DoxyCodeLine{389   \textcolor{keyword}{static} \textcolor{keyword}{typename} SPSCVarQueueOPT::MsgHeader* allocMsg(uint32\_t size, \textcolor{keywordtype}{bool} logQFullCB) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{390 }
+\DoxyCodeLine{391   TSCNS tscns;}
+\DoxyCodeLine{392 }
+\DoxyCodeLine{393   \textcolor{keyword}{volatile} LogLevel currentLogLevel;}
+\DoxyCodeLine{394   \textcolor{keyword}{static} FAST\_THREAD\_LOCAL ThreadBuffer* threadBuffer;}
+\DoxyCodeLine{395 }
+\DoxyCodeLine{396   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{397   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{bool} isNamedArg() \{}
+\DoxyCodeLine{398     \textcolor{keywordflow}{return} fmt::detail::is\_named\_arg<fmt::remove\_cvref\_t<Arg>>::value;}
+\DoxyCodeLine{399   \}}
+\DoxyCodeLine{400 }
+\DoxyCodeLine{401   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{402   \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogT_1_1unNamedType}{unNamedType}}}
+\DoxyCodeLine{403   \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{404 }
+\DoxyCodeLine{405   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{406   \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogT_1_1unNamedType}{unNamedType}}<fmt::\mbox{\hyperlink{structdetail_1_1named__arg}{detail::named\_arg}}<char, Arg>>}
+\DoxyCodeLine{407   \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{408 }
+\DoxyCodeLine{409 \textcolor{preprocessor}{\#if FMT\_USE\_NONTYPE\_TEMPLATE\_ARGS}}
+\DoxyCodeLine{410   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg, \textcolor{keywordtype}{size\_t} N, fmt::detail\_exported::fixed\_\textcolor{keywordtype}{string}<\textcolor{keywordtype}{char}, N> Str>}
+\DoxyCodeLine{411   \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogT_1_1unNamedType}{unNamedType}}<fmt::detail::statically\_named\_arg<Arg, char, N, Str>>}
+\DoxyCodeLine{412   \{ \textcolor{keyword}{using }type = Arg; \};}
+\DoxyCodeLine{413 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{414 }
+\DoxyCodeLine{415   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{416   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{bool} isCstring() \{}
+\DoxyCodeLine{417     \textcolor{keywordflow}{return} fmt::detail::mapped\_type\_constant<Arg, Context>::value ==}
+\DoxyCodeLine{418            fmt::detail::type::cstring\_type;}
+\DoxyCodeLine{419   \}}
+\DoxyCodeLine{420 }
+\DoxyCodeLine{421   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{422   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{bool} isString() \{}
+\DoxyCodeLine{423     \textcolor{keywordflow}{return} fmt::detail::mapped\_type\_constant<Arg, Context>::value == fmt::detail::type::string\_type;}
+\DoxyCodeLine{424   \}}
+\DoxyCodeLine{425 }
+\DoxyCodeLine{426   \textcolor{keyword}{template}<\textcolor{keyword}{typename} Arg>}
+\DoxyCodeLine{427   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{bool} needCallDtor() \{}
+\DoxyCodeLine{428     \textcolor{keyword}{using }ArgType = fmt::remove\_cvref\_t<Arg>;}
+\DoxyCodeLine{429     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<Arg>()) \{}
+\DoxyCodeLine{430       \textcolor{keywordflow}{return} needCallDtor<typename unNamedType<ArgType>::type>();}
+\DoxyCodeLine{431     \}}
+\DoxyCodeLine{432     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isString<Arg>()) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{433     \textcolor{keywordflow}{return} !std::is\_trivially\_destructible<ArgType>::value;}
+\DoxyCodeLine{434   \}}
+\DoxyCodeLine{435 }
+\DoxyCodeLine{436   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} C\textcolor{keywordtype}{string}Idx>}
+\DoxyCodeLine{437   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} getArgSizes(\textcolor{keywordtype}{size\_t}* cstringSize) \{}
+\DoxyCodeLine{438     \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{439   \}}
+\DoxyCodeLine{440 }
+\DoxyCodeLine{441   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} CstringIdx, \textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{442   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} getArgSizes(\textcolor{keywordtype}{size\_t}* cstringSize, \textcolor{keyword}{const} Arg\& arg,}
+\DoxyCodeLine{443                                              \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{444     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<Arg>()) \{}
+\DoxyCodeLine{445       \textcolor{keywordflow}{return} getArgSizes<CstringIdx>(cstringSize, arg.value, args...);}
+\DoxyCodeLine{446     \}}
+\DoxyCodeLine{447     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isCstring<Arg>()) \{}
+\DoxyCodeLine{448       \textcolor{keywordtype}{size\_t} len = strlen(arg) + 1;}
+\DoxyCodeLine{449       cstringSize[CstringIdx] = len;}
+\DoxyCodeLine{450       \textcolor{keywordflow}{return} len + getArgSizes<CstringIdx + 1>(cstringSize, args...);}
+\DoxyCodeLine{451     \}}
+\DoxyCodeLine{452     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isString<Arg>()) \{}
+\DoxyCodeLine{453       \textcolor{keywordtype}{size\_t} len = arg.size() + 1;}
+\DoxyCodeLine{454       \textcolor{keywordflow}{return} len + getArgSizes<CstringIdx>(cstringSize, args...);}
+\DoxyCodeLine{455     \}}
+\DoxyCodeLine{456     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{457       \textcolor{keywordflow}{return} \textcolor{keyword}{sizeof}(Arg) + getArgSizes<CstringIdx>(cstringSize, args...);}
+\DoxyCodeLine{458     \}}
+\DoxyCodeLine{459   \}}
+\DoxyCodeLine{460 }
+\DoxyCodeLine{461   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} C\textcolor{keywordtype}{string}Idx>}
+\DoxyCodeLine{462   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{char}* encodeArgs(\textcolor{keywordtype}{size\_t}* cstringSize, \textcolor{keywordtype}{char}* out) \{}
+\DoxyCodeLine{463     \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{464   \}}
+\DoxyCodeLine{465 }
+\DoxyCodeLine{466   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} CstringIdx, \textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{467   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{char}* encodeArgs(\textcolor{keywordtype}{size\_t}* cstringSize, \textcolor{keywordtype}{char}* out, Arg\&\& arg,}
+\DoxyCodeLine{468                                            \mbox{\hyperlink{classArgs}{Args}}\&\&... args) \{}
+\DoxyCodeLine{469     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<Arg>()) \{}
+\DoxyCodeLine{470       \textcolor{keywordflow}{return} encodeArgs<CstringIdx>(cstringSize, out, arg.value, std::forward<Args>(args)...);}
+\DoxyCodeLine{471     \}}
+\DoxyCodeLine{472     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isCstring<Arg>()) \{}
+\DoxyCodeLine{473       memcpy(out, arg, cstringSize[CstringIdx]);}
+\DoxyCodeLine{474       \textcolor{keywordflow}{return} encodeArgs<CstringIdx + 1>(cstringSize, out + cstringSize[CstringIdx],}
+\DoxyCodeLine{475                                         std::forward<Args>(args)...);}
+\DoxyCodeLine{476     \}}
+\DoxyCodeLine{477     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isString<Arg>()) \{}
+\DoxyCodeLine{478       \textcolor{keywordtype}{size\_t} len = arg.size();}
+\DoxyCodeLine{479       memcpy(out, arg.data(), len);}
+\DoxyCodeLine{480       out[len] = 0;}
+\DoxyCodeLine{481       \textcolor{keywordflow}{return} encodeArgs<CstringIdx>(cstringSize, out + len + 1, std::forward<Args>(args)...);}
+\DoxyCodeLine{482     \}}
+\DoxyCodeLine{483     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{484       \textcolor{comment}{// If Arg has alignment >= 16, gcc could emit aligned move instructions(e.g. movdqa) for}}
+\DoxyCodeLine{485       \textcolor{comment}{// placement new even if the *out* is misaligned, which would cause segfault. So we use memcpy}}
+\DoxyCodeLine{486       \textcolor{comment}{// when possible}}
+\DoxyCodeLine{487       \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (std::is\_trivially\_copyable\_v<fmt::remove\_cvref\_t<Arg>>) \{}
+\DoxyCodeLine{488         memcpy(out, \&arg, \textcolor{keyword}{sizeof}(Arg));}
+\DoxyCodeLine{489       \}}
+\DoxyCodeLine{490       \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{491         \textcolor{keyword}{new} (out) fmt::remove\_cvref\_t<Arg>(std::forward<Arg>(arg));}
+\DoxyCodeLine{492       \}}
+\DoxyCodeLine{493       \textcolor{keywordflow}{return} encodeArgs<CstringIdx>(cstringSize, out + \textcolor{keyword}{sizeof}(Arg), std::forward<Args>(args)...);}
+\DoxyCodeLine{494     \}}
+\DoxyCodeLine{495   \}}
+\DoxyCodeLine{496 }
+\DoxyCodeLine{497   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} Idx, \textcolor{keywordtype}{size\_t} NamedIdx>}
+\DoxyCodeLine{498   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{void} storeNamedArgs(fmt::detail::named\_arg\_info<char>* named\_args\_store) \{}
+\DoxyCodeLine{499   \}}
+\DoxyCodeLine{500 }
+\DoxyCodeLine{501   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} Idx, \textcolor{keywordtype}{size\_t} NamedIdx, \textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{502   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{void} storeNamedArgs(fmt::detail::named\_arg\_info<char>* named\_args\_store,}
+\DoxyCodeLine{503                                               \textcolor{keyword}{const} Arg\& arg, \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{504     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<Arg>()) \{}
+\DoxyCodeLine{505       named\_args\_store[NamedIdx] = \{arg.name, Idx\};}
+\DoxyCodeLine{506       storeNamedArgs<Idx + 1, NamedIdx + 1>(named\_args\_store, args...);}
+\DoxyCodeLine{507     \}}
+\DoxyCodeLine{508     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{509       storeNamedArgs<Idx + 1, NamedIdx>(named\_args\_store, args...);}
+\DoxyCodeLine{510     \}}
+\DoxyCodeLine{511   \}}
+\DoxyCodeLine{512 }
+\DoxyCodeLine{513   \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} ValueOnly, \textcolor{keywordtype}{size\_t} Idx, \textcolor{keywordtype}{size\_t} DestructIdx>}
+\DoxyCodeLine{514   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* decodeArgs(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* in, fmt::basic\_format\_arg<Context>* args,}
+\DoxyCodeLine{515                                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}** destruct\_args) \{}
+\DoxyCodeLine{516     \textcolor{keywordflow}{return} in;}
+\DoxyCodeLine{517   \}}
+\DoxyCodeLine{518 }
+\DoxyCodeLine{519   \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} ValueOnly, \textcolor{keywordtype}{size\_t} Idx, \textcolor{keywordtype}{size\_t} DestructIdx, \textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{520   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* decodeArgs(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* in, fmt::basic\_format\_arg<Context>* args,}
+\DoxyCodeLine{521                                        \textcolor{keyword}{const} \textcolor{keywordtype}{char}** destruct\_args) \{}
+\DoxyCodeLine{522     \textcolor{keyword}{using namespace }fmtlogdetail;}
+\DoxyCodeLine{523     \textcolor{keyword}{using }ArgType = fmt::remove\_cvref\_t<Arg>;}
+\DoxyCodeLine{524     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<ArgType>()) \{}
+\DoxyCodeLine{525       \textcolor{keywordflow}{return} decodeArgs<ValueOnly, Idx, DestructIdx, typename unNamedType<ArgType>::type, \mbox{\hyperlink{classArgs}{Args}}...>(}
+\DoxyCodeLine{526         in, args, destruct\_args);}
+\DoxyCodeLine{527     \}}
+\DoxyCodeLine{528     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isCstring<Arg>() || isString<Arg>()) \{}
+\DoxyCodeLine{529       \textcolor{keywordtype}{size\_t} size = strlen(in);}
+\DoxyCodeLine{530       fmt::string\_view v(in, size);}
+\DoxyCodeLine{531       \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (ValueOnly) \{}
+\DoxyCodeLine{532         fmt::detail::value<Context>\& value\_ = *(fmt::detail::value<Context>*)(args + Idx);}
+\DoxyCodeLine{533         value\_ = fmt::detail::arg\_mapper<Context>().map(v);}
+\DoxyCodeLine{534       \}}
+\DoxyCodeLine{535       \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{536         args[Idx] = fmt::detail::make\_arg<Context>(v);}
+\DoxyCodeLine{537       \}}
+\DoxyCodeLine{538       \textcolor{keywordflow}{return} decodeArgs<ValueOnly, Idx + 1, DestructIdx, \mbox{\hyperlink{classArgs}{Args}}...>(in + size + 1, args,}
+\DoxyCodeLine{539                                                                   destruct\_args);}
+\DoxyCodeLine{540     \}}
+\DoxyCodeLine{541     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{542       \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (ValueOnly) \{}
+\DoxyCodeLine{543         fmt::detail::value<Context>\& value\_ = *(fmt::detail::value<Context>*)(args + Idx);}
+\DoxyCodeLine{544         \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr<ArgType>::value}}) \{}
+\DoxyCodeLine{545           value\_ = fmt::detail::arg\_mapper<Context>().map(**(ArgType*)in);}
+\DoxyCodeLine{546         \}}
+\DoxyCodeLine{547         \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{548           value\_ = fmt::detail::arg\_mapper<Context>().map(*(ArgType*)in);}
+\DoxyCodeLine{549         \}}
+\DoxyCodeLine{550       \}}
+\DoxyCodeLine{551       \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{552         \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (\mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{UnrefPtr<ArgType>::value}}) \{}
+\DoxyCodeLine{553           args[Idx] = fmt::detail::make\_arg<Context>(**(ArgType*)in);}
+\DoxyCodeLine{554         \}}
+\DoxyCodeLine{555         \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{556           args[Idx] = fmt::detail::make\_arg<Context>(*(ArgType*)in);}
+\DoxyCodeLine{557         \}}
+\DoxyCodeLine{558       \}}
+\DoxyCodeLine{559 }
+\DoxyCodeLine{560       \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (needCallDtor<Arg>()) \{}
+\DoxyCodeLine{561         destruct\_args[DestructIdx] = in;}
+\DoxyCodeLine{562         \textcolor{keywordflow}{return} decodeArgs<ValueOnly, Idx + 1, DestructIdx + 1, \mbox{\hyperlink{classArgs}{Args}}...>(in + \textcolor{keyword}{sizeof}(ArgType), args,}
+\DoxyCodeLine{563                                                                         destruct\_args);}
+\DoxyCodeLine{564       \}}
+\DoxyCodeLine{565       \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{566         \textcolor{keywordflow}{return} decodeArgs<ValueOnly, Idx + 1, DestructIdx, \mbox{\hyperlink{classArgs}{Args}}...>(in + \textcolor{keyword}{sizeof}(ArgType), args,}
+\DoxyCodeLine{567                                                                     destruct\_args);}
+\DoxyCodeLine{568       \}}
+\DoxyCodeLine{569     \}}
+\DoxyCodeLine{570   \}}
+\DoxyCodeLine{571 }
+\DoxyCodeLine{572   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} DestructIdx>}
+\DoxyCodeLine{573   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} destructArgs(\textcolor{keyword}{const} \textcolor{keywordtype}{char}** destruct\_args) \{\}}
+\DoxyCodeLine{574 }
+\DoxyCodeLine{575   \textcolor{keyword}{template}<\textcolor{keywordtype}{size\_t} DestructIdx, \textcolor{keyword}{typename} Arg, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{576   \textcolor{keyword}{static} \textcolor{keyword}{inline} \textcolor{keywordtype}{void} destructArgs(\textcolor{keyword}{const} \textcolor{keywordtype}{char}** destruct\_args) \{}
+\DoxyCodeLine{577     \textcolor{keyword}{using }ArgType = fmt::remove\_cvref\_t<Arg>;}
+\DoxyCodeLine{578     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (isNamedArg<ArgType>()) \{}
+\DoxyCodeLine{579       destructArgs<DestructIdx, typename unNamedType<ArgType>::type, \mbox{\hyperlink{classArgs}{Args}}...>(destruct\_args);}
+\DoxyCodeLine{580     \}}
+\DoxyCodeLine{581     \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (needCallDtor<Arg>()) \{}
+\DoxyCodeLine{582       ((ArgType*)destruct\_args[DestructIdx])-\/>\string~ArgType();}
+\DoxyCodeLine{583       destructArgs<DestructIdx + 1, \mbox{\hyperlink{classArgs}{Args}}...>(destruct\_args);}
+\DoxyCodeLine{584     \}}
+\DoxyCodeLine{585     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{586       destructArgs<DestructIdx, \mbox{\hyperlink{classArgs}{Args}}...>(destruct\_args);}
+\DoxyCodeLine{587     \}}
+\DoxyCodeLine{588   \}}
+\DoxyCodeLine{589 }
+\DoxyCodeLine{590   \textcolor{keyword}{template}<\textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{591   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{char}* formatTo(fmt::string\_view format, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* data, MemoryBuffer\& out,}
+\DoxyCodeLine{592                               \textcolor{keywordtype}{int}\& argIdx, std::vector<fmt::basic\_format\_arg<Context>>\& args) \{}
+\DoxyCodeLine{593     \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} num\_args = \textcolor{keyword}{sizeof}...(Args);}
+\DoxyCodeLine{594     \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} num\_dtors = fmt::detail::count<needCallDtor<Args>()...>();}
+\DoxyCodeLine{595     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* dtor\_args[std::max(num\_dtors, (\textcolor{keywordtype}{size\_t})1)];}
+\DoxyCodeLine{596     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* ret;}
+\DoxyCodeLine{597     \textcolor{keywordflow}{if} (argIdx < 0) \{}
+\DoxyCodeLine{598       argIdx = (int)args.size();}
+\DoxyCodeLine{599       args.resize(argIdx + num\_args);}
+\DoxyCodeLine{600       ret = decodeArgs<\textcolor{keyword}{false}, 0, 0, \mbox{\hyperlink{classArgs}{Args}}...>(data, args.data() + argIdx, dtor\_args);}
+\DoxyCodeLine{601     \}}
+\DoxyCodeLine{602     \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{603       ret = decodeArgs<\textcolor{keyword}{true}, 0, 0, \mbox{\hyperlink{classArgs}{Args}}...>(data, args.data() + argIdx, dtor\_args);}
+\DoxyCodeLine{604     \}}
+\DoxyCodeLine{605     vformat\_to(out, format, fmt::basic\_format\_args(args.data() + argIdx, num\_args));}
+\DoxyCodeLine{606     destructArgs<0, \mbox{\hyperlink{classArgs}{Args}}...>(dtor\_args);}
+\DoxyCodeLine{607 }
+\DoxyCodeLine{608     \textcolor{keywordflow}{return} ret;}
+\DoxyCodeLine{609   \}}
+\DoxyCodeLine{610 }
+\DoxyCodeLine{611   \textcolor{keyword}{template}<\textcolor{keywordtype}{bool} Reorder, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{612   \textcolor{keyword}{static} fmt::string\_view unNameFormat(fmt::string\_view in, uint32\_t* reorderIdx,}
+\DoxyCodeLine{613                                        \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{614     \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} num\_named\_args = fmt::detail::count<isNamedArg<Args>()...>();}
+\DoxyCodeLine{615     \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (num\_named\_args == 0) \{}
+\DoxyCodeLine{616       \textcolor{keywordflow}{return} in;}
+\DoxyCodeLine{617     \}}
+\DoxyCodeLine{618     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* begin = in.data();}
+\DoxyCodeLine{619     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* p = begin;}
+\DoxyCodeLine{620     std::unique\_ptr<char[]> unnamed\_str(\textcolor{keyword}{new} \textcolor{keywordtype}{char}[in.size() + 1 + num\_named\_args * 5]);}
+\DoxyCodeLine{621     fmt::detail::named\_arg\_info<char> named\_args[std::max(num\_named\_args, (\textcolor{keywordtype}{size\_t})1)];}
+\DoxyCodeLine{622     storeNamedArgs<0, 0>(named\_args, args...);}
+\DoxyCodeLine{623 }
+\DoxyCodeLine{624     \textcolor{keywordtype}{char}* out = (\textcolor{keywordtype}{char}*)unnamed\_str.get();}
+\DoxyCodeLine{625     uint8\_t arg\_idx = 0;}
+\DoxyCodeLine{626     \textcolor{keywordflow}{while} (\textcolor{keyword}{true}) \{}
+\DoxyCodeLine{627       \textcolor{keyword}{auto} c = *p++;}
+\DoxyCodeLine{628       \textcolor{keywordflow}{if} (!c) \{}
+\DoxyCodeLine{629         \textcolor{keywordtype}{size\_t} copy\_size = p -\/ begin -\/ 1;}
+\DoxyCodeLine{630         memcpy(out, begin, copy\_size);}
+\DoxyCodeLine{631         out += copy\_size;}
+\DoxyCodeLine{632         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{633       \}}
+\DoxyCodeLine{634       \textcolor{keywordflow}{if} (c != \textcolor{charliteral}{'\{'}) \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{635       \textcolor{keywordtype}{size\_t} copy\_size = p -\/ begin;}
+\DoxyCodeLine{636       memcpy(out, begin, copy\_size);}
+\DoxyCodeLine{637       out += copy\_size;}
+\DoxyCodeLine{638       begin = p;}
+\DoxyCodeLine{639       c = *p++;}
+\DoxyCodeLine{640       \textcolor{keywordflow}{if} (!c) fmt::detail::throw\_format\_error(\textcolor{stringliteral}{"{}invalid format string"{}});}
+\DoxyCodeLine{641       \textcolor{keywordflow}{if} (fmt::detail::is\_name\_start(c)) \{}
+\DoxyCodeLine{642         \textcolor{keywordflow}{while} ((fmt::detail::is\_name\_start(c = *p) || (\textcolor{charliteral}{'0'} <= c \&\& c <= \textcolor{charliteral}{'9'}))) \{}
+\DoxyCodeLine{643           ++p;}
+\DoxyCodeLine{644         \}}
+\DoxyCodeLine{645         fmt::string\_view name(begin, p -\/ begin);}
+\DoxyCodeLine{646         \textcolor{keywordtype}{int} \textcolor{keywordtype}{id} = -\/1;}
+\DoxyCodeLine{647         \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < num\_named\_args; ++i) \{}
+\DoxyCodeLine{648           \textcolor{keywordflow}{if} (named\_args[i].name == name) \{}
+\DoxyCodeLine{649             \textcolor{keywordtype}{id} = named\_args[i].id;}
+\DoxyCodeLine{650             \textcolor{keywordflow}{break};}
+\DoxyCodeLine{651           \}}
+\DoxyCodeLine{652         \}}
+\DoxyCodeLine{653         \textcolor{keywordflow}{if} (\textcolor{keywordtype}{id} < 0) fmt::detail::throw\_format\_error(\textcolor{stringliteral}{"{}invalid format string"{}});}
+\DoxyCodeLine{654         \textcolor{keywordflow}{if} \textcolor{keyword}{constexpr} (Reorder) \{}
+\DoxyCodeLine{655           reorderIdx[id] = arg\_idx++;}
+\DoxyCodeLine{656         \}}
+\DoxyCodeLine{657         \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{658           out = fmt::format\_to(out, \textcolor{stringliteral}{"{}\{\}"{}}, \textcolor{keywordtype}{id});}
+\DoxyCodeLine{659         \}}
+\DoxyCodeLine{660       \}}
+\DoxyCodeLine{661       \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{662         *out++ = c;}
+\DoxyCodeLine{663       \}}
+\DoxyCodeLine{664       begin = p;}
+\DoxyCodeLine{665     \}}
+\DoxyCodeLine{666     \textcolor{keyword}{const} \textcolor{keywordtype}{char}* ptr = unnamed\_str.release();}
+\DoxyCodeLine{667     \textcolor{keywordflow}{return} fmt::string\_view(ptr, out -\/ ptr);}
+\DoxyCodeLine{668   \}}
+\DoxyCodeLine{669 }
+\DoxyCodeLine{670 \textcolor{keyword}{public}:}
+\DoxyCodeLine{671   \textcolor{keyword}{template}<\textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{672   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} log(}
+\DoxyCodeLine{673     uint32\_t\& logId, int64\_t tsc, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* location, LogLevel level,}
+\DoxyCodeLine{674     fmt::format\_string<\textcolor{keyword}{typename} \mbox{\hyperlink{structfmtlogdetail_1_1UnrefPtr}{fmtlogdetail::UnrefPtr}}<fmt::remove\_cvref\_t<Args>>::type...> format,}
+\DoxyCodeLine{675     \mbox{\hyperlink{classArgs}{Args}}\&\&... args) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{676     \textcolor{keywordflow}{if} (!logId) \{}
+\DoxyCodeLine{677       \textcolor{keyword}{auto} unnamed\_format = unNameFormat<false>(fmt::string\_view(format), \textcolor{keyword}{nullptr}, args...);}
+\DoxyCodeLine{678       registerLogInfo(logId, formatTo<Args...>, location, level, unnamed\_format);}
+\DoxyCodeLine{679     \}}
+\DoxyCodeLine{680     \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} num\_cstring = fmt::detail::count<isCstring<Args>()...>();}
+\DoxyCodeLine{681     \textcolor{keywordtype}{size\_t} cstringSizes[std::max(num\_cstring, (\textcolor{keywordtype}{size\_t})1)];}
+\DoxyCodeLine{682     uint32\_t alloc\_size = 8 + (uint32\_t)getArgSizes<0>(cstringSizes, args...);}
+\DoxyCodeLine{683     \textcolor{keywordtype}{bool} q\_full\_cb = \textcolor{keyword}{true};}
+\DoxyCodeLine{684     \textcolor{keywordflow}{do} \{}
+\DoxyCodeLine{685       \textcolor{keywordflow}{if} (\textcolor{keyword}{auto} header = allocMsg(alloc\_size, q\_full\_cb)) \{}
+\DoxyCodeLine{686         header-\/>logId = logId;}
+\DoxyCodeLine{687         \textcolor{keywordtype}{char}* out = (\textcolor{keywordtype}{char}*)(header + 1);}
+\DoxyCodeLine{688         *(int64\_t*)out = tsc;}
+\DoxyCodeLine{689         out += 8;}
+\DoxyCodeLine{690         encodeArgs<0>(cstringSizes, out, std::forward<Args>(args)...);}
+\DoxyCodeLine{691         header-\/>push(alloc\_size);}
+\DoxyCodeLine{692         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{693       \}}
+\DoxyCodeLine{694       q\_full\_cb = \textcolor{keyword}{false};}
+\DoxyCodeLine{695     \} \textcolor{keywordflow}{while} (FMTLOG\_BLOCK);}
+\DoxyCodeLine{696   \}}
+\DoxyCodeLine{697 }
+\DoxyCodeLine{698   \textcolor{keyword}{template}<\textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}>}
+\DoxyCodeLine{699   \textcolor{keyword}{inline} \textcolor{keywordtype}{void} logOnce(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* location, LogLevel level, fmt::format\_string<Args...> format,}
+\DoxyCodeLine{700                       \mbox{\hyperlink{classArgs}{Args}}\&\&... args) \{}
+\DoxyCodeLine{701     fmt::string\_view sv(format);}
+\DoxyCodeLine{702     \textcolor{keyword}{auto}\&\& fmt\_args = fmt::make\_format\_args(args...);}
+\DoxyCodeLine{703     uint32\_t fmt\_size = formatted\_size(sv, fmt\_args);}
+\DoxyCodeLine{704     uint32\_t alloc\_size = 8 + 8 + fmt\_size;}
+\DoxyCodeLine{705     \textcolor{keywordtype}{bool} q\_full\_cb = \textcolor{keyword}{true};}
+\DoxyCodeLine{706     \textcolor{keywordflow}{do} \{}
+\DoxyCodeLine{707       \textcolor{keywordflow}{if} (\textcolor{keyword}{auto} header = allocMsg(alloc\_size, q\_full\_cb)) \{}
+\DoxyCodeLine{708         header-\/>logId = (uint32\_t)level;}
+\DoxyCodeLine{709         \textcolor{keywordtype}{char}* out = (\textcolor{keywordtype}{char}*)(header + 1);}
+\DoxyCodeLine{710         *(int64\_t*)out = tscns.rdtsc();}
+\DoxyCodeLine{711         out += 8;}
+\DoxyCodeLine{712         *(\textcolor{keyword}{const} \textcolor{keywordtype}{char}**)out = location;}
+\DoxyCodeLine{713         out += 8;}
+\DoxyCodeLine{714         vformat\_to(out, sv, fmt\_args);}
+\DoxyCodeLine{715         header-\/>push(alloc\_size);}
+\DoxyCodeLine{716         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{717       \}}
+\DoxyCodeLine{718       q\_full\_cb = \textcolor{keyword}{false};}
+\DoxyCodeLine{719     \} \textcolor{keywordflow}{while} (FMTLOG\_BLOCK);}
+\DoxyCodeLine{720   \}}
+\DoxyCodeLine{721 \};}
+\DoxyCodeLine{722 }
+\DoxyCodeLine{723 \textcolor{keyword}{using }\mbox{\hyperlink{classfmtlogT}{fmtlog}} = \mbox{\hyperlink{classfmtlogT}{fmtlogT<>}};}
+\DoxyCodeLine{724 }
+\DoxyCodeLine{725 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_>}
+\DoxyCodeLine{726 FAST\_THREAD\_LOCAL \textcolor{keyword}{typename} \mbox{\hyperlink{structfmtlogT_1_1ThreadBuffer}{fmtlogT<\_>::ThreadBuffer}}* \mbox{\hyperlink{classfmtlogT}{fmtlogT<\_>::threadBuffer}};}
+\DoxyCodeLine{727 }
+\DoxyCodeLine{728 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_\_ = 0>}
+\DoxyCodeLine{729 \textcolor{keyword}{struct }\mbox{\hyperlink{structfmtlogWrapper}{fmtlogWrapper}}}
+\DoxyCodeLine{730 \{ \textcolor{keyword}{static} \mbox{\hyperlink{classfmtlogT}{fmtlog}} impl; \};}
+\DoxyCodeLine{731 }
+\DoxyCodeLine{732 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_>}
+\DoxyCodeLine{733 \mbox{\hyperlink{classfmtlogT}{fmtlog}} \mbox{\hyperlink{structfmtlogWrapper}{fmtlogWrapper<\_>::impl}};}
+\DoxyCodeLine{734 }
+\DoxyCodeLine{735 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_>}
+\DoxyCodeLine{736 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} \mbox{\hyperlink{classfmtlogT}{fmtlogT<\_>::setLogLevel}}(LogLevel logLevel) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{737   \mbox{\hyperlink{structfmtlogWrapper}{fmtlogWrapper<>::impl}}.currentLogLevel = logLevel;}
+\DoxyCodeLine{738 \}}
+\DoxyCodeLine{739 }
+\DoxyCodeLine{740 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_>}
+\DoxyCodeLine{741 \textcolor{keyword}{inline} \textcolor{keyword}{typename} fmtlogT<\_>::LogLevel \mbox{\hyperlink{classfmtlogT}{fmtlogT<\_>::getLogLevel}}() noexcept \{}
+\DoxyCodeLine{742   \textcolor{keywordflow}{return} \mbox{\hyperlink{structfmtlogWrapper}{fmtlogWrapper<>::impl}}.currentLogLevel;}
+\DoxyCodeLine{743 \}}
+\DoxyCodeLine{744 }
+\DoxyCodeLine{745 \textcolor{keyword}{template}<\textcolor{keywordtype}{int} \_>}
+\DoxyCodeLine{746 \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classfmtlogT}{fmtlogT<\_>::checkLogLevel}}(LogLevel logLevel) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{747 \textcolor{preprocessor}{\#ifdef FMTLOG\_NO\_CHECK\_LEVEL}}
+\DoxyCodeLine{748   \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{749 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{750   \textcolor{keywordflow}{return} logLevel >= \mbox{\hyperlink{structfmtlogWrapper}{fmtlogWrapper<>::impl}}.currentLogLevel;}
+\DoxyCodeLine{751 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{752 \}}
+\DoxyCodeLine{753 }
+\DoxyCodeLine{754 \textcolor{preprocessor}{\#define \_\_FMTLOG\_S1(x) \#x}}
+\DoxyCodeLine{755 \textcolor{preprocessor}{\#define \_\_FMTLOG\_S2(x) \_\_FMTLOG\_S1(x)}}
+\DoxyCodeLine{756 \textcolor{preprocessor}{\#define \_\_FMTLOG\_LOCATION \_\_FILE\_\_ "{}:"{}} \_\_FMTLOG\_S2(\_\_LINE\_\_)}
+\DoxyCodeLine{757 }
+\DoxyCodeLine{758 \textcolor{preprocessor}{\#define FMTLOG(level, format, ...)                                                                 \(\backslash\)}}
+\DoxyCodeLine{759 \textcolor{preprocessor}{  do \{                                                                                             \(\backslash\)}}
+\DoxyCodeLine{760 \textcolor{preprocessor}{    static uint32\_t logId = 0;                                                                     \(\backslash\)}}
+\DoxyCodeLine{761 \textcolor{preprocessor}{    if (!fmtlog::checkLogLevel(level)) break;                                                      \(\backslash\)}}
+\DoxyCodeLine{762 \textcolor{preprocessor}{    fmtlogWrapper<>::impl.log(logId, fmtlogWrapper<>::impl.tscns.rdtsc(), \_\_FMTLOG\_LOCATION,       \(\backslash\)}}
+\DoxyCodeLine{763 \textcolor{preprocessor}{                              level, format, \#\#\_\_VA\_ARGS\_\_);                                       \(\backslash\)}}
+\DoxyCodeLine{764 \textcolor{preprocessor}{  \} while (0)}}
+\DoxyCodeLine{765 }
+\DoxyCodeLine{766 \textcolor{preprocessor}{\#define FMTLOG\_LIMIT(min\_interval, level, format, ...)                                             \(\backslash\)}}
+\DoxyCodeLine{767 \textcolor{preprocessor}{  do \{                                                                                             \(\backslash\)}}
+\DoxyCodeLine{768 \textcolor{preprocessor}{    static uint32\_t logId = 0;                                                                     \(\backslash\)}}
+\DoxyCodeLine{769 \textcolor{preprocessor}{    static int64\_t limitNs = 0;                                                                    \(\backslash\)}}
+\DoxyCodeLine{770 \textcolor{preprocessor}{    if (!fmtlog::checkLogLevel(level)) break;                                                      \(\backslash\)}}
+\DoxyCodeLine{771 \textcolor{preprocessor}{    int64\_t tsc = fmtlogWrapper<>::impl.tscns.rdtsc();                                             \(\backslash\)}}
+\DoxyCodeLine{772 \textcolor{preprocessor}{    int64\_t ns = fmtlogWrapper<>::impl.tscns.tsc2ns(tsc);                                          \(\backslash\)}}
+\DoxyCodeLine{773 \textcolor{preprocessor}{    if (ns < limitNs) break;                                                                       \(\backslash\)}}
+\DoxyCodeLine{774 \textcolor{preprocessor}{    limitNs = ns + min\_interval;                                                                   \(\backslash\)}}
+\DoxyCodeLine{775 \textcolor{preprocessor}{    fmtlogWrapper<>::impl.log(logId, tsc, \_\_FMTLOG\_LOCATION, level, format, \#\#\_\_VA\_ARGS\_\_);        \(\backslash\)}}
+\DoxyCodeLine{776 \textcolor{preprocessor}{  \} while (0)}}
+\DoxyCodeLine{777 }
+\DoxyCodeLine{778 \textcolor{preprocessor}{\#define FMTLOG\_ONCE(level, format, ...)                                                            \(\backslash\)}}
+\DoxyCodeLine{779 \textcolor{preprocessor}{  do \{                                                                                             \(\backslash\)}}
+\DoxyCodeLine{780 \textcolor{preprocessor}{    if (!fmtlog::checkLogLevel(level)) break;                                                      \(\backslash\)}}
+\DoxyCodeLine{781 \textcolor{preprocessor}{    fmtlogWrapper<>::impl.logOnce(\_\_FMTLOG\_LOCATION, level, format, \#\#\_\_VA\_ARGS\_\_);                \(\backslash\)}}
+\DoxyCodeLine{782 \textcolor{preprocessor}{  \} while (0)}}
+\DoxyCodeLine{783 }
+\DoxyCodeLine{784 \textcolor{preprocessor}{\#if FMTLOG\_ACTIVE\_LEVEL <= FMTLOG\_LEVEL\_DBG}}
+\DoxyCodeLine{785 \textcolor{preprocessor}{\#define logd(format, ...) FMTLOG(fmtlog::DBG, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{786 \textcolor{preprocessor}{\#define logdo(format, ...) FMTLOG\_ONCE(fmtlog::DBG, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{787 \textcolor{preprocessor}{\#define logdl(min\_interval, format, ...) FMTLOG\_LIMIT(min\_interval, fmtlog::DBG, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{788 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{789 \textcolor{preprocessor}{\#define logd(format, ...) (void)0}}
+\DoxyCodeLine{790 \textcolor{preprocessor}{\#define logdo(format, ...) (void)0}}
+\DoxyCodeLine{791 \textcolor{preprocessor}{\#define logdl(min\_interval, format, ...) (void)0}}
+\DoxyCodeLine{792 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{793 }
+\DoxyCodeLine{794 \textcolor{preprocessor}{\#if FMTLOG\_ACTIVE\_LEVEL <= FMTLOG\_LEVEL\_INF}}
+\DoxyCodeLine{795 \textcolor{preprocessor}{\#define logi(format, ...) FMTLOG(fmtlog::INF, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{796 \textcolor{preprocessor}{\#define logio(format, ...) FMTLOG\_ONCE(fmtlog::INF, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{797 \textcolor{preprocessor}{\#define logil(min\_interval, format, ...) FMTLOG\_LIMIT(min\_interval, fmtlog::INF, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{798 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{799 \textcolor{preprocessor}{\#define logi(format, ...) (void)0}}
+\DoxyCodeLine{800 \textcolor{preprocessor}{\#define logio(format, ...) (void)0}}
+\DoxyCodeLine{801 \textcolor{preprocessor}{\#define logil(min\_interval, format, ...) (void)0}}
+\DoxyCodeLine{802 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{803 }
+\DoxyCodeLine{804 \textcolor{preprocessor}{\#if FMTLOG\_ACTIVE\_LEVEL <= FMTLOG\_LEVEL\_WRN}}
+\DoxyCodeLine{805 \textcolor{preprocessor}{\#define logw(format, ...) FMTLOG(fmtlog::WRN, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{806 \textcolor{preprocessor}{\#define logwo(format, ...) FMTLOG\_ONCE(fmtlog::WRN, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{807 \textcolor{preprocessor}{\#define logwl(min\_interval, format, ...) FMTLOG\_LIMIT(min\_interval, fmtlog::WRN, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{808 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{809 \textcolor{preprocessor}{\#define logw(format, ...) (void)0}}
+\DoxyCodeLine{810 \textcolor{preprocessor}{\#define logwo(format, ...) (void)0}}
+\DoxyCodeLine{811 \textcolor{preprocessor}{\#define logwl(min\_interval, format, ...) (void)0}}
+\DoxyCodeLine{812 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{813 }
+\DoxyCodeLine{814 \textcolor{preprocessor}{\#if FMTLOG\_ACTIVE\_LEVEL <= FMTLOG\_LEVEL\_ERR}}
+\DoxyCodeLine{815 \textcolor{preprocessor}{\#define loge(format, ...) FMTLOG(fmtlog::ERR, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{816 \textcolor{preprocessor}{\#define logeo(format, ...) FMTLOG\_ONCE(fmtlog::ERR, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{817 \textcolor{preprocessor}{\#define logel(min\_interval, format, ...) FMTLOG\_LIMIT(min\_interval, fmtlog::ERR, format, \#\#\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{818 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{819 \textcolor{preprocessor}{\#define loge(format, ...) (void)0}}
+\DoxyCodeLine{820 \textcolor{preprocessor}{\#define logeo(format, ...) (void)0}}
+\DoxyCodeLine{821 \textcolor{preprocessor}{\#define logel(min\_interval, format, ...) (void)0}}
+\DoxyCodeLine{822 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{823 }
+\DoxyCodeLine{824 \textcolor{preprocessor}{\#ifdef FMTLOG\_HEADER\_ONLY}}
+\DoxyCodeLine{825 \textcolor{preprocessor}{\#include "{}fmtlog-\/inl.h"{}}}
+\DoxyCodeLine{826 \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

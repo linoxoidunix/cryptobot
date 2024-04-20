@@ -1,0 +1,1668 @@
+\hypertarget{format-inl_8h_source}{}\doxysection{format-\/inl.h}
+\label{format-inl_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/format-\/inl.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/format-\/inl.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// Formatting library for C++ -\/ implementation}}
+\DoxyCodeLine{2 \textcolor{comment}{//}}
+\DoxyCodeLine{3 \textcolor{comment}{// Copyright (c) 2012 -\/ 2016, Victor Zverovich}}
+\DoxyCodeLine{4 \textcolor{comment}{// All rights reserved.}}
+\DoxyCodeLine{5 \textcolor{comment}{//}}
+\DoxyCodeLine{6 \textcolor{comment}{// For the license information refer to format.h.}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#ifndef FMT\_FORMAT\_INL\_H\_}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#define FMT\_FORMAT\_INL\_H\_}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include <algorithm>}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include <cerrno>}  \textcolor{comment}{// errno}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include <climits>}}
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include <cmath>}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include <exception>}}
+\DoxyCodeLine{16 }
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#ifndef FMT\_STATIC\_THOUSANDS\_SEPARATOR}}
+\DoxyCodeLine{18 \textcolor{preprocessor}{\#  include <locale>}}
+\DoxyCodeLine{19 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 \textcolor{preprocessor}{\#ifdef \_WIN32}}
+\DoxyCodeLine{22 \textcolor{preprocessor}{\#  include <io.h>}  \textcolor{comment}{// \_isatty}}
+\DoxyCodeLine{23 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25 \textcolor{preprocessor}{\#include "{}format.h"{}}}
+\DoxyCodeLine{26 }
+\DoxyCodeLine{27 FMT\_BEGIN\_NAMESPACE}
+\DoxyCodeLine{28 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{29 }
+\DoxyCodeLine{30 FMT\_FUNC \textcolor{keywordtype}{void} assert\_fail(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* file, \textcolor{keywordtype}{int} line, \textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \{}
+\DoxyCodeLine{31   \textcolor{comment}{// Use unchecked std::fprintf to avoid triggering another assertion when}}
+\DoxyCodeLine{32   \textcolor{comment}{// writing to stderr fails}}
+\DoxyCodeLine{33   std::fprintf(stderr, \textcolor{stringliteral}{"{}\%s:\%d: assertion failed: \%s"{}}, file, line, message);}
+\DoxyCodeLine{34   \textcolor{comment}{// Chosen instead of std::abort to satisfy Clang in CUDA mode during device}}
+\DoxyCodeLine{35   \textcolor{comment}{// code pass.}}
+\DoxyCodeLine{36   std::terminate();}
+\DoxyCodeLine{37 \}}
+\DoxyCodeLine{38 }
+\DoxyCodeLine{39 FMT\_FUNC \textcolor{keywordtype}{void} throw\_format\_error(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \{}
+\DoxyCodeLine{40   FMT\_THROW(format\_error(message));}
+\DoxyCodeLine{41 \}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43 FMT\_FUNC \textcolor{keywordtype}{void} format\_error\_code(\mbox{\hyperlink{classdetail_1_1buffer}{detail::buffer<char>}}\& out, \textcolor{keywordtype}{int} error\_code,}
+\DoxyCodeLine{44                                 \mbox{\hyperlink{classbasic__string__view}{string\_view}} message) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{45   \textcolor{comment}{// Report error code making sure that the output fits into}}
+\DoxyCodeLine{46   \textcolor{comment}{// inline\_buffer\_size to avoid dynamic memory allocation and potential}}
+\DoxyCodeLine{47   \textcolor{comment}{// bad\_alloc.}}
+\DoxyCodeLine{48   out.try\_resize(0);}
+\DoxyCodeLine{49   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{char} SEP[] = \textcolor{stringliteral}{"{}: "{}};}
+\DoxyCodeLine{50   \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{char} ERROR\_STR[] = \textcolor{stringliteral}{"{}error "{}};}
+\DoxyCodeLine{51   \textcolor{comment}{// Subtract 2 to account for terminating null characters in SEP and ERROR\_STR.}}
+\DoxyCodeLine{52   \textcolor{keywordtype}{size\_t} error\_code\_size = \textcolor{keyword}{sizeof}(SEP) + \textcolor{keyword}{sizeof}(ERROR\_STR) -\/ 2;}
+\DoxyCodeLine{53   \textcolor{keyword}{auto} abs\_value = \textcolor{keyword}{static\_cast<}uint32\_or\_64\_or\_128\_t<int>\textcolor{keyword}{>}(error\_code);}
+\DoxyCodeLine{54   \textcolor{keywordflow}{if} (detail::is\_negative(error\_code)) \{}
+\DoxyCodeLine{55     abs\_value = 0 -\/ abs\_value;}
+\DoxyCodeLine{56     ++error\_code\_size;}
+\DoxyCodeLine{57   \}}
+\DoxyCodeLine{58   error\_code\_size += detail::to\_unsigned(detail::count\_digits(abs\_value));}
+\DoxyCodeLine{59   \textcolor{keyword}{auto} it = buffer\_appender<char>(out);}
+\DoxyCodeLine{60   \textcolor{keywordflow}{if} (message.size() <= inline\_buffer\_size -\/ error\_code\_size)}
+\DoxyCodeLine{61     format\_to(it, FMT\_STRING(\textcolor{stringliteral}{"{}\{\}\{\}"{}}), message, SEP);}
+\DoxyCodeLine{62   format\_to(it, FMT\_STRING(\textcolor{stringliteral}{"{}\{\}\{\}"{}}), ERROR\_STR, error\_code);}
+\DoxyCodeLine{63   FMT\_ASSERT(out.size() <= inline\_buffer\_size, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{64 \}}
+\DoxyCodeLine{65 }
+\DoxyCodeLine{66 FMT\_FUNC \textcolor{keywordtype}{void} report\_error(format\_func func, \textcolor{keywordtype}{int} error\_code,}
+\DoxyCodeLine{67                            \textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{68   \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}} full\_message;}
+\DoxyCodeLine{69   func(full\_message, error\_code, message);}
+\DoxyCodeLine{70   \textcolor{comment}{// Don't use fwrite\_fully because the latter may throw.}}
+\DoxyCodeLine{71   \textcolor{keywordflow}{if} (std::fwrite(full\_message.\mbox{\hyperlink{classdetail_1_1buffer_aeb33e0a2d2be2bbca9e0236c148089c8}{data}}(), full\_message.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}(), 1, stderr) > 0)}
+\DoxyCodeLine{72     std::fputc(\textcolor{charliteral}{'\(\backslash\)n'}, stderr);}
+\DoxyCodeLine{73 \}}
+\DoxyCodeLine{74 }
+\DoxyCodeLine{75 \textcolor{comment}{// A wrapper around fwrite that throws on error.}}
+\DoxyCodeLine{76 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} fwrite\_fully(\textcolor{keyword}{const} \textcolor{keywordtype}{void}* ptr, \textcolor{keywordtype}{size\_t} size, \textcolor{keywordtype}{size\_t} count,}
+\DoxyCodeLine{77                          FILE* stream) \{}
+\DoxyCodeLine{78   \textcolor{keywordtype}{size\_t} written = std::fwrite(ptr, size, count, stream);}
+\DoxyCodeLine{79   \textcolor{keywordflow}{if} (written < count)}
+\DoxyCodeLine{80     FMT\_THROW(system\_error(errno, FMT\_STRING(\textcolor{stringliteral}{"{}cannot write to file"{}})));}
+\DoxyCodeLine{81 \}}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{83 \textcolor{preprocessor}{\#ifndef FMT\_STATIC\_THOUSANDS\_SEPARATOR}}
+\DoxyCodeLine{84 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Locale>}
+\DoxyCodeLine{85 locale\_ref::locale\_ref(\textcolor{keyword}{const} Locale\& loc) : locale\_(\&loc) \{}
+\DoxyCodeLine{86   \textcolor{keyword}{static\_assert}(std::is\_same<Locale, std::locale>::value, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{87 \}}
+\DoxyCodeLine{88 }
+\DoxyCodeLine{89 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Locale> Locale locale\_ref::get()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{90   \textcolor{keyword}{static\_assert}(std::is\_same<Locale, std::locale>::value, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{91   \textcolor{keywordflow}{return} locale\_ ? *\textcolor{keyword}{static\_cast<}\textcolor{keyword}{const }std::locale*\textcolor{keyword}{>}(locale\_) : std::locale();}
+\DoxyCodeLine{92 \}}
+\DoxyCodeLine{93 }
+\DoxyCodeLine{94 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{95 FMT\_FUNC \textcolor{keyword}{auto} thousands\_sep\_impl(locale\_ref loc) -\/> thousands\_sep\_result<Char> \{}
+\DoxyCodeLine{96   \textcolor{keyword}{auto}\& facet = std::use\_facet<std::numpunct<Char>>(loc.get<std::locale>());}
+\DoxyCodeLine{97   \textcolor{keyword}{auto} grouping = facet.grouping();}
+\DoxyCodeLine{98   \textcolor{keyword}{auto} thousands\_sep = grouping.empty() ? Char() : facet.thousands\_sep();}
+\DoxyCodeLine{99   \textcolor{keywordflow}{return} \{std::move(grouping), thousands\_sep\};}
+\DoxyCodeLine{100 \}}
+\DoxyCodeLine{101 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> FMT\_FUNC Char decimal\_point\_impl(locale\_ref loc) \{}
+\DoxyCodeLine{102   \textcolor{keywordflow}{return} std::use\_facet<std::numpunct<Char>>(loc.get<std::locale>())}
+\DoxyCodeLine{103       .decimal\_point();}
+\DoxyCodeLine{104 \}}
+\DoxyCodeLine{105 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{106 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{107 FMT\_FUNC \textcolor{keyword}{auto} thousands\_sep\_impl(locale\_ref) -\/> thousands\_sep\_result<Char> \{}
+\DoxyCodeLine{108   \textcolor{keywordflow}{return} \{\textcolor{stringliteral}{"{}\(\backslash\)03"{}}, FMT\_STATIC\_THOUSANDS\_SEPARATOR\};}
+\DoxyCodeLine{109 \}}
+\DoxyCodeLine{110 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> FMT\_FUNC Char decimal\_point\_impl(locale\_ref) \{}
+\DoxyCodeLine{111   \textcolor{keywordflow}{return} \textcolor{charliteral}{'.'};}
+\DoxyCodeLine{112 \}}
+\DoxyCodeLine{113 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{114 }
+\DoxyCodeLine{115 FMT\_FUNC \textcolor{keyword}{auto} write\_loc(\mbox{\hyperlink{classappender}{appender}} out, \mbox{\hyperlink{classloc__value}{loc\_value}} value,}
+\DoxyCodeLine{116                         \textcolor{keyword}{const} \mbox{\hyperlink{structformat__specs}{format\_specs<>}}\& specs, locale\_ref loc) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{117 \textcolor{preprocessor}{\#ifndef FMT\_STATIC\_THOUSANDS\_SEPARATOR}}
+\DoxyCodeLine{118   \textcolor{keyword}{auto} locale = loc.get<std::locale>();}
+\DoxyCodeLine{119   \textcolor{comment}{// We cannot use the num\_put<char> facet because it may produce output in}}
+\DoxyCodeLine{120   \textcolor{comment}{// a wrong encoding.}}
+\DoxyCodeLine{121   \textcolor{keyword}{using }facet = \mbox{\hyperlink{classformat__facet}{format\_facet<std::locale>}};}
+\DoxyCodeLine{122   \textcolor{keywordflow}{if} (std::has\_facet<facet>(locale))}
+\DoxyCodeLine{123     \textcolor{keywordflow}{return} std::use\_facet<facet>(locale).put(out, value, specs);}
+\DoxyCodeLine{124   \textcolor{keywordflow}{return} facet(locale).put(out, value, specs);}
+\DoxyCodeLine{125 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{126   \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{127 \}}
+\DoxyCodeLine{128 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{129 }
+\DoxyCodeLine{130 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Locale> \textcolor{keyword}{typename} Locale::id \mbox{\hyperlink{classformat__facet}{format\_facet<Locale>::id}};}
+\DoxyCodeLine{131 }
+\DoxyCodeLine{132 \textcolor{preprocessor}{\#ifndef FMT\_STATIC\_THOUSANDS\_SEPARATOR}}
+\DoxyCodeLine{133 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Locale> \mbox{\hyperlink{classformat__facet}{format\_facet<Locale>::format\_facet}}(Locale\& loc) \{}
+\DoxyCodeLine{134   \textcolor{keyword}{auto}\& numpunct = std::use\_facet<std::numpunct<char>>(loc);}
+\DoxyCodeLine{135   grouping\_ = numpunct.grouping();}
+\DoxyCodeLine{136   \textcolor{keywordflow}{if} (!grouping\_.empty()) separator\_ = std::string(1, numpunct.thousands\_sep());}
+\DoxyCodeLine{137 \}}
+\DoxyCodeLine{138 }
+\DoxyCodeLine{139 \textcolor{keyword}{template} <>}
+\DoxyCodeLine{140 FMT\_API FMT\_FUNC \textcolor{keyword}{auto} \mbox{\hyperlink{classformat__facet}{format\_facet<std::locale>::do\_put}}(}
+\DoxyCodeLine{141     \mbox{\hyperlink{classappender}{appender}} out, \mbox{\hyperlink{classloc__value}{loc\_value}} val, \textcolor{keyword}{const} \mbox{\hyperlink{structformat__specs}{format\_specs<>}}\& specs) \textcolor{keyword}{const} -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{142   \textcolor{keywordflow}{return} val.visit(}
+\DoxyCodeLine{143       \mbox{\hyperlink{structdetail_1_1loc__writer}{detail::loc\_writer<>}}\{out, specs, separator\_, grouping\_, decimal\_point\_\});}
+\DoxyCodeLine{144 \}}
+\DoxyCodeLine{145 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{146 }
+\DoxyCodeLine{147 FMT\_FUNC std::system\_error vsystem\_error(\textcolor{keywordtype}{int} error\_code, \mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt,}
+\DoxyCodeLine{148                                          \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{149   \textcolor{keyword}{auto} ec = std::error\_code(error\_code, std::generic\_category());}
+\DoxyCodeLine{150   \textcolor{keywordflow}{return} std::system\_error(ec, vformat(fmt, args));}
+\DoxyCodeLine{151 \}}
+\DoxyCodeLine{152 }
+\DoxyCodeLine{153 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{154 }
+\DoxyCodeLine{155 \textcolor{keyword}{template} <\textcolor{keyword}{typename} F> \textcolor{keyword}{inline} \textcolor{keywordtype}{bool} operator==(basic\_fp<F> x, basic\_fp<F> y) \{}
+\DoxyCodeLine{156   \textcolor{keywordflow}{return} x.f == y.f \&\& x.e == y.e;}
+\DoxyCodeLine{157 \}}
+\DoxyCodeLine{158 }
+\DoxyCodeLine{159 \textcolor{comment}{// Compilers should be able to optimize this into the ror instruction.}}
+\DoxyCodeLine{160 FMT\_CONSTEXPR \textcolor{keyword}{inline} uint32\_t rotr(uint32\_t n, uint32\_t r) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{161   r \&= 31;}
+\DoxyCodeLine{162   \textcolor{keywordflow}{return} (n >> r) | (n << (32 -\/ r));}
+\DoxyCodeLine{163 \}}
+\DoxyCodeLine{164 FMT\_CONSTEXPR \textcolor{keyword}{inline} uint64\_t rotr(uint64\_t n, uint32\_t r) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{165   r \&= 63;}
+\DoxyCodeLine{166   \textcolor{keywordflow}{return} (n >> r) | (n << (64 -\/ r));}
+\DoxyCodeLine{167 \}}
+\DoxyCodeLine{168 }
+\DoxyCodeLine{169 \textcolor{comment}{// Implementation of Dragonbox algorithm: https://github.com/jk-\/jeon/dragonbox.}}
+\DoxyCodeLine{170 \textcolor{keyword}{namespace }dragonbox \{}
+\DoxyCodeLine{171 \textcolor{comment}{// Computes upper 64 bits of multiplication of a 32-\/bit unsigned integer and a}}
+\DoxyCodeLine{172 \textcolor{comment}{// 64-\/bit unsigned integer.}}
+\DoxyCodeLine{173 \textcolor{keyword}{inline} uint64\_t umul96\_upper64(uint32\_t x, uint64\_t y) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{174   \textcolor{keywordflow}{return} umul128\_upper64(\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(x) << 32, y);}
+\DoxyCodeLine{175 \}}
+\DoxyCodeLine{176 }
+\DoxyCodeLine{177 \textcolor{comment}{// Computes lower 128 bits of multiplication of a 64-\/bit unsigned integer and a}}
+\DoxyCodeLine{178 \textcolor{comment}{// 128-\/bit unsigned integer.}}
+\DoxyCodeLine{179 \textcolor{keyword}{inline} uint128\_fallback umul192\_lower128(uint64\_t x,}
+\DoxyCodeLine{180                                          uint128\_fallback y) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{181   uint64\_t high = x * y.high();}
+\DoxyCodeLine{182   uint128\_fallback high\_low = umul128(x, y.low());}
+\DoxyCodeLine{183   \textcolor{keywordflow}{return} \{high + high\_low.high(), high\_low.low()\};}
+\DoxyCodeLine{184 \}}
+\DoxyCodeLine{185 }
+\DoxyCodeLine{186 \textcolor{comment}{// Computes lower 64 bits of multiplication of a 32-\/bit unsigned integer and a}}
+\DoxyCodeLine{187 \textcolor{comment}{// 64-\/bit unsigned integer.}}
+\DoxyCodeLine{188 \textcolor{keyword}{inline} uint64\_t umul96\_lower64(uint32\_t x, uint64\_t y) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{189   \textcolor{keywordflow}{return} x * y;}
+\DoxyCodeLine{190 \}}
+\DoxyCodeLine{191 }
+\DoxyCodeLine{192 \textcolor{comment}{// Various fast log computations.}}
+\DoxyCodeLine{193 \textcolor{keyword}{inline} \textcolor{keywordtype}{int} floor\_log10\_pow2\_minus\_log10\_4\_over\_3(\textcolor{keywordtype}{int} e) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{194   FMT\_ASSERT(e <= 2936 \&\& e >= -\/2985, \textcolor{stringliteral}{"{}too large exponent"{}});}
+\DoxyCodeLine{195   \textcolor{keywordflow}{return} (e * 631305 -\/ 261663) >> 21;}
+\DoxyCodeLine{196 \}}
+\DoxyCodeLine{197 }
+\DoxyCodeLine{198 FMT\_INLINE\_VARIABLE \textcolor{keyword}{constexpr} \textcolor{keyword}{struct }\{}
+\DoxyCodeLine{199   uint32\_t divisor;}
+\DoxyCodeLine{200   \textcolor{keywordtype}{int} shift\_amount;}
+\DoxyCodeLine{201 \} div\_small\_pow10\_infos[] = \{\{10, 16\}, \{100, 16\}\};}
+\DoxyCodeLine{202 }
+\DoxyCodeLine{203 \textcolor{comment}{// Replaces n by floor(n / pow(10, N)) returning true if and only if n is}}
+\DoxyCodeLine{204 \textcolor{comment}{// divisible by pow(10, N).}}
+\DoxyCodeLine{205 \textcolor{comment}{// Precondition: n <= pow(10, N + 1).}}
+\DoxyCodeLine{206 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} N>}
+\DoxyCodeLine{207 \textcolor{keywordtype}{bool} check\_divisibility\_and\_divide\_by\_pow10(uint32\_t\& n) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{208   \textcolor{comment}{// The numbers below are chosen such that:}}
+\DoxyCodeLine{209   \textcolor{comment}{//   1. floor(n/d) = floor(nm / 2\string^k) where d=10 or d=100,}}
+\DoxyCodeLine{210   \textcolor{comment}{//   2. nm mod 2\string^k < m if and only if n is divisible by d,}}
+\DoxyCodeLine{211   \textcolor{comment}{// where m is magic\_number, k is shift\_amount}}
+\DoxyCodeLine{212   \textcolor{comment}{// and d is divisor.}}
+\DoxyCodeLine{213   \textcolor{comment}{//}}
+\DoxyCodeLine{214   \textcolor{comment}{// Item 1 is a common technique of replacing division by a constant with}}
+\DoxyCodeLine{215   \textcolor{comment}{// multiplication, see e.g. "{}Division by Invariant Integers Using}}
+\DoxyCodeLine{216   \textcolor{comment}{// Multiplication"{} by Granlund and Montgomery (1994). magic\_number (m) is set}}
+\DoxyCodeLine{217   \textcolor{comment}{// to ceil(2\string^k/d) for large enough k.}}
+\DoxyCodeLine{218   \textcolor{comment}{// The idea for item 2 originates from Schubfach.}}
+\DoxyCodeLine{219   \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} info = div\_small\_pow10\_infos[N -\/ 1];}
+\DoxyCodeLine{220   FMT\_ASSERT(n <= info.divisor * 10, \textcolor{stringliteral}{"{}n is too large"{}});}
+\DoxyCodeLine{221   \textcolor{keyword}{constexpr} uint32\_t magic\_number =}
+\DoxyCodeLine{222       (1u << info.shift\_amount) / info.divisor + 1;}
+\DoxyCodeLine{223   n *= magic\_number;}
+\DoxyCodeLine{224   \textcolor{keyword}{const} uint32\_t comparison\_mask = (1u << info.shift\_amount) -\/ 1;}
+\DoxyCodeLine{225   \textcolor{keywordtype}{bool} result = (n \& comparison\_mask) < magic\_number;}
+\DoxyCodeLine{226   n >>= info.shift\_amount;}
+\DoxyCodeLine{227   \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{228 \}}
+\DoxyCodeLine{229 }
+\DoxyCodeLine{230 \textcolor{comment}{// Computes floor(n / pow(10, N)) for small n and N.}}
+\DoxyCodeLine{231 \textcolor{comment}{// Precondition: n <= pow(10, N + 1).}}
+\DoxyCodeLine{232 \textcolor{keyword}{template} <\textcolor{keywordtype}{int} N> uint32\_t small\_division\_by\_pow10(uint32\_t n) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{233   \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} info = div\_small\_pow10\_infos[N -\/ 1];}
+\DoxyCodeLine{234   FMT\_ASSERT(n <= info.divisor * 10, \textcolor{stringliteral}{"{}n is too large"{}});}
+\DoxyCodeLine{235   \textcolor{keyword}{constexpr} uint32\_t magic\_number =}
+\DoxyCodeLine{236       (1u << info.shift\_amount) / info.divisor + 1;}
+\DoxyCodeLine{237   return (n * magic\_number) >> info.shift\_amount;}
+\DoxyCodeLine{238 \}}
+\DoxyCodeLine{239 }
+\DoxyCodeLine{240 \textcolor{comment}{// Computes floor(n / 10\string^(kappa + 1)) (float)}}
+\DoxyCodeLine{241 \textcolor{keyword}{inline} uint32\_t divide\_by\_10\_to\_kappa\_plus\_1(uint32\_t n) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{242   \textcolor{comment}{// 1374389535 = ceil(2\string^37/100)}}
+\DoxyCodeLine{243   \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}((\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(n) * 1374389535) >> 37);}
+\DoxyCodeLine{244 \}}
+\DoxyCodeLine{245 \textcolor{comment}{// Computes floor(n / 10\string^(kappa + 1)) (double)}}
+\DoxyCodeLine{246 \textcolor{keyword}{inline} uint64\_t divide\_by\_10\_to\_kappa\_plus\_1(uint64\_t n) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{247   \textcolor{comment}{// 2361183241434822607 = ceil(2\string^(64+7)/1000)}}
+\DoxyCodeLine{248   \textcolor{keywordflow}{return} umul128\_upper64(n, 2361183241434822607ull) >> 7;}
+\DoxyCodeLine{249 \}}
+\DoxyCodeLine{250 }
+\DoxyCodeLine{251 \textcolor{comment}{// Various subroutines using pow10 cache}}
+\DoxyCodeLine{252 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1dragonbox_1_1cache__accessor}{cache\_accessor}};}
+\DoxyCodeLine{253 }
+\DoxyCodeLine{254 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1dragonbox_1_1cache__accessor}{cache\_accessor}}<float> \{}
+\DoxyCodeLine{255   \textcolor{keyword}{using }carrier\_uint = \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<float>::carrier\_uint}};}
+\DoxyCodeLine{256   \textcolor{keyword}{using }cache\_entry\_type = uint64\_t;}
+\DoxyCodeLine{257 }
+\DoxyCodeLine{258   \textcolor{keyword}{static} uint64\_t get\_cached\_power(\textcolor{keywordtype}{int} k) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{259     FMT\_ASSERT(k >= \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<float>::min\_k}} \&\& k <= \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<float>::max\_k}},}
+\DoxyCodeLine{260                \textcolor{stringliteral}{"{}k is out of range"{}});}
+\DoxyCodeLine{261     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} uint64\_t pow10\_significands[] = \{}
+\DoxyCodeLine{262         0x81ceb32c4b43fcf5, 0xa2425ff75e14fc32, 0xcad2f7f5359a3b3f,}
+\DoxyCodeLine{263         0xfd87b5f28300ca0e, 0x9e74d1b791e07e49, 0xc612062576589ddb,}
+\DoxyCodeLine{264         0xf79687aed3eec552, 0x9abe14cd44753b53, 0xc16d9a0095928a28,}
+\DoxyCodeLine{265         0xf1c90080baf72cb2, 0x971da05074da7bef, 0xbce5086492111aeb,}
+\DoxyCodeLine{266         0xec1e4a7db69561a6, 0x9392ee8e921d5d08, 0xb877aa3236a4b44a,}
+\DoxyCodeLine{267         0xe69594bec44de15c, 0x901d7cf73ab0acda, 0xb424dc35095cd810,}
+\DoxyCodeLine{268         0xe12e13424bb40e14, 0x8cbccc096f5088cc, 0xafebff0bcb24aaff,}
+\DoxyCodeLine{269         0xdbe6fecebdedd5bf, 0x89705f4136b4a598, 0xabcc77118461cefd,}
+\DoxyCodeLine{270         0xd6bf94d5e57a42bd, 0x8637bd05af6c69b6, 0xa7c5ac471b478424,}
+\DoxyCodeLine{271         0xd1b71758e219652c, 0x83126e978d4fdf3c, 0xa3d70a3d70a3d70b,}
+\DoxyCodeLine{272         0xcccccccccccccccd, 0x8000000000000000, 0xa000000000000000,}
+\DoxyCodeLine{273         0xc800000000000000, 0xfa00000000000000, 0x9c40000000000000,}
+\DoxyCodeLine{274         0xc350000000000000, 0xf424000000000000, 0x9896800000000000,}
+\DoxyCodeLine{275         0xbebc200000000000, 0xee6b280000000000, 0x9502f90000000000,}
+\DoxyCodeLine{276         0xba43b74000000000, 0xe8d4a51000000000, 0x9184e72a00000000,}
+\DoxyCodeLine{277         0xb5e620f480000000, 0xe35fa931a0000000, 0x8e1bc9bf04000000,}
+\DoxyCodeLine{278         0xb1a2bc2ec5000000, 0xde0b6b3a76400000, 0x8ac7230489e80000,}
+\DoxyCodeLine{279         0xad78ebc5ac620000, 0xd8d726b7177a8000, 0x878678326eac9000,}
+\DoxyCodeLine{280         0xa968163f0a57b400, 0xd3c21bcecceda100, 0x84595161401484a0,}
+\DoxyCodeLine{281         0xa56fa5b99019a5c8, 0xcecb8f27f4200f3a, 0x813f3978f8940985,}
+\DoxyCodeLine{282         0xa18f07d736b90be6, 0xc9f2c9cd04674edf, 0xfc6f7c4045812297,}
+\DoxyCodeLine{283         0x9dc5ada82b70b59e, 0xc5371912364ce306, 0xf684df56c3e01bc7,}
+\DoxyCodeLine{284         0x9a130b963a6c115d, 0xc097ce7bc90715b4, 0xf0bdc21abb48db21,}
+\DoxyCodeLine{285         0x96769950b50d88f5, 0xbc143fa4e250eb32, 0xeb194f8e1ae525fe,}
+\DoxyCodeLine{286         0x92efd1b8d0cf37bf, 0xb7abc627050305ae, 0xe596b7b0c643c71a,}
+\DoxyCodeLine{287         0x8f7e32ce7bea5c70, 0xb35dbf821ae4f38c, 0xe0352f62a19e306f\};}
+\DoxyCodeLine{288     \textcolor{keywordflow}{return} pow10\_significands[k -\/ \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<float>::min\_k}}];}
+\DoxyCodeLine{289   \}}
+\DoxyCodeLine{290 }
+\DoxyCodeLine{291   \textcolor{keyword}{struct }compute\_mul\_result \{}
+\DoxyCodeLine{292     carrier\_uint result;}
+\DoxyCodeLine{293     \textcolor{keywordtype}{bool} is\_integer;}
+\DoxyCodeLine{294   \};}
+\DoxyCodeLine{295   \textcolor{keyword}{struct }compute\_mul\_parity\_result \{}
+\DoxyCodeLine{296     \textcolor{keywordtype}{bool} parity;}
+\DoxyCodeLine{297     \textcolor{keywordtype}{bool} is\_integer;}
+\DoxyCodeLine{298   \};}
+\DoxyCodeLine{299 }
+\DoxyCodeLine{300   \textcolor{keyword}{static} compute\_mul\_result compute\_mul(}
+\DoxyCodeLine{301       carrier\_uint u, \textcolor{keyword}{const} cache\_entry\_type\& cache) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{302     \textcolor{keyword}{auto} r = umul96\_upper64(u, cache);}
+\DoxyCodeLine{303     \textcolor{keywordflow}{return} \{\textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(r >> 32),}
+\DoxyCodeLine{304             \textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(r) == 0\};}
+\DoxyCodeLine{305   \}}
+\DoxyCodeLine{306 }
+\DoxyCodeLine{307   \textcolor{keyword}{static} uint32\_t compute\_delta(\textcolor{keyword}{const} cache\_entry\_type\& cache,}
+\DoxyCodeLine{308                                 \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{309     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(cache >> (64 -\/ 1 -\/ beta));}
+\DoxyCodeLine{310   \}}
+\DoxyCodeLine{311 }
+\DoxyCodeLine{312   \textcolor{keyword}{static} compute\_mul\_parity\_result compute\_mul\_parity(}
+\DoxyCodeLine{313       carrier\_uint two\_f, \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{314     FMT\_ASSERT(beta >= 1, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{315     FMT\_ASSERT(beta < 64, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{316 }
+\DoxyCodeLine{317     \textcolor{keyword}{auto} r = umul96\_lower64(two\_f, cache);}
+\DoxyCodeLine{318     \textcolor{keywordflow}{return} \{((r >> (64 -\/ beta)) \& 1) != 0,}
+\DoxyCodeLine{319             \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(r >> (32 -\/ beta)) == 0\};}
+\DoxyCodeLine{320   \}}
+\DoxyCodeLine{321 }
+\DoxyCodeLine{322   \textcolor{keyword}{static} carrier\_uint compute\_left\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{323       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{324     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(}
+\DoxyCodeLine{325         (cache -\/ (cache >> (num\_significand\_bits<float>() + 2))) >>}
+\DoxyCodeLine{326         (64 -\/ num\_significand\_bits<float>() -\/ 1 -\/ beta));}
+\DoxyCodeLine{327   \}}
+\DoxyCodeLine{328 }
+\DoxyCodeLine{329   \textcolor{keyword}{static} carrier\_uint compute\_right\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{330       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{331     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(}
+\DoxyCodeLine{332         (cache + (cache >> (num\_significand\_bits<float>() + 1))) >>}
+\DoxyCodeLine{333         (64 -\/ num\_significand\_bits<float>() -\/ 1 -\/ beta));}
+\DoxyCodeLine{334   \}}
+\DoxyCodeLine{335 }
+\DoxyCodeLine{336   \textcolor{keyword}{static} carrier\_uint compute\_round\_up\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{337       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{338     \textcolor{keywordflow}{return} (\textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(}
+\DoxyCodeLine{339                 cache >> (64 -\/ num\_significand\_bits<float>() -\/ 2 -\/ beta)) +}
+\DoxyCodeLine{340             1) /}
+\DoxyCodeLine{341            2;}
+\DoxyCodeLine{342   \}}
+\DoxyCodeLine{343 \};}
+\DoxyCodeLine{344 }
+\DoxyCodeLine{345 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1dragonbox_1_1cache__accessor}{cache\_accessor}}<double> \{}
+\DoxyCodeLine{346   \textcolor{keyword}{using }carrier\_uint = \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::carrier\_uint}};}
+\DoxyCodeLine{347   \textcolor{keyword}{using }\mbox{\hyperlink{classdetail_1_1uint128__fallback}{cache\_entry\_type}} = \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}};}
+\DoxyCodeLine{348 }
+\DoxyCodeLine{349   \textcolor{keyword}{static} \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}} get\_cached\_power(\textcolor{keywordtype}{int} k) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{350     FMT\_ASSERT(k >= \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::min\_k}} \&\& k <= \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::max\_k}},}
+\DoxyCodeLine{351                \textcolor{stringliteral}{"{}k is out of range"{}});}
+\DoxyCodeLine{352 }
+\DoxyCodeLine{353     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}} pow10\_significands[] = \{}
+\DoxyCodeLine{354 \textcolor{preprocessor}{\#if FMT\_USE\_FULL\_CACHE\_DRAGONBOX}}
+\DoxyCodeLine{355       \{0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7b\},}
+\DoxyCodeLine{356       \{0x9faacf3df73609b1, 0x77b191618c54e9ad\},}
+\DoxyCodeLine{357       \{0xc795830d75038c1d, 0xd59df5b9ef6a2418\},}
+\DoxyCodeLine{358       \{0xf97ae3d0d2446f25, 0x4b0573286b44ad1e\},}
+\DoxyCodeLine{359       \{0x9becce62836ac577, 0x4ee367f9430aec33\},}
+\DoxyCodeLine{360       \{0xc2e801fb244576d5, 0x229c41f793cda740\},}
+\DoxyCodeLine{361       \{0xf3a20279ed56d48a, 0x6b43527578c11110\},}
+\DoxyCodeLine{362       \{0x9845418c345644d6, 0x830a13896b78aaaa\},}
+\DoxyCodeLine{363       \{0xbe5691ef416bd60c, 0x23cc986bc656d554\},}
+\DoxyCodeLine{364       \{0xedec366b11c6cb8f, 0x2cbfbe86b7ec8aa9\},}
+\DoxyCodeLine{365       \{0x94b3a202eb1c3f39, 0x7bf7d71432f3d6aa\},}
+\DoxyCodeLine{366       \{0xb9e08a83a5e34f07, 0xdaf5ccd93fb0cc54\},}
+\DoxyCodeLine{367       \{0xe858ad248f5c22c9, 0xd1b3400f8f9cff69\},}
+\DoxyCodeLine{368       \{0x91376c36d99995be, 0x23100809b9c21fa2\},}
+\DoxyCodeLine{369       \{0xb58547448ffffb2d, 0xabd40a0c2832a78b\},}
+\DoxyCodeLine{370       \{0xe2e69915b3fff9f9, 0x16c90c8f323f516d\},}
+\DoxyCodeLine{371       \{0x8dd01fad907ffc3b, 0xae3da7d97f6792e4\},}
+\DoxyCodeLine{372       \{0xb1442798f49ffb4a, 0x99cd11cfdf41779d\},}
+\DoxyCodeLine{373       \{0xdd95317f31c7fa1d, 0x40405643d711d584\},}
+\DoxyCodeLine{374       \{0x8a7d3eef7f1cfc52, 0x482835ea666b2573\},}
+\DoxyCodeLine{375       \{0xad1c8eab5ee43b66, 0xda3243650005eed0\},}
+\DoxyCodeLine{376       \{0xd863b256369d4a40, 0x90bed43e40076a83\},}
+\DoxyCodeLine{377       \{0x873e4f75e2224e68, 0x5a7744a6e804a292\},}
+\DoxyCodeLine{378       \{0xa90de3535aaae202, 0x711515d0a205cb37\},}
+\DoxyCodeLine{379       \{0xd3515c2831559a83, 0x0d5a5b44ca873e04\},}
+\DoxyCodeLine{380       \{0x8412d9991ed58091, 0xe858790afe9486c3\},}
+\DoxyCodeLine{381       \{0xa5178fff668ae0b6, 0x626e974dbe39a873\},}
+\DoxyCodeLine{382       \{0xce5d73ff402d98e3, 0xfb0a3d212dc81290\},}
+\DoxyCodeLine{383       \{0x80fa687f881c7f8e, 0x7ce66634bc9d0b9a\},}
+\DoxyCodeLine{384       \{0xa139029f6a239f72, 0x1c1fffc1ebc44e81\},}
+\DoxyCodeLine{385       \{0xc987434744ac874e, 0xa327ffb266b56221\},}
+\DoxyCodeLine{386       \{0xfbe9141915d7a922, 0x4bf1ff9f0062baa9\},}
+\DoxyCodeLine{387       \{0x9d71ac8fada6c9b5, 0x6f773fc3603db4aa\},}
+\DoxyCodeLine{388       \{0xc4ce17b399107c22, 0xcb550fb4384d21d4\},}
+\DoxyCodeLine{389       \{0xf6019da07f549b2b, 0x7e2a53a146606a49\},}
+\DoxyCodeLine{390       \{0x99c102844f94e0fb, 0x2eda7444cbfc426e\},}
+\DoxyCodeLine{391       \{0xc0314325637a1939, 0xfa911155fefb5309\},}
+\DoxyCodeLine{392       \{0xf03d93eebc589f88, 0x793555ab7eba27cb\},}
+\DoxyCodeLine{393       \{0x96267c7535b763b5, 0x4bc1558b2f3458df\},}
+\DoxyCodeLine{394       \{0xbbb01b9283253ca2, 0x9eb1aaedfb016f17\},}
+\DoxyCodeLine{395       \{0xea9c227723ee8bcb, 0x465e15a979c1cadd\},}
+\DoxyCodeLine{396       \{0x92a1958a7675175f, 0x0bfacd89ec191eca\},}
+\DoxyCodeLine{397       \{0xb749faed14125d36, 0xcef980ec671f667c\},}
+\DoxyCodeLine{398       \{0xe51c79a85916f484, 0x82b7e12780e7401b\},}
+\DoxyCodeLine{399       \{0x8f31cc0937ae58d2, 0xd1b2ecb8b0908811\},}
+\DoxyCodeLine{400       \{0xb2fe3f0b8599ef07, 0x861fa7e6dcb4aa16\},}
+\DoxyCodeLine{401       \{0xdfbdcece67006ac9, 0x67a791e093e1d49b\},}
+\DoxyCodeLine{402       \{0x8bd6a141006042bd, 0xe0c8bb2c5c6d24e1\},}
+\DoxyCodeLine{403       \{0xaecc49914078536d, 0x58fae9f773886e19\},}
+\DoxyCodeLine{404       \{0xda7f5bf590966848, 0xaf39a475506a899f\},}
+\DoxyCodeLine{405       \{0x888f99797a5e012d, 0x6d8406c952429604\},}
+\DoxyCodeLine{406       \{0xaab37fd7d8f58178, 0xc8e5087ba6d33b84\},}
+\DoxyCodeLine{407       \{0xd5605fcdcf32e1d6, 0xfb1e4a9a90880a65\},}
+\DoxyCodeLine{408       \{0x855c3be0a17fcd26, 0x5cf2eea09a550680\},}
+\DoxyCodeLine{409       \{0xa6b34ad8c9dfc06f, 0xf42faa48c0ea481f\},}
+\DoxyCodeLine{410       \{0xd0601d8efc57b08b, 0xf13b94daf124da27\},}
+\DoxyCodeLine{411       \{0x823c12795db6ce57, 0x76c53d08d6b70859\},}
+\DoxyCodeLine{412       \{0xa2cb1717b52481ed, 0x54768c4b0c64ca6f\},}
+\DoxyCodeLine{413       \{0xcb7ddcdda26da268, 0xa9942f5dcf7dfd0a\},}
+\DoxyCodeLine{414       \{0xfe5d54150b090b02, 0xd3f93b35435d7c4d\},}
+\DoxyCodeLine{415       \{0x9efa548d26e5a6e1, 0xc47bc5014a1a6db0\},}
+\DoxyCodeLine{416       \{0xc6b8e9b0709f109a, 0x359ab6419ca1091c\},}
+\DoxyCodeLine{417       \{0xf867241c8cc6d4c0, 0xc30163d203c94b63\},}
+\DoxyCodeLine{418       \{0x9b407691d7fc44f8, 0x79e0de63425dcf1e\},}
+\DoxyCodeLine{419       \{0xc21094364dfb5636, 0x985915fc12f542e5\},}
+\DoxyCodeLine{420       \{0xf294b943e17a2bc4, 0x3e6f5b7b17b2939e\},}
+\DoxyCodeLine{421       \{0x979cf3ca6cec5b5a, 0xa705992ceecf9c43\},}
+\DoxyCodeLine{422       \{0xbd8430bd08277231, 0x50c6ff782a838354\},}
+\DoxyCodeLine{423       \{0xece53cec4a314ebd, 0xa4f8bf5635246429\},}
+\DoxyCodeLine{424       \{0x940f4613ae5ed136, 0x871b7795e136be9a\},}
+\DoxyCodeLine{425       \{0xb913179899f68584, 0x28e2557b59846e40\},}
+\DoxyCodeLine{426       \{0xe757dd7ec07426e5, 0x331aeada2fe589d0\},}
+\DoxyCodeLine{427       \{0x9096ea6f3848984f, 0x3ff0d2c85def7622\},}
+\DoxyCodeLine{428       \{0xb4bca50b065abe63, 0x0fed077a756b53aa\},}
+\DoxyCodeLine{429       \{0xe1ebce4dc7f16dfb, 0xd3e8495912c62895\},}
+\DoxyCodeLine{430       \{0x8d3360f09cf6e4bd, 0x64712dd7abbbd95d\},}
+\DoxyCodeLine{431       \{0xb080392cc4349dec, 0xbd8d794d96aacfb4\},}
+\DoxyCodeLine{432       \{0xdca04777f541c567, 0xecf0d7a0fc5583a1\},}
+\DoxyCodeLine{433       \{0x89e42caaf9491b60, 0xf41686c49db57245\},}
+\DoxyCodeLine{434       \{0xac5d37d5b79b6239, 0x311c2875c522ced6\},}
+\DoxyCodeLine{435       \{0xd77485cb25823ac7, 0x7d633293366b828c\},}
+\DoxyCodeLine{436       \{0x86a8d39ef77164bc, 0xae5dff9c02033198\},}
+\DoxyCodeLine{437       \{0xa8530886b54dbdeb, 0xd9f57f830283fdfd\},}
+\DoxyCodeLine{438       \{0xd267caa862a12d66, 0xd072df63c324fd7c\},}
+\DoxyCodeLine{439       \{0x8380dea93da4bc60, 0x4247cb9e59f71e6e\},}
+\DoxyCodeLine{440       \{0xa46116538d0deb78, 0x52d9be85f074e609\},}
+\DoxyCodeLine{441       \{0xcd795be870516656, 0x67902e276c921f8c\},}
+\DoxyCodeLine{442       \{0x806bd9714632dff6, 0x00ba1cd8a3db53b7\},}
+\DoxyCodeLine{443       \{0xa086cfcd97bf97f3, 0x80e8a40eccd228a5\},}
+\DoxyCodeLine{444       \{0xc8a883c0fdaf7df0, 0x6122cd128006b2ce\},}
+\DoxyCodeLine{445       \{0xfad2a4b13d1b5d6c, 0x796b805720085f82\},}
+\DoxyCodeLine{446       \{0x9cc3a6eec6311a63, 0xcbe3303674053bb1\},}
+\DoxyCodeLine{447       \{0xc3f490aa77bd60fc, 0xbedbfc4411068a9d\},}
+\DoxyCodeLine{448       \{0xf4f1b4d515acb93b, 0xee92fb5515482d45\},}
+\DoxyCodeLine{449       \{0x991711052d8bf3c5, 0x751bdd152d4d1c4b\},}
+\DoxyCodeLine{450       \{0xbf5cd54678eef0b6, 0xd262d45a78a0635e\},}
+\DoxyCodeLine{451       \{0xef340a98172aace4, 0x86fb897116c87c35\},}
+\DoxyCodeLine{452       \{0x9580869f0e7aac0e, 0xd45d35e6ae3d4da1\},}
+\DoxyCodeLine{453       \{0xbae0a846d2195712, 0x8974836059cca10a\},}
+\DoxyCodeLine{454       \{0xe998d258869facd7, 0x2bd1a438703fc94c\},}
+\DoxyCodeLine{455       \{0x91ff83775423cc06, 0x7b6306a34627ddd0\},}
+\DoxyCodeLine{456       \{0xb67f6455292cbf08, 0x1a3bc84c17b1d543\},}
+\DoxyCodeLine{457       \{0xe41f3d6a7377eeca, 0x20caba5f1d9e4a94\},}
+\DoxyCodeLine{458       \{0x8e938662882af53e, 0x547eb47b7282ee9d\},}
+\DoxyCodeLine{459       \{0xb23867fb2a35b28d, 0xe99e619a4f23aa44\},}
+\DoxyCodeLine{460       \{0xdec681f9f4c31f31, 0x6405fa00e2ec94d5\},}
+\DoxyCodeLine{461       \{0x8b3c113c38f9f37e, 0xde83bc408dd3dd05\},}
+\DoxyCodeLine{462       \{0xae0b158b4738705e, 0x9624ab50b148d446\},}
+\DoxyCodeLine{463       \{0xd98ddaee19068c76, 0x3badd624dd9b0958\},}
+\DoxyCodeLine{464       \{0x87f8a8d4cfa417c9, 0xe54ca5d70a80e5d7\},}
+\DoxyCodeLine{465       \{0xa9f6d30a038d1dbc, 0x5e9fcf4ccd211f4d\},}
+\DoxyCodeLine{466       \{0xd47487cc8470652b, 0x7647c32000696720\},}
+\DoxyCodeLine{467       \{0x84c8d4dfd2c63f3b, 0x29ecd9f40041e074\},}
+\DoxyCodeLine{468       \{0xa5fb0a17c777cf09, 0xf468107100525891\},}
+\DoxyCodeLine{469       \{0xcf79cc9db955c2cc, 0x7182148d4066eeb5\},}
+\DoxyCodeLine{470       \{0x81ac1fe293d599bf, 0xc6f14cd848405531\},}
+\DoxyCodeLine{471       \{0xa21727db38cb002f, 0xb8ada00e5a506a7d\},}
+\DoxyCodeLine{472       \{0xca9cf1d206fdc03b, 0xa6d90811f0e4851d\},}
+\DoxyCodeLine{473       \{0xfd442e4688bd304a, 0x908f4a166d1da664\},}
+\DoxyCodeLine{474       \{0x9e4a9cec15763e2e, 0x9a598e4e043287ff\},}
+\DoxyCodeLine{475       \{0xc5dd44271ad3cdba, 0x40eff1e1853f29fe\},}
+\DoxyCodeLine{476       \{0xf7549530e188c128, 0xd12bee59e68ef47d\},}
+\DoxyCodeLine{477       \{0x9a94dd3e8cf578b9, 0x82bb74f8301958cf\},}
+\DoxyCodeLine{478       \{0xc13a148e3032d6e7, 0xe36a52363c1faf02\},}
+\DoxyCodeLine{479       \{0xf18899b1bc3f8ca1, 0xdc44e6c3cb279ac2\},}
+\DoxyCodeLine{480       \{0x96f5600f15a7b7e5, 0x29ab103a5ef8c0ba\},}
+\DoxyCodeLine{481       \{0xbcb2b812db11a5de, 0x7415d448f6b6f0e8\},}
+\DoxyCodeLine{482       \{0xebdf661791d60f56, 0x111b495b3464ad22\},}
+\DoxyCodeLine{483       \{0x936b9fcebb25c995, 0xcab10dd900beec35\},}
+\DoxyCodeLine{484       \{0xb84687c269ef3bfb, 0x3d5d514f40eea743\},}
+\DoxyCodeLine{485       \{0xe65829b3046b0afa, 0x0cb4a5a3112a5113\},}
+\DoxyCodeLine{486       \{0x8ff71a0fe2c2e6dc, 0x47f0e785eaba72ac\},}
+\DoxyCodeLine{487       \{0xb3f4e093db73a093, 0x59ed216765690f57\},}
+\DoxyCodeLine{488       \{0xe0f218b8d25088b8, 0x306869c13ec3532d\},}
+\DoxyCodeLine{489       \{0x8c974f7383725573, 0x1e414218c73a13fc\},}
+\DoxyCodeLine{490       \{0xafbd2350644eeacf, 0xe5d1929ef90898fb\},}
+\DoxyCodeLine{491       \{0xdbac6c247d62a583, 0xdf45f746b74abf3a\},}
+\DoxyCodeLine{492       \{0x894bc396ce5da772, 0x6b8bba8c328eb784\},}
+\DoxyCodeLine{493       \{0xab9eb47c81f5114f, 0x066ea92f3f326565\},}
+\DoxyCodeLine{494       \{0xd686619ba27255a2, 0xc80a537b0efefebe\},}
+\DoxyCodeLine{495       \{0x8613fd0145877585, 0xbd06742ce95f5f37\},}
+\DoxyCodeLine{496       \{0xa798fc4196e952e7, 0x2c48113823b73705\},}
+\DoxyCodeLine{497       \{0xd17f3b51fca3a7a0, 0xf75a15862ca504c6\},}
+\DoxyCodeLine{498       \{0x82ef85133de648c4, 0x9a984d73dbe722fc\},}
+\DoxyCodeLine{499       \{0xa3ab66580d5fdaf5, 0xc13e60d0d2e0ebbb\},}
+\DoxyCodeLine{500       \{0xcc963fee10b7d1b3, 0x318df905079926a9\},}
+\DoxyCodeLine{501       \{0xffbbcfe994e5c61f, 0xfdf17746497f7053\},}
+\DoxyCodeLine{502       \{0x9fd561f1fd0f9bd3, 0xfeb6ea8bedefa634\},}
+\DoxyCodeLine{503       \{0xc7caba6e7c5382c8, 0xfe64a52ee96b8fc1\},}
+\DoxyCodeLine{504       \{0xf9bd690a1b68637b, 0x3dfdce7aa3c673b1\},}
+\DoxyCodeLine{505       \{0x9c1661a651213e2d, 0x06bea10ca65c084f\},}
+\DoxyCodeLine{506       \{0xc31bfa0fe5698db8, 0x486e494fcff30a63\},}
+\DoxyCodeLine{507       \{0xf3e2f893dec3f126, 0x5a89dba3c3efccfb\},}
+\DoxyCodeLine{508       \{0x986ddb5c6b3a76b7, 0xf89629465a75e01d\},}
+\DoxyCodeLine{509       \{0xbe89523386091465, 0xf6bbb397f1135824\},}
+\DoxyCodeLine{510       \{0xee2ba6c0678b597f, 0x746aa07ded582e2d\},}
+\DoxyCodeLine{511       \{0x94db483840b717ef, 0xa8c2a44eb4571cdd\},}
+\DoxyCodeLine{512       \{0xba121a4650e4ddeb, 0x92f34d62616ce414\},}
+\DoxyCodeLine{513       \{0xe896a0d7e51e1566, 0x77b020baf9c81d18\},}
+\DoxyCodeLine{514       \{0x915e2486ef32cd60, 0x0ace1474dc1d122f\},}
+\DoxyCodeLine{515       \{0xb5b5ada8aaff80b8, 0x0d819992132456bb\},}
+\DoxyCodeLine{516       \{0xe3231912d5bf60e6, 0x10e1fff697ed6c6a\},}
+\DoxyCodeLine{517       \{0x8df5efabc5979c8f, 0xca8d3ffa1ef463c2\},}
+\DoxyCodeLine{518       \{0xb1736b96b6fd83b3, 0xbd308ff8a6b17cb3\},}
+\DoxyCodeLine{519       \{0xddd0467c64bce4a0, 0xac7cb3f6d05ddbdf\},}
+\DoxyCodeLine{520       \{0x8aa22c0dbef60ee4, 0x6bcdf07a423aa96c\},}
+\DoxyCodeLine{521       \{0xad4ab7112eb3929d, 0x86c16c98d2c953c7\},}
+\DoxyCodeLine{522       \{0xd89d64d57a607744, 0xe871c7bf077ba8b8\},}
+\DoxyCodeLine{523       \{0x87625f056c7c4a8b, 0x11471cd764ad4973\},}
+\DoxyCodeLine{524       \{0xa93af6c6c79b5d2d, 0xd598e40d3dd89bd0\},}
+\DoxyCodeLine{525       \{0xd389b47879823479, 0x4aff1d108d4ec2c4\},}
+\DoxyCodeLine{526       \{0x843610cb4bf160cb, 0xcedf722a585139bb\},}
+\DoxyCodeLine{527       \{0xa54394fe1eedb8fe, 0xc2974eb4ee658829\},}
+\DoxyCodeLine{528       \{0xce947a3da6a9273e, 0x733d226229feea33\},}
+\DoxyCodeLine{529       \{0x811ccc668829b887, 0x0806357d5a3f5260\},}
+\DoxyCodeLine{530       \{0xa163ff802a3426a8, 0xca07c2dcb0cf26f8\},}
+\DoxyCodeLine{531       \{0xc9bcff6034c13052, 0xfc89b393dd02f0b6\},}
+\DoxyCodeLine{532       \{0xfc2c3f3841f17c67, 0xbbac2078d443ace3\},}
+\DoxyCodeLine{533       \{0x9d9ba7832936edc0, 0xd54b944b84aa4c0e\},}
+\DoxyCodeLine{534       \{0xc5029163f384a931, 0x0a9e795e65d4df12\},}
+\DoxyCodeLine{535       \{0xf64335bcf065d37d, 0x4d4617b5ff4a16d6\},}
+\DoxyCodeLine{536       \{0x99ea0196163fa42e, 0x504bced1bf8e4e46\},}
+\DoxyCodeLine{537       \{0xc06481fb9bcf8d39, 0xe45ec2862f71e1d7\},}
+\DoxyCodeLine{538       \{0xf07da27a82c37088, 0x5d767327bb4e5a4d\},}
+\DoxyCodeLine{539       \{0x964e858c91ba2655, 0x3a6a07f8d510f870\},}
+\DoxyCodeLine{540       \{0xbbe226efb628afea, 0x890489f70a55368c\},}
+\DoxyCodeLine{541       \{0xeadab0aba3b2dbe5, 0x2b45ac74ccea842f\},}
+\DoxyCodeLine{542       \{0x92c8ae6b464fc96f, 0x3b0b8bc90012929e\},}
+\DoxyCodeLine{543       \{0xb77ada0617e3bbcb, 0x09ce6ebb40173745\},}
+\DoxyCodeLine{544       \{0xe55990879ddcaabd, 0xcc420a6a101d0516\},}
+\DoxyCodeLine{545       \{0x8f57fa54c2a9eab6, 0x9fa946824a12232e\},}
+\DoxyCodeLine{546       \{0xb32df8e9f3546564, 0x47939822dc96abfa\},}
+\DoxyCodeLine{547       \{0xdff9772470297ebd, 0x59787e2b93bc56f8\},}
+\DoxyCodeLine{548       \{0x8bfbea76c619ef36, 0x57eb4edb3c55b65b\},}
+\DoxyCodeLine{549       \{0xaefae51477a06b03, 0xede622920b6b23f2\},}
+\DoxyCodeLine{550       \{0xdab99e59958885c4, 0xe95fab368e45ecee\},}
+\DoxyCodeLine{551       \{0x88b402f7fd75539b, 0x11dbcb0218ebb415\},}
+\DoxyCodeLine{552       \{0xaae103b5fcd2a881, 0xd652bdc29f26a11a\},}
+\DoxyCodeLine{553       \{0xd59944a37c0752a2, 0x4be76d3346f04960\},}
+\DoxyCodeLine{554       \{0x857fcae62d8493a5, 0x6f70a4400c562ddc\},}
+\DoxyCodeLine{555       \{0xa6dfbd9fb8e5b88e, 0xcb4ccd500f6bb953\},}
+\DoxyCodeLine{556       \{0xd097ad07a71f26b2, 0x7e2000a41346a7a8\},}
+\DoxyCodeLine{557       \{0x825ecc24c873782f, 0x8ed400668c0c28c9\},}
+\DoxyCodeLine{558       \{0xa2f67f2dfa90563b, 0x728900802f0f32fb\},}
+\DoxyCodeLine{559       \{0xcbb41ef979346bca, 0x4f2b40a03ad2ffba\},}
+\DoxyCodeLine{560       \{0xfea126b7d78186bc, 0xe2f610c84987bfa9\},}
+\DoxyCodeLine{561       \{0x9f24b832e6b0f436, 0x0dd9ca7d2df4d7ca\},}
+\DoxyCodeLine{562       \{0xc6ede63fa05d3143, 0x91503d1c79720dbc\},}
+\DoxyCodeLine{563       \{0xf8a95fcf88747d94, 0x75a44c6397ce912b\},}
+\DoxyCodeLine{564       \{0x9b69dbe1b548ce7c, 0xc986afbe3ee11abb\},}
+\DoxyCodeLine{565       \{0xc24452da229b021b, 0xfbe85badce996169\},}
+\DoxyCodeLine{566       \{0xf2d56790ab41c2a2, 0xfae27299423fb9c4\},}
+\DoxyCodeLine{567       \{0x97c560ba6b0919a5, 0xdccd879fc967d41b\},}
+\DoxyCodeLine{568       \{0xbdb6b8e905cb600f, 0x5400e987bbc1c921\},}
+\DoxyCodeLine{569       \{0xed246723473e3813, 0x290123e9aab23b69\},}
+\DoxyCodeLine{570       \{0x9436c0760c86e30b, 0xf9a0b6720aaf6522\},}
+\DoxyCodeLine{571       \{0xb94470938fa89bce, 0xf808e40e8d5b3e6a\},}
+\DoxyCodeLine{572       \{0xe7958cb87392c2c2, 0xb60b1d1230b20e05\},}
+\DoxyCodeLine{573       \{0x90bd77f3483bb9b9, 0xb1c6f22b5e6f48c3\},}
+\DoxyCodeLine{574       \{0xb4ecd5f01a4aa828, 0x1e38aeb6360b1af4\},}
+\DoxyCodeLine{575       \{0xe2280b6c20dd5232, 0x25c6da63c38de1b1\},}
+\DoxyCodeLine{576       \{0x8d590723948a535f, 0x579c487e5a38ad0f\},}
+\DoxyCodeLine{577       \{0xb0af48ec79ace837, 0x2d835a9df0c6d852\},}
+\DoxyCodeLine{578       \{0xdcdb1b2798182244, 0xf8e431456cf88e66\},}
+\DoxyCodeLine{579       \{0x8a08f0f8bf0f156b, 0x1b8e9ecb641b5900\},}
+\DoxyCodeLine{580       \{0xac8b2d36eed2dac5, 0xe272467e3d222f40\},}
+\DoxyCodeLine{581       \{0xd7adf884aa879177, 0x5b0ed81dcc6abb10\},}
+\DoxyCodeLine{582       \{0x86ccbb52ea94baea, 0x98e947129fc2b4ea\},}
+\DoxyCodeLine{583       \{0xa87fea27a539e9a5, 0x3f2398d747b36225\},}
+\DoxyCodeLine{584       \{0xd29fe4b18e88640e, 0x8eec7f0d19a03aae\},}
+\DoxyCodeLine{585       \{0x83a3eeeef9153e89, 0x1953cf68300424ad\},}
+\DoxyCodeLine{586       \{0xa48ceaaab75a8e2b, 0x5fa8c3423c052dd8\},}
+\DoxyCodeLine{587       \{0xcdb02555653131b6, 0x3792f412cb06794e\},}
+\DoxyCodeLine{588       \{0x808e17555f3ebf11, 0xe2bbd88bbee40bd1\},}
+\DoxyCodeLine{589       \{0xa0b19d2ab70e6ed6, 0x5b6aceaeae9d0ec5\},}
+\DoxyCodeLine{590       \{0xc8de047564d20a8b, 0xf245825a5a445276\},}
+\DoxyCodeLine{591       \{0xfb158592be068d2e, 0xeed6e2f0f0d56713\},}
+\DoxyCodeLine{592       \{0x9ced737bb6c4183d, 0x55464dd69685606c\},}
+\DoxyCodeLine{593       \{0xc428d05aa4751e4c, 0xaa97e14c3c26b887\},}
+\DoxyCodeLine{594       \{0xf53304714d9265df, 0xd53dd99f4b3066a9\},}
+\DoxyCodeLine{595       \{0x993fe2c6d07b7fab, 0xe546a8038efe402a\},}
+\DoxyCodeLine{596       \{0xbf8fdb78849a5f96, 0xde98520472bdd034\},}
+\DoxyCodeLine{597       \{0xef73d256a5c0f77c, 0x963e66858f6d4441\},}
+\DoxyCodeLine{598       \{0x95a8637627989aad, 0xdde7001379a44aa9\},}
+\DoxyCodeLine{599       \{0xbb127c53b17ec159, 0x5560c018580d5d53\},}
+\DoxyCodeLine{600       \{0xe9d71b689dde71af, 0xaab8f01e6e10b4a7\},}
+\DoxyCodeLine{601       \{0x9226712162ab070d, 0xcab3961304ca70e9\},}
+\DoxyCodeLine{602       \{0xb6b00d69bb55c8d1, 0x3d607b97c5fd0d23\},}
+\DoxyCodeLine{603       \{0xe45c10c42a2b3b05, 0x8cb89a7db77c506b\},}
+\DoxyCodeLine{604       \{0x8eb98a7a9a5b04e3, 0x77f3608e92adb243\},}
+\DoxyCodeLine{605       \{0xb267ed1940f1c61c, 0x55f038b237591ed4\},}
+\DoxyCodeLine{606       \{0xdf01e85f912e37a3, 0x6b6c46dec52f6689\},}
+\DoxyCodeLine{607       \{0x8b61313bbabce2c6, 0x2323ac4b3b3da016\},}
+\DoxyCodeLine{608       \{0xae397d8aa96c1b77, 0xabec975e0a0d081b\},}
+\DoxyCodeLine{609       \{0xd9c7dced53c72255, 0x96e7bd358c904a22\},}
+\DoxyCodeLine{610       \{0x881cea14545c7575, 0x7e50d64177da2e55\},}
+\DoxyCodeLine{611       \{0xaa242499697392d2, 0xdde50bd1d5d0b9ea\},}
+\DoxyCodeLine{612       \{0xd4ad2dbfc3d07787, 0x955e4ec64b44e865\},}
+\DoxyCodeLine{613       \{0x84ec3c97da624ab4, 0xbd5af13bef0b113f\},}
+\DoxyCodeLine{614       \{0xa6274bbdd0fadd61, 0xecb1ad8aeacdd58f\},}
+\DoxyCodeLine{615       \{0xcfb11ead453994ba, 0x67de18eda5814af3\},}
+\DoxyCodeLine{616       \{0x81ceb32c4b43fcf4, 0x80eacf948770ced8\},}
+\DoxyCodeLine{617       \{0xa2425ff75e14fc31, 0xa1258379a94d028e\},}
+\DoxyCodeLine{618       \{0xcad2f7f5359a3b3e, 0x096ee45813a04331\},}
+\DoxyCodeLine{619       \{0xfd87b5f28300ca0d, 0x8bca9d6e188853fd\},}
+\DoxyCodeLine{620       \{0x9e74d1b791e07e48, 0x775ea264cf55347e\},}
+\DoxyCodeLine{621       \{0xc612062576589dda, 0x95364afe032a819e\},}
+\DoxyCodeLine{622       \{0xf79687aed3eec551, 0x3a83ddbd83f52205\},}
+\DoxyCodeLine{623       \{0x9abe14cd44753b52, 0xc4926a9672793543\},}
+\DoxyCodeLine{624       \{0xc16d9a0095928a27, 0x75b7053c0f178294\},}
+\DoxyCodeLine{625       \{0xf1c90080baf72cb1, 0x5324c68b12dd6339\},}
+\DoxyCodeLine{626       \{0x971da05074da7bee, 0xd3f6fc16ebca5e04\},}
+\DoxyCodeLine{627       \{0xbce5086492111aea, 0x88f4bb1ca6bcf585\},}
+\DoxyCodeLine{628       \{0xec1e4a7db69561a5, 0x2b31e9e3d06c32e6\},}
+\DoxyCodeLine{629       \{0x9392ee8e921d5d07, 0x3aff322e62439fd0\},}
+\DoxyCodeLine{630       \{0xb877aa3236a4b449, 0x09befeb9fad487c3\},}
+\DoxyCodeLine{631       \{0xe69594bec44de15b, 0x4c2ebe687989a9b4\},}
+\DoxyCodeLine{632       \{0x901d7cf73ab0acd9, 0x0f9d37014bf60a11\},}
+\DoxyCodeLine{633       \{0xb424dc35095cd80f, 0x538484c19ef38c95\},}
+\DoxyCodeLine{634       \{0xe12e13424bb40e13, 0x2865a5f206b06fba\},}
+\DoxyCodeLine{635       \{0x8cbccc096f5088cb, 0xf93f87b7442e45d4\},}
+\DoxyCodeLine{636       \{0xafebff0bcb24aafe, 0xf78f69a51539d749\},}
+\DoxyCodeLine{637       \{0xdbe6fecebdedd5be, 0xb573440e5a884d1c\},}
+\DoxyCodeLine{638       \{0x89705f4136b4a597, 0x31680a88f8953031\},}
+\DoxyCodeLine{639       \{0xabcc77118461cefc, 0xfdc20d2b36ba7c3e\},}
+\DoxyCodeLine{640       \{0xd6bf94d5e57a42bc, 0x3d32907604691b4d\},}
+\DoxyCodeLine{641       \{0x8637bd05af6c69b5, 0xa63f9a49c2c1b110\},}
+\DoxyCodeLine{642       \{0xa7c5ac471b478423, 0x0fcf80dc33721d54\},}
+\DoxyCodeLine{643       \{0xd1b71758e219652b, 0xd3c36113404ea4a9\},}
+\DoxyCodeLine{644       \{0x83126e978d4fdf3b, 0x645a1cac083126ea\},}
+\DoxyCodeLine{645       \{0xa3d70a3d70a3d70a, 0x3d70a3d70a3d70a4\},}
+\DoxyCodeLine{646       \{0xcccccccccccccccc, 0xcccccccccccccccd\},}
+\DoxyCodeLine{647       \{0x8000000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{648       \{0xa000000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{649       \{0xc800000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{650       \{0xfa00000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{651       \{0x9c40000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{652       \{0xc350000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{653       \{0xf424000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{654       \{0x9896800000000000, 0x0000000000000000\},}
+\DoxyCodeLine{655       \{0xbebc200000000000, 0x0000000000000000\},}
+\DoxyCodeLine{656       \{0xee6b280000000000, 0x0000000000000000\},}
+\DoxyCodeLine{657       \{0x9502f90000000000, 0x0000000000000000\},}
+\DoxyCodeLine{658       \{0xba43b74000000000, 0x0000000000000000\},}
+\DoxyCodeLine{659       \{0xe8d4a51000000000, 0x0000000000000000\},}
+\DoxyCodeLine{660       \{0x9184e72a00000000, 0x0000000000000000\},}
+\DoxyCodeLine{661       \{0xb5e620f480000000, 0x0000000000000000\},}
+\DoxyCodeLine{662       \{0xe35fa931a0000000, 0x0000000000000000\},}
+\DoxyCodeLine{663       \{0x8e1bc9bf04000000, 0x0000000000000000\},}
+\DoxyCodeLine{664       \{0xb1a2bc2ec5000000, 0x0000000000000000\},}
+\DoxyCodeLine{665       \{0xde0b6b3a76400000, 0x0000000000000000\},}
+\DoxyCodeLine{666       \{0x8ac7230489e80000, 0x0000000000000000\},}
+\DoxyCodeLine{667       \{0xad78ebc5ac620000, 0x0000000000000000\},}
+\DoxyCodeLine{668       \{0xd8d726b7177a8000, 0x0000000000000000\},}
+\DoxyCodeLine{669       \{0x878678326eac9000, 0x0000000000000000\},}
+\DoxyCodeLine{670       \{0xa968163f0a57b400, 0x0000000000000000\},}
+\DoxyCodeLine{671       \{0xd3c21bcecceda100, 0x0000000000000000\},}
+\DoxyCodeLine{672       \{0x84595161401484a0, 0x0000000000000000\},}
+\DoxyCodeLine{673       \{0xa56fa5b99019a5c8, 0x0000000000000000\},}
+\DoxyCodeLine{674       \{0xcecb8f27f4200f3a, 0x0000000000000000\},}
+\DoxyCodeLine{675       \{0x813f3978f8940984, 0x4000000000000000\},}
+\DoxyCodeLine{676       \{0xa18f07d736b90be5, 0x5000000000000000\},}
+\DoxyCodeLine{677       \{0xc9f2c9cd04674ede, 0xa400000000000000\},}
+\DoxyCodeLine{678       \{0xfc6f7c4045812296, 0x4d00000000000000\},}
+\DoxyCodeLine{679       \{0x9dc5ada82b70b59d, 0xf020000000000000\},}
+\DoxyCodeLine{680       \{0xc5371912364ce305, 0x6c28000000000000\},}
+\DoxyCodeLine{681       \{0xf684df56c3e01bc6, 0xc732000000000000\},}
+\DoxyCodeLine{682       \{0x9a130b963a6c115c, 0x3c7f400000000000\},}
+\DoxyCodeLine{683       \{0xc097ce7bc90715b3, 0x4b9f100000000000\},}
+\DoxyCodeLine{684       \{0xf0bdc21abb48db20, 0x1e86d40000000000\},}
+\DoxyCodeLine{685       \{0x96769950b50d88f4, 0x1314448000000000\},}
+\DoxyCodeLine{686       \{0xbc143fa4e250eb31, 0x17d955a000000000\},}
+\DoxyCodeLine{687       \{0xeb194f8e1ae525fd, 0x5dcfab0800000000\},}
+\DoxyCodeLine{688       \{0x92efd1b8d0cf37be, 0x5aa1cae500000000\},}
+\DoxyCodeLine{689       \{0xb7abc627050305ad, 0xf14a3d9e40000000\},}
+\DoxyCodeLine{690       \{0xe596b7b0c643c719, 0x6d9ccd05d0000000\},}
+\DoxyCodeLine{691       \{0x8f7e32ce7bea5c6f, 0xe4820023a2000000\},}
+\DoxyCodeLine{692       \{0xb35dbf821ae4f38b, 0xdda2802c8a800000\},}
+\DoxyCodeLine{693       \{0xe0352f62a19e306e, 0xd50b2037ad200000\},}
+\DoxyCodeLine{694       \{0x8c213d9da502de45, 0x4526f422cc340000\},}
+\DoxyCodeLine{695       \{0xaf298d050e4395d6, 0x9670b12b7f410000\},}
+\DoxyCodeLine{696       \{0xdaf3f04651d47b4c, 0x3c0cdd765f114000\},}
+\DoxyCodeLine{697       \{0x88d8762bf324cd0f, 0xa5880a69fb6ac800\},}
+\DoxyCodeLine{698       \{0xab0e93b6efee0053, 0x8eea0d047a457a00\},}
+\DoxyCodeLine{699       \{0xd5d238a4abe98068, 0x72a4904598d6d880\},}
+\DoxyCodeLine{700       \{0x85a36366eb71f041, 0x47a6da2b7f864750\},}
+\DoxyCodeLine{701       \{0xa70c3c40a64e6c51, 0x999090b65f67d924\},}
+\DoxyCodeLine{702       \{0xd0cf4b50cfe20765, 0xfff4b4e3f741cf6d\},}
+\DoxyCodeLine{703       \{0x82818f1281ed449f, 0xbff8f10e7a8921a5\},}
+\DoxyCodeLine{704       \{0xa321f2d7226895c7, 0xaff72d52192b6a0e\},}
+\DoxyCodeLine{705       \{0xcbea6f8ceb02bb39, 0x9bf4f8a69f764491\},}
+\DoxyCodeLine{706       \{0xfee50b7025c36a08, 0x02f236d04753d5b5\},}
+\DoxyCodeLine{707       \{0x9f4f2726179a2245, 0x01d762422c946591\},}
+\DoxyCodeLine{708       \{0xc722f0ef9d80aad6, 0x424d3ad2b7b97ef6\},}
+\DoxyCodeLine{709       \{0xf8ebad2b84e0d58b, 0xd2e0898765a7deb3\},}
+\DoxyCodeLine{710       \{0x9b934c3b330c8577, 0x63cc55f49f88eb30\},}
+\DoxyCodeLine{711       \{0xc2781f49ffcfa6d5, 0x3cbf6b71c76b25fc\},}
+\DoxyCodeLine{712       \{0xf316271c7fc3908a, 0x8bef464e3945ef7b\},}
+\DoxyCodeLine{713       \{0x97edd871cfda3a56, 0x97758bf0e3cbb5ad\},}
+\DoxyCodeLine{714       \{0xbde94e8e43d0c8ec, 0x3d52eeed1cbea318\},}
+\DoxyCodeLine{715       \{0xed63a231d4c4fb27, 0x4ca7aaa863ee4bde\},}
+\DoxyCodeLine{716       \{0x945e455f24fb1cf8, 0x8fe8caa93e74ef6b\},}
+\DoxyCodeLine{717       \{0xb975d6b6ee39e436, 0xb3e2fd538e122b45\},}
+\DoxyCodeLine{718       \{0xe7d34c64a9c85d44, 0x60dbbca87196b617\},}
+\DoxyCodeLine{719       \{0x90e40fbeea1d3a4a, 0xbc8955e946fe31ce\},}
+\DoxyCodeLine{720       \{0xb51d13aea4a488dd, 0x6babab6398bdbe42\},}
+\DoxyCodeLine{721       \{0xe264589a4dcdab14, 0xc696963c7eed2dd2\},}
+\DoxyCodeLine{722       \{0x8d7eb76070a08aec, 0xfc1e1de5cf543ca3\},}
+\DoxyCodeLine{723       \{0xb0de65388cc8ada8, 0x3b25a55f43294bcc\},}
+\DoxyCodeLine{724       \{0xdd15fe86affad912, 0x49ef0eb713f39ebf\},}
+\DoxyCodeLine{725       \{0x8a2dbf142dfcc7ab, 0x6e3569326c784338\},}
+\DoxyCodeLine{726       \{0xacb92ed9397bf996, 0x49c2c37f07965405\},}
+\DoxyCodeLine{727       \{0xd7e77a8f87daf7fb, 0xdc33745ec97be907\},}
+\DoxyCodeLine{728       \{0x86f0ac99b4e8dafd, 0x69a028bb3ded71a4\},}
+\DoxyCodeLine{729       \{0xa8acd7c0222311bc, 0xc40832ea0d68ce0d\},}
+\DoxyCodeLine{730       \{0xd2d80db02aabd62b, 0xf50a3fa490c30191\},}
+\DoxyCodeLine{731       \{0x83c7088e1aab65db, 0x792667c6da79e0fb\},}
+\DoxyCodeLine{732       \{0xa4b8cab1a1563f52, 0x577001b891185939\},}
+\DoxyCodeLine{733       \{0xcde6fd5e09abcf26, 0xed4c0226b55e6f87\},}
+\DoxyCodeLine{734       \{0x80b05e5ac60b6178, 0x544f8158315b05b5\},}
+\DoxyCodeLine{735       \{0xa0dc75f1778e39d6, 0x696361ae3db1c722\},}
+\DoxyCodeLine{736       \{0xc913936dd571c84c, 0x03bc3a19cd1e38ea\},}
+\DoxyCodeLine{737       \{0xfb5878494ace3a5f, 0x04ab48a04065c724\},}
+\DoxyCodeLine{738       \{0x9d174b2dcec0e47b, 0x62eb0d64283f9c77\},}
+\DoxyCodeLine{739       \{0xc45d1df942711d9a, 0x3ba5d0bd324f8395\},}
+\DoxyCodeLine{740       \{0xf5746577930d6500, 0xca8f44ec7ee3647a\},}
+\DoxyCodeLine{741       \{0x9968bf6abbe85f20, 0x7e998b13cf4e1ecc\},}
+\DoxyCodeLine{742       \{0xbfc2ef456ae276e8, 0x9e3fedd8c321a67f\},}
+\DoxyCodeLine{743       \{0xefb3ab16c59b14a2, 0xc5cfe94ef3ea101f\},}
+\DoxyCodeLine{744       \{0x95d04aee3b80ece5, 0xbba1f1d158724a13\},}
+\DoxyCodeLine{745       \{0xbb445da9ca61281f, 0x2a8a6e45ae8edc98\},}
+\DoxyCodeLine{746       \{0xea1575143cf97226, 0xf52d09d71a3293be\},}
+\DoxyCodeLine{747       \{0x924d692ca61be758, 0x593c2626705f9c57\},}
+\DoxyCodeLine{748       \{0xb6e0c377cfa2e12e, 0x6f8b2fb00c77836d\},}
+\DoxyCodeLine{749       \{0xe498f455c38b997a, 0x0b6dfb9c0f956448\},}
+\DoxyCodeLine{750       \{0x8edf98b59a373fec, 0x4724bd4189bd5ead\},}
+\DoxyCodeLine{751       \{0xb2977ee300c50fe7, 0x58edec91ec2cb658\},}
+\DoxyCodeLine{752       \{0xdf3d5e9bc0f653e1, 0x2f2967b66737e3ee\},}
+\DoxyCodeLine{753       \{0x8b865b215899f46c, 0xbd79e0d20082ee75\},}
+\DoxyCodeLine{754       \{0xae67f1e9aec07187, 0xecd8590680a3aa12\},}
+\DoxyCodeLine{755       \{0xda01ee641a708de9, 0xe80e6f4820cc9496\},}
+\DoxyCodeLine{756       \{0x884134fe908658b2, 0x3109058d147fdcde\},}
+\DoxyCodeLine{757       \{0xaa51823e34a7eede, 0xbd4b46f0599fd416\},}
+\DoxyCodeLine{758       \{0xd4e5e2cdc1d1ea96, 0x6c9e18ac7007c91b\},}
+\DoxyCodeLine{759       \{0x850fadc09923329e, 0x03e2cf6bc604ddb1\},}
+\DoxyCodeLine{760       \{0xa6539930bf6bff45, 0x84db8346b786151d\},}
+\DoxyCodeLine{761       \{0xcfe87f7cef46ff16, 0xe612641865679a64\},}
+\DoxyCodeLine{762       \{0x81f14fae158c5f6e, 0x4fcb7e8f3f60c07f\},}
+\DoxyCodeLine{763       \{0xa26da3999aef7749, 0xe3be5e330f38f09e\},}
+\DoxyCodeLine{764       \{0xcb090c8001ab551c, 0x5cadf5bfd3072cc6\},}
+\DoxyCodeLine{765       \{0xfdcb4fa002162a63, 0x73d9732fc7c8f7f7\},}
+\DoxyCodeLine{766       \{0x9e9f11c4014dda7e, 0x2867e7fddcdd9afb\},}
+\DoxyCodeLine{767       \{0xc646d63501a1511d, 0xb281e1fd541501b9\},}
+\DoxyCodeLine{768       \{0xf7d88bc24209a565, 0x1f225a7ca91a4227\},}
+\DoxyCodeLine{769       \{0x9ae757596946075f, 0x3375788de9b06959\},}
+\DoxyCodeLine{770       \{0xc1a12d2fc3978937, 0x0052d6b1641c83af\},}
+\DoxyCodeLine{771       \{0xf209787bb47d6b84, 0xc0678c5dbd23a49b\},}
+\DoxyCodeLine{772       \{0x9745eb4d50ce6332, 0xf840b7ba963646e1\},}
+\DoxyCodeLine{773       \{0xbd176620a501fbff, 0xb650e5a93bc3d899\},}
+\DoxyCodeLine{774       \{0xec5d3fa8ce427aff, 0xa3e51f138ab4cebf\},}
+\DoxyCodeLine{775       \{0x93ba47c980e98cdf, 0xc66f336c36b10138\},}
+\DoxyCodeLine{776       \{0xb8a8d9bbe123f017, 0xb80b0047445d4185\},}
+\DoxyCodeLine{777       \{0xe6d3102ad96cec1d, 0xa60dc059157491e6\},}
+\DoxyCodeLine{778       \{0x9043ea1ac7e41392, 0x87c89837ad68db30\},}
+\DoxyCodeLine{779       \{0xb454e4a179dd1877, 0x29babe4598c311fc\},}
+\DoxyCodeLine{780       \{0xe16a1dc9d8545e94, 0xf4296dd6fef3d67b\},}
+\DoxyCodeLine{781       \{0x8ce2529e2734bb1d, 0x1899e4a65f58660d\},}
+\DoxyCodeLine{782       \{0xb01ae745b101e9e4, 0x5ec05dcff72e7f90\},}
+\DoxyCodeLine{783       \{0xdc21a1171d42645d, 0x76707543f4fa1f74\},}
+\DoxyCodeLine{784       \{0x899504ae72497eba, 0x6a06494a791c53a9\},}
+\DoxyCodeLine{785       \{0xabfa45da0edbde69, 0x0487db9d17636893\},}
+\DoxyCodeLine{786       \{0xd6f8d7509292d603, 0x45a9d2845d3c42b7\},}
+\DoxyCodeLine{787       \{0x865b86925b9bc5c2, 0x0b8a2392ba45a9b3\},}
+\DoxyCodeLine{788       \{0xa7f26836f282b732, 0x8e6cac7768d7141f\},}
+\DoxyCodeLine{789       \{0xd1ef0244af2364ff, 0x3207d795430cd927\},}
+\DoxyCodeLine{790       \{0x8335616aed761f1f, 0x7f44e6bd49e807b9\},}
+\DoxyCodeLine{791       \{0xa402b9c5a8d3a6e7, 0x5f16206c9c6209a7\},}
+\DoxyCodeLine{792       \{0xcd036837130890a1, 0x36dba887c37a8c10\},}
+\DoxyCodeLine{793       \{0x802221226be55a64, 0xc2494954da2c978a\},}
+\DoxyCodeLine{794       \{0xa02aa96b06deb0fd, 0xf2db9baa10b7bd6d\},}
+\DoxyCodeLine{795       \{0xc83553c5c8965d3d, 0x6f92829494e5acc8\},}
+\DoxyCodeLine{796       \{0xfa42a8b73abbf48c, 0xcb772339ba1f17fa\},}
+\DoxyCodeLine{797       \{0x9c69a97284b578d7, 0xff2a760414536efc\},}
+\DoxyCodeLine{798       \{0xc38413cf25e2d70d, 0xfef5138519684abb\},}
+\DoxyCodeLine{799       \{0xf46518c2ef5b8cd1, 0x7eb258665fc25d6a\},}
+\DoxyCodeLine{800       \{0x98bf2f79d5993802, 0xef2f773ffbd97a62\},}
+\DoxyCodeLine{801       \{0xbeeefb584aff8603, 0xaafb550ffacfd8fb\},}
+\DoxyCodeLine{802       \{0xeeaaba2e5dbf6784, 0x95ba2a53f983cf39\},}
+\DoxyCodeLine{803       \{0x952ab45cfa97a0b2, 0xdd945a747bf26184\},}
+\DoxyCodeLine{804       \{0xba756174393d88df, 0x94f971119aeef9e5\},}
+\DoxyCodeLine{805       \{0xe912b9d1478ceb17, 0x7a37cd5601aab85e\},}
+\DoxyCodeLine{806       \{0x91abb422ccb812ee, 0xac62e055c10ab33b\},}
+\DoxyCodeLine{807       \{0xb616a12b7fe617aa, 0x577b986b314d600a\},}
+\DoxyCodeLine{808       \{0xe39c49765fdf9d94, 0xed5a7e85fda0b80c\},}
+\DoxyCodeLine{809       \{0x8e41ade9fbebc27d, 0x14588f13be847308\},}
+\DoxyCodeLine{810       \{0xb1d219647ae6b31c, 0x596eb2d8ae258fc9\},}
+\DoxyCodeLine{811       \{0xde469fbd99a05fe3, 0x6fca5f8ed9aef3bc\},}
+\DoxyCodeLine{812       \{0x8aec23d680043bee, 0x25de7bb9480d5855\},}
+\DoxyCodeLine{813       \{0xada72ccc20054ae9, 0xaf561aa79a10ae6b\},}
+\DoxyCodeLine{814       \{0xd910f7ff28069da4, 0x1b2ba1518094da05\},}
+\DoxyCodeLine{815       \{0x87aa9aff79042286, 0x90fb44d2f05d0843\},}
+\DoxyCodeLine{816       \{0xa99541bf57452b28, 0x353a1607ac744a54\},}
+\DoxyCodeLine{817       \{0xd3fa922f2d1675f2, 0x42889b8997915ce9\},}
+\DoxyCodeLine{818       \{0x847c9b5d7c2e09b7, 0x69956135febada12\},}
+\DoxyCodeLine{819       \{0xa59bc234db398c25, 0x43fab9837e699096\},}
+\DoxyCodeLine{820       \{0xcf02b2c21207ef2e, 0x94f967e45e03f4bc\},}
+\DoxyCodeLine{821       \{0x8161afb94b44f57d, 0x1d1be0eebac278f6\},}
+\DoxyCodeLine{822       \{0xa1ba1ba79e1632dc, 0x6462d92a69731733\},}
+\DoxyCodeLine{823       \{0xca28a291859bbf93, 0x7d7b8f7503cfdcff\},}
+\DoxyCodeLine{824       \{0xfcb2cb35e702af78, 0x5cda735244c3d43f\},}
+\DoxyCodeLine{825       \{0x9defbf01b061adab, 0x3a0888136afa64a8\},}
+\DoxyCodeLine{826       \{0xc56baec21c7a1916, 0x088aaa1845b8fdd1\},}
+\DoxyCodeLine{827       \{0xf6c69a72a3989f5b, 0x8aad549e57273d46\},}
+\DoxyCodeLine{828       \{0x9a3c2087a63f6399, 0x36ac54e2f678864c\},}
+\DoxyCodeLine{829       \{0xc0cb28a98fcf3c7f, 0x84576a1bb416a7de\},}
+\DoxyCodeLine{830       \{0xf0fdf2d3f3c30b9f, 0x656d44a2a11c51d6\},}
+\DoxyCodeLine{831       \{0x969eb7c47859e743, 0x9f644ae5a4b1b326\},}
+\DoxyCodeLine{832       \{0xbc4665b596706114, 0x873d5d9f0dde1fef\},}
+\DoxyCodeLine{833       \{0xeb57ff22fc0c7959, 0xa90cb506d155a7eb\},}
+\DoxyCodeLine{834       \{0x9316ff75dd87cbd8, 0x09a7f12442d588f3\},}
+\DoxyCodeLine{835       \{0xb7dcbf5354e9bece, 0x0c11ed6d538aeb30\},}
+\DoxyCodeLine{836       \{0xe5d3ef282a242e81, 0x8f1668c8a86da5fb\},}
+\DoxyCodeLine{837       \{0x8fa475791a569d10, 0xf96e017d694487bd\},}
+\DoxyCodeLine{838       \{0xb38d92d760ec4455, 0x37c981dcc395a9ad\},}
+\DoxyCodeLine{839       \{0xe070f78d3927556a, 0x85bbe253f47b1418\},}
+\DoxyCodeLine{840       \{0x8c469ab843b89562, 0x93956d7478ccec8f\},}
+\DoxyCodeLine{841       \{0xaf58416654a6babb, 0x387ac8d1970027b3\},}
+\DoxyCodeLine{842       \{0xdb2e51bfe9d0696a, 0x06997b05fcc0319f\},}
+\DoxyCodeLine{843       \{0x88fcf317f22241e2, 0x441fece3bdf81f04\},}
+\DoxyCodeLine{844       \{0xab3c2fddeeaad25a, 0xd527e81cad7626c4\},}
+\DoxyCodeLine{845       \{0xd60b3bd56a5586f1, 0x8a71e223d8d3b075\},}
+\DoxyCodeLine{846       \{0x85c7056562757456, 0xf6872d5667844e4a\},}
+\DoxyCodeLine{847       \{0xa738c6bebb12d16c, 0xb428f8ac016561dc\},}
+\DoxyCodeLine{848       \{0xd106f86e69d785c7, 0xe13336d701beba53\},}
+\DoxyCodeLine{849       \{0x82a45b450226b39c, 0xecc0024661173474\},}
+\DoxyCodeLine{850       \{0xa34d721642b06084, 0x27f002d7f95d0191\},}
+\DoxyCodeLine{851       \{0xcc20ce9bd35c78a5, 0x31ec038df7b441f5\},}
+\DoxyCodeLine{852       \{0xff290242c83396ce, 0x7e67047175a15272\},}
+\DoxyCodeLine{853       \{0x9f79a169bd203e41, 0x0f0062c6e984d387\},}
+\DoxyCodeLine{854       \{0xc75809c42c684dd1, 0x52c07b78a3e60869\},}
+\DoxyCodeLine{855       \{0xf92e0c3537826145, 0xa7709a56ccdf8a83\},}
+\DoxyCodeLine{856       \{0x9bbcc7a142b17ccb, 0x88a66076400bb692\},}
+\DoxyCodeLine{857       \{0xc2abf989935ddbfe, 0x6acff893d00ea436\},}
+\DoxyCodeLine{858       \{0xf356f7ebf83552fe, 0x0583f6b8c4124d44\},}
+\DoxyCodeLine{859       \{0x98165af37b2153de, 0xc3727a337a8b704b\},}
+\DoxyCodeLine{860       \{0xbe1bf1b059e9a8d6, 0x744f18c0592e4c5d\},}
+\DoxyCodeLine{861       \{0xeda2ee1c7064130c, 0x1162def06f79df74\},}
+\DoxyCodeLine{862       \{0x9485d4d1c63e8be7, 0x8addcb5645ac2ba9\},}
+\DoxyCodeLine{863       \{0xb9a74a0637ce2ee1, 0x6d953e2bd7173693\},}
+\DoxyCodeLine{864       \{0xe8111c87c5c1ba99, 0xc8fa8db6ccdd0438\},}
+\DoxyCodeLine{865       \{0x910ab1d4db9914a0, 0x1d9c9892400a22a3\},}
+\DoxyCodeLine{866       \{0xb54d5e4a127f59c8, 0x2503beb6d00cab4c\},}
+\DoxyCodeLine{867       \{0xe2a0b5dc971f303a, 0x2e44ae64840fd61e\},}
+\DoxyCodeLine{868       \{0x8da471a9de737e24, 0x5ceaecfed289e5d3\},}
+\DoxyCodeLine{869       \{0xb10d8e1456105dad, 0x7425a83e872c5f48\},}
+\DoxyCodeLine{870       \{0xdd50f1996b947518, 0xd12f124e28f7771a\},}
+\DoxyCodeLine{871       \{0x8a5296ffe33cc92f, 0x82bd6b70d99aaa70\},}
+\DoxyCodeLine{872       \{0xace73cbfdc0bfb7b, 0x636cc64d1001550c\},}
+\DoxyCodeLine{873       \{0xd8210befd30efa5a, 0x3c47f7e05401aa4f\},}
+\DoxyCodeLine{874       \{0x8714a775e3e95c78, 0x65acfaec34810a72\},}
+\DoxyCodeLine{875       \{0xa8d9d1535ce3b396, 0x7f1839a741a14d0e\},}
+\DoxyCodeLine{876       \{0xd31045a8341ca07c, 0x1ede48111209a051\},}
+\DoxyCodeLine{877       \{0x83ea2b892091e44d, 0x934aed0aab460433\},}
+\DoxyCodeLine{878       \{0xa4e4b66b68b65d60, 0xf81da84d56178540\},}
+\DoxyCodeLine{879       \{0xce1de40642e3f4b9, 0x36251260ab9d668f\},}
+\DoxyCodeLine{880       \{0x80d2ae83e9ce78f3, 0xc1d72b7c6b42601a\},}
+\DoxyCodeLine{881       \{0xa1075a24e4421730, 0xb24cf65b8612f820\},}
+\DoxyCodeLine{882       \{0xc94930ae1d529cfc, 0xdee033f26797b628\},}
+\DoxyCodeLine{883       \{0xfb9b7cd9a4a7443c, 0x169840ef017da3b2\},}
+\DoxyCodeLine{884       \{0x9d412e0806e88aa5, 0x8e1f289560ee864f\},}
+\DoxyCodeLine{885       \{0xc491798a08a2ad4e, 0xf1a6f2bab92a27e3\},}
+\DoxyCodeLine{886       \{0xf5b5d7ec8acb58a2, 0xae10af696774b1dc\},}
+\DoxyCodeLine{887       \{0x9991a6f3d6bf1765, 0xacca6da1e0a8ef2a\},}
+\DoxyCodeLine{888       \{0xbff610b0cc6edd3f, 0x17fd090a58d32af4\},}
+\DoxyCodeLine{889       \{0xeff394dcff8a948e, 0xddfc4b4cef07f5b1\},}
+\DoxyCodeLine{890       \{0x95f83d0a1fb69cd9, 0x4abdaf101564f98f\},}
+\DoxyCodeLine{891       \{0xbb764c4ca7a4440f, 0x9d6d1ad41abe37f2\},}
+\DoxyCodeLine{892       \{0xea53df5fd18d5513, 0x84c86189216dc5ee\},}
+\DoxyCodeLine{893       \{0x92746b9be2f8552c, 0x32fd3cf5b4e49bb5\},}
+\DoxyCodeLine{894       \{0xb7118682dbb66a77, 0x3fbc8c33221dc2a2\},}
+\DoxyCodeLine{895       \{0xe4d5e82392a40515, 0x0fabaf3feaa5334b\},}
+\DoxyCodeLine{896       \{0x8f05b1163ba6832d, 0x29cb4d87f2a7400f\},}
+\DoxyCodeLine{897       \{0xb2c71d5bca9023f8, 0x743e20e9ef511013\},}
+\DoxyCodeLine{898       \{0xdf78e4b2bd342cf6, 0x914da9246b255417\},}
+\DoxyCodeLine{899       \{0x8bab8eefb6409c1a, 0x1ad089b6c2f7548f\},}
+\DoxyCodeLine{900       \{0xae9672aba3d0c320, 0xa184ac2473b529b2\},}
+\DoxyCodeLine{901       \{0xda3c0f568cc4f3e8, 0xc9e5d72d90a2741f\},}
+\DoxyCodeLine{902       \{0x8865899617fb1871, 0x7e2fa67c7a658893\},}
+\DoxyCodeLine{903       \{0xaa7eebfb9df9de8d, 0xddbb901b98feeab8\},}
+\DoxyCodeLine{904       \{0xd51ea6fa85785631, 0x552a74227f3ea566\},}
+\DoxyCodeLine{905       \{0x8533285c936b35de, 0xd53a88958f872760\},}
+\DoxyCodeLine{906       \{0xa67ff273b8460356, 0x8a892abaf368f138\},}
+\DoxyCodeLine{907       \{0xd01fef10a657842c, 0x2d2b7569b0432d86\},}
+\DoxyCodeLine{908       \{0x8213f56a67f6b29b, 0x9c3b29620e29fc74\},}
+\DoxyCodeLine{909       \{0xa298f2c501f45f42, 0x8349f3ba91b47b90\},}
+\DoxyCodeLine{910       \{0xcb3f2f7642717713, 0x241c70a936219a74\},}
+\DoxyCodeLine{911       \{0xfe0efb53d30dd4d7, 0xed238cd383aa0111\},}
+\DoxyCodeLine{912       \{0x9ec95d1463e8a506, 0xf4363804324a40ab\},}
+\DoxyCodeLine{913       \{0xc67bb4597ce2ce48, 0xb143c6053edcd0d6\},}
+\DoxyCodeLine{914       \{0xf81aa16fdc1b81da, 0xdd94b7868e94050b\},}
+\DoxyCodeLine{915       \{0x9b10a4e5e9913128, 0xca7cf2b4191c8327\},}
+\DoxyCodeLine{916       \{0xc1d4ce1f63f57d72, 0xfd1c2f611f63a3f1\},}
+\DoxyCodeLine{917       \{0xf24a01a73cf2dccf, 0xbc633b39673c8ced\},}
+\DoxyCodeLine{918       \{0x976e41088617ca01, 0xd5be0503e085d814\},}
+\DoxyCodeLine{919       \{0xbd49d14aa79dbc82, 0x4b2d8644d8a74e19\},}
+\DoxyCodeLine{920       \{0xec9c459d51852ba2, 0xddf8e7d60ed1219f\},}
+\DoxyCodeLine{921       \{0x93e1ab8252f33b45, 0xcabb90e5c942b504\},}
+\DoxyCodeLine{922       \{0xb8da1662e7b00a17, 0x3d6a751f3b936244\},}
+\DoxyCodeLine{923       \{0xe7109bfba19c0c9d, 0x0cc512670a783ad5\},}
+\DoxyCodeLine{924       \{0x906a617d450187e2, 0x27fb2b80668b24c6\},}
+\DoxyCodeLine{925       \{0xb484f9dc9641e9da, 0xb1f9f660802dedf7\},}
+\DoxyCodeLine{926       \{0xe1a63853bbd26451, 0x5e7873f8a0396974\},}
+\DoxyCodeLine{927       \{0x8d07e33455637eb2, 0xdb0b487b6423e1e9\},}
+\DoxyCodeLine{928       \{0xb049dc016abc5e5f, 0x91ce1a9a3d2cda63\},}
+\DoxyCodeLine{929       \{0xdc5c5301c56b75f7, 0x7641a140cc7810fc\},}
+\DoxyCodeLine{930       \{0x89b9b3e11b6329ba, 0xa9e904c87fcb0a9e\},}
+\DoxyCodeLine{931       \{0xac2820d9623bf429, 0x546345fa9fbdcd45\},}
+\DoxyCodeLine{932       \{0xd732290fbacaf133, 0xa97c177947ad4096\},}
+\DoxyCodeLine{933       \{0x867f59a9d4bed6c0, 0x49ed8eabcccc485e\},}
+\DoxyCodeLine{934       \{0xa81f301449ee8c70, 0x5c68f256bfff5a75\},}
+\DoxyCodeLine{935       \{0xd226fc195c6a2f8c, 0x73832eec6fff3112\},}
+\DoxyCodeLine{936       \{0x83585d8fd9c25db7, 0xc831fd53c5ff7eac\},}
+\DoxyCodeLine{937       \{0xa42e74f3d032f525, 0xba3e7ca8b77f5e56\},}
+\DoxyCodeLine{938       \{0xcd3a1230c43fb26f, 0x28ce1bd2e55f35ec\},}
+\DoxyCodeLine{939       \{0x80444b5e7aa7cf85, 0x7980d163cf5b81b4\},}
+\DoxyCodeLine{940       \{0xa0555e361951c366, 0xd7e105bcc3326220\},}
+\DoxyCodeLine{941       \{0xc86ab5c39fa63440, 0x8dd9472bf3fefaa8\},}
+\DoxyCodeLine{942       \{0xfa856334878fc150, 0xb14f98f6f0feb952\},}
+\DoxyCodeLine{943       \{0x9c935e00d4b9d8d2, 0x6ed1bf9a569f33d4\},}
+\DoxyCodeLine{944       \{0xc3b8358109e84f07, 0x0a862f80ec4700c9\},}
+\DoxyCodeLine{945       \{0xf4a642e14c6262c8, 0xcd27bb612758c0fb\},}
+\DoxyCodeLine{946       \{0x98e7e9cccfbd7dbd, 0x8038d51cb897789d\},}
+\DoxyCodeLine{947       \{0xbf21e44003acdd2c, 0xe0470a63e6bd56c4\},}
+\DoxyCodeLine{948       \{0xeeea5d5004981478, 0x1858ccfce06cac75\},}
+\DoxyCodeLine{949       \{0x95527a5202df0ccb, 0x0f37801e0c43ebc9\},}
+\DoxyCodeLine{950       \{0xbaa718e68396cffd, 0xd30560258f54e6bb\},}
+\DoxyCodeLine{951       \{0xe950df20247c83fd, 0x47c6b82ef32a206a\},}
+\DoxyCodeLine{952       \{0x91d28b7416cdd27e, 0x4cdc331d57fa5442\},}
+\DoxyCodeLine{953       \{0xb6472e511c81471d, 0xe0133fe4adf8e953\},}
+\DoxyCodeLine{954       \{0xe3d8f9e563a198e5, 0x58180fddd97723a7\},}
+\DoxyCodeLine{955       \{0x8e679c2f5e44ff8f, 0x570f09eaa7ea7649\},}
+\DoxyCodeLine{956       \{0xb201833b35d63f73, 0x2cd2cc6551e513db\},}
+\DoxyCodeLine{957       \{0xde81e40a034bcf4f, 0xf8077f7ea65e58d2\},}
+\DoxyCodeLine{958       \{0x8b112e86420f6191, 0xfb04afaf27faf783\},}
+\DoxyCodeLine{959       \{0xadd57a27d29339f6, 0x79c5db9af1f9b564\},}
+\DoxyCodeLine{960       \{0xd94ad8b1c7380874, 0x18375281ae7822bd\},}
+\DoxyCodeLine{961       \{0x87cec76f1c830548, 0x8f2293910d0b15b6\},}
+\DoxyCodeLine{962       \{0xa9c2794ae3a3c69a, 0xb2eb3875504ddb23\},}
+\DoxyCodeLine{963       \{0xd433179d9c8cb841, 0x5fa60692a46151ec\},}
+\DoxyCodeLine{964       \{0x849feec281d7f328, 0xdbc7c41ba6bcd334\},}
+\DoxyCodeLine{965       \{0xa5c7ea73224deff3, 0x12b9b522906c0801\},}
+\DoxyCodeLine{966       \{0xcf39e50feae16bef, 0xd768226b34870a01\},}
+\DoxyCodeLine{967       \{0x81842f29f2cce375, 0xe6a1158300d46641\},}
+\DoxyCodeLine{968       \{0xa1e53af46f801c53, 0x60495ae3c1097fd1\},}
+\DoxyCodeLine{969       \{0xca5e89b18b602368, 0x385bb19cb14bdfc5\},}
+\DoxyCodeLine{970       \{0xfcf62c1dee382c42, 0x46729e03dd9ed7b6\},}
+\DoxyCodeLine{971       \{0x9e19db92b4e31ba9, 0x6c07a2c26a8346d2\},}
+\DoxyCodeLine{972       \{0xc5a05277621be293, 0xc7098b7305241886\},}
+\DoxyCodeLine{973       \{0xf70867153aa2db38, 0xb8cbee4fc66d1ea8\},}
+\DoxyCodeLine{974       \{0x9a65406d44a5c903, 0x737f74f1dc043329\},}
+\DoxyCodeLine{975       \{0xc0fe908895cf3b44, 0x505f522e53053ff3\},}
+\DoxyCodeLine{976       \{0xf13e34aabb430a15, 0x647726b9e7c68ff0\},}
+\DoxyCodeLine{977       \{0x96c6e0eab509e64d, 0x5eca783430dc19f6\},}
+\DoxyCodeLine{978       \{0xbc789925624c5fe0, 0xb67d16413d132073\},}
+\DoxyCodeLine{979       \{0xeb96bf6ebadf77d8, 0xe41c5bd18c57e890\},}
+\DoxyCodeLine{980       \{0x933e37a534cbaae7, 0x8e91b962f7b6f15a\},}
+\DoxyCodeLine{981       \{0xb80dc58e81fe95a1, 0x723627bbb5a4adb1\},}
+\DoxyCodeLine{982       \{0xe61136f2227e3b09, 0xcec3b1aaa30dd91d\},}
+\DoxyCodeLine{983       \{0x8fcac257558ee4e6, 0x213a4f0aa5e8a7b2\},}
+\DoxyCodeLine{984       \{0xb3bd72ed2af29e1f, 0xa988e2cd4f62d19e\},}
+\DoxyCodeLine{985       \{0xe0accfa875af45a7, 0x93eb1b80a33b8606\},}
+\DoxyCodeLine{986       \{0x8c6c01c9498d8b88, 0xbc72f130660533c4\},}
+\DoxyCodeLine{987       \{0xaf87023b9bf0ee6a, 0xeb8fad7c7f8680b5\},}
+\DoxyCodeLine{988       \{ 0xdb68c2ca82ed2a05,}
+\DoxyCodeLine{989         0xa67398db9f6820e2 \}}
+\DoxyCodeLine{990 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{991       \{0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7b\},}
+\DoxyCodeLine{992       \{0xce5d73ff402d98e3, 0xfb0a3d212dc81290\},}
+\DoxyCodeLine{993       \{0xa6b34ad8c9dfc06f, 0xf42faa48c0ea481f\},}
+\DoxyCodeLine{994       \{0x86a8d39ef77164bc, 0xae5dff9c02033198\},}
+\DoxyCodeLine{995       \{0xd98ddaee19068c76, 0x3badd624dd9b0958\},}
+\DoxyCodeLine{996       \{0xafbd2350644eeacf, 0xe5d1929ef90898fb\},}
+\DoxyCodeLine{997       \{0x8df5efabc5979c8f, 0xca8d3ffa1ef463c2\},}
+\DoxyCodeLine{998       \{0xe55990879ddcaabd, 0xcc420a6a101d0516\},}
+\DoxyCodeLine{999       \{0xb94470938fa89bce, 0xf808e40e8d5b3e6a\},}
+\DoxyCodeLine{1000       \{0x95a8637627989aad, 0xdde7001379a44aa9\},}
+\DoxyCodeLine{1001       \{0xf1c90080baf72cb1, 0x5324c68b12dd6339\},}
+\DoxyCodeLine{1002       \{0xc350000000000000, 0x0000000000000000\},}
+\DoxyCodeLine{1003       \{0x9dc5ada82b70b59d, 0xf020000000000000\},}
+\DoxyCodeLine{1004       \{0xfee50b7025c36a08, 0x02f236d04753d5b5\},}
+\DoxyCodeLine{1005       \{0xcde6fd5e09abcf26, 0xed4c0226b55e6f87\},}
+\DoxyCodeLine{1006       \{0xa6539930bf6bff45, 0x84db8346b786151d\},}
+\DoxyCodeLine{1007       \{0x865b86925b9bc5c2, 0x0b8a2392ba45a9b3\},}
+\DoxyCodeLine{1008       \{0xd910f7ff28069da4, 0x1b2ba1518094da05\},}
+\DoxyCodeLine{1009       \{0xaf58416654a6babb, 0x387ac8d1970027b3\},}
+\DoxyCodeLine{1010       \{0x8da471a9de737e24, 0x5ceaecfed289e5d3\},}
+\DoxyCodeLine{1011       \{0xe4d5e82392a40515, 0x0fabaf3feaa5334b\},}
+\DoxyCodeLine{1012       \{0xb8da1662e7b00a17, 0x3d6a751f3b936244\},}
+\DoxyCodeLine{1013       \{0x95527a5202df0ccb, 0x0f37801e0c43ebc9\},}
+\DoxyCodeLine{1014       \{0xf13e34aabb430a15, 0x647726b9e7c68ff0\}}
+\DoxyCodeLine{1015 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1016     \};}
+\DoxyCodeLine{1017 }
+\DoxyCodeLine{1018 \textcolor{preprocessor}{\#if FMT\_USE\_FULL\_CACHE\_DRAGONBOX}}
+\DoxyCodeLine{1019     \textcolor{keywordflow}{return} pow10\_significands[k -\/ \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::min\_k}}];}
+\DoxyCodeLine{1020 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1021     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} uint64\_t powers\_of\_5\_64[] = \{}
+\DoxyCodeLine{1022         0x0000000000000001, 0x0000000000000005, 0x0000000000000019,}
+\DoxyCodeLine{1023         0x000000000000007d, 0x0000000000000271, 0x0000000000000c35,}
+\DoxyCodeLine{1024         0x0000000000003d09, 0x000000000001312d, 0x000000000005f5e1,}
+\DoxyCodeLine{1025         0x00000000001dcd65, 0x00000000009502f9, 0x0000000002e90edd,}
+\DoxyCodeLine{1026         0x000000000e8d4a51, 0x0000000048c27395, 0x000000016bcc41e9,}
+\DoxyCodeLine{1027         0x000000071afd498d, 0x0000002386f26fc1, 0x000000b1a2bc2ec5,}
+\DoxyCodeLine{1028         0x000003782dace9d9, 0x00001158e460913d, 0x000056bc75e2d631,}
+\DoxyCodeLine{1029         0x0001b1ae4d6e2ef5, 0x000878678326eac9, 0x002a5a058fc295ed,}
+\DoxyCodeLine{1030         0x00d3c21bcecceda1, 0x0422ca8b0a00a425, 0x14adf4b7320334b9\};}
+\DoxyCodeLine{1031 }
+\DoxyCodeLine{1032     \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{int} compression\_ratio = 27;}
+\DoxyCodeLine{1033 }
+\DoxyCodeLine{1034     \textcolor{comment}{// Compute base index.}}
+\DoxyCodeLine{1035     \textcolor{keywordtype}{int} cache\_index = (k -\/ \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::min\_k}}) / compression\_ratio;}
+\DoxyCodeLine{1036     \textcolor{keywordtype}{int} kb = cache\_index * compression\_ratio + \mbox{\hyperlink{structdetail_1_1dragonbox_1_1float__info}{float\_info<double>::min\_k}};}
+\DoxyCodeLine{1037     \textcolor{keywordtype}{int} offset = k -\/ kb;}
+\DoxyCodeLine{1038 }
+\DoxyCodeLine{1039     \textcolor{comment}{// Get base cache.}}
+\DoxyCodeLine{1040     \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}} base\_cache = pow10\_significands[cache\_index];}
+\DoxyCodeLine{1041     \textcolor{keywordflow}{if} (offset == 0) \textcolor{keywordflow}{return} base\_cache;}
+\DoxyCodeLine{1042 }
+\DoxyCodeLine{1043     \textcolor{comment}{// Compute the required amount of bit-\/shift.}}
+\DoxyCodeLine{1044     \textcolor{keywordtype}{int} alpha = floor\_log2\_pow10(kb + offset) -\/ floor\_log2\_pow10(kb) -\/ offset;}
+\DoxyCodeLine{1045     FMT\_ASSERT(alpha > 0 \&\& alpha < 64, \textcolor{stringliteral}{"{}shifting error detected"{}});}
+\DoxyCodeLine{1046 }
+\DoxyCodeLine{1047     \textcolor{comment}{// Try to recover the real cache.}}
+\DoxyCodeLine{1048     uint64\_t pow5 = powers\_of\_5\_64[offset];}
+\DoxyCodeLine{1049     \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}} recovered\_cache = umul128(base\_cache.high(), pow5);}
+\DoxyCodeLine{1050     \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}} middle\_low = umul128(base\_cache.low(), pow5);}
+\DoxyCodeLine{1051 }
+\DoxyCodeLine{1052     recovered\_cache += middle\_low.high();}
+\DoxyCodeLine{1053 }
+\DoxyCodeLine{1054     uint64\_t high\_to\_middle = recovered\_cache.high() << (64 -\/ alpha);}
+\DoxyCodeLine{1055     uint64\_t middle\_to\_low = recovered\_cache.low() << (64 -\/ alpha);}
+\DoxyCodeLine{1056 }
+\DoxyCodeLine{1057     recovered\_cache =}
+\DoxyCodeLine{1058         \mbox{\hyperlink{classdetail_1_1uint128__fallback}{uint128\_fallback}}\{(recovered\_cache.low() >> alpha) | high\_to\_middle,}
+\DoxyCodeLine{1059                          ((middle\_low.low() >> alpha) | middle\_to\_low)\};}
+\DoxyCodeLine{1060     FMT\_ASSERT(recovered\_cache.low() + 1 != 0, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1061     \textcolor{keywordflow}{return} \{recovered\_cache.high(), recovered\_cache.low() + 1\};}
+\DoxyCodeLine{1062 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1063   \}}
+\DoxyCodeLine{1064 }
+\DoxyCodeLine{1065   \textcolor{keyword}{struct }compute\_mul\_result \{}
+\DoxyCodeLine{1066     carrier\_uint result;}
+\DoxyCodeLine{1067     \textcolor{keywordtype}{bool} is\_integer;}
+\DoxyCodeLine{1068   \};}
+\DoxyCodeLine{1069   \textcolor{keyword}{struct }compute\_mul\_parity\_result \{}
+\DoxyCodeLine{1070     \textcolor{keywordtype}{bool} parity;}
+\DoxyCodeLine{1071     \textcolor{keywordtype}{bool} is\_integer;}
+\DoxyCodeLine{1072   \};}
+\DoxyCodeLine{1073 }
+\DoxyCodeLine{1074   \textcolor{keyword}{static} compute\_mul\_result compute\_mul(}
+\DoxyCodeLine{1075       carrier\_uint u, \textcolor{keyword}{const} \mbox{\hyperlink{classdetail_1_1uint128__fallback}{cache\_entry\_type}}\& cache) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1076     \textcolor{keyword}{auto} r = umul192\_upper128(u, cache);}
+\DoxyCodeLine{1077     \textcolor{keywordflow}{return} \{r.high(), r.low() == 0\};}
+\DoxyCodeLine{1078   \}}
+\DoxyCodeLine{1079 }
+\DoxyCodeLine{1080   \textcolor{keyword}{static} uint32\_t compute\_delta(cache\_entry\_type \textcolor{keyword}{const}\& cache,}
+\DoxyCodeLine{1081                                 \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1082     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(cache.high() >> (64 -\/ 1 -\/ beta));}
+\DoxyCodeLine{1083   \}}
+\DoxyCodeLine{1084 }
+\DoxyCodeLine{1085   \textcolor{keyword}{static} compute\_mul\_parity\_result compute\_mul\_parity(}
+\DoxyCodeLine{1086       carrier\_uint two\_f, \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1087     FMT\_ASSERT(beta >= 1, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1088     FMT\_ASSERT(beta < 64, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1089 }
+\DoxyCodeLine{1090     \textcolor{keyword}{auto} r = umul192\_lower128(two\_f, cache);}
+\DoxyCodeLine{1091     \textcolor{keywordflow}{return} \{((r.high() >> (64 -\/ beta)) \& 1) != 0,}
+\DoxyCodeLine{1092             ((r.high() << beta) | (r.low() >> (64 -\/ beta))) == 0\};}
+\DoxyCodeLine{1093   \}}
+\DoxyCodeLine{1094 }
+\DoxyCodeLine{1095   \textcolor{keyword}{static} carrier\_uint compute\_left\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{1096       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1097     \textcolor{keywordflow}{return} (cache.high() -\/}
+\DoxyCodeLine{1098             (cache.high() >> (num\_significand\_bits<double>() + 2))) >>}
+\DoxyCodeLine{1099            (64 -\/ num\_significand\_bits<double>() -\/ 1 -\/ beta);}
+\DoxyCodeLine{1100   \}}
+\DoxyCodeLine{1101 }
+\DoxyCodeLine{1102   \textcolor{keyword}{static} carrier\_uint compute\_right\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{1103       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1104     \textcolor{keywordflow}{return} (cache.high() +}
+\DoxyCodeLine{1105             (cache.high() >> (num\_significand\_bits<double>() + 1))) >>}
+\DoxyCodeLine{1106            (64 -\/ num\_significand\_bits<double>() -\/ 1 -\/ beta);}
+\DoxyCodeLine{1107   \}}
+\DoxyCodeLine{1108 }
+\DoxyCodeLine{1109   \textcolor{keyword}{static} carrier\_uint compute\_round\_up\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{1110       \textcolor{keyword}{const} cache\_entry\_type\& cache, \textcolor{keywordtype}{int} beta) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1111     \textcolor{keywordflow}{return} ((cache.high() >> (64 -\/ num\_significand\_bits<double>() -\/ 2 -\/ beta)) +}
+\DoxyCodeLine{1112             1) /}
+\DoxyCodeLine{1113            2;}
+\DoxyCodeLine{1114   \}}
+\DoxyCodeLine{1115 \};}
+\DoxyCodeLine{1116 }
+\DoxyCodeLine{1117 FMT\_FUNC uint128\_fallback get\_cached\_power(\textcolor{keywordtype}{int} k) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1118   \textcolor{keywordflow}{return} cache\_accessor<double>::get\_cached\_power(k);}
+\DoxyCodeLine{1119 \}}
+\DoxyCodeLine{1120 }
+\DoxyCodeLine{1121 \textcolor{comment}{// Various integer checks}}
+\DoxyCodeLine{1122 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{1123 \textcolor{keywordtype}{bool} is\_left\_endpoint\_integer\_shorter\_interval(\textcolor{keywordtype}{int} exponent) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1124   \textcolor{keyword}{const} \textcolor{keywordtype}{int} case\_shorter\_interval\_left\_endpoint\_lower\_threshold = 2;}
+\DoxyCodeLine{1125   \textcolor{keyword}{const} \textcolor{keywordtype}{int} case\_shorter\_interval\_left\_endpoint\_upper\_threshold = 3;}
+\DoxyCodeLine{1126   \textcolor{keywordflow}{return} exponent >= case\_shorter\_interval\_left\_endpoint\_lower\_threshold \&\&}
+\DoxyCodeLine{1127          exponent <= case\_shorter\_interval\_left\_endpoint\_upper\_threshold;}
+\DoxyCodeLine{1128 \}}
+\DoxyCodeLine{1129 }
+\DoxyCodeLine{1130 \textcolor{comment}{// Remove trailing zeros from n and return the number of zeros removed (float)}}
+\DoxyCodeLine{1131 FMT\_INLINE \textcolor{keywordtype}{int} remove\_trailing\_zeros(uint32\_t\& n, \textcolor{keywordtype}{int} s = 0) noexcept \{}
+\DoxyCodeLine{1132   FMT\_ASSERT(n != 0, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1133   \textcolor{comment}{// Modular inverse of 5 (mod 2\string^32): (mod\_inv\_5 * 5) mod 2\string^32 = 1.}}
+\DoxyCodeLine{1134   \textcolor{keyword}{constexpr} uint32\_t mod\_inv\_5 = 0xcccccccd;}
+\DoxyCodeLine{1135   \textcolor{keyword}{constexpr} uint32\_t mod\_inv\_25 = 0xc28f5c29; \textcolor{comment}{// = mod\_inv\_5 * mod\_inv\_5}}
+\DoxyCodeLine{1136 }
+\DoxyCodeLine{1137   \textcolor{keywordflow}{while} (\textcolor{keyword}{true}) \{}
+\DoxyCodeLine{1138     \textcolor{keyword}{auto} q = rotr(n * mod\_inv\_25, 2);}
+\DoxyCodeLine{1139     \textcolor{keywordflow}{if} (q > max\_value<uint32\_t>() / 100) \textcolor{keywordflow}{break};}
+\DoxyCodeLine{1140     n = q;}
+\DoxyCodeLine{1141     s += 2;}
+\DoxyCodeLine{1142   \}}
+\DoxyCodeLine{1143   \textcolor{keyword}{auto} q = rotr(n * mod\_inv\_5, 1);}
+\DoxyCodeLine{1144   \textcolor{keywordflow}{if} (q <= max\_value<uint32\_t>() / 10) \{}
+\DoxyCodeLine{1145     n = q;}
+\DoxyCodeLine{1146     s |= 1;}
+\DoxyCodeLine{1147   \}}
+\DoxyCodeLine{1148   \textcolor{keywordflow}{return} s;}
+\DoxyCodeLine{1149 \}}
+\DoxyCodeLine{1150 }
+\DoxyCodeLine{1151 \textcolor{comment}{// Removes trailing zeros and returns the number of zeros removed (double)}}
+\DoxyCodeLine{1152 FMT\_INLINE \textcolor{keywordtype}{int} remove\_trailing\_zeros(uint64\_t\& n) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1153   FMT\_ASSERT(n != 0, \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{1154 }
+\DoxyCodeLine{1155   \textcolor{comment}{// This magic number is ceil(2\string^90 / 10\string^8).}}
+\DoxyCodeLine{1156   \textcolor{keyword}{constexpr} uint64\_t magic\_number = 12379400392853802749ull;}
+\DoxyCodeLine{1157   \textcolor{keyword}{auto} nm = umul128(n, magic\_number);}
+\DoxyCodeLine{1158 }
+\DoxyCodeLine{1159   \textcolor{comment}{// Is n is divisible by 10\string^8?}}
+\DoxyCodeLine{1160   \textcolor{keywordflow}{if} ((nm.high() \& ((1ull << (90 -\/ 64)) -\/ 1)) == 0 \&\& nm.low() < magic\_number) \{}
+\DoxyCodeLine{1161     \textcolor{comment}{// If yes, work with the quotient...}}
+\DoxyCodeLine{1162     \textcolor{keyword}{auto} n32 = \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(nm.high() >> (90 -\/ 64));}
+\DoxyCodeLine{1163     \textcolor{comment}{// ... and use the 32 bit variant of the function}}
+\DoxyCodeLine{1164     \textcolor{keywordtype}{int} s = remove\_trailing\_zeros(n32, 8);}
+\DoxyCodeLine{1165     n = n32;}
+\DoxyCodeLine{1166     \textcolor{keywordflow}{return} s;}
+\DoxyCodeLine{1167   \}}
+\DoxyCodeLine{1168 }
+\DoxyCodeLine{1169   \textcolor{comment}{// If n is not divisible by 10\string^8, work with n itself.}}
+\DoxyCodeLine{1170   \textcolor{keyword}{constexpr} uint64\_t mod\_inv\_5 = 0xcccccccccccccccd;}
+\DoxyCodeLine{1171   \textcolor{keyword}{constexpr} uint64\_t mod\_inv\_25 = 0x8f5c28f5c28f5c29; \textcolor{comment}{// = mod\_inv\_5 * mod\_inv\_5}}
+\DoxyCodeLine{1172 }
+\DoxyCodeLine{1173   \textcolor{keywordtype}{int} s = 0;}
+\DoxyCodeLine{1174   \textcolor{keywordflow}{while} (\textcolor{keyword}{true}) \{}
+\DoxyCodeLine{1175     \textcolor{keyword}{auto} q = rotr(n * mod\_inv\_25, 2);}
+\DoxyCodeLine{1176     \textcolor{keywordflow}{if} (q > max\_value<uint64\_t>() / 100) \textcolor{keywordflow}{break};}
+\DoxyCodeLine{1177     n = q;}
+\DoxyCodeLine{1178     s += 2;}
+\DoxyCodeLine{1179   \}}
+\DoxyCodeLine{1180   \textcolor{keyword}{auto} q = rotr(n * mod\_inv\_5, 1);}
+\DoxyCodeLine{1181   \textcolor{keywordflow}{if} (q <= max\_value<uint64\_t>() / 10) \{}
+\DoxyCodeLine{1182     n = q;}
+\DoxyCodeLine{1183     s |= 1;}
+\DoxyCodeLine{1184   \}}
+\DoxyCodeLine{1185 }
+\DoxyCodeLine{1186   \textcolor{keywordflow}{return} s;}
+\DoxyCodeLine{1187 \}}
+\DoxyCodeLine{1188 }
+\DoxyCodeLine{1189 \textcolor{comment}{// The main algorithm for shorter interval case}}
+\DoxyCodeLine{1190 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{1191 FMT\_INLINE decimal\_fp<T> shorter\_interval\_case(\textcolor{keywordtype}{int} exponent) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1192   decimal\_fp<T> ret\_value;}
+\DoxyCodeLine{1193   \textcolor{comment}{// Compute k and beta}}
+\DoxyCodeLine{1194   \textcolor{keyword}{const} \textcolor{keywordtype}{int} minus\_k = floor\_log10\_pow2\_minus\_log10\_4\_over\_3(exponent);}
+\DoxyCodeLine{1195   \textcolor{keyword}{const} \textcolor{keywordtype}{int} beta = exponent + floor\_log2\_pow10(-\/minus\_k);}
+\DoxyCodeLine{1196 }
+\DoxyCodeLine{1197   \textcolor{comment}{// Compute xi and zi}}
+\DoxyCodeLine{1198   \textcolor{keyword}{using }cache\_entry\_type = \textcolor{keyword}{typename} cache\_accessor<T>::cache\_entry\_type;}
+\DoxyCodeLine{1199   \textcolor{keyword}{const} cache\_entry\_type cache = cache\_accessor<T>::get\_cached\_power(-\/minus\_k);}
+\DoxyCodeLine{1200 }
+\DoxyCodeLine{1201   \textcolor{keyword}{auto} xi = cache\_accessor<T>::compute\_left\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{1202       cache, beta);}
+\DoxyCodeLine{1203   \textcolor{keyword}{auto} zi = cache\_accessor<T>::compute\_right\_endpoint\_for\_shorter\_interval\_case(}
+\DoxyCodeLine{1204       cache, beta);}
+\DoxyCodeLine{1205 }
+\DoxyCodeLine{1206   \textcolor{comment}{// If the left endpoint is not an integer, increase it}}
+\DoxyCodeLine{1207   \textcolor{keywordflow}{if} (!is\_left\_endpoint\_integer\_shorter\_interval<T>(exponent)) ++xi;}
+\DoxyCodeLine{1208 }
+\DoxyCodeLine{1209   \textcolor{comment}{// Try bigger divisor}}
+\DoxyCodeLine{1210   ret\_value.significand = zi / 10;}
+\DoxyCodeLine{1211 }
+\DoxyCodeLine{1212   \textcolor{comment}{// If succeed, remove trailing zeros if necessary and return}}
+\DoxyCodeLine{1213   \textcolor{keywordflow}{if} (ret\_value.significand * 10 >= xi) \{}
+\DoxyCodeLine{1214     ret\_value.exponent = minus\_k + 1;}
+\DoxyCodeLine{1215     ret\_value.exponent += remove\_trailing\_zeros(ret\_value.significand);}
+\DoxyCodeLine{1216     \textcolor{keywordflow}{return} ret\_value;}
+\DoxyCodeLine{1217   \}}
+\DoxyCodeLine{1218 }
+\DoxyCodeLine{1219   \textcolor{comment}{// Otherwise, compute the round-\/up of y}}
+\DoxyCodeLine{1220   ret\_value.significand =}
+\DoxyCodeLine{1221       cache\_accessor<T>::compute\_round\_up\_for\_shorter\_interval\_case(cache,}
+\DoxyCodeLine{1222                                                                     beta);}
+\DoxyCodeLine{1223   ret\_value.exponent = minus\_k;}
+\DoxyCodeLine{1224 }
+\DoxyCodeLine{1225   \textcolor{comment}{// When tie occurs, choose one of them according to the rule}}
+\DoxyCodeLine{1226   \textcolor{keywordflow}{if} (exponent >= float\_info<T>::shorter\_interval\_tie\_lower\_threshold \&\&}
+\DoxyCodeLine{1227       exponent <= float\_info<T>::shorter\_interval\_tie\_upper\_threshold) \{}
+\DoxyCodeLine{1228     ret\_value.significand = ret\_value.significand \% 2 == 0}
+\DoxyCodeLine{1229                                 ? ret\_value.significand}
+\DoxyCodeLine{1230                                 : ret\_value.significand -\/ 1;}
+\DoxyCodeLine{1231   \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (ret\_value.significand < xi) \{}
+\DoxyCodeLine{1232     ++ret\_value.significand;}
+\DoxyCodeLine{1233   \}}
+\DoxyCodeLine{1234   \textcolor{keywordflow}{return} ret\_value;}
+\DoxyCodeLine{1235 \}}
+\DoxyCodeLine{1236 }
+\DoxyCodeLine{1237 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> decimal\_fp<T> to\_decimal(T x) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1238   \textcolor{comment}{// Step 1: integer promotion \& Schubfach multiplier calculation.}}
+\DoxyCodeLine{1239 }
+\DoxyCodeLine{1240   \textcolor{keyword}{using }carrier\_uint = \textcolor{keyword}{typename} float\_info<T>::carrier\_uint;}
+\DoxyCodeLine{1241   \textcolor{keyword}{using }cache\_entry\_type = \textcolor{keyword}{typename} cache\_accessor<T>::cache\_entry\_type;}
+\DoxyCodeLine{1242   \textcolor{keyword}{auto} br = bit\_cast<carrier\_uint>(x);}
+\DoxyCodeLine{1243 }
+\DoxyCodeLine{1244   \textcolor{comment}{// Extract significand bits and exponent bits.}}
+\DoxyCodeLine{1245   \textcolor{keyword}{const} carrier\_uint significand\_mask =}
+\DoxyCodeLine{1246       (\textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(1) << num\_significand\_bits<T>()) -\/ 1;}
+\DoxyCodeLine{1247   carrier\_uint significand = (br \& significand\_mask);}
+\DoxyCodeLine{1248   \textcolor{keywordtype}{int} exponent =}
+\DoxyCodeLine{1249       \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}((br \& exponent\_mask<T>()) >> num\_significand\_bits<T>());}
+\DoxyCodeLine{1250 }
+\DoxyCodeLine{1251   \textcolor{keywordflow}{if} (exponent != 0) \{  \textcolor{comment}{// Check if normal.}}
+\DoxyCodeLine{1252     exponent -\/= exponent\_bias<T>() + num\_significand\_bits<T>();}
+\DoxyCodeLine{1253 }
+\DoxyCodeLine{1254     \textcolor{comment}{// Shorter interval case; proceed like Schubfach.}}
+\DoxyCodeLine{1255     \textcolor{comment}{// In fact, when exponent == 1 and significand == 0, the interval is}}
+\DoxyCodeLine{1256     \textcolor{comment}{// regular. However, it can be shown that the end-\/results are anyway same.}}
+\DoxyCodeLine{1257     \textcolor{keywordflow}{if} (significand == 0) \textcolor{keywordflow}{return} shorter\_interval\_case<T>(exponent);}
+\DoxyCodeLine{1258 }
+\DoxyCodeLine{1259     significand |= (\textcolor{keyword}{static\_cast<}carrier\_uint\textcolor{keyword}{>}(1) << num\_significand\_bits<T>());}
+\DoxyCodeLine{1260   \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1261     \textcolor{comment}{// Subnormal case; the interval is always regular.}}
+\DoxyCodeLine{1262     \textcolor{keywordflow}{if} (significand == 0) \textcolor{keywordflow}{return} \{0, 0\};}
+\DoxyCodeLine{1263     exponent =}
+\DoxyCodeLine{1264         std::numeric\_limits<T>::min\_exponent -\/ num\_significand\_bits<T>() -\/ 1;}
+\DoxyCodeLine{1265   \}}
+\DoxyCodeLine{1266 }
+\DoxyCodeLine{1267   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} include\_left\_endpoint = (significand \% 2 == 0);}
+\DoxyCodeLine{1268   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} include\_right\_endpoint = include\_left\_endpoint;}
+\DoxyCodeLine{1269 }
+\DoxyCodeLine{1270   \textcolor{comment}{// Compute k and beta.}}
+\DoxyCodeLine{1271   \textcolor{keyword}{const} \textcolor{keywordtype}{int} minus\_k = floor\_log10\_pow2(exponent) -\/ float\_info<T>::kappa;}
+\DoxyCodeLine{1272   \textcolor{keyword}{const} cache\_entry\_type cache = cache\_accessor<T>::get\_cached\_power(-\/minus\_k);}
+\DoxyCodeLine{1273   \textcolor{keyword}{const} \textcolor{keywordtype}{int} beta = exponent + floor\_log2\_pow10(-\/minus\_k);}
+\DoxyCodeLine{1274 }
+\DoxyCodeLine{1275   \textcolor{comment}{// Compute zi and deltai.}}
+\DoxyCodeLine{1276   \textcolor{comment}{// 10\string^kappa <= deltai < 10\string^(kappa + 1)}}
+\DoxyCodeLine{1277   \textcolor{keyword}{const} uint32\_t deltai = cache\_accessor<T>::compute\_delta(cache, beta);}
+\DoxyCodeLine{1278   \textcolor{keyword}{const} carrier\_uint two\_fc = significand << 1;}
+\DoxyCodeLine{1279 }
+\DoxyCodeLine{1280   \textcolor{comment}{// For the case of binary32, the result of integer check is not correct for}}
+\DoxyCodeLine{1281   \textcolor{comment}{// 29711844 * 2\string^-\/82}}
+\DoxyCodeLine{1282   \textcolor{comment}{// = 6.1442653300000000008655037797566933477355632930994033813476... * 10\string^-\/18}}
+\DoxyCodeLine{1283   \textcolor{comment}{// and 29711844 * 2\string^-\/81}}
+\DoxyCodeLine{1284   \textcolor{comment}{// = 1.2288530660000000001731007559513386695471126586198806762695... * 10\string^-\/17,}}
+\DoxyCodeLine{1285   \textcolor{comment}{// and they are the unique counterexamples. However, since 29711844 is even,}}
+\DoxyCodeLine{1286   \textcolor{comment}{// this does not cause any problem for the endpoints calculations; it can only}}
+\DoxyCodeLine{1287   \textcolor{comment}{// cause a problem when we need to perform integer check for the center.}}
+\DoxyCodeLine{1288   \textcolor{comment}{// Fortunately, with these inputs, that branch is never executed, so we are}}
+\DoxyCodeLine{1289   \textcolor{comment}{// fine.}}
+\DoxyCodeLine{1290   \textcolor{keyword}{const} \textcolor{keyword}{typename} cache\_accessor<T>::compute\_mul\_result z\_mul =}
+\DoxyCodeLine{1291       cache\_accessor<T>::compute\_mul((two\_fc | 1) << beta, cache);}
+\DoxyCodeLine{1292 }
+\DoxyCodeLine{1293   \textcolor{comment}{// Step 2: Try larger divisor; remove trailing zeros if necessary.}}
+\DoxyCodeLine{1294 }
+\DoxyCodeLine{1295   \textcolor{comment}{// Using an upper bound on zi, we might be able to optimize the division}}
+\DoxyCodeLine{1296   \textcolor{comment}{// better than the compiler; we are computing zi / big\_divisor here.}}
+\DoxyCodeLine{1297   decimal\_fp<T> ret\_value;}
+\DoxyCodeLine{1298   ret\_value.significand = divide\_by\_10\_to\_kappa\_plus\_1(z\_mul.result);}
+\DoxyCodeLine{1299   uint32\_t r = \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(z\_mul.result -\/ float\_info<T>::big\_divisor *}
+\DoxyCodeLine{1300                                                         ret\_value.significand);}
+\DoxyCodeLine{1301 }
+\DoxyCodeLine{1302   \textcolor{keywordflow}{if} (r < deltai) \{}
+\DoxyCodeLine{1303     \textcolor{comment}{// Exclude the right endpoint if necessary.}}
+\DoxyCodeLine{1304     \textcolor{keywordflow}{if} (r == 0 \&\& (z\_mul.is\_integer \& !include\_right\_endpoint)) \{}
+\DoxyCodeLine{1305       -\/-\/ret\_value.significand;}
+\DoxyCodeLine{1306       r = float\_info<T>::big\_divisor;}
+\DoxyCodeLine{1307       \textcolor{keywordflow}{goto} small\_divisor\_case\_label;}
+\DoxyCodeLine{1308     \}}
+\DoxyCodeLine{1309   \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (r > deltai) \{}
+\DoxyCodeLine{1310     \textcolor{keywordflow}{goto} small\_divisor\_case\_label;}
+\DoxyCodeLine{1311   \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1312     \textcolor{comment}{// r == deltai; compare fractional parts.}}
+\DoxyCodeLine{1313     \textcolor{keyword}{const} \textcolor{keyword}{typename} cache\_accessor<T>::compute\_mul\_parity\_result x\_mul =}
+\DoxyCodeLine{1314         cache\_accessor<T>::compute\_mul\_parity(two\_fc -\/ 1, cache, beta);}
+\DoxyCodeLine{1315 }
+\DoxyCodeLine{1316     \textcolor{keywordflow}{if} (!(x\_mul.parity | (x\_mul.is\_integer \& include\_left\_endpoint)))}
+\DoxyCodeLine{1317       \textcolor{keywordflow}{goto} small\_divisor\_case\_label;}
+\DoxyCodeLine{1318   \}}
+\DoxyCodeLine{1319   ret\_value.exponent = minus\_k + float\_info<T>::kappa + 1;}
+\DoxyCodeLine{1320 }
+\DoxyCodeLine{1321   \textcolor{comment}{// We may need to remove trailing zeros.}}
+\DoxyCodeLine{1322   ret\_value.exponent += remove\_trailing\_zeros(ret\_value.significand);}
+\DoxyCodeLine{1323   \textcolor{keywordflow}{return} ret\_value;}
+\DoxyCodeLine{1324 }
+\DoxyCodeLine{1325   \textcolor{comment}{// Step 3: Find the significand with the smaller divisor.}}
+\DoxyCodeLine{1326 }
+\DoxyCodeLine{1327 small\_divisor\_case\_label:}
+\DoxyCodeLine{1328   ret\_value.significand *= 10;}
+\DoxyCodeLine{1329   ret\_value.exponent = minus\_k + float\_info<T>::kappa;}
+\DoxyCodeLine{1330 }
+\DoxyCodeLine{1331   uint32\_t dist = r -\/ (deltai / 2) + (float\_info<T>::small\_divisor / 2);}
+\DoxyCodeLine{1332   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} approx\_y\_parity =}
+\DoxyCodeLine{1333       ((dist \string^ (float\_info<T>::small\_divisor / 2)) \& 1) != 0;}
+\DoxyCodeLine{1334 }
+\DoxyCodeLine{1335   \textcolor{comment}{// Is dist divisible by 10\string^kappa?}}
+\DoxyCodeLine{1336   \textcolor{keyword}{const} \textcolor{keywordtype}{bool} divisible\_by\_small\_divisor =}
+\DoxyCodeLine{1337       check\_divisibility\_and\_divide\_by\_pow10<float\_info<T>::kappa>(dist);}
+\DoxyCodeLine{1338 }
+\DoxyCodeLine{1339   \textcolor{comment}{// Add dist / 10\string^kappa to the significand.}}
+\DoxyCodeLine{1340   ret\_value.significand += dist;}
+\DoxyCodeLine{1341 }
+\DoxyCodeLine{1342   \textcolor{keywordflow}{if} (!divisible\_by\_small\_divisor) \textcolor{keywordflow}{return} ret\_value;}
+\DoxyCodeLine{1343 }
+\DoxyCodeLine{1344   \textcolor{comment}{// Check z\string^(f) >= epsilon\string^(f).}}
+\DoxyCodeLine{1345   \textcolor{comment}{// We have either yi == zi -\/ epsiloni or yi == (zi -\/ epsiloni) -\/ 1,}}
+\DoxyCodeLine{1346   \textcolor{comment}{// where yi == zi -\/ epsiloni if and only if z\string^(f) >= epsilon\string^(f).}}
+\DoxyCodeLine{1347   \textcolor{comment}{// Since there are only 2 possibilities, we only need to care about the}}
+\DoxyCodeLine{1348   \textcolor{comment}{// parity. Also, zi and r should have the same parity since the divisor}}
+\DoxyCodeLine{1349   \textcolor{comment}{// is an even number.}}
+\DoxyCodeLine{1350   \textcolor{keyword}{const} \textcolor{keyword}{auto} y\_mul = cache\_accessor<T>::compute\_mul\_parity(two\_fc, cache, beta);}
+\DoxyCodeLine{1351 }
+\DoxyCodeLine{1352   \textcolor{comment}{// If z\string^(f) >= epsilon\string^(f), we might have a tie when z\string^(f) == epsilon\string^(f),}}
+\DoxyCodeLine{1353   \textcolor{comment}{// or equivalently, when y is an integer.}}
+\DoxyCodeLine{1354   \textcolor{keywordflow}{if} (y\_mul.parity != approx\_y\_parity)}
+\DoxyCodeLine{1355     -\/-\/ret\_value.significand;}
+\DoxyCodeLine{1356   \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (y\_mul.is\_integer \& (ret\_value.significand \% 2 != 0))}
+\DoxyCodeLine{1357     -\/-\/ret\_value.significand;}
+\DoxyCodeLine{1358   \textcolor{keywordflow}{return} ret\_value;}
+\DoxyCodeLine{1359 \}}
+\DoxyCodeLine{1360 \}  \textcolor{comment}{// namespace dragonbox}}
+\DoxyCodeLine{1361 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{1362 }
+\DoxyCodeLine{1363 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<detail::bigint> \{}
+\DoxyCodeLine{1364   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(\mbox{\hyperlink{classbasic__format__parse__context}{format\_parse\_context}}\& ctx)}
+\DoxyCodeLine{1365       -\/> format\_parse\_context::iterator \{}
+\DoxyCodeLine{1366     \textcolor{keywordflow}{return} ctx.\mbox{\hyperlink{classbasic__format__parse__context_afb21ddaa0d32b5430f99eed530666ea9}{begin}}();}
+\DoxyCodeLine{1367   \}}
+\DoxyCodeLine{1368 }
+\DoxyCodeLine{1369   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} \mbox{\hyperlink{classdetail_1_1bigint}{detail::bigint}}\& n, \mbox{\hyperlink{classbasic__format__context}{format\_context}}\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{1370       -\/> format\_context::iterator \{}
+\DoxyCodeLine{1371     \textcolor{keyword}{auto} out = ctx.out();}
+\DoxyCodeLine{1372     \textcolor{keywordtype}{bool} first = \textcolor{keyword}{true};}
+\DoxyCodeLine{1373     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = n.bigits\_.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}(); i > 0; -\/-\/i) \{}
+\DoxyCodeLine{1374       \textcolor{keyword}{auto} value = n.bigits\_[i -\/ 1u];}
+\DoxyCodeLine{1375       \textcolor{keywordflow}{if} (first) \{}
+\DoxyCodeLine{1376         out = format\_to(out, FMT\_STRING(\textcolor{stringliteral}{"{}\{:x\}"{}}), value);}
+\DoxyCodeLine{1377         first = \textcolor{keyword}{false};}
+\DoxyCodeLine{1378         \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{1379       \}}
+\DoxyCodeLine{1380       out = format\_to(out, FMT\_STRING(\textcolor{stringliteral}{"{}\{:08x\}"{}}), value);}
+\DoxyCodeLine{1381     \}}
+\DoxyCodeLine{1382     \textcolor{keywordflow}{if} (n.exp\_ > 0)}
+\DoxyCodeLine{1383       out = format\_to(out, FMT\_STRING(\textcolor{stringliteral}{"{}p\{\}"{}}),}
+\DoxyCodeLine{1384                       n.exp\_ * detail::bigint::bigit\_bits);}
+\DoxyCodeLine{1385     \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{1386   \}}
+\DoxyCodeLine{1387 \};}
+\DoxyCodeLine{1388 }
+\DoxyCodeLine{1389 FMT\_FUNC detail::utf8\_to\_utf16::utf8\_to\_utf16(\mbox{\hyperlink{classbasic__string__view}{string\_view}} s) \{}
+\DoxyCodeLine{1390   for\_each\_codepoint(s, [\textcolor{keyword}{this}](uint32\_t cp, \mbox{\hyperlink{classbasic__string__view}{string\_view}}) \{}
+\DoxyCodeLine{1391     \textcolor{keywordflow}{if} (cp == invalid\_code\_point) FMT\_THROW(std::runtime\_error(\textcolor{stringliteral}{"{}invalid utf8"{}}));}
+\DoxyCodeLine{1392     \textcolor{keywordflow}{if} (cp <= 0xFFFF) \{}
+\DoxyCodeLine{1393       buffer\_.push\_back(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{wchar\_t}\textcolor{keyword}{>}(cp));}
+\DoxyCodeLine{1394     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{1395       cp -\/= 0x10000;}
+\DoxyCodeLine{1396       buffer\_.push\_back(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{wchar\_t}\textcolor{keyword}{>}(0xD800 + (cp >> 10)));}
+\DoxyCodeLine{1397       buffer\_.push\_back(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{wchar\_t}\textcolor{keyword}{>}(0xDC00 + (cp \& 0x3FF)));}
+\DoxyCodeLine{1398     \}}
+\DoxyCodeLine{1399     \textcolor{keywordflow}{return} \textcolor{keyword}{true};}
+\DoxyCodeLine{1400   \});}
+\DoxyCodeLine{1401   buffer\_.push\_back(0);}
+\DoxyCodeLine{1402 \}}
+\DoxyCodeLine{1403 }
+\DoxyCodeLine{1404 FMT\_FUNC \textcolor{keywordtype}{void} format\_system\_error(\mbox{\hyperlink{classdetail_1_1buffer}{detail::buffer<char>}}\& out, \textcolor{keywordtype}{int} error\_code,}
+\DoxyCodeLine{1405                                   \textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1406   FMT\_TRY \{}
+\DoxyCodeLine{1407     \textcolor{keyword}{auto} ec = std::error\_code(error\_code, std::generic\_category());}
+\DoxyCodeLine{1408     write(std::back\_inserter(out), std::system\_error(ec, message).what());}
+\DoxyCodeLine{1409     \textcolor{keywordflow}{return};}
+\DoxyCodeLine{1410   \}}
+\DoxyCodeLine{1411   FMT\_CATCH(...) \{\}}
+\DoxyCodeLine{1412   format\_error\_code(out, error\_code, message);}
+\DoxyCodeLine{1413 \}}
+\DoxyCodeLine{1414 }
+\DoxyCodeLine{1415 FMT\_FUNC \textcolor{keywordtype}{void} report\_system\_error(\textcolor{keywordtype}{int} error\_code,}
+\DoxyCodeLine{1416                                   \textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{1417   report\_error(format\_system\_error, error\_code, message);}
+\DoxyCodeLine{1418 \}}
+\DoxyCodeLine{1419 }
+\DoxyCodeLine{1420 FMT\_FUNC std::string vformat(\mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt, \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{1421   \textcolor{comment}{// Don't optimize the "{}\{\}"{} case to keep the binary size small and because it}}
+\DoxyCodeLine{1422   \textcolor{comment}{// can be better optimized in fmt::format anyway.}}
+\DoxyCodeLine{1423   \textcolor{keyword}{auto} buffer = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{1424   detail::vformat\_to(buffer, fmt, args);}
+\DoxyCodeLine{1425   \textcolor{keywordflow}{return} to\_string(buffer);}
+\DoxyCodeLine{1426 \}}
+\DoxyCodeLine{1427 }
+\DoxyCodeLine{1428 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{1429 \textcolor{preprocessor}{\#ifndef \_WIN32}}
+\DoxyCodeLine{1430 FMT\_FUNC \textcolor{keywordtype}{bool} write\_console(std::FILE*, \mbox{\hyperlink{classbasic__string__view}{string\_view}}) \{ \textcolor{keywordflow}{return} \textcolor{keyword}{false}; \}}
+\DoxyCodeLine{1431 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{1432 \textcolor{keyword}{using }dword = conditional\_t<\textcolor{keyword}{sizeof}(long) == 4, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{long}, \textcolor{keywordtype}{unsigned}>;}
+\DoxyCodeLine{1433 \textcolor{keyword}{extern} \textcolor{stringliteral}{"{}C"{}} \_\_declspec(dllimport) \textcolor{keywordtype}{int} \_\_stdcall WriteConsoleW(  \textcolor{comment}{//}}
+\DoxyCodeLine{1434     \textcolor{keywordtype}{void}*, \textcolor{keyword}{const} \textcolor{keywordtype}{void}*, dword, dword*, \textcolor{keywordtype}{void}*);}
+\DoxyCodeLine{1435 }
+\DoxyCodeLine{1436 FMT\_FUNC \textcolor{keywordtype}{bool} write\_console(std::FILE* f, \mbox{\hyperlink{classbasic__string__view}{string\_view}} text) \{}
+\DoxyCodeLine{1437   \textcolor{keyword}{auto} fd = \_fileno(f);}
+\DoxyCodeLine{1438   \textcolor{keywordflow}{if} (!\_isatty(fd)) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1439   \textcolor{keyword}{auto} u16 = utf8\_to\_utf16(text);}
+\DoxyCodeLine{1440   \textcolor{keyword}{auto} written = dword();}
+\DoxyCodeLine{1441   \textcolor{keywordflow}{return} WriteConsoleW(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\_get\_osfhandle(fd)), u16.c\_str(),}
+\DoxyCodeLine{1442                        \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(u16.size()), \&written, \textcolor{keyword}{nullptr}) != 0;}
+\DoxyCodeLine{1443 \}}
+\DoxyCodeLine{1444 }
+\DoxyCodeLine{1445 \textcolor{comment}{// Print assuming legacy (non-\/Unicode) encoding.}}
+\DoxyCodeLine{1446 FMT\_FUNC \textcolor{keywordtype}{void} vprint\_mojibake(std::FILE* f, \mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt, \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{1447   \textcolor{keyword}{auto} buffer = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{1448   detail::vformat\_to(buffer, fmt,}
+\DoxyCodeLine{1449                      \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__format__context}{buffer\_context<char>}}>(args));}
+\DoxyCodeLine{1450   fwrite\_fully(buffer.data(), 1, buffer.size(), f);}
+\DoxyCodeLine{1451 \}}
+\DoxyCodeLine{1452 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{1453 }
+\DoxyCodeLine{1454 FMT\_FUNC \textcolor{keywordtype}{void} print(std::FILE* f, \mbox{\hyperlink{classbasic__string__view}{string\_view}} text) \{}
+\DoxyCodeLine{1455   \textcolor{keywordflow}{if} (!write\_console(f, text)) fwrite\_fully(text.\mbox{\hyperlink{classbasic__string__view_a39cdfe061dc6d64a3adc230b62d8a026}{data}}(), 1, text.\mbox{\hyperlink{classbasic__string__view_a216bbe1b012b590698d7bb4e96d1af3f}{size}}(), f);}
+\DoxyCodeLine{1456 \}}
+\DoxyCodeLine{1457 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{1458 }
+\DoxyCodeLine{1459 FMT\_FUNC \textcolor{keywordtype}{void} vprint(std::FILE* f, \mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt, \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{1460   \textcolor{keyword}{auto} buffer = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{1461   detail::vformat\_to(buffer, fmt, args);}
+\DoxyCodeLine{1462   detail::print(f, \{buffer.data(), buffer.size()\});}
+\DoxyCodeLine{1463 \}}
+\DoxyCodeLine{1464 }
+\DoxyCodeLine{1465 FMT\_FUNC \textcolor{keywordtype}{void} vprint(\mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt, \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{1466   vprint(stdout, fmt, args);}
+\DoxyCodeLine{1467 \}}
+\DoxyCodeLine{1468 }
+\DoxyCodeLine{1469 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{1470 }
+\DoxyCodeLine{1471 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1singleton}{singleton}} \{}
+\DoxyCodeLine{1472   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} upper;}
+\DoxyCodeLine{1473   \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} lower\_count;}
+\DoxyCodeLine{1474 \};}
+\DoxyCodeLine{1475 }
+\DoxyCodeLine{1476 \textcolor{keyword}{inline} \textcolor{keyword}{auto} is\_printable(uint16\_t x, \textcolor{keyword}{const} \mbox{\hyperlink{structdetail_1_1singleton}{singleton}}* singletons,}
+\DoxyCodeLine{1477                          \textcolor{keywordtype}{size\_t} singletons\_size,}
+\DoxyCodeLine{1478                          \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* singleton\_lowers,}
+\DoxyCodeLine{1479                          \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}* normal, \textcolor{keywordtype}{size\_t} normal\_size)}
+\DoxyCodeLine{1480     -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{1481   \textcolor{keyword}{auto} upper = x >> 8;}
+\DoxyCodeLine{1482   \textcolor{keyword}{auto} lower\_start = 0;}
+\DoxyCodeLine{1483   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < singletons\_size; ++i) \{}
+\DoxyCodeLine{1484     \textcolor{keyword}{auto} s = singletons[i];}
+\DoxyCodeLine{1485     \textcolor{keyword}{auto} lower\_end = lower\_start + s.lower\_count;}
+\DoxyCodeLine{1486     \textcolor{keywordflow}{if} (upper < s.upper) \textcolor{keywordflow}{break};}
+\DoxyCodeLine{1487     \textcolor{keywordflow}{if} (upper == s.upper) \{}
+\DoxyCodeLine{1488       \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} j = lower\_start; j < lower\_end; ++j) \{}
+\DoxyCodeLine{1489         \textcolor{keywordflow}{if} (singleton\_lowers[j] == (x \& 0xff)) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1490       \}}
+\DoxyCodeLine{1491     \}}
+\DoxyCodeLine{1492     lower\_start = lower\_end;}
+\DoxyCodeLine{1493   \}}
+\DoxyCodeLine{1494 }
+\DoxyCodeLine{1495   \textcolor{keyword}{auto} xsigned = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(x);}
+\DoxyCodeLine{1496   \textcolor{keyword}{auto} current = \textcolor{keyword}{true};}
+\DoxyCodeLine{1497   \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < normal\_size; ++i) \{}
+\DoxyCodeLine{1498     \textcolor{keyword}{auto} v = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(normal[i]);}
+\DoxyCodeLine{1499     \textcolor{keyword}{auto} len = (v \& 0x80) != 0 ? (v \& 0x7f) << 8 | normal[++i] : v;}
+\DoxyCodeLine{1500     xsigned -\/= len;}
+\DoxyCodeLine{1501     \textcolor{keywordflow}{if} (xsigned < 0) \textcolor{keywordflow}{break};}
+\DoxyCodeLine{1502     current = !current;}
+\DoxyCodeLine{1503   \}}
+\DoxyCodeLine{1504   \textcolor{keywordflow}{return} current;}
+\DoxyCodeLine{1505 \}}
+\DoxyCodeLine{1506 }
+\DoxyCodeLine{1507 \textcolor{comment}{// This code is generated by support/printable.py.}}
+\DoxyCodeLine{1508 FMT\_FUNC \textcolor{keyword}{auto} is\_printable(uint32\_t cp) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{1509   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} singleton singletons0[] = \{}
+\DoxyCodeLine{1510       \{0x00, 1\},  \{0x03, 5\},  \{0x05, 6\},  \{0x06, 3\},  \{0x07, 6\},  \{0x08, 8\},}
+\DoxyCodeLine{1511       \{0x09, 17\}, \{0x0a, 28\}, \{0x0b, 25\}, \{0x0c, 20\}, \{0x0d, 16\}, \{0x0e, 13\},}
+\DoxyCodeLine{1512       \{0x0f, 4\},  \{0x10, 3\},  \{0x12, 18\}, \{0x13, 9\},  \{0x16, 1\},  \{0x17, 5\},}
+\DoxyCodeLine{1513       \{0x18, 2\},  \{0x19, 3\},  \{0x1a, 7\},  \{0x1c, 2\},  \{0x1d, 1\},  \{0x1f, 22\},}
+\DoxyCodeLine{1514       \{0x20, 3\},  \{0x2b, 3\},  \{0x2c, 2\},  \{0x2d, 11\}, \{0x2e, 1\},  \{0x30, 3\},}
+\DoxyCodeLine{1515       \{0x31, 2\},  \{0x32, 1\},  \{0xa7, 2\},  \{0xa9, 2\},  \{0xaa, 4\},  \{0xab, 8\},}
+\DoxyCodeLine{1516       \{0xfa, 2\},  \{0xfb, 5\},  \{0xfd, 4\},  \{0xfe, 3\},  \{0xff, 9\},}
+\DoxyCodeLine{1517   \};}
+\DoxyCodeLine{1518   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} singletons0\_lower[] = \{}
+\DoxyCodeLine{1519       0xad, 0x78, 0x79, 0x8b, 0x8d, 0xa2, 0x30, 0x57, 0x58, 0x8b, 0x8c, 0x90,}
+\DoxyCodeLine{1520       0x1c, 0x1d, 0xdd, 0x0e, 0x0f, 0x4b, 0x4c, 0xfb, 0xfc, 0x2e, 0x2f, 0x3f,}
+\DoxyCodeLine{1521       0x5c, 0x5d, 0x5f, 0xb5, 0xe2, 0x84, 0x8d, 0x8e, 0x91, 0x92, 0xa9, 0xb1,}
+\DoxyCodeLine{1522       0xba, 0xbb, 0xc5, 0xc6, 0xc9, 0xca, 0xde, 0xe4, 0xe5, 0xff, 0x00, 0x04,}
+\DoxyCodeLine{1523       0x11, 0x12, 0x29, 0x31, 0x34, 0x37, 0x3a, 0x3b, 0x3d, 0x49, 0x4a, 0x5d,}
+\DoxyCodeLine{1524       0x84, 0x8e, 0x92, 0xa9, 0xb1, 0xb4, 0xba, 0xbb, 0xc6, 0xca, 0xce, 0xcf,}
+\DoxyCodeLine{1525       0xe4, 0xe5, 0x00, 0x04, 0x0d, 0x0e, 0x11, 0x12, 0x29, 0x31, 0x34, 0x3a,}
+\DoxyCodeLine{1526       0x3b, 0x45, 0x46, 0x49, 0x4a, 0x5e, 0x64, 0x65, 0x84, 0x91, 0x9b, 0x9d,}
+\DoxyCodeLine{1527       0xc9, 0xce, 0xcf, 0x0d, 0x11, 0x29, 0x45, 0x49, 0x57, 0x64, 0x65, 0x8d,}
+\DoxyCodeLine{1528       0x91, 0xa9, 0xb4, 0xba, 0xbb, 0xc5, 0xc9, 0xdf, 0xe4, 0xe5, 0xf0, 0x0d,}
+\DoxyCodeLine{1529       0x11, 0x45, 0x49, 0x64, 0x65, 0x80, 0x84, 0xb2, 0xbc, 0xbe, 0xbf, 0xd5,}
+\DoxyCodeLine{1530       0xd7, 0xf0, 0xf1, 0x83, 0x85, 0x8b, 0xa4, 0xa6, 0xbe, 0xbf, 0xc5, 0xc7,}
+\DoxyCodeLine{1531       0xce, 0xcf, 0xda, 0xdb, 0x48, 0x98, 0xbd, 0xcd, 0xc6, 0xce, 0xcf, 0x49,}
+\DoxyCodeLine{1532       0x4e, 0x4f, 0x57, 0x59, 0x5e, 0x5f, 0x89, 0x8e, 0x8f, 0xb1, 0xb6, 0xb7,}
+\DoxyCodeLine{1533       0xbf, 0xc1, 0xc6, 0xc7, 0xd7, 0x11, 0x16, 0x17, 0x5b, 0x5c, 0xf6, 0xf7,}
+\DoxyCodeLine{1534       0xfe, 0xff, 0x80, 0x0d, 0x6d, 0x71, 0xde, 0xdf, 0x0e, 0x0f, 0x1f, 0x6e,}
+\DoxyCodeLine{1535       0x6f, 0x1c, 0x1d, 0x5f, 0x7d, 0x7e, 0xae, 0xaf, 0xbb, 0xbc, 0xfa, 0x16,}
+\DoxyCodeLine{1536       0x17, 0x1e, 0x1f, 0x46, 0x47, 0x4e, 0x4f, 0x58, 0x5a, 0x5c, 0x5e, 0x7e,}
+\DoxyCodeLine{1537       0x7f, 0xb5, 0xc5, 0xd4, 0xd5, 0xdc, 0xf0, 0xf1, 0xf5, 0x72, 0x73, 0x8f,}
+\DoxyCodeLine{1538       0x74, 0x75, 0x96, 0x2f, 0x5f, 0x26, 0x2e, 0x2f, 0xa7, 0xaf, 0xb7, 0xbf,}
+\DoxyCodeLine{1539       0xc7, 0xcf, 0xd7, 0xdf, 0x9a, 0x40, 0x97, 0x98, 0x30, 0x8f, 0x1f, 0xc0,}
+\DoxyCodeLine{1540       0xc1, 0xce, 0xff, 0x4e, 0x4f, 0x5a, 0x5b, 0x07, 0x08, 0x0f, 0x10, 0x27,}
+\DoxyCodeLine{1541       0x2f, 0xee, 0xef, 0x6e, 0x6f, 0x37, 0x3d, 0x3f, 0x42, 0x45, 0x90, 0x91,}
+\DoxyCodeLine{1542       0xfe, 0xff, 0x53, 0x67, 0x75, 0xc8, 0xc9, 0xd0, 0xd1, 0xd8, 0xd9, 0xe7,}
+\DoxyCodeLine{1543       0xfe, 0xff,}
+\DoxyCodeLine{1544   \};}
+\DoxyCodeLine{1545   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} singleton singletons1[] = \{}
+\DoxyCodeLine{1546       \{0x00, 6\},  \{0x01, 1\}, \{0x03, 1\},  \{0x04, 2\}, \{0x08, 8\},  \{0x09, 2\},}
+\DoxyCodeLine{1547       \{0x0a, 5\},  \{0x0b, 2\}, \{0x0e, 4\},  \{0x10, 1\}, \{0x11, 2\},  \{0x12, 5\},}
+\DoxyCodeLine{1548       \{0x13, 17\}, \{0x14, 1\}, \{0x15, 2\},  \{0x17, 2\}, \{0x19, 13\}, \{0x1c, 5\},}
+\DoxyCodeLine{1549       \{0x1d, 8\},  \{0x24, 1\}, \{0x6a, 3\},  \{0x6b, 2\}, \{0xbc, 2\},  \{0xd1, 2\},}
+\DoxyCodeLine{1550       \{0xd4, 12\}, \{0xd5, 9\}, \{0xd6, 2\},  \{0xd7, 2\}, \{0xda, 1\},  \{0xe0, 5\},}
+\DoxyCodeLine{1551       \{0xe1, 2\},  \{0xe8, 2\}, \{0xee, 32\}, \{0xf0, 4\}, \{0xf8, 2\},  \{0xf9, 2\},}
+\DoxyCodeLine{1552       \{0xfa, 2\},  \{0xfb, 1\},}
+\DoxyCodeLine{1553   \};}
+\DoxyCodeLine{1554   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} singletons1\_lower[] = \{}
+\DoxyCodeLine{1555       0x0c, 0x27, 0x3b, 0x3e, 0x4e, 0x4f, 0x8f, 0x9e, 0x9e, 0x9f, 0x06, 0x07,}
+\DoxyCodeLine{1556       0x09, 0x36, 0x3d, 0x3e, 0x56, 0xf3, 0xd0, 0xd1, 0x04, 0x14, 0x18, 0x36,}
+\DoxyCodeLine{1557       0x37, 0x56, 0x57, 0x7f, 0xaa, 0xae, 0xaf, 0xbd, 0x35, 0xe0, 0x12, 0x87,}
+\DoxyCodeLine{1558       0x89, 0x8e, 0x9e, 0x04, 0x0d, 0x0e, 0x11, 0x12, 0x29, 0x31, 0x34, 0x3a,}
+\DoxyCodeLine{1559       0x45, 0x46, 0x49, 0x4a, 0x4e, 0x4f, 0x64, 0x65, 0x5c, 0xb6, 0xb7, 0x1b,}
+\DoxyCodeLine{1560       0x1c, 0x07, 0x08, 0x0a, 0x0b, 0x14, 0x17, 0x36, 0x39, 0x3a, 0xa8, 0xa9,}
+\DoxyCodeLine{1561       0xd8, 0xd9, 0x09, 0x37, 0x90, 0x91, 0xa8, 0x07, 0x0a, 0x3b, 0x3e, 0x66,}
+\DoxyCodeLine{1562       0x69, 0x8f, 0x92, 0x6f, 0x5f, 0xee, 0xef, 0x5a, 0x62, 0x9a, 0x9b, 0x27,}
+\DoxyCodeLine{1563       0x28, 0x55, 0x9d, 0xa0, 0xa1, 0xa3, 0xa4, 0xa7, 0xa8, 0xad, 0xba, 0xbc,}
+\DoxyCodeLine{1564       0xc4, 0x06, 0x0b, 0x0c, 0x15, 0x1d, 0x3a, 0x3f, 0x45, 0x51, 0xa6, 0xa7,}
+\DoxyCodeLine{1565       0xcc, 0xcd, 0xa0, 0x07, 0x19, 0x1a, 0x22, 0x25, 0x3e, 0x3f, 0xc5, 0xc6,}
+\DoxyCodeLine{1566       0x04, 0x20, 0x23, 0x25, 0x26, 0x28, 0x33, 0x38, 0x3a, 0x48, 0x4a, 0x4c,}
+\DoxyCodeLine{1567       0x50, 0x53, 0x55, 0x56, 0x58, 0x5a, 0x5c, 0x5e, 0x60, 0x63, 0x65, 0x66,}
+\DoxyCodeLine{1568       0x6b, 0x73, 0x78, 0x7d, 0x7f, 0x8a, 0xa4, 0xaa, 0xaf, 0xb0, 0xc0, 0xd0,}
+\DoxyCodeLine{1569       0xae, 0xaf, 0x79, 0xcc, 0x6e, 0x6f, 0x93,}
+\DoxyCodeLine{1570   \};}
+\DoxyCodeLine{1571   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} normal0[] = \{}
+\DoxyCodeLine{1572       0x00, 0x20, 0x5f, 0x22, 0x82, 0xdf, 0x04, 0x82, 0x44, 0x08, 0x1b, 0x04,}
+\DoxyCodeLine{1573       0x06, 0x11, 0x81, 0xac, 0x0e, 0x80, 0xab, 0x35, 0x28, 0x0b, 0x80, 0xe0,}
+\DoxyCodeLine{1574       0x03, 0x19, 0x08, 0x01, 0x04, 0x2f, 0x04, 0x34, 0x04, 0x07, 0x03, 0x01,}
+\DoxyCodeLine{1575       0x07, 0x06, 0x07, 0x11, 0x0a, 0x50, 0x0f, 0x12, 0x07, 0x55, 0x07, 0x03,}
+\DoxyCodeLine{1576       0x04, 0x1c, 0x0a, 0x09, 0x03, 0x08, 0x03, 0x07, 0x03, 0x02, 0x03, 0x03,}
+\DoxyCodeLine{1577       0x03, 0x0c, 0x04, 0x05, 0x03, 0x0b, 0x06, 0x01, 0x0e, 0x15, 0x05, 0x3a,}
+\DoxyCodeLine{1578       0x03, 0x11, 0x07, 0x06, 0x05, 0x10, 0x07, 0x57, 0x07, 0x02, 0x07, 0x15,}
+\DoxyCodeLine{1579       0x0d, 0x50, 0x04, 0x43, 0x03, 0x2d, 0x03, 0x01, 0x04, 0x11, 0x06, 0x0f,}
+\DoxyCodeLine{1580       0x0c, 0x3a, 0x04, 0x1d, 0x25, 0x5f, 0x20, 0x6d, 0x04, 0x6a, 0x25, 0x80,}
+\DoxyCodeLine{1581       0xc8, 0x05, 0x82, 0xb0, 0x03, 0x1a, 0x06, 0x82, 0xfd, 0x03, 0x59, 0x07,}
+\DoxyCodeLine{1582       0x15, 0x0b, 0x17, 0x09, 0x14, 0x0c, 0x14, 0x0c, 0x6a, 0x06, 0x0a, 0x06,}
+\DoxyCodeLine{1583       0x1a, 0x06, 0x59, 0x07, 0x2b, 0x05, 0x46, 0x0a, 0x2c, 0x04, 0x0c, 0x04,}
+\DoxyCodeLine{1584       0x01, 0x03, 0x31, 0x0b, 0x2c, 0x04, 0x1a, 0x06, 0x0b, 0x03, 0x80, 0xac,}
+\DoxyCodeLine{1585       0x06, 0x0a, 0x06, 0x21, 0x3f, 0x4c, 0x04, 0x2d, 0x03, 0x74, 0x08, 0x3c,}
+\DoxyCodeLine{1586       0x03, 0x0f, 0x03, 0x3c, 0x07, 0x38, 0x08, 0x2b, 0x05, 0x82, 0xff, 0x11,}
+\DoxyCodeLine{1587       0x18, 0x08, 0x2f, 0x11, 0x2d, 0x03, 0x20, 0x10, 0x21, 0x0f, 0x80, 0x8c,}
+\DoxyCodeLine{1588       0x04, 0x82, 0x97, 0x19, 0x0b, 0x15, 0x88, 0x94, 0x05, 0x2f, 0x05, 0x3b,}
+\DoxyCodeLine{1589       0x07, 0x02, 0x0e, 0x18, 0x09, 0x80, 0xb3, 0x2d, 0x74, 0x0c, 0x80, 0xd6,}
+\DoxyCodeLine{1590       0x1a, 0x0c, 0x05, 0x80, 0xff, 0x05, 0x80, 0xdf, 0x0c, 0xee, 0x0d, 0x03,}
+\DoxyCodeLine{1591       0x84, 0x8d, 0x03, 0x37, 0x09, 0x81, 0x5c, 0x14, 0x80, 0xb8, 0x08, 0x80,}
+\DoxyCodeLine{1592       0xcb, 0x2a, 0x38, 0x03, 0x0a, 0x06, 0x38, 0x08, 0x46, 0x08, 0x0c, 0x06,}
+\DoxyCodeLine{1593       0x74, 0x0b, 0x1e, 0x03, 0x5a, 0x04, 0x59, 0x09, 0x80, 0x83, 0x18, 0x1c,}
+\DoxyCodeLine{1594       0x0a, 0x16, 0x09, 0x4c, 0x04, 0x80, 0x8a, 0x06, 0xab, 0xa4, 0x0c, 0x17,}
+\DoxyCodeLine{1595       0x04, 0x31, 0xa1, 0x04, 0x81, 0xda, 0x26, 0x07, 0x0c, 0x05, 0x05, 0x80,}
+\DoxyCodeLine{1596       0xa5, 0x11, 0x81, 0x6d, 0x10, 0x78, 0x28, 0x2a, 0x06, 0x4c, 0x04, 0x80,}
+\DoxyCodeLine{1597       0x8d, 0x04, 0x80, 0xbe, 0x03, 0x1b, 0x03, 0x0f, 0x0d,}
+\DoxyCodeLine{1598   \};}
+\DoxyCodeLine{1599   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char} normal1[] = \{}
+\DoxyCodeLine{1600       0x5e, 0x22, 0x7b, 0x05, 0x03, 0x04, 0x2d, 0x03, 0x66, 0x03, 0x01, 0x2f,}
+\DoxyCodeLine{1601       0x2e, 0x80, 0x82, 0x1d, 0x03, 0x31, 0x0f, 0x1c, 0x04, 0x24, 0x09, 0x1e,}
+\DoxyCodeLine{1602       0x05, 0x2b, 0x05, 0x44, 0x04, 0x0e, 0x2a, 0x80, 0xaa, 0x06, 0x24, 0x04,}
+\DoxyCodeLine{1603       0x24, 0x04, 0x28, 0x08, 0x34, 0x0b, 0x01, 0x80, 0x90, 0x81, 0x37, 0x09,}
+\DoxyCodeLine{1604       0x16, 0x0a, 0x08, 0x80, 0x98, 0x39, 0x03, 0x63, 0x08, 0x09, 0x30, 0x16,}
+\DoxyCodeLine{1605       0x05, 0x21, 0x03, 0x1b, 0x05, 0x01, 0x40, 0x38, 0x04, 0x4b, 0x05, 0x2f,}
+\DoxyCodeLine{1606       0x04, 0x0a, 0x07, 0x09, 0x07, 0x40, 0x20, 0x27, 0x04, 0x0c, 0x09, 0x36,}
+\DoxyCodeLine{1607       0x03, 0x3a, 0x05, 0x1a, 0x07, 0x04, 0x0c, 0x07, 0x50, 0x49, 0x37, 0x33,}
+\DoxyCodeLine{1608       0x0d, 0x33, 0x07, 0x2e, 0x08, 0x0a, 0x81, 0x26, 0x52, 0x4e, 0x28, 0x08,}
+\DoxyCodeLine{1609       0x2a, 0x56, 0x1c, 0x14, 0x17, 0x09, 0x4e, 0x04, 0x1e, 0x0f, 0x43, 0x0e,}
+\DoxyCodeLine{1610       0x19, 0x07, 0x0a, 0x06, 0x48, 0x08, 0x27, 0x09, 0x75, 0x0b, 0x3f, 0x41,}
+\DoxyCodeLine{1611       0x2a, 0x06, 0x3b, 0x05, 0x0a, 0x06, 0x51, 0x06, 0x01, 0x05, 0x10, 0x03,}
+\DoxyCodeLine{1612       0x05, 0x80, 0x8b, 0x62, 0x1e, 0x48, 0x08, 0x0a, 0x80, 0xa6, 0x5e, 0x22,}
+\DoxyCodeLine{1613       0x45, 0x0b, 0x0a, 0x06, 0x0d, 0x13, 0x39, 0x07, 0x0a, 0x36, 0x2c, 0x04,}
+\DoxyCodeLine{1614       0x10, 0x80, 0xc0, 0x3c, 0x64, 0x53, 0x0c, 0x48, 0x09, 0x0a, 0x46, 0x45,}
+\DoxyCodeLine{1615       0x1b, 0x48, 0x08, 0x53, 0x1d, 0x39, 0x81, 0x07, 0x46, 0x0a, 0x1d, 0x03,}
+\DoxyCodeLine{1616       0x47, 0x49, 0x37, 0x03, 0x0e, 0x08, 0x0a, 0x06, 0x39, 0x07, 0x0a, 0x81,}
+\DoxyCodeLine{1617       0x36, 0x19, 0x80, 0xb7, 0x01, 0x0f, 0x32, 0x0d, 0x83, 0x9b, 0x66, 0x75,}
+\DoxyCodeLine{1618       0x0b, 0x80, 0xc4, 0x8a, 0xbc, 0x84, 0x2f, 0x8f, 0xd1, 0x82, 0x47, 0xa1,}
+\DoxyCodeLine{1619       0xb9, 0x82, 0x39, 0x07, 0x2a, 0x04, 0x02, 0x60, 0x26, 0x0a, 0x46, 0x0a,}
+\DoxyCodeLine{1620       0x28, 0x05, 0x13, 0x82, 0xb0, 0x5b, 0x65, 0x4b, 0x04, 0x39, 0x07, 0x11,}
+\DoxyCodeLine{1621       0x40, 0x05, 0x0b, 0x02, 0x0e, 0x97, 0xf8, 0x08, 0x84, 0xd6, 0x2a, 0x09,}
+\DoxyCodeLine{1622       0xa2, 0xf7, 0x81, 0x1f, 0x31, 0x03, 0x11, 0x04, 0x08, 0x81, 0x8c, 0x89,}
+\DoxyCodeLine{1623       0x04, 0x6b, 0x05, 0x0d, 0x03, 0x09, 0x07, 0x10, 0x93, 0x60, 0x80, 0xf6,}
+\DoxyCodeLine{1624       0x0a, 0x73, 0x08, 0x6e, 0x17, 0x46, 0x80, 0x9a, 0x14, 0x0c, 0x57, 0x09,}
+\DoxyCodeLine{1625       0x19, 0x80, 0x87, 0x81, 0x47, 0x03, 0x85, 0x42, 0x0f, 0x15, 0x85, 0x50,}
+\DoxyCodeLine{1626       0x2b, 0x80, 0xd5, 0x2d, 0x03, 0x1a, 0x04, 0x02, 0x81, 0x70, 0x3a, 0x05,}
+\DoxyCodeLine{1627       0x01, 0x85, 0x00, 0x80, 0xd7, 0x29, 0x4c, 0x04, 0x0a, 0x04, 0x02, 0x83,}
+\DoxyCodeLine{1628       0x11, 0x44, 0x4c, 0x3d, 0x80, 0xc2, 0x3c, 0x06, 0x01, 0x04, 0x55, 0x05,}
+\DoxyCodeLine{1629       0x1b, 0x34, 0x02, 0x81, 0x0e, 0x2c, 0x04, 0x64, 0x0c, 0x56, 0x0a, 0x80,}
+\DoxyCodeLine{1630       0xae, 0x38, 0x1d, 0x0d, 0x2c, 0x04, 0x09, 0x07, 0x02, 0x0e, 0x06, 0x80,}
+\DoxyCodeLine{1631       0x9a, 0x83, 0xd8, 0x08, 0x0d, 0x03, 0x0d, 0x03, 0x74, 0x0c, 0x59, 0x07,}
+\DoxyCodeLine{1632       0x0c, 0x14, 0x0c, 0x04, 0x38, 0x08, 0x0a, 0x06, 0x28, 0x08, 0x22, 0x4e,}
+\DoxyCodeLine{1633       0x81, 0x54, 0x0c, 0x15, 0x03, 0x03, 0x05, 0x07, 0x09, 0x19, 0x07, 0x07,}
+\DoxyCodeLine{1634       0x09, 0x03, 0x0d, 0x07, 0x29, 0x80, 0xcb, 0x25, 0x0a, 0x84, 0x06,}
+\DoxyCodeLine{1635   \};}
+\DoxyCodeLine{1636   \textcolor{keyword}{auto} lower = \textcolor{keyword}{static\_cast<}uint16\_t\textcolor{keyword}{>}(cp);}
+\DoxyCodeLine{1637   \textcolor{keywordflow}{if} (cp < 0x10000) \{}
+\DoxyCodeLine{1638     \textcolor{keywordflow}{return} is\_printable(lower, singletons0,}
+\DoxyCodeLine{1639                         \textcolor{keyword}{sizeof}(singletons0) / \textcolor{keyword}{sizeof}(*singletons0),}
+\DoxyCodeLine{1640                         singletons0\_lower, normal0, \textcolor{keyword}{sizeof}(normal0));}
+\DoxyCodeLine{1641   \}}
+\DoxyCodeLine{1642   \textcolor{keywordflow}{if} (cp < 0x20000) \{}
+\DoxyCodeLine{1643     \textcolor{keywordflow}{return} is\_printable(lower, singletons1,}
+\DoxyCodeLine{1644                         \textcolor{keyword}{sizeof}(singletons1) / \textcolor{keyword}{sizeof}(*singletons1),}
+\DoxyCodeLine{1645                         singletons1\_lower, normal1, \textcolor{keyword}{sizeof}(normal1));}
+\DoxyCodeLine{1646   \}}
+\DoxyCodeLine{1647   \textcolor{keywordflow}{if} (0x2a6de <= cp \&\& cp < 0x2a700) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1648   \textcolor{keywordflow}{if} (0x2b735 <= cp \&\& cp < 0x2b740) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1649   \textcolor{keywordflow}{if} (0x2b81e <= cp \&\& cp < 0x2b820) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1650   \textcolor{keywordflow}{if} (0x2cea2 <= cp \&\& cp < 0x2ceb0) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1651   \textcolor{keywordflow}{if} (0x2ebe1 <= cp \&\& cp < 0x2f800) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1652   \textcolor{keywordflow}{if} (0x2fa1e <= cp \&\& cp < 0x30000) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1653   \textcolor{keywordflow}{if} (0x3134b <= cp \&\& cp < 0xe0100) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1654   \textcolor{keywordflow}{if} (0xe01f0 <= cp \&\& cp < 0x110000) \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{1655   \textcolor{keywordflow}{return} cp < 0x110000;}
+\DoxyCodeLine{1656 \}}
+\DoxyCodeLine{1657 }
+\DoxyCodeLine{1658 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{1659 }
+\DoxyCodeLine{1660 FMT\_END\_NAMESPACE}
+\DoxyCodeLine{1661 }
+\DoxyCodeLine{1662 \textcolor{preprocessor}{\#endif  }\textcolor{comment}{// FMT\_FORMAT\_INL\_H\_}}
+
+\end{DoxyCode}

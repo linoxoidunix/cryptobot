@@ -1,0 +1,630 @@
+\hypertarget{printf_8h_source}{}\doxysection{printf.\+h}
+\label{printf_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/printf.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/printf.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// Formatting library for C++ -\/ legacy printf implementation}}
+\DoxyCodeLine{2 \textcolor{comment}{//}}
+\DoxyCodeLine{3 \textcolor{comment}{// Copyright (c) 2012 -\/ 2016, Victor Zverovich}}
+\DoxyCodeLine{4 \textcolor{comment}{// All rights reserved.}}
+\DoxyCodeLine{5 \textcolor{comment}{//}}
+\DoxyCodeLine{6 \textcolor{comment}{// For the license information refer to format.h.}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#ifndef FMT\_PRINTF\_H\_}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#define FMT\_PRINTF\_H\_}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include <algorithm>}  \textcolor{comment}{// std::max}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include <limits>}     \textcolor{comment}{// std::numeric\_limits}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include "{}format.h"{}}}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 FMT\_BEGIN\_NAMESPACE}
+\DoxyCodeLine{17 FMT\_BEGIN\_EXPORT}
+\DoxyCodeLine{18 }
+\DoxyCodeLine{19 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structprintf__formatter}{printf\_formatter}} \{ \mbox{\hyperlink{structprintf__formatter}{printf\_formatter}}() = \textcolor{keyword}{delete}; \};}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{class }\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context}} \{}
+\DoxyCodeLine{22  \textcolor{keyword}{private}:}
+\DoxyCodeLine{23   detail::buffer\_appender<Char> out\_;}
+\DoxyCodeLine{24   \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args<basic\_printf\_context>}} args\_;}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26  \textcolor{keyword}{public}:}
+\DoxyCodeLine{27   \textcolor{keyword}{using }char\_type = Char;}
+\DoxyCodeLine{28   \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__format__parse__context}{parse\_context\_type}} = \mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}};}
+\DoxyCodeLine{29   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{using }\mbox{\hyperlink{structprintf__formatter}{formatter\_type}} = \mbox{\hyperlink{structprintf__formatter}{printf\_formatter<T>}};}
+\DoxyCodeLine{30 }
+\DoxyCodeLine{37   \mbox{\hyperlink{classbasic__printf__context_a34c89760bb25aa1b6c40b912127a1189}{basic\_printf\_context}}(detail::buffer\_appender<Char> out,}
+\DoxyCodeLine{38                        \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args<basic\_printf\_context>}} args)}
+\DoxyCodeLine{39       : out\_(out), args\_(args) \{\}}
+\DoxyCodeLine{40 }
+\DoxyCodeLine{41   \textcolor{keyword}{auto} out() -\/> detail::buffer\_appender<Char> \{ \textcolor{keywordflow}{return} out\_; \}}
+\DoxyCodeLine{42   \textcolor{keywordtype}{void} advance\_to(detail::buffer\_appender<Char>) \{\}}
+\DoxyCodeLine{43 }
+\DoxyCodeLine{44   \textcolor{keyword}{auto} locale() -\/> \mbox{\hyperlink{classdetail_1_1locale__ref}{detail::locale\_ref}} \{ \textcolor{keywordflow}{return} \{\}; \}}
+\DoxyCodeLine{45 }
+\DoxyCodeLine{46   \textcolor{keyword}{auto} arg(\textcolor{keywordtype}{int} \textcolor{keywordtype}{id}) \textcolor{keyword}{const} -\/> \mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<basic\_printf\_context>}} \{}
+\DoxyCodeLine{47     \textcolor{keywordflow}{return} args\_.\mbox{\hyperlink{classbasic__format__args_a3339d3a4e4daaf7bb0de1a8084e7f086}{get}}(\textcolor{keywordtype}{id});}
+\DoxyCodeLine{48   \}}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{50   FMT\_CONSTEXPR \textcolor{keywordtype}{void} on\_error(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* message) \{}
+\DoxyCodeLine{51     \mbox{\hyperlink{structdetail_1_1error__handler}{detail::error\_handler}}().on\_error(message);}
+\DoxyCodeLine{52   \}}
+\DoxyCodeLine{53 \};}
+\DoxyCodeLine{54 }
+\DoxyCodeLine{55 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{56 }
+\DoxyCodeLine{57 \textcolor{comment}{// Checks if a value fits in int -\/ used to avoid warnings about comparing}}
+\DoxyCodeLine{58 \textcolor{comment}{// signed and unsigned integers.}}
+\DoxyCodeLine{59 \textcolor{keyword}{template} <\textcolor{keywordtype}{bool} IsSigned> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1int__checker}{int\_checker}} \{}
+\DoxyCodeLine{60   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{static} \textcolor{keyword}{auto} fits\_in\_int(T \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{61     \textcolor{keywordtype}{unsigned} max = max\_value<int>();}
+\DoxyCodeLine{62     \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1value}{value}} <= max;}
+\DoxyCodeLine{63   \}}
+\DoxyCodeLine{64   \textcolor{keyword}{static} \textcolor{keyword}{auto} fits\_in\_int(\textcolor{keywordtype}{bool}) -\/> \textcolor{keywordtype}{bool} \{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}}
+\DoxyCodeLine{65 \};}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{67 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1int__checker}{int\_checker}}<true> \{}
+\DoxyCodeLine{68   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{static} \textcolor{keyword}{auto} fits\_in\_int(T \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{69     \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1value}{value}} >= (std::numeric\_limits<int>::min)() \&\&}
+\DoxyCodeLine{70            \mbox{\hyperlink{classdetail_1_1value}{value <= max\_value<int>}}();}
+\DoxyCodeLine{71   \}}
+\DoxyCodeLine{72   \textcolor{keyword}{static} \textcolor{keyword}{auto} fits\_in\_int(\textcolor{keywordtype}{int}) -\/> \textcolor{keywordtype}{bool} \{ \textcolor{keywordflow}{return} \textcolor{keyword}{true}; \}}
+\DoxyCodeLine{73 \};}
+\DoxyCodeLine{74 }
+\DoxyCodeLine{75 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1printf__precision__handler}{printf\_precision\_handler}} \{}
+\DoxyCodeLine{76   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{77   \textcolor{keyword}{auto} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{78     \textcolor{keywordflow}{if} (!\mbox{\hyperlink{structdetail_1_1int__checker}{int\_checker}}<std::numeric\_limits<T>::is\_signed>::fits\_in\_int(\mbox{\hyperlink{classdetail_1_1value}{value}}))}
+\DoxyCodeLine{79       throw\_format\_error(\textcolor{stringliteral}{"{}number is too big"{}});}
+\DoxyCodeLine{80     \textcolor{keywordflow}{return} (std::max)(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}), 0);}
+\DoxyCodeLine{81   \}}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{83   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{84   \textcolor{keyword}{auto} operator()(T) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{85     throw\_format\_error(\textcolor{stringliteral}{"{}precision is not integer"{}});}
+\DoxyCodeLine{86     \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{87   \}}
+\DoxyCodeLine{88 \};}
+\DoxyCodeLine{89 }
+\DoxyCodeLine{90 \textcolor{comment}{// An argument visitor that returns true iff arg is a zero integer.}}
+\DoxyCodeLine{91 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1is__zero__int}{is\_zero\_int}} \{}
+\DoxyCodeLine{92   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{93   \textcolor{keyword}{auto} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{94     \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1value}{value}} == 0;}
+\DoxyCodeLine{95   \}}
+\DoxyCodeLine{96 }
+\DoxyCodeLine{97   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{98   \textcolor{keyword}{auto} operator()(T) -\/> \textcolor{keywordtype}{bool} \{}
+\DoxyCodeLine{99     \textcolor{keywordflow}{return} \textcolor{keyword}{false};}
+\DoxyCodeLine{100   \}}
+\DoxyCodeLine{101 \};}
+\DoxyCodeLine{102 }
+\DoxyCodeLine{103 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__unsigned__or__bool}{make\_unsigned\_or\_bool}} : std::make\_unsigned<T> \{\};}
+\DoxyCodeLine{104 }
+\DoxyCodeLine{105 \textcolor{keyword}{template} <> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__unsigned__or__bool}{make\_unsigned\_or\_bool}}<bool> \{ \textcolor{keyword}{using }type = bool; \};}
+\DoxyCodeLine{106 }
+\DoxyCodeLine{107 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Context> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1arg__converter}{arg\_converter}} \{}
+\DoxyCodeLine{108  \textcolor{keyword}{private}:}
+\DoxyCodeLine{109   \textcolor{keyword}{using }char\_type = \textcolor{keyword}{typename} Context::char\_type;}
+\DoxyCodeLine{110 }
+\DoxyCodeLine{111   \mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<Context>}}\& arg\_;}
+\DoxyCodeLine{112   char\_type type\_;}
+\DoxyCodeLine{113 }
+\DoxyCodeLine{114  \textcolor{keyword}{public}:}
+\DoxyCodeLine{115   \mbox{\hyperlink{classdetail_1_1arg__converter}{arg\_converter}}(\mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<Context>}}\& arg, char\_type type)}
+\DoxyCodeLine{116       : arg\_(arg), type\_(type) \{\}}
+\DoxyCodeLine{117 }
+\DoxyCodeLine{118   \textcolor{keywordtype}{void} operator()(\textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{119     \textcolor{keywordflow}{if} (type\_ != \textcolor{charliteral}{'s'}) operator()<\textcolor{keywordtype}{bool}>(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{120   \}}
+\DoxyCodeLine{121 }
+\DoxyCodeLine{122   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<U>::value)>}
+\DoxyCodeLine{123   \textcolor{keywordtype}{void} operator()(U \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{124     \textcolor{keywordtype}{bool} is\_signed = type\_ == \textcolor{charliteral}{'d'} || type\_ == \textcolor{charliteral}{'i'};}
+\DoxyCodeLine{125     \textcolor{keyword}{using }target\_type = conditional\_t<std::is\_same<T, void>::value, U, T>;}
+\DoxyCodeLine{126     \textcolor{keywordflow}{if} (const\_check(\textcolor{keyword}{sizeof}(target\_type) <= \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}))) \{}
+\DoxyCodeLine{127       \textcolor{comment}{// Extra casts are used to silence warnings.}}
+\DoxyCodeLine{128       \textcolor{keywordflow}{if} (is\_signed) \{}
+\DoxyCodeLine{129         \textcolor{keyword}{auto} n = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\textcolor{keyword}{static\_cast<}target\_type\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}));}
+\DoxyCodeLine{130         arg\_ = detail::make\_arg<Context>(n);}
+\DoxyCodeLine{131       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{132         \textcolor{keyword}{using }unsigned\_type = \textcolor{keyword}{typename} \mbox{\hyperlink{structdetail_1_1make__unsigned__or__bool}{make\_unsigned\_or\_bool<target\_type>::type}};}
+\DoxyCodeLine{133         \textcolor{keyword}{auto} n = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\textcolor{keyword}{>}(\textcolor{keyword}{static\_cast<}unsigned\_type\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}));}
+\DoxyCodeLine{134         arg\_ = detail::make\_arg<Context>(n);}
+\DoxyCodeLine{135       \}}
+\DoxyCodeLine{136     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{137       \textcolor{keywordflow}{if} (is\_signed) \{}
+\DoxyCodeLine{138         \textcolor{comment}{// glibc's printf doesn't sign extend arguments of smaller types:}}
+\DoxyCodeLine{139         \textcolor{comment}{//   std::printf("{}\%lld"{}, -\/42);  // prints "{}4294967254"{}}}
+\DoxyCodeLine{140         \textcolor{comment}{// but we don't have to do the same because it's a UB.}}
+\DoxyCodeLine{141         \textcolor{keyword}{auto} n = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{long} \textcolor{keywordtype}{long}\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{142         arg\_ = detail::make\_arg<Context>(n);}
+\DoxyCodeLine{143       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{144         \textcolor{keyword}{auto} n = \textcolor{keyword}{static\_cast<}typename \mbox{\hyperlink{structdetail_1_1make__unsigned__or__bool}{make\_unsigned\_or\_bool<U>::type}}\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{145         arg\_ = detail::make\_arg<Context>(n);}
+\DoxyCodeLine{146       \}}
+\DoxyCodeLine{147     \}}
+\DoxyCodeLine{148   \}}
+\DoxyCodeLine{149 }
+\DoxyCodeLine{150   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<U>::value)>}
+\DoxyCodeLine{151   \textcolor{keywordtype}{void} operator()(U) \{\}  \textcolor{comment}{// No conversion needed for non-\/integral types.}}
+\DoxyCodeLine{152 \};}
+\DoxyCodeLine{153 }
+\DoxyCodeLine{154 \textcolor{comment}{// Converts an integer argument to T for printf, if T is an integral type.}}
+\DoxyCodeLine{155 \textcolor{comment}{// If T is void, the argument is converted to corresponding signed or unsigned}}
+\DoxyCodeLine{156 \textcolor{comment}{// type depending on the type specifier: 'd' and 'i' -\/ signed, other -\/}}
+\DoxyCodeLine{157 \textcolor{comment}{// unsigned).}}
+\DoxyCodeLine{158 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Context, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{159 \textcolor{keywordtype}{void} convert\_arg(\mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<Context>}}\& arg, Char type) \{}
+\DoxyCodeLine{160   visit\_format\_arg(\mbox{\hyperlink{classdetail_1_1arg__converter}{arg\_converter<T, Context>}}(arg, type), arg);}
+\DoxyCodeLine{161 \}}
+\DoxyCodeLine{162 }
+\DoxyCodeLine{163 \textcolor{comment}{// Converts an integer argument to char for printf.}}
+\DoxyCodeLine{164 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Context> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1char__converter}{char\_converter}} \{}
+\DoxyCodeLine{165  \textcolor{keyword}{private}:}
+\DoxyCodeLine{166   \mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<Context>}}\& arg\_;}
+\DoxyCodeLine{167 }
+\DoxyCodeLine{168  \textcolor{keyword}{public}:}
+\DoxyCodeLine{169   \textcolor{keyword}{explicit} \mbox{\hyperlink{classdetail_1_1char__converter}{char\_converter}}(\mbox{\hyperlink{classbasic__format__arg}{basic\_format\_arg<Context>}}\& arg) : arg\_(arg) \{\}}
+\DoxyCodeLine{170 }
+\DoxyCodeLine{171   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{172   \textcolor{keywordtype}{void} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{173     \textcolor{keyword}{auto} c = \textcolor{keyword}{static\_cast<}typename Context::char\_type\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{174     arg\_ = detail::make\_arg<Context>(c);}
+\DoxyCodeLine{175   \}}
+\DoxyCodeLine{176 }
+\DoxyCodeLine{177   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{178   \textcolor{keywordtype}{void} operator()(T) \{\}  \textcolor{comment}{// No conversion needed for non-\/integral types.}}
+\DoxyCodeLine{179 \};}
+\DoxyCodeLine{180 }
+\DoxyCodeLine{181 \textcolor{comment}{// An argument visitor that return a pointer to a C string if argument is a}}
+\DoxyCodeLine{182 \textcolor{comment}{// string or null otherwise.}}
+\DoxyCodeLine{183 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1get__cstring}{get\_cstring}} \{}
+\DoxyCodeLine{184   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{auto} operator()(T) -\/> \textcolor{keyword}{const} Char* \{ \textcolor{keywordflow}{return} \textcolor{keyword}{nullptr}; \}}
+\DoxyCodeLine{185   \textcolor{keyword}{auto} operator()(\textcolor{keyword}{const} Char* s) -\/> \textcolor{keyword}{const} Char* \{ \textcolor{keywordflow}{return} s; \}}
+\DoxyCodeLine{186 \};}
+\DoxyCodeLine{187 }
+\DoxyCodeLine{188 \textcolor{comment}{// Checks if an argument is a valid printf width specifier and sets}}
+\DoxyCodeLine{189 \textcolor{comment}{// left alignment if it is negative.}}
+\DoxyCodeLine{190 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1printf__width__handler}{printf\_width\_handler}} \{}
+\DoxyCodeLine{191  \textcolor{keyword}{private}:}
+\DoxyCodeLine{192   \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& specs\_;}
+\DoxyCodeLine{193 }
+\DoxyCodeLine{194  \textcolor{keyword}{public}:}
+\DoxyCodeLine{195   \textcolor{keyword}{explicit} \mbox{\hyperlink{classdetail_1_1printf__width__handler}{printf\_width\_handler}}(\mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& specs) : specs\_(specs) \{\}}
+\DoxyCodeLine{196 }
+\DoxyCodeLine{197   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{198   \textcolor{keyword}{auto} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> \textcolor{keywordtype}{unsigned} \{}
+\DoxyCodeLine{199     \textcolor{keyword}{auto} width = \textcolor{keyword}{static\_cast<}uint32\_or\_64\_or\_128\_t<T>\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{200     \textcolor{keywordflow}{if} (detail::is\_negative(\mbox{\hyperlink{classdetail_1_1value}{value}})) \{}
+\DoxyCodeLine{201       specs\_.align = align::left;}
+\DoxyCodeLine{202       width = 0 -\/ width;}
+\DoxyCodeLine{203     \}}
+\DoxyCodeLine{204     \textcolor{keywordtype}{unsigned} int\_max = max\_value<int>();}
+\DoxyCodeLine{205     \textcolor{keywordflow}{if} (width > int\_max) throw\_format\_error(\textcolor{stringliteral}{"{}number is too big"{}});}
+\DoxyCodeLine{206     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\textcolor{keyword}{>}(width);}
+\DoxyCodeLine{207   \}}
+\DoxyCodeLine{208 }
+\DoxyCodeLine{209   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(!std::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{210   \textcolor{keyword}{auto} operator()(T) -\/> \textcolor{keywordtype}{unsigned} \{}
+\DoxyCodeLine{211     throw\_format\_error(\textcolor{stringliteral}{"{}width is not integer"{}});}
+\DoxyCodeLine{212     \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{213   \}}
+\DoxyCodeLine{214 \};}
+\DoxyCodeLine{215 }
+\DoxyCodeLine{216 \textcolor{comment}{// Workaround for a bug with the XL compiler when initializing}}
+\DoxyCodeLine{217 \textcolor{comment}{// printf\_arg\_formatter's base class.}}
+\DoxyCodeLine{218 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{219 \textcolor{keyword}{auto} make\_arg\_formatter(buffer\_appender<Char> iter, \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& s)}
+\DoxyCodeLine{220     -\/> \mbox{\hyperlink{structdetail_1_1arg__formatter}{arg\_formatter<Char>}} \{}
+\DoxyCodeLine{221   \textcolor{keywordflow}{return} \{iter, s, \mbox{\hyperlink{classdetail_1_1locale__ref}{locale\_ref}}()\};}
+\DoxyCodeLine{222 \}}
+\DoxyCodeLine{223 }
+\DoxyCodeLine{224 \textcolor{comment}{// The ``printf`` argument formatter.}}
+\DoxyCodeLine{225 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{226 \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1printf__arg__formatter}{printf\_arg\_formatter}} : \textcolor{keyword}{public} \mbox{\hyperlink{structdetail_1_1arg__formatter}{arg\_formatter}}<Char> \{}
+\DoxyCodeLine{227  \textcolor{keyword}{private}:}
+\DoxyCodeLine{228   \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1arg__formatter}{base}} = \mbox{\hyperlink{structdetail_1_1arg__formatter}{arg\_formatter<Char>}};}
+\DoxyCodeLine{229   \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__printf__context}{context\_type}} = \mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<Char>}};}
+\DoxyCodeLine{230 }
+\DoxyCodeLine{231   \mbox{\hyperlink{classbasic__printf__context}{context\_type}}\& context\_;}
+\DoxyCodeLine{232 }
+\DoxyCodeLine{233   \textcolor{keywordtype}{void} write\_null\_pointer(\textcolor{keywordtype}{bool} \mbox{\hyperlink{structdetail_1_1is__string}{is\_string}} = \textcolor{keyword}{false}) \{}
+\DoxyCodeLine{234     \textcolor{keyword}{auto} s = this-\/>specs;}
+\DoxyCodeLine{235     s.type = presentation\_type::none;}
+\DoxyCodeLine{236     write\_bytes(this-\/>out, \mbox{\hyperlink{structdetail_1_1is__string}{is\_string}} ? \textcolor{stringliteral}{"{}(null)"{}} : \textcolor{stringliteral}{"{}(nil)"{}}, s);}
+\DoxyCodeLine{237   \}}
+\DoxyCodeLine{238 }
+\DoxyCodeLine{239  \textcolor{keyword}{public}:}
+\DoxyCodeLine{240   \mbox{\hyperlink{classdetail_1_1printf__arg__formatter}{printf\_arg\_formatter}}(buffer\_appender<Char> iter, \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& s,}
+\DoxyCodeLine{241                        \mbox{\hyperlink{classbasic__printf__context}{context\_type}}\& ctx)}
+\DoxyCodeLine{242       : \mbox{\hyperlink{structdetail_1_1arg__formatter}{base}}(make\_arg\_formatter(iter, s)), context\_(ctx) \{\}}
+\DoxyCodeLine{243 }
+\DoxyCodeLine{244   \textcolor{keywordtype}{void} operator()(\mbox{\hyperlink{structmonostate}{monostate}} \mbox{\hyperlink{classdetail_1_1value}{value}}) \{ base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}}); \}}
+\DoxyCodeLine{245 }
+\DoxyCodeLine{246   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(detail::is\_\textcolor{keywordtype}{int}egral<T>::value)>}
+\DoxyCodeLine{247   \textcolor{keywordtype}{void} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{248     \textcolor{comment}{// MSVC2013 fails to compile separate overloads for bool and Char so use}}
+\DoxyCodeLine{249     \textcolor{comment}{// std::is\_same instead.}}
+\DoxyCodeLine{250     \textcolor{keywordflow}{if} (!std::is\_same<T, Char>::value) \{}
+\DoxyCodeLine{251       base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{252       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{253     \}}
+\DoxyCodeLine{254     \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}} fmt\_specs = this-\/>specs;}
+\DoxyCodeLine{255     \textcolor{keywordflow}{if} (fmt\_specs.type != presentation\_type::none \&\&}
+\DoxyCodeLine{256         fmt\_specs.type != presentation\_type::chr) \{}
+\DoxyCodeLine{257       \textcolor{keywordflow}{return} (*\textcolor{keyword}{this})(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}));}
+\DoxyCodeLine{258     \}}
+\DoxyCodeLine{259     fmt\_specs.sign = sign::none;}
+\DoxyCodeLine{260     fmt\_specs.alt = \textcolor{keyword}{false};}
+\DoxyCodeLine{261     fmt\_specs.fill[0] = \textcolor{charliteral}{' '};  \textcolor{comment}{// Ignore '0' flag for char types.}}
+\DoxyCodeLine{262     \textcolor{comment}{// align::numeric needs to be overwritten here since the '0' flag is}}
+\DoxyCodeLine{263     \textcolor{comment}{// ignored for non-\/numeric types}}
+\DoxyCodeLine{264     \textcolor{keywordflow}{if} (fmt\_specs.align == align::none || fmt\_specs.align == align::numeric)}
+\DoxyCodeLine{265       fmt\_specs.align = align::right;}
+\DoxyCodeLine{266     write<Char>(this-\/>out, \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}), fmt\_specs);}
+\DoxyCodeLine{267   \}}
+\DoxyCodeLine{268 }
+\DoxyCodeLine{269   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, FMT\_ENABLE\_IF(std::is\_\textcolor{keywordtype}{float}ing\_po\textcolor{keywordtype}{int}<T>::value)>}
+\DoxyCodeLine{270   \textcolor{keywordtype}{void} operator()(T \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{271     base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{272   \}}
+\DoxyCodeLine{273 }
+\DoxyCodeLine{275   \textcolor{keywordtype}{void} \mbox{\hyperlink{classdetail_1_1printf__arg__formatter_a5d1229aead6a2fc8edf1c792a4468218}{operator()}}(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{276     \textcolor{keywordflow}{if} (\mbox{\hyperlink{classdetail_1_1value}{value}})}
+\DoxyCodeLine{277       base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{278     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{279       write\_null\_pointer(this-\/>specs.type != presentation\_type::pointer);}
+\DoxyCodeLine{280   \}}
+\DoxyCodeLine{281 }
+\DoxyCodeLine{283   \textcolor{keywordtype}{void} \mbox{\hyperlink{classdetail_1_1printf__arg__formatter_a81fda0a2e963da291724292045b8e368}{operator()}}(\textcolor{keyword}{const} \textcolor{keywordtype}{wchar\_t}* \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{284     \textcolor{keywordflow}{if} (\mbox{\hyperlink{classdetail_1_1value}{value}})}
+\DoxyCodeLine{285       base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{286     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{287       write\_null\_pointer(this-\/>specs.type != presentation\_type::pointer);}
+\DoxyCodeLine{288   \}}
+\DoxyCodeLine{289 }
+\DoxyCodeLine{290   \textcolor{keywordtype}{void} operator()(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} \mbox{\hyperlink{classdetail_1_1value}{value}}) \{ base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}}); \}}
+\DoxyCodeLine{291 }
+\DoxyCodeLine{293   \textcolor{keywordtype}{void} \mbox{\hyperlink{classdetail_1_1printf__arg__formatter_a4fc8a51e83d2383cc41cffe2e5c85e96}{operator()}}(\textcolor{keyword}{const} \textcolor{keywordtype}{void}* \mbox{\hyperlink{classdetail_1_1value}{value}}) \{}
+\DoxyCodeLine{294     \textcolor{keywordflow}{if} (\mbox{\hyperlink{classdetail_1_1value}{value}})}
+\DoxyCodeLine{295       base::operator()(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{296     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{297       write\_null\_pointer();}
+\DoxyCodeLine{298   \}}
+\DoxyCodeLine{299 }
+\DoxyCodeLine{301   \textcolor{keywordtype}{void} \mbox{\hyperlink{classdetail_1_1printf__arg__formatter_a0311b7f027276f64c39264582024ebb1}{operator()}}(\textcolor{keyword}{typename} \mbox{\hyperlink{classbasic__format__arg_1_1handle}{basic\_format\_arg<context\_type>::handle}} handle) \{}
+\DoxyCodeLine{302     \textcolor{keyword}{auto} parse\_ctx = \mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}}(\{\});}
+\DoxyCodeLine{303     handle.format(parse\_ctx, context\_);}
+\DoxyCodeLine{304   \}}
+\DoxyCodeLine{305 \};}
+\DoxyCodeLine{306 }
+\DoxyCodeLine{307 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{308 \textcolor{keywordtype}{void} parse\_flags(\mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& specs, \textcolor{keyword}{const} Char*\& it, \textcolor{keyword}{const} Char* end) \{}
+\DoxyCodeLine{309   \textcolor{keywordflow}{for} (; it != end; ++it) \{}
+\DoxyCodeLine{310     \textcolor{keywordflow}{switch} (*it) \{}
+\DoxyCodeLine{311     \textcolor{keywordflow}{case} \textcolor{charliteral}{'-\/'}:}
+\DoxyCodeLine{312       specs.align = align::left;}
+\DoxyCodeLine{313       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{314     \textcolor{keywordflow}{case} \textcolor{charliteral}{'+'}:}
+\DoxyCodeLine{315       specs.sign = sign::plus;}
+\DoxyCodeLine{316       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{317     \textcolor{keywordflow}{case} \textcolor{charliteral}{'0'}:}
+\DoxyCodeLine{318       specs.fill[0] = \textcolor{charliteral}{'0'};}
+\DoxyCodeLine{319       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{320     \textcolor{keywordflow}{case} \textcolor{charliteral}{' '}:}
+\DoxyCodeLine{321       \textcolor{keywordflow}{if} (specs.sign != sign::plus) specs.sign = sign::space;}
+\DoxyCodeLine{322       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{323     \textcolor{keywordflow}{case} \textcolor{charliteral}{'\#'}:}
+\DoxyCodeLine{324       specs.alt = \textcolor{keyword}{true};}
+\DoxyCodeLine{325       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{326     \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{327       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{328     \}}
+\DoxyCodeLine{329   \}}
+\DoxyCodeLine{330 \}}
+\DoxyCodeLine{331 }
+\DoxyCodeLine{332 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} GetArg>}
+\DoxyCodeLine{333 \textcolor{keyword}{auto} parse\_header(\textcolor{keyword}{const} Char*\& it, \textcolor{keyword}{const} Char* end, \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}\& specs,}
+\DoxyCodeLine{334                   GetArg get\_arg) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{335   \textcolor{keywordtype}{int} arg\_index = -\/1;}
+\DoxyCodeLine{336   Char c = *it;}
+\DoxyCodeLine{337   \textcolor{keywordflow}{if} (c >= \textcolor{charliteral}{'0'} \&\& c <= \textcolor{charliteral}{'9'}) \{}
+\DoxyCodeLine{338     \textcolor{comment}{// Parse an argument index (if followed by '\$') or a width possibly}}
+\DoxyCodeLine{339     \textcolor{comment}{// preceded with '0' flag(s).}}
+\DoxyCodeLine{340     \textcolor{keywordtype}{int} value = parse\_nonnegative\_int(it, end, -\/1);}
+\DoxyCodeLine{341     \textcolor{keywordflow}{if} (it != end \&\& *it == \textcolor{charliteral}{'\$'}) \{  \textcolor{comment}{// value is an argument index}}
+\DoxyCodeLine{342       ++it;}
+\DoxyCodeLine{343       arg\_index = value != -\/1 ? value : max\_value<int>();}
+\DoxyCodeLine{344     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{345       \textcolor{keywordflow}{if} (c == \textcolor{charliteral}{'0'}) specs.fill[0] = \textcolor{charliteral}{'0'};}
+\DoxyCodeLine{346       \textcolor{keywordflow}{if} (value != 0) \{}
+\DoxyCodeLine{347         \textcolor{comment}{// Nonzero value means that we parsed width and don't need to}}
+\DoxyCodeLine{348         \textcolor{comment}{// parse it or flags again, so return now.}}
+\DoxyCodeLine{349         \textcolor{keywordflow}{if} (value == -\/1) throw\_format\_error(\textcolor{stringliteral}{"{}number is too big"{}});}
+\DoxyCodeLine{350         specs.width = value;}
+\DoxyCodeLine{351         \textcolor{keywordflow}{return} arg\_index;}
+\DoxyCodeLine{352       \}}
+\DoxyCodeLine{353     \}}
+\DoxyCodeLine{354   \}}
+\DoxyCodeLine{355   parse\_flags(specs, it, end);}
+\DoxyCodeLine{356   \textcolor{comment}{// Parse width.}}
+\DoxyCodeLine{357   \textcolor{keywordflow}{if} (it != end) \{}
+\DoxyCodeLine{358     \textcolor{keywordflow}{if} (*it >= \textcolor{charliteral}{'0'} \&\& *it <= \textcolor{charliteral}{'9'}) \{}
+\DoxyCodeLine{359       specs.width = parse\_nonnegative\_int(it, end, -\/1);}
+\DoxyCodeLine{360       \textcolor{keywordflow}{if} (specs.width == -\/1) throw\_format\_error(\textcolor{stringliteral}{"{}number is too big"{}});}
+\DoxyCodeLine{361     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (*it == \textcolor{charliteral}{'*'}) \{}
+\DoxyCodeLine{362       ++it;}
+\DoxyCodeLine{363       specs.width = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(visit\_format\_arg(}
+\DoxyCodeLine{364           \mbox{\hyperlink{classdetail_1_1printf__width__handler}{detail::printf\_width\_handler<Char>}}(specs), get\_arg(-\/1)));}
+\DoxyCodeLine{365     \}}
+\DoxyCodeLine{366   \}}
+\DoxyCodeLine{367   \textcolor{keywordflow}{return} arg\_index;}
+\DoxyCodeLine{368 \}}
+\DoxyCodeLine{369 }
+\DoxyCodeLine{370 \textcolor{keyword}{inline} \textcolor{keyword}{auto} parse\_printf\_presentation\_type(\textcolor{keywordtype}{char} c, type t)}
+\DoxyCodeLine{371     -\/> presentation\_type \{}
+\DoxyCodeLine{372   \textcolor{keyword}{using }pt = presentation\_type;}
+\DoxyCodeLine{373   \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} integral\_set = sint\_set | uint\_set | bool\_set | char\_set;}
+\DoxyCodeLine{374   \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{375   \textcolor{keywordflow}{case} \textcolor{charliteral}{'d'}:}
+\DoxyCodeLine{376     \textcolor{keywordflow}{return} in(t, integral\_set) ? pt::dec : pt::none;}
+\DoxyCodeLine{377   \textcolor{keywordflow}{case} \textcolor{charliteral}{'o'}:}
+\DoxyCodeLine{378     \textcolor{keywordflow}{return} in(t, integral\_set) ? pt::oct : pt::none;}
+\DoxyCodeLine{379   \textcolor{keywordflow}{case} \textcolor{charliteral}{'x'}:}
+\DoxyCodeLine{380     \textcolor{keywordflow}{return} in(t, integral\_set) ? pt::hex\_lower : pt::none;}
+\DoxyCodeLine{381   \textcolor{keywordflow}{case} \textcolor{charliteral}{'X'}:}
+\DoxyCodeLine{382     \textcolor{keywordflow}{return} in(t, integral\_set) ? pt::hex\_upper : pt::none;}
+\DoxyCodeLine{383   \textcolor{keywordflow}{case} \textcolor{charliteral}{'a'}:}
+\DoxyCodeLine{384     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::hexfloat\_lower : pt::none;}
+\DoxyCodeLine{385   \textcolor{keywordflow}{case} \textcolor{charliteral}{'A'}:}
+\DoxyCodeLine{386     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::hexfloat\_upper : pt::none;}
+\DoxyCodeLine{387   \textcolor{keywordflow}{case} \textcolor{charliteral}{'e'}:}
+\DoxyCodeLine{388     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::exp\_lower : pt::none;}
+\DoxyCodeLine{389   \textcolor{keywordflow}{case} \textcolor{charliteral}{'E'}:}
+\DoxyCodeLine{390     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::exp\_upper : pt::none;}
+\DoxyCodeLine{391   \textcolor{keywordflow}{case} \textcolor{charliteral}{'f'}:}
+\DoxyCodeLine{392     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::fixed\_lower : pt::none;}
+\DoxyCodeLine{393   \textcolor{keywordflow}{case} \textcolor{charliteral}{'F'}:}
+\DoxyCodeLine{394     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::fixed\_upper : pt::none;}
+\DoxyCodeLine{395   \textcolor{keywordflow}{case} \textcolor{charliteral}{'g'}:}
+\DoxyCodeLine{396     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::general\_lower : pt::none;}
+\DoxyCodeLine{397   \textcolor{keywordflow}{case} \textcolor{charliteral}{'G'}:}
+\DoxyCodeLine{398     \textcolor{keywordflow}{return} in(t, float\_set) ? pt::general\_upper : pt::none;}
+\DoxyCodeLine{399   \textcolor{keywordflow}{case} \textcolor{charliteral}{'c'}:}
+\DoxyCodeLine{400     \textcolor{keywordflow}{return} in(t, integral\_set) ? pt::chr : pt::none;}
+\DoxyCodeLine{401   \textcolor{keywordflow}{case} \textcolor{charliteral}{'s'}:}
+\DoxyCodeLine{402     \textcolor{keywordflow}{return} in(t, string\_set | cstring\_set) ? pt::string : pt::none;}
+\DoxyCodeLine{403   \textcolor{keywordflow}{case} \textcolor{charliteral}{'p'}:}
+\DoxyCodeLine{404     \textcolor{keywordflow}{return} in(t, pointer\_set | cstring\_set) ? pt::pointer : pt::none;}
+\DoxyCodeLine{405   \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{406     \textcolor{keywordflow}{return} pt::none;}
+\DoxyCodeLine{407   \}}
+\DoxyCodeLine{408 \}}
+\DoxyCodeLine{409 }
+\DoxyCodeLine{410 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Context>}
+\DoxyCodeLine{411 \textcolor{keywordtype}{void} vprintf(buffer<Char>\& buf, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} format,}
+\DoxyCodeLine{412              \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args<Context>}} args) \{}
+\DoxyCodeLine{413   \textcolor{keyword}{using }iterator = buffer\_appender<Char>;}
+\DoxyCodeLine{414   \textcolor{keyword}{auto} out = iterator(buf);}
+\DoxyCodeLine{415   \textcolor{keyword}{auto} context = \mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<Char>}}(out, args);}
+\DoxyCodeLine{416   \textcolor{keyword}{auto} parse\_ctx = \mbox{\hyperlink{classbasic__format__parse__context}{basic\_format\_parse\_context<Char>}}(format);}
+\DoxyCodeLine{417 }
+\DoxyCodeLine{418   \textcolor{comment}{// Returns the argument with specified index or, if arg\_index is -\/1, the next}}
+\DoxyCodeLine{419   \textcolor{comment}{// argument.}}
+\DoxyCodeLine{420   \textcolor{keyword}{auto} get\_arg = [\&](\textcolor{keywordtype}{int} arg\_index) \{}
+\DoxyCodeLine{421     \textcolor{keywordflow}{if} (arg\_index < 0)}
+\DoxyCodeLine{422       arg\_index = parse\_ctx.next\_arg\_id();}
+\DoxyCodeLine{423     \textcolor{keywordflow}{else}}
+\DoxyCodeLine{424       parse\_ctx.check\_arg\_id(-\/-\/arg\_index);}
+\DoxyCodeLine{425     \textcolor{keywordflow}{return} detail::get\_arg(context, arg\_index);}
+\DoxyCodeLine{426   \};}
+\DoxyCodeLine{427 }
+\DoxyCodeLine{428   \textcolor{keyword}{const} Char* start = parse\_ctx.begin();}
+\DoxyCodeLine{429   \textcolor{keyword}{const} Char* end = parse\_ctx.end();}
+\DoxyCodeLine{430   \textcolor{keyword}{auto} it = start;}
+\DoxyCodeLine{431   \textcolor{keywordflow}{while} (it != end) \{}
+\DoxyCodeLine{432     \textcolor{keywordflow}{if} (!find<false, Char>(it, end, \textcolor{charliteral}{'\%'}, it)) \{}
+\DoxyCodeLine{433       it = end;  \textcolor{comment}{// find leaves it == nullptr if it doesn't find '\%'.}}
+\DoxyCodeLine{434       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{435     \}}
+\DoxyCodeLine{436     Char c = *it++;}
+\DoxyCodeLine{437     \textcolor{keywordflow}{if} (it != end \&\& *it == c) \{}
+\DoxyCodeLine{438       write(out, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(start, to\_unsigned(it -\/ start)));}
+\DoxyCodeLine{439       start = ++it;}
+\DoxyCodeLine{440       \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{441     \}}
+\DoxyCodeLine{442     write(out, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(start, to\_unsigned(it -\/ 1 -\/ start)));}
+\DoxyCodeLine{443 }
+\DoxyCodeLine{444     \textcolor{keyword}{auto} specs = \mbox{\hyperlink{structformat__specs}{format\_specs<Char>}}();}
+\DoxyCodeLine{445     specs.align = align::right;}
+\DoxyCodeLine{446 }
+\DoxyCodeLine{447     \textcolor{comment}{// Parse argument index, flags and width.}}
+\DoxyCodeLine{448     \textcolor{keywordtype}{int} arg\_index = parse\_header(it, end, specs, get\_arg);}
+\DoxyCodeLine{449     \textcolor{keywordflow}{if} (arg\_index == 0) throw\_format\_error(\textcolor{stringliteral}{"{}argument not found"{}});}
+\DoxyCodeLine{450 }
+\DoxyCodeLine{451     \textcolor{comment}{// Parse precision.}}
+\DoxyCodeLine{452     \textcolor{keywordflow}{if} (it != end \&\& *it == \textcolor{charliteral}{'.'}) \{}
+\DoxyCodeLine{453       ++it;}
+\DoxyCodeLine{454       c = it != end ? *it : 0;}
+\DoxyCodeLine{455       \textcolor{keywordflow}{if} (\textcolor{charliteral}{'0'} <= c \&\& c <= \textcolor{charliteral}{'9'}) \{}
+\DoxyCodeLine{456         specs.precision = parse\_nonnegative\_int(it, end, 0);}
+\DoxyCodeLine{457       \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (c == \textcolor{charliteral}{'*'}) \{}
+\DoxyCodeLine{458         ++it;}
+\DoxyCodeLine{459         specs.precision = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(}
+\DoxyCodeLine{460             visit\_format\_arg(printf\_precision\_handler(), get\_arg(-\/1)));}
+\DoxyCodeLine{461       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{462         specs.precision = 0;}
+\DoxyCodeLine{463       \}}
+\DoxyCodeLine{464     \}}
+\DoxyCodeLine{465 }
+\DoxyCodeLine{466     \textcolor{keyword}{auto} arg = get\_arg(arg\_index);}
+\DoxyCodeLine{467     \textcolor{comment}{// For d, i, o, u, x, and X conversion specifiers, if a precision is}}
+\DoxyCodeLine{468     \textcolor{comment}{// specified, the '0' flag is ignored}}
+\DoxyCodeLine{469     \textcolor{keywordflow}{if} (specs.precision >= 0 \&\& arg.is\_integral()) \{}
+\DoxyCodeLine{470       \textcolor{comment}{// Ignore '0' for non-\/numeric types or if '-\/' present.}}
+\DoxyCodeLine{471       specs.fill[0] = \textcolor{charliteral}{' '};}
+\DoxyCodeLine{472     \}}
+\DoxyCodeLine{473     \textcolor{keywordflow}{if} (specs.precision >= 0 \&\& arg.type() == type::cstring\_type) \{}
+\DoxyCodeLine{474       \textcolor{keyword}{auto} str = visit\_format\_arg(get\_cstring<Char>(), arg);}
+\DoxyCodeLine{475       \textcolor{keyword}{auto} str\_end = str + specs.precision;}
+\DoxyCodeLine{476       \textcolor{keyword}{auto} nul = std::find(str, str\_end, Char());}
+\DoxyCodeLine{477       \textcolor{keyword}{auto} sv = \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(}
+\DoxyCodeLine{478           str, to\_unsigned(nul != str\_end ? nul -\/ str : specs.precision));}
+\DoxyCodeLine{479       arg = make\_arg<basic\_printf\_context<Char>>(sv);}
+\DoxyCodeLine{480     \}}
+\DoxyCodeLine{481     \textcolor{keywordflow}{if} (specs.alt \&\& visit\_format\_arg(is\_zero\_int(), arg)) specs.alt = \textcolor{keyword}{false};}
+\DoxyCodeLine{482     if (specs.fill[0] == \textcolor{charliteral}{'0'}) \{}
+\DoxyCodeLine{483       \textcolor{keywordflow}{if} (arg.is\_arithmetic() \&\& specs.align != align::left)}
+\DoxyCodeLine{484         specs.align = align::numeric;}
+\DoxyCodeLine{485       \textcolor{keywordflow}{else}}
+\DoxyCodeLine{486         specs.fill[0] = \textcolor{charliteral}{' '};  \textcolor{comment}{// Ignore '0' flag for non-\/numeric types or if '-\/'}}
+\DoxyCodeLine{487                               \textcolor{comment}{// flag is also present.}}
+\DoxyCodeLine{488     \}}
+\DoxyCodeLine{489 }
+\DoxyCodeLine{490     \textcolor{comment}{// Parse length and convert the argument to the required type.}}
+\DoxyCodeLine{491     c = it != end ? *it++ : 0;}
+\DoxyCodeLine{492     Char t = it != end ? *it : 0;}
+\DoxyCodeLine{493     \textcolor{keywordflow}{switch} (c) \{}
+\DoxyCodeLine{494     \textcolor{keywordflow}{case} \textcolor{charliteral}{'h'}:}
+\DoxyCodeLine{495       \textcolor{keywordflow}{if} (t == \textcolor{charliteral}{'h'}) \{}
+\DoxyCodeLine{496         ++it;}
+\DoxyCodeLine{497         t = it != end ? *it : 0;}
+\DoxyCodeLine{498         convert\_arg<signed char>(arg, t);}
+\DoxyCodeLine{499       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{500         convert\_arg<short>(arg, t);}
+\DoxyCodeLine{501       \}}
+\DoxyCodeLine{502       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{503     \textcolor{keywordflow}{case} \textcolor{charliteral}{'l'}:}
+\DoxyCodeLine{504       \textcolor{keywordflow}{if} (t == \textcolor{charliteral}{'l'}) \{}
+\DoxyCodeLine{505         ++it;}
+\DoxyCodeLine{506         t = it != end ? *it : 0;}
+\DoxyCodeLine{507         convert\_arg<long long>(arg, t);}
+\DoxyCodeLine{508       \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{509         convert\_arg<long>(arg, t);}
+\DoxyCodeLine{510       \}}
+\DoxyCodeLine{511       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{512     \textcolor{keywordflow}{case} \textcolor{charliteral}{'j'}:}
+\DoxyCodeLine{513       convert\_arg<intmax\_t>(arg, t);}
+\DoxyCodeLine{514       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{515     \textcolor{keywordflow}{case} \textcolor{charliteral}{'z'}:}
+\DoxyCodeLine{516       convert\_arg<size\_t>(arg, t);}
+\DoxyCodeLine{517       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{518     \textcolor{keywordflow}{case} \textcolor{charliteral}{'t'}:}
+\DoxyCodeLine{519       convert\_arg<std::ptrdiff\_t>(arg, t);}
+\DoxyCodeLine{520       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{521     \textcolor{keywordflow}{case} \textcolor{charliteral}{'L'}:}
+\DoxyCodeLine{522       \textcolor{comment}{// printf produces garbage when 'L' is omitted for long double, no}}
+\DoxyCodeLine{523       \textcolor{comment}{// need to do the same.}}
+\DoxyCodeLine{524       \textcolor{keywordflow}{break};}
+\DoxyCodeLine{525     \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{526       -\/-\/it;}
+\DoxyCodeLine{527       convert\_arg<void>(arg, c);}
+\DoxyCodeLine{528     \}}
+\DoxyCodeLine{529 }
+\DoxyCodeLine{530     \textcolor{comment}{// Parse type.}}
+\DoxyCodeLine{531     \textcolor{keywordflow}{if} (it == end) throw\_format\_error(\textcolor{stringliteral}{"{}invalid format string"{}});}
+\DoxyCodeLine{532     \textcolor{keywordtype}{char} type = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}\textcolor{keyword}{>}(*it++);}
+\DoxyCodeLine{533     \textcolor{keywordflow}{if} (arg.is\_integral()) \{}
+\DoxyCodeLine{534       \textcolor{comment}{// Normalize type.}}
+\DoxyCodeLine{535       \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{536       \textcolor{keywordflow}{case} \textcolor{charliteral}{'i'}:}
+\DoxyCodeLine{537       \textcolor{keywordflow}{case} \textcolor{charliteral}{'u'}:}
+\DoxyCodeLine{538         type = \textcolor{charliteral}{'d'};}
+\DoxyCodeLine{539         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{540       \textcolor{keywordflow}{case} \textcolor{charliteral}{'c'}:}
+\DoxyCodeLine{541         visit\_format\_arg(char\_converter<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<Char>}}>(arg), arg);}
+\DoxyCodeLine{542         \textcolor{keywordflow}{break};}
+\DoxyCodeLine{543       \}}
+\DoxyCodeLine{544     \}}
+\DoxyCodeLine{545     specs.type = parse\_printf\_presentation\_type(type, arg.type());}
+\DoxyCodeLine{546     \textcolor{keywordflow}{if} (specs.type == presentation\_type::none)}
+\DoxyCodeLine{547       throw\_format\_error(\textcolor{stringliteral}{"{}invalid format specifier"{}});}
+\DoxyCodeLine{548 }
+\DoxyCodeLine{549     start = it;}
+\DoxyCodeLine{550 }
+\DoxyCodeLine{551     \textcolor{comment}{// Format argument.}}
+\DoxyCodeLine{552     visit\_format\_arg(printf\_arg\_formatter<Char>(out, specs, context), arg);}
+\DoxyCodeLine{553   \}}
+\DoxyCodeLine{554   write(out, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}}(start, to\_unsigned(it -\/ start)));}
+\DoxyCodeLine{555 \}}
+\DoxyCodeLine{556 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{557 }
+\DoxyCodeLine{558 \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__printf__context}{printf\_context}} = \mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<char>}};}
+\DoxyCodeLine{559 \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__printf__context}{wprintf\_context}} = \mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<wchar\_t>}};}
+\DoxyCodeLine{560 }
+\DoxyCodeLine{561 \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__format__args}{printf\_args}} = \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args<printf\_context>}};}
+\DoxyCodeLine{562 \textcolor{keyword}{using }\mbox{\hyperlink{classbasic__format__args}{wprintf\_args}} = \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args<wprintf\_context>}};}
+\DoxyCodeLine{563 }
+\DoxyCodeLine{570 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{571 \textcolor{keyword}{inline} \textcolor{keyword}{auto} make\_printf\_args(\textcolor{keyword}{const} T\&... args)}
+\DoxyCodeLine{572     -\/> \mbox{\hyperlink{classformat__arg__store}{format\_arg\_store}}<\mbox{\hyperlink{classbasic__printf__context}{printf\_context}}, T...> \{}
+\DoxyCodeLine{573   \textcolor{keywordflow}{return} \{args...\};}
+\DoxyCodeLine{574 \}}
+\DoxyCodeLine{575 }
+\DoxyCodeLine{576 \textcolor{comment}{// DEPRECATED!}}
+\DoxyCodeLine{577 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{578 \textcolor{keyword}{inline} \textcolor{keyword}{auto} make\_wprintf\_args(\textcolor{keyword}{const} T\&... args)}
+\DoxyCodeLine{579     -\/> \mbox{\hyperlink{classformat__arg__store}{format\_arg\_store}}<\mbox{\hyperlink{classbasic__printf__context}{wprintf\_context}}, T...> \{}
+\DoxyCodeLine{580   \textcolor{keywordflow}{return} \{args...\};}
+\DoxyCodeLine{581 \}}
+\DoxyCodeLine{582 }
+\DoxyCodeLine{583 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{584 \textcolor{keyword}{inline} \textcolor{keyword}{auto} vsprintf(}
+\DoxyCodeLine{585     \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} fmt,}
+\DoxyCodeLine{586     \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context}}<type\_identity\_t<Char>>> args)}
+\DoxyCodeLine{587     -\/> std::basic\_string<Char> \{}
+\DoxyCodeLine{588   \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}}();}
+\DoxyCodeLine{589   detail::vprintf(buf, fmt, args);}
+\DoxyCodeLine{590   \textcolor{keywordflow}{return} to\_string(buf);}
+\DoxyCodeLine{591 \}}
+\DoxyCodeLine{592 }
+\DoxyCodeLine{602 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... T,}
+\DoxyCodeLine{603           \textcolor{keyword}{typename} Char = enable\_if\_t<detail::is\_string<S>::value, char\_t<S>>>}
+\DoxyCodeLine{604 \textcolor{keyword}{inline} \textcolor{keyword}{auto} sprintf(\textcolor{keyword}{const} S\& fmt, \textcolor{keyword}{const} T\&... args) -\/> std::basic\_string<Char> \{}
+\DoxyCodeLine{605   \textcolor{keywordflow}{return} vsprintf(detail::to\_string\_view(fmt),}
+\DoxyCodeLine{606                   fmt::make\_format\_args<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<Char>}}>(args...));}
+\DoxyCodeLine{607 \}}
+\DoxyCodeLine{608 }
+\DoxyCodeLine{609 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{610 \textcolor{keyword}{inline} \textcolor{keyword}{auto} vfprintf(}
+\DoxyCodeLine{611     std::FILE* f, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} fmt,}
+\DoxyCodeLine{612     \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context}}<type\_identity\_t<Char>>> args)}
+\DoxyCodeLine{613     -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{614   \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}}();}
+\DoxyCodeLine{615   detail::vprintf(buf, fmt, args);}
+\DoxyCodeLine{616   \textcolor{keywordtype}{size\_t} size = buf.size();}
+\DoxyCodeLine{617   \textcolor{keywordflow}{return} std::fwrite(buf.data(), \textcolor{keyword}{sizeof}(Char), size, f) < size}
+\DoxyCodeLine{618              ? -\/1}
+\DoxyCodeLine{619              : \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(size);}
+\DoxyCodeLine{620 \}}
+\DoxyCodeLine{621 }
+\DoxyCodeLine{631 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... T, \textcolor{keyword}{typename} Char = char\_t<S>>}
+\DoxyCodeLine{632 \textcolor{keyword}{inline} \textcolor{keyword}{auto} fprintf(std::FILE* f, \textcolor{keyword}{const} S\& fmt, \textcolor{keyword}{const} T\&... args) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{633   \textcolor{keywordflow}{return} vfprintf(f, detail::to\_string\_view(fmt),}
+\DoxyCodeLine{634                   fmt::make\_format\_args<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context<Char>}}>(args...));}
+\DoxyCodeLine{635 \}}
+\DoxyCodeLine{636 }
+\DoxyCodeLine{637 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{638 FMT\_DEPRECATED \textcolor{keyword}{inline} \textcolor{keyword}{auto} vprintf(}
+\DoxyCodeLine{639     \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} fmt,}
+\DoxyCodeLine{640     \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__printf__context}{basic\_printf\_context}}<type\_identity\_t<Char>>> args)}
+\DoxyCodeLine{641     -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{642   \textcolor{keywordflow}{return} vfprintf(stdout, fmt, args);}
+\DoxyCodeLine{643 \}}
+\DoxyCodeLine{644 }
+\DoxyCodeLine{654 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{655 \textcolor{keyword}{inline} \textcolor{keyword}{auto} printf(\mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt, \textcolor{keyword}{const} T\&... args) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{656   \textcolor{keywordflow}{return} vfprintf(stdout, fmt, make\_printf\_args(args...));}
+\DoxyCodeLine{657 \}}
+\DoxyCodeLine{658 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{659 FMT\_DEPRECATED \textcolor{keyword}{inline} \textcolor{keyword}{auto} printf(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<wchar\_t>}} fmt,}
+\DoxyCodeLine{660                                   \textcolor{keyword}{const} T\&... args) -\/> \textcolor{keywordtype}{int} \{}
+\DoxyCodeLine{661   \textcolor{keywordflow}{return} vfprintf(stdout, fmt, make\_wprintf\_args(args...));}
+\DoxyCodeLine{662 \}}
+\DoxyCodeLine{663 }
+\DoxyCodeLine{664 FMT\_END\_EXPORT}
+\DoxyCodeLine{665 FMT\_END\_NAMESPACE}
+\DoxyCodeLine{666 }
+\DoxyCodeLine{667 \textcolor{preprocessor}{\#endif  }\textcolor{comment}{// FMT\_PRINTF\_H\_}}
+
+\end{DoxyCode}

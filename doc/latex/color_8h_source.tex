@@ -1,0 +1,574 @@
+\hypertarget{color_8h_source}{}\doxysection{color.\+h}
+\label{color_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/color.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/color.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// Formatting library for C++ -\/ color support}}
+\DoxyCodeLine{2 \textcolor{comment}{//}}
+\DoxyCodeLine{3 \textcolor{comment}{// Copyright (c) 2018 -\/ present, Victor Zverovich and fmt contributors}}
+\DoxyCodeLine{4 \textcolor{comment}{// All rights reserved.}}
+\DoxyCodeLine{5 \textcolor{comment}{//}}
+\DoxyCodeLine{6 \textcolor{comment}{// For the license information refer to format.h.}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#ifndef FMT\_COLOR\_H\_}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#define FMT\_COLOR\_H\_}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}format.h"{}}}
+\DoxyCodeLine{12 }
+\DoxyCodeLine{13 FMT\_BEGIN\_NAMESPACE}
+\DoxyCodeLine{14 FMT\_BEGIN\_EXPORT}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{keyword}{enum class} color : uint32\_t \{}
+\DoxyCodeLine{17   alice\_blue = 0xF0F8FF,               \textcolor{comment}{// rgb(240,248,255)}}
+\DoxyCodeLine{18   antique\_white = 0xFAEBD7,            \textcolor{comment}{// rgb(250,235,215)}}
+\DoxyCodeLine{19   aqua = 0x00FFFF,                     \textcolor{comment}{// rgb(0,255,255)}}
+\DoxyCodeLine{20   aquamarine = 0x7FFFD4,               \textcolor{comment}{// rgb(127,255,212)}}
+\DoxyCodeLine{21   azure = 0xF0FFFF,                    \textcolor{comment}{// rgb(240,255,255)}}
+\DoxyCodeLine{22   beige = 0xF5F5DC,                    \textcolor{comment}{// rgb(245,245,220)}}
+\DoxyCodeLine{23   bisque = 0xFFE4C4,                   \textcolor{comment}{// rgb(255,228,196)}}
+\DoxyCodeLine{24   black = 0x000000,                    \textcolor{comment}{// rgb(0,0,0)}}
+\DoxyCodeLine{25   blanched\_almond = 0xFFEBCD,          \textcolor{comment}{// rgb(255,235,205)}}
+\DoxyCodeLine{26   blue = 0x0000FF,                     \textcolor{comment}{// rgb(0,0,255)}}
+\DoxyCodeLine{27   blue\_violet = 0x8A2BE2,              \textcolor{comment}{// rgb(138,43,226)}}
+\DoxyCodeLine{28   brown = 0xA52A2A,                    \textcolor{comment}{// rgb(165,42,42)}}
+\DoxyCodeLine{29   burly\_wood = 0xDEB887,               \textcolor{comment}{// rgb(222,184,135)}}
+\DoxyCodeLine{30   cadet\_blue = 0x5F9EA0,               \textcolor{comment}{// rgb(95,158,160)}}
+\DoxyCodeLine{31   chartreuse = 0x7FFF00,               \textcolor{comment}{// rgb(127,255,0)}}
+\DoxyCodeLine{32   chocolate = 0xD2691E,                \textcolor{comment}{// rgb(210,105,30)}}
+\DoxyCodeLine{33   coral = 0xFF7F50,                    \textcolor{comment}{// rgb(255,127,80)}}
+\DoxyCodeLine{34   cornflower\_blue = 0x6495ED,          \textcolor{comment}{// rgb(100,149,237)}}
+\DoxyCodeLine{35   cornsilk = 0xFFF8DC,                 \textcolor{comment}{// rgb(255,248,220)}}
+\DoxyCodeLine{36   crimson = 0xDC143C,                  \textcolor{comment}{// rgb(220,20,60)}}
+\DoxyCodeLine{37   cyan = 0x00FFFF,                     \textcolor{comment}{// rgb(0,255,255)}}
+\DoxyCodeLine{38   dark\_blue = 0x00008B,                \textcolor{comment}{// rgb(0,0,139)}}
+\DoxyCodeLine{39   dark\_cyan = 0x008B8B,                \textcolor{comment}{// rgb(0,139,139)}}
+\DoxyCodeLine{40   dark\_golden\_rod = 0xB8860B,          \textcolor{comment}{// rgb(184,134,11)}}
+\DoxyCodeLine{41   dark\_gray = 0xA9A9A9,                \textcolor{comment}{// rgb(169,169,169)}}
+\DoxyCodeLine{42   dark\_green = 0x006400,               \textcolor{comment}{// rgb(0,100,0)}}
+\DoxyCodeLine{43   dark\_khaki = 0xBDB76B,               \textcolor{comment}{// rgb(189,183,107)}}
+\DoxyCodeLine{44   dark\_magenta = 0x8B008B,             \textcolor{comment}{// rgb(139,0,139)}}
+\DoxyCodeLine{45   dark\_olive\_green = 0x556B2F,         \textcolor{comment}{// rgb(85,107,47)}}
+\DoxyCodeLine{46   dark\_orange = 0xFF8C00,              \textcolor{comment}{// rgb(255,140,0)}}
+\DoxyCodeLine{47   dark\_orchid = 0x9932CC,              \textcolor{comment}{// rgb(153,50,204)}}
+\DoxyCodeLine{48   dark\_red = 0x8B0000,                 \textcolor{comment}{// rgb(139,0,0)}}
+\DoxyCodeLine{49   dark\_salmon = 0xE9967A,              \textcolor{comment}{// rgb(233,150,122)}}
+\DoxyCodeLine{50   dark\_sea\_green = 0x8FBC8F,           \textcolor{comment}{// rgb(143,188,143)}}
+\DoxyCodeLine{51   dark\_slate\_blue = 0x483D8B,          \textcolor{comment}{// rgb(72,61,139)}}
+\DoxyCodeLine{52   dark\_slate\_gray = 0x2F4F4F,          \textcolor{comment}{// rgb(47,79,79)}}
+\DoxyCodeLine{53   dark\_turquoise = 0x00CED1,           \textcolor{comment}{// rgb(0,206,209)}}
+\DoxyCodeLine{54   dark\_violet = 0x9400D3,              \textcolor{comment}{// rgb(148,0,211)}}
+\DoxyCodeLine{55   deep\_pink = 0xFF1493,                \textcolor{comment}{// rgb(255,20,147)}}
+\DoxyCodeLine{56   deep\_sky\_blue = 0x00BFFF,            \textcolor{comment}{// rgb(0,191,255)}}
+\DoxyCodeLine{57   dim\_gray = 0x696969,                 \textcolor{comment}{// rgb(105,105,105)}}
+\DoxyCodeLine{58   dodger\_blue = 0x1E90FF,              \textcolor{comment}{// rgb(30,144,255)}}
+\DoxyCodeLine{59   fire\_brick = 0xB22222,               \textcolor{comment}{// rgb(178,34,34)}}
+\DoxyCodeLine{60   floral\_white = 0xFFFAF0,             \textcolor{comment}{// rgb(255,250,240)}}
+\DoxyCodeLine{61   forest\_green = 0x228B22,             \textcolor{comment}{// rgb(34,139,34)}}
+\DoxyCodeLine{62   fuchsia = 0xFF00FF,                  \textcolor{comment}{// rgb(255,0,255)}}
+\DoxyCodeLine{63   gainsboro = 0xDCDCDC,                \textcolor{comment}{// rgb(220,220,220)}}
+\DoxyCodeLine{64   ghost\_white = 0xF8F8FF,              \textcolor{comment}{// rgb(248,248,255)}}
+\DoxyCodeLine{65   gold = 0xFFD700,                     \textcolor{comment}{// rgb(255,215,0)}}
+\DoxyCodeLine{66   golden\_rod = 0xDAA520,               \textcolor{comment}{// rgb(218,165,32)}}
+\DoxyCodeLine{67   gray = 0x808080,                     \textcolor{comment}{// rgb(128,128,128)}}
+\DoxyCodeLine{68   green = 0x008000,                    \textcolor{comment}{// rgb(0,128,0)}}
+\DoxyCodeLine{69   green\_yellow = 0xADFF2F,             \textcolor{comment}{// rgb(173,255,47)}}
+\DoxyCodeLine{70   honey\_dew = 0xF0FFF0,                \textcolor{comment}{// rgb(240,255,240)}}
+\DoxyCodeLine{71   hot\_pink = 0xFF69B4,                 \textcolor{comment}{// rgb(255,105,180)}}
+\DoxyCodeLine{72   indian\_red = 0xCD5C5C,               \textcolor{comment}{// rgb(205,92,92)}}
+\DoxyCodeLine{73   indigo = 0x4B0082,                   \textcolor{comment}{// rgb(75,0,130)}}
+\DoxyCodeLine{74   ivory = 0xFFFFF0,                    \textcolor{comment}{// rgb(255,255,240)}}
+\DoxyCodeLine{75   khaki = 0xF0E68C,                    \textcolor{comment}{// rgb(240,230,140)}}
+\DoxyCodeLine{76   lavender = 0xE6E6FA,                 \textcolor{comment}{// rgb(230,230,250)}}
+\DoxyCodeLine{77   lavender\_blush = 0xFFF0F5,           \textcolor{comment}{// rgb(255,240,245)}}
+\DoxyCodeLine{78   lawn\_green = 0x7CFC00,               \textcolor{comment}{// rgb(124,252,0)}}
+\DoxyCodeLine{79   lemon\_chiffon = 0xFFFACD,            \textcolor{comment}{// rgb(255,250,205)}}
+\DoxyCodeLine{80   light\_blue = 0xADD8E6,               \textcolor{comment}{// rgb(173,216,230)}}
+\DoxyCodeLine{81   light\_coral = 0xF08080,              \textcolor{comment}{// rgb(240,128,128)}}
+\DoxyCodeLine{82   light\_cyan = 0xE0FFFF,               \textcolor{comment}{// rgb(224,255,255)}}
+\DoxyCodeLine{83   light\_golden\_rod\_yellow = 0xFAFAD2,  \textcolor{comment}{// rgb(250,250,210)}}
+\DoxyCodeLine{84   light\_gray = 0xD3D3D3,               \textcolor{comment}{// rgb(211,211,211)}}
+\DoxyCodeLine{85   light\_green = 0x90EE90,              \textcolor{comment}{// rgb(144,238,144)}}
+\DoxyCodeLine{86   light\_pink = 0xFFB6C1,               \textcolor{comment}{// rgb(255,182,193)}}
+\DoxyCodeLine{87   light\_salmon = 0xFFA07A,             \textcolor{comment}{// rgb(255,160,122)}}
+\DoxyCodeLine{88   light\_sea\_green = 0x20B2AA,          \textcolor{comment}{// rgb(32,178,170)}}
+\DoxyCodeLine{89   light\_sky\_blue = 0x87CEFA,           \textcolor{comment}{// rgb(135,206,250)}}
+\DoxyCodeLine{90   light\_slate\_gray = 0x778899,         \textcolor{comment}{// rgb(119,136,153)}}
+\DoxyCodeLine{91   light\_steel\_blue = 0xB0C4DE,         \textcolor{comment}{// rgb(176,196,222)}}
+\DoxyCodeLine{92   light\_yellow = 0xFFFFE0,             \textcolor{comment}{// rgb(255,255,224)}}
+\DoxyCodeLine{93   lime = 0x00FF00,                     \textcolor{comment}{// rgb(0,255,0)}}
+\DoxyCodeLine{94   lime\_green = 0x32CD32,               \textcolor{comment}{// rgb(50,205,50)}}
+\DoxyCodeLine{95   linen = 0xFAF0E6,                    \textcolor{comment}{// rgb(250,240,230)}}
+\DoxyCodeLine{96   magenta = 0xFF00FF,                  \textcolor{comment}{// rgb(255,0,255)}}
+\DoxyCodeLine{97   maroon = 0x800000,                   \textcolor{comment}{// rgb(128,0,0)}}
+\DoxyCodeLine{98   medium\_aquamarine = 0x66CDAA,        \textcolor{comment}{// rgb(102,205,170)}}
+\DoxyCodeLine{99   medium\_blue = 0x0000CD,              \textcolor{comment}{// rgb(0,0,205)}}
+\DoxyCodeLine{100   medium\_orchid = 0xBA55D3,            \textcolor{comment}{// rgb(186,85,211)}}
+\DoxyCodeLine{101   medium\_purple = 0x9370DB,            \textcolor{comment}{// rgb(147,112,219)}}
+\DoxyCodeLine{102   medium\_sea\_green = 0x3CB371,         \textcolor{comment}{// rgb(60,179,113)}}
+\DoxyCodeLine{103   medium\_slate\_blue = 0x7B68EE,        \textcolor{comment}{// rgb(123,104,238)}}
+\DoxyCodeLine{104   medium\_spring\_green = 0x00FA9A,      \textcolor{comment}{// rgb(0,250,154)}}
+\DoxyCodeLine{105   medium\_turquoise = 0x48D1CC,         \textcolor{comment}{// rgb(72,209,204)}}
+\DoxyCodeLine{106   medium\_violet\_red = 0xC71585,        \textcolor{comment}{// rgb(199,21,133)}}
+\DoxyCodeLine{107   midnight\_blue = 0x191970,            \textcolor{comment}{// rgb(25,25,112)}}
+\DoxyCodeLine{108   mint\_cream = 0xF5FFFA,               \textcolor{comment}{// rgb(245,255,250)}}
+\DoxyCodeLine{109   misty\_rose = 0xFFE4E1,               \textcolor{comment}{// rgb(255,228,225)}}
+\DoxyCodeLine{110   moccasin = 0xFFE4B5,                 \textcolor{comment}{// rgb(255,228,181)}}
+\DoxyCodeLine{111   navajo\_white = 0xFFDEAD,             \textcolor{comment}{// rgb(255,222,173)}}
+\DoxyCodeLine{112   navy = 0x000080,                     \textcolor{comment}{// rgb(0,0,128)}}
+\DoxyCodeLine{113   old\_lace = 0xFDF5E6,                 \textcolor{comment}{// rgb(253,245,230)}}
+\DoxyCodeLine{114   olive = 0x808000,                    \textcolor{comment}{// rgb(128,128,0)}}
+\DoxyCodeLine{115   olive\_drab = 0x6B8E23,               \textcolor{comment}{// rgb(107,142,35)}}
+\DoxyCodeLine{116   orange = 0xFFA500,                   \textcolor{comment}{// rgb(255,165,0)}}
+\DoxyCodeLine{117   orange\_red = 0xFF4500,               \textcolor{comment}{// rgb(255,69,0)}}
+\DoxyCodeLine{118   orchid = 0xDA70D6,                   \textcolor{comment}{// rgb(218,112,214)}}
+\DoxyCodeLine{119   pale\_golden\_rod = 0xEEE8AA,          \textcolor{comment}{// rgb(238,232,170)}}
+\DoxyCodeLine{120   pale\_green = 0x98FB98,               \textcolor{comment}{// rgb(152,251,152)}}
+\DoxyCodeLine{121   pale\_turquoise = 0xAFEEEE,           \textcolor{comment}{// rgb(175,238,238)}}
+\DoxyCodeLine{122   pale\_violet\_red = 0xDB7093,          \textcolor{comment}{// rgb(219,112,147)}}
+\DoxyCodeLine{123   papaya\_whip = 0xFFEFD5,              \textcolor{comment}{// rgb(255,239,213)}}
+\DoxyCodeLine{124   peach\_puff = 0xFFDAB9,               \textcolor{comment}{// rgb(255,218,185)}}
+\DoxyCodeLine{125   peru = 0xCD853F,                     \textcolor{comment}{// rgb(205,133,63)}}
+\DoxyCodeLine{126   pink = 0xFFC0CB,                     \textcolor{comment}{// rgb(255,192,203)}}
+\DoxyCodeLine{127   plum = 0xDDA0DD,                     \textcolor{comment}{// rgb(221,160,221)}}
+\DoxyCodeLine{128   powder\_blue = 0xB0E0E6,              \textcolor{comment}{// rgb(176,224,230)}}
+\DoxyCodeLine{129   purple = 0x800080,                   \textcolor{comment}{// rgb(128,0,128)}}
+\DoxyCodeLine{130   rebecca\_purple = 0x663399,           \textcolor{comment}{// rgb(102,51,153)}}
+\DoxyCodeLine{131   red = 0xFF0000,                      \textcolor{comment}{// rgb(255,0,0)}}
+\DoxyCodeLine{132   rosy\_brown = 0xBC8F8F,               \textcolor{comment}{// rgb(188,143,143)}}
+\DoxyCodeLine{133   royal\_blue = 0x4169E1,               \textcolor{comment}{// rgb(65,105,225)}}
+\DoxyCodeLine{134   saddle\_brown = 0x8B4513,             \textcolor{comment}{// rgb(139,69,19)}}
+\DoxyCodeLine{135   salmon = 0xFA8072,                   \textcolor{comment}{// rgb(250,128,114)}}
+\DoxyCodeLine{136   sandy\_brown = 0xF4A460,              \textcolor{comment}{// rgb(244,164,96)}}
+\DoxyCodeLine{137   sea\_green = 0x2E8B57,                \textcolor{comment}{// rgb(46,139,87)}}
+\DoxyCodeLine{138   sea\_shell = 0xFFF5EE,                \textcolor{comment}{// rgb(255,245,238)}}
+\DoxyCodeLine{139   sienna = 0xA0522D,                   \textcolor{comment}{// rgb(160,82,45)}}
+\DoxyCodeLine{140   silver = 0xC0C0C0,                   \textcolor{comment}{// rgb(192,192,192)}}
+\DoxyCodeLine{141   sky\_blue = 0x87CEEB,                 \textcolor{comment}{// rgb(135,206,235)}}
+\DoxyCodeLine{142   slate\_blue = 0x6A5ACD,               \textcolor{comment}{// rgb(106,90,205)}}
+\DoxyCodeLine{143   slate\_gray = 0x708090,               \textcolor{comment}{// rgb(112,128,144)}}
+\DoxyCodeLine{144   snow = 0xFFFAFA,                     \textcolor{comment}{// rgb(255,250,250)}}
+\DoxyCodeLine{145   spring\_green = 0x00FF7F,             \textcolor{comment}{// rgb(0,255,127)}}
+\DoxyCodeLine{146   steel\_blue = 0x4682B4,               \textcolor{comment}{// rgb(70,130,180)}}
+\DoxyCodeLine{147   tan = 0xD2B48C,                      \textcolor{comment}{// rgb(210,180,140)}}
+\DoxyCodeLine{148   teal = 0x008080,                     \textcolor{comment}{// rgb(0,128,128)}}
+\DoxyCodeLine{149   thistle = 0xD8BFD8,                  \textcolor{comment}{// rgb(216,191,216)}}
+\DoxyCodeLine{150   tomato = 0xFF6347,                   \textcolor{comment}{// rgb(255,99,71)}}
+\DoxyCodeLine{151   turquoise = 0x40E0D0,                \textcolor{comment}{// rgb(64,224,208)}}
+\DoxyCodeLine{152   violet = 0xEE82EE,                   \textcolor{comment}{// rgb(238,130,238)}}
+\DoxyCodeLine{153   wheat = 0xF5DEB3,                    \textcolor{comment}{// rgb(245,222,179)}}
+\DoxyCodeLine{154   white = 0xFFFFFF,                    \textcolor{comment}{// rgb(255,255,255)}}
+\DoxyCodeLine{155   white\_smoke = 0xF5F5F5,              \textcolor{comment}{// rgb(245,245,245)}}
+\DoxyCodeLine{156   yellow = 0xFFFF00,                   \textcolor{comment}{// rgb(255,255,0)}}
+\DoxyCodeLine{157   yellow\_green = 0x9ACD32              \textcolor{comment}{// rgb(154,205,50)}}
+\DoxyCodeLine{158 \};                                     \textcolor{comment}{// enum class color}}
+\DoxyCodeLine{159 }
+\DoxyCodeLine{160 \textcolor{keyword}{enum class} terminal\_color : uint8\_t \{}
+\DoxyCodeLine{161   black = 30,}
+\DoxyCodeLine{162   red,}
+\DoxyCodeLine{163   green,}
+\DoxyCodeLine{164   yellow,}
+\DoxyCodeLine{165   blue,}
+\DoxyCodeLine{166   magenta,}
+\DoxyCodeLine{167   cyan,}
+\DoxyCodeLine{168   white,}
+\DoxyCodeLine{169   bright\_black = 90,}
+\DoxyCodeLine{170   bright\_red,}
+\DoxyCodeLine{171   bright\_green,}
+\DoxyCodeLine{172   bright\_yellow,}
+\DoxyCodeLine{173   bright\_blue,}
+\DoxyCodeLine{174   bright\_magenta,}
+\DoxyCodeLine{175   bright\_cyan,}
+\DoxyCodeLine{176   bright\_white}
+\DoxyCodeLine{177 \};}
+\DoxyCodeLine{178 }
+\DoxyCodeLine{179 \textcolor{keyword}{enum class} emphasis : uint8\_t \{}
+\DoxyCodeLine{180   bold = 1,}
+\DoxyCodeLine{181   faint = 1 << 1,}
+\DoxyCodeLine{182   italic = 1 << 2,}
+\DoxyCodeLine{183   underline = 1 << 3,}
+\DoxyCodeLine{184   blink = 1 << 4,}
+\DoxyCodeLine{185   reverse = 1 << 5,}
+\DoxyCodeLine{186   conceal = 1 << 6,}
+\DoxyCodeLine{187   strikethrough = 1 << 7,}
+\DoxyCodeLine{188 \};}
+\DoxyCodeLine{189 }
+\DoxyCodeLine{190 \textcolor{comment}{// rgb is a struct for red, green and blue colors.}}
+\DoxyCodeLine{191 \textcolor{comment}{// Using the name "{}rgb"{} makes some editors show the color in a tooltip.}}
+\DoxyCodeLine{192 \textcolor{keyword}{struct }\mbox{\hyperlink{structrgb}{rgb}} \{}
+\DoxyCodeLine{193   FMT\_CONSTEXPR \mbox{\hyperlink{structrgb}{rgb}}() : r(0), g(0), b(0) \{\}}
+\DoxyCodeLine{194   FMT\_CONSTEXPR \mbox{\hyperlink{structrgb}{rgb}}(uint8\_t r\_, uint8\_t g\_, uint8\_t b\_) : r(r\_), g(g\_), b(b\_) \{\}}
+\DoxyCodeLine{195   FMT\_CONSTEXPR \mbox{\hyperlink{structrgb}{rgb}}(uint32\_t hex)}
+\DoxyCodeLine{196       : r((hex >> 16) \& 0xFF), g((hex >> 8) \& 0xFF), b(hex \& 0xFF) \{\}}
+\DoxyCodeLine{197   FMT\_CONSTEXPR \mbox{\hyperlink{structrgb}{rgb}}(color hex)}
+\DoxyCodeLine{198       : r((uint32\_t(hex) >> 16) \& 0xFF),}
+\DoxyCodeLine{199         g((uint32\_t(hex) >> 8) \& 0xFF),}
+\DoxyCodeLine{200         b(uint32\_t(hex) \& 0xFF) \{\}}
+\DoxyCodeLine{201   uint8\_t r;}
+\DoxyCodeLine{202   uint8\_t g;}
+\DoxyCodeLine{203   uint8\_t b;}
+\DoxyCodeLine{204 \};}
+\DoxyCodeLine{205 }
+\DoxyCodeLine{206 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{207 }
+\DoxyCodeLine{208 \textcolor{comment}{// color is a struct of either a rgb color or a terminal color.}}
+\DoxyCodeLine{209 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1color__type}{color\_type}} \{}
+\DoxyCodeLine{210   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{color\_type}}() noexcept : is\_rgb(), \mbox{\hyperlink{classdetail_1_1value}{value}}\{\} \{\}}
+\DoxyCodeLine{211   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{color\_type}}(color rgb\_color) noexcept : is\_rgb(\textcolor{keyword}{true}), \mbox{\hyperlink{classdetail_1_1value}{value}}\{\} \{}
+\DoxyCodeLine{212     \mbox{\hyperlink{classdetail_1_1value}{value}}.rgb\_color = \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(rgb\_color);}
+\DoxyCodeLine{213   \}}
+\DoxyCodeLine{214   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{color\_type}}(\mbox{\hyperlink{structrgb}{rgb}} rgb\_color) noexcept : is\_rgb(\textcolor{keyword}{true}), \mbox{\hyperlink{classdetail_1_1value}{value}}\{\} \{}
+\DoxyCodeLine{215     \mbox{\hyperlink{classdetail_1_1value}{value}}.rgb\_color = (\textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(rgb\_color.r) << 16) |}
+\DoxyCodeLine{216                       (\textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(rgb\_color.g) << 8) | rgb\_color.b;}
+\DoxyCodeLine{217   \}}
+\DoxyCodeLine{218   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{color\_type}}(terminal\_color term\_color) noexcept}
+\DoxyCodeLine{219       : is\_rgb(), \mbox{\hyperlink{classdetail_1_1value}{value}}\{\} \{}
+\DoxyCodeLine{220     \mbox{\hyperlink{classdetail_1_1value}{value}}.term\_color = \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(term\_color);}
+\DoxyCodeLine{221   \}}
+\DoxyCodeLine{222   \textcolor{keywordtype}{bool} is\_rgb;}
+\DoxyCodeLine{223   \textcolor{keyword}{union }\mbox{\hyperlink{uniondetail_1_1color__type_1_1color__union}{color\_union}} \{}
+\DoxyCodeLine{224     uint8\_t term\_color;}
+\DoxyCodeLine{225     uint32\_t rgb\_color;}
+\DoxyCodeLine{226   \} \mbox{\hyperlink{classdetail_1_1value}{value}};}
+\DoxyCodeLine{227 \};}
+\DoxyCodeLine{228 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{229 }
+\DoxyCodeLine{231 \textcolor{keyword}{class }\mbox{\hyperlink{classtext__style}{text\_style}} \{}
+\DoxyCodeLine{232  \textcolor{keyword}{public}:}
+\DoxyCodeLine{233   FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}}(emphasis em = emphasis()) noexcept}
+\DoxyCodeLine{234       : set\_foreground\_color(), set\_background\_color(), ems(em) \{\}}
+\DoxyCodeLine{235 }
+\DoxyCodeLine{236   FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}}\& operator|=(\textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& rhs) \{}
+\DoxyCodeLine{237     \textcolor{keywordflow}{if} (!set\_foreground\_color) \{}
+\DoxyCodeLine{238       set\_foreground\_color = rhs.set\_foreground\_color;}
+\DoxyCodeLine{239       foreground\_color = rhs.foreground\_color;}
+\DoxyCodeLine{240     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (rhs.set\_foreground\_color) \{}
+\DoxyCodeLine{241       \textcolor{keywordflow}{if} (!foreground\_color.is\_rgb || !rhs.foreground\_color.is\_rgb)}
+\DoxyCodeLine{242         FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}can't OR a terminal color"{}}));}
+\DoxyCodeLine{243       foreground\_color.value.rgb\_color |= rhs.foreground\_color.value.rgb\_color;}
+\DoxyCodeLine{244     \}}
+\DoxyCodeLine{245 }
+\DoxyCodeLine{246     \textcolor{keywordflow}{if} (!set\_background\_color) \{}
+\DoxyCodeLine{247       set\_background\_color = rhs.set\_background\_color;}
+\DoxyCodeLine{248       background\_color = rhs.background\_color;}
+\DoxyCodeLine{249     \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (rhs.set\_background\_color) \{}
+\DoxyCodeLine{250       \textcolor{keywordflow}{if} (!background\_color.is\_rgb || !rhs.background\_color.is\_rgb)}
+\DoxyCodeLine{251         FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}can't OR a terminal color"{}}));}
+\DoxyCodeLine{252       background\_color.value.rgb\_color |= rhs.background\_color.value.rgb\_color;}
+\DoxyCodeLine{253     \}}
+\DoxyCodeLine{254 }
+\DoxyCodeLine{255     ems = \textcolor{keyword}{static\_cast<}emphasis\textcolor{keyword}{>}(\textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(ems) |}
+\DoxyCodeLine{256                                 \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(rhs.ems));}
+\DoxyCodeLine{257     \textcolor{keywordflow}{return} *\textcolor{keyword}{this};}
+\DoxyCodeLine{258   \}}
+\DoxyCodeLine{259 }
+\DoxyCodeLine{260   \textcolor{keyword}{friend} FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}} operator|(\mbox{\hyperlink{classtext__style}{text\_style}} lhs,}
+\DoxyCodeLine{261                                             \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& rhs) \{}
+\DoxyCodeLine{262     \textcolor{keywordflow}{return} lhs |= rhs;}
+\DoxyCodeLine{263   \}}
+\DoxyCodeLine{264 }
+\DoxyCodeLine{265   FMT\_CONSTEXPR \textcolor{keywordtype}{bool} has\_foreground() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{266     \textcolor{keywordflow}{return} set\_foreground\_color;}
+\DoxyCodeLine{267   \}}
+\DoxyCodeLine{268   FMT\_CONSTEXPR \textcolor{keywordtype}{bool} has\_background() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{269     \textcolor{keywordflow}{return} set\_background\_color;}
+\DoxyCodeLine{270   \}}
+\DoxyCodeLine{271   FMT\_CONSTEXPR \textcolor{keywordtype}{bool} has\_emphasis() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{272     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(ems) != 0;}
+\DoxyCodeLine{273   \}}
+\DoxyCodeLine{274   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} get\_foreground() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{275     FMT\_ASSERT(has\_foreground(), \textcolor{stringliteral}{"{}no foreground specified for this style"{}});}
+\DoxyCodeLine{276     \textcolor{keywordflow}{return} foreground\_color;}
+\DoxyCodeLine{277   \}}
+\DoxyCodeLine{278   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} get\_background() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{279     FMT\_ASSERT(has\_background(), \textcolor{stringliteral}{"{}no background specified for this style"{}});}
+\DoxyCodeLine{280     \textcolor{keywordflow}{return} background\_color;}
+\DoxyCodeLine{281   \}}
+\DoxyCodeLine{282   FMT\_CONSTEXPR emphasis get\_emphasis() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{283     FMT\_ASSERT(has\_emphasis(), \textcolor{stringliteral}{"{}no emphasis specified for this style"{}});}
+\DoxyCodeLine{284     \textcolor{keywordflow}{return} ems;}
+\DoxyCodeLine{285   \}}
+\DoxyCodeLine{286 }
+\DoxyCodeLine{287  \textcolor{keyword}{private}:}
+\DoxyCodeLine{288   FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}}(\textcolor{keywordtype}{bool} is\_foreground,}
+\DoxyCodeLine{289                            \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} text\_color) noexcept}
+\DoxyCodeLine{290       : set\_foreground\_color(), set\_background\_color(), ems() \{}
+\DoxyCodeLine{291     \textcolor{keywordflow}{if} (is\_foreground) \{}
+\DoxyCodeLine{292       foreground\_color = text\_color;}
+\DoxyCodeLine{293       set\_foreground\_color = \textcolor{keyword}{true};}
+\DoxyCodeLine{294     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{295       background\_color = text\_color;}
+\DoxyCodeLine{296       set\_background\_color = \textcolor{keyword}{true};}
+\DoxyCodeLine{297     \}}
+\DoxyCodeLine{298   \}}
+\DoxyCodeLine{299 }
+\DoxyCodeLine{300   \textcolor{keyword}{friend} FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}} \mbox{\hyperlink{classtext__style_a30839219f297246ebc1babfb45f96f2a}{fg}}(\mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} foreground) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{301 }
+\DoxyCodeLine{302   \textcolor{keyword}{friend} FMT\_CONSTEXPR \mbox{\hyperlink{classtext__style}{text\_style}} \mbox{\hyperlink{classtext__style_ae1af0d62808a99dac446d1de67d36505}{bg}}(\mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} background) \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{303 }
+\DoxyCodeLine{304   \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} foreground\_color;}
+\DoxyCodeLine{305   \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} background\_color;}
+\DoxyCodeLine{306   \textcolor{keywordtype}{bool} set\_foreground\_color;}
+\DoxyCodeLine{307   \textcolor{keywordtype}{bool} set\_background\_color;}
+\DoxyCodeLine{308   emphasis ems;}
+\DoxyCodeLine{309 \};}
+\DoxyCodeLine{310 }
+\DoxyCodeLine{312 FMT\_CONSTEXPR \textcolor{keyword}{inline} \mbox{\hyperlink{classtext__style}{text\_style}} fg(\mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} foreground) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{313   \textcolor{keywordflow}{return} \mbox{\hyperlink{classtext__style}{text\_style}}(\textcolor{keyword}{true}, foreground);}
+\DoxyCodeLine{314 \}}
+\DoxyCodeLine{315 }
+\DoxyCodeLine{317 FMT\_CONSTEXPR \textcolor{keyword}{inline} \mbox{\hyperlink{classtext__style}{text\_style}} bg(\mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} background) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{318   \textcolor{keywordflow}{return} \mbox{\hyperlink{classtext__style}{text\_style}}(\textcolor{keyword}{false}, background);}
+\DoxyCodeLine{319 \}}
+\DoxyCodeLine{320 }
+\DoxyCodeLine{321 FMT\_CONSTEXPR \textcolor{keyword}{inline} \mbox{\hyperlink{classtext__style}{text\_style}} operator|(emphasis lhs, emphasis rhs) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{322   \textcolor{keywordflow}{return} \mbox{\hyperlink{classtext__style}{text\_style}}(lhs) | rhs;}
+\DoxyCodeLine{323 \}}
+\DoxyCodeLine{324 }
+\DoxyCodeLine{325 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{326 }
+\DoxyCodeLine{327 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1ansi__color__escape}{ansi\_color\_escape}} \{}
+\DoxyCodeLine{328   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1ansi__color__escape}{ansi\_color\_escape}}(\mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} text\_color,}
+\DoxyCodeLine{329                                   \textcolor{keyword}{const} \textcolor{keywordtype}{char}* esc) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{330     \textcolor{comment}{// If we have a terminal color, we need to output another escape code}}
+\DoxyCodeLine{331     \textcolor{comment}{// sequence.}}
+\DoxyCodeLine{332     \textcolor{keywordflow}{if} (!text\_color.is\_rgb) \{}
+\DoxyCodeLine{333       \textcolor{keywordtype}{bool} is\_background = esc == \mbox{\hyperlink{classbasic__string__view}{string\_view}}(\textcolor{stringliteral}{"{}\(\backslash\)x1b[48;2;"{}});}
+\DoxyCodeLine{334       uint32\_t \mbox{\hyperlink{classdetail_1_1value}{value}} = text\_color.value.term\_color;}
+\DoxyCodeLine{335       \textcolor{comment}{// Background ASCII codes are the same as the foreground ones but with}}
+\DoxyCodeLine{336       \textcolor{comment}{// 10 more.}}
+\DoxyCodeLine{337       \textcolor{keywordflow}{if} (is\_background) \mbox{\hyperlink{classdetail_1_1value}{value}} += 10u;}
+\DoxyCodeLine{338 }
+\DoxyCodeLine{339       \textcolor{keywordtype}{size\_t} index = 0;}
+\DoxyCodeLine{340       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{stringliteral}{'\(\backslash\)x1b'});}
+\DoxyCodeLine{341       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'['});}
+\DoxyCodeLine{342 }
+\DoxyCodeLine{343       \textcolor{keywordflow}{if} (\mbox{\hyperlink{classdetail_1_1value}{value}} >= 100u) \{}
+\DoxyCodeLine{344         \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'1'});}
+\DoxyCodeLine{345         \mbox{\hyperlink{classdetail_1_1value}{value}} \%= 100u;}
+\DoxyCodeLine{346       \}}
+\DoxyCodeLine{347       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + \mbox{\hyperlink{classdetail_1_1value}{value}} / 10u);}
+\DoxyCodeLine{348       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + \mbox{\hyperlink{classdetail_1_1value}{value}} \% 10u);}
+\DoxyCodeLine{349 }
+\DoxyCodeLine{350       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'m'});}
+\DoxyCodeLine{351       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'\(\backslash\)0'});}
+\DoxyCodeLine{352       \textcolor{keywordflow}{return};}
+\DoxyCodeLine{353     \}}
+\DoxyCodeLine{354 }
+\DoxyCodeLine{355     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 7; i++) \{}
+\DoxyCodeLine{356       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[i] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(esc[i]);}
+\DoxyCodeLine{357     \}}
+\DoxyCodeLine{358     \mbox{\hyperlink{structrgb}{rgb}} color(text\_color.value.rgb\_color);}
+\DoxyCodeLine{359     to\_esc(color.r, \mbox{\hyperlink{classdetail_1_1buffer}{buffer}} + 7, \textcolor{charliteral}{';'});}
+\DoxyCodeLine{360     to\_esc(color.g, \mbox{\hyperlink{classdetail_1_1buffer}{buffer}} + 11, \textcolor{charliteral}{';'});}
+\DoxyCodeLine{361     to\_esc(color.b, \mbox{\hyperlink{classdetail_1_1buffer}{buffer}} + 15, \textcolor{charliteral}{'m'});}
+\DoxyCodeLine{362     \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[19] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(0);}
+\DoxyCodeLine{363   \}}
+\DoxyCodeLine{364   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1ansi__color__escape}{ansi\_color\_escape}}(emphasis em) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{365     uint8\_t em\_codes[num\_emphases] = \{\};}
+\DoxyCodeLine{366     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::bold)) em\_codes[0] = 1;}
+\DoxyCodeLine{367     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::faint)) em\_codes[1] = 2;}
+\DoxyCodeLine{368     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::italic)) em\_codes[2] = 3;}
+\DoxyCodeLine{369     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::underline)) em\_codes[3] = 4;}
+\DoxyCodeLine{370     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::blink)) em\_codes[4] = 5;}
+\DoxyCodeLine{371     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::reverse)) em\_codes[5] = 7;}
+\DoxyCodeLine{372     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::conceal)) em\_codes[6] = 8;}
+\DoxyCodeLine{373     \textcolor{keywordflow}{if} (has\_emphasis(em, emphasis::strikethrough)) em\_codes[7] = 9;}
+\DoxyCodeLine{374 }
+\DoxyCodeLine{375     \textcolor{keywordtype}{size\_t} index = 0;}
+\DoxyCodeLine{376     \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < num\_emphases; ++i) \{}
+\DoxyCodeLine{377       \textcolor{keywordflow}{if} (!em\_codes[i]) \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{378       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{stringliteral}{'\(\backslash\)x1b'});}
+\DoxyCodeLine{379       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'['});}
+\DoxyCodeLine{380       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + em\_codes[i]);}
+\DoxyCodeLine{381       \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'m'});}
+\DoxyCodeLine{382     \}}
+\DoxyCodeLine{383     \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[index++] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(0);}
+\DoxyCodeLine{384   \}}
+\DoxyCodeLine{385   FMT\_CONSTEXPR \textcolor{keyword}{operator} \textcolor{keyword}{const} Char*() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}; \}}
+\DoxyCodeLine{386 }
+\DoxyCodeLine{387   FMT\_CONSTEXPR \textcolor{keyword}{const} Char* begin() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}; \}}
+\DoxyCodeLine{388   FMT\_CONSTEXPR\_CHAR\_TRAITS \textcolor{keyword}{const} Char* end() \textcolor{keyword}{const} \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{389     \textcolor{keywordflow}{return} \mbox{\hyperlink{classdetail_1_1buffer}{buffer}} + std::char\_traits<Char>::length(\mbox{\hyperlink{classdetail_1_1buffer}{buffer}});}
+\DoxyCodeLine{390   \}}
+\DoxyCodeLine{391 }
+\DoxyCodeLine{392  \textcolor{keyword}{private}:}
+\DoxyCodeLine{393   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} num\_emphases = 8;}
+\DoxyCodeLine{394   Char \mbox{\hyperlink{classdetail_1_1buffer}{buffer}}[7u + 3u * num\_emphases + 1u];}
+\DoxyCodeLine{395 }
+\DoxyCodeLine{396   \textcolor{keyword}{static} FMT\_CONSTEXPR \textcolor{keywordtype}{void} to\_esc(uint8\_t c, Char* out,}
+\DoxyCodeLine{397                                    \textcolor{keywordtype}{char} delimiter) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{398     out[0] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + c / 100);}
+\DoxyCodeLine{399     out[1] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + c / 10 \% 10);}
+\DoxyCodeLine{400     out[2] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(\textcolor{charliteral}{'0'} + c \% 10);}
+\DoxyCodeLine{401     out[3] = \textcolor{keyword}{static\_cast<}Char\textcolor{keyword}{>}(delimiter);}
+\DoxyCodeLine{402   \}}
+\DoxyCodeLine{403   \textcolor{keyword}{static} FMT\_CONSTEXPR \textcolor{keywordtype}{bool} has\_emphasis(emphasis em, emphasis mask) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{404     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(em) \& \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(mask);}
+\DoxyCodeLine{405   \}}
+\DoxyCodeLine{406 \};}
+\DoxyCodeLine{407 }
+\DoxyCodeLine{408 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{409 FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1ansi__color__escape}{ansi\_color\_escape<Char>}} make\_foreground\_color(}
+\DoxyCodeLine{410     \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} foreground) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{411   \textcolor{keywordflow}{return} \mbox{\hyperlink{structdetail_1_1ansi__color__escape}{ansi\_color\_escape<Char>}}(foreground, \textcolor{stringliteral}{"{}\(\backslash\)x1b[38;2;"{}});}
+\DoxyCodeLine{412 \}}
+\DoxyCodeLine{413 }
+\DoxyCodeLine{414 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{415 FMT\_CONSTEXPR ansi\_color\_escape<Char> make\_background\_color(}
+\DoxyCodeLine{416     \mbox{\hyperlink{structdetail_1_1color__type}{detail::color\_type}} background) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{417   \textcolor{keywordflow}{return} ansi\_color\_escape<Char>(background, \textcolor{stringliteral}{"{}\(\backslash\)x1b[48;2;"{}});}
+\DoxyCodeLine{418 \}}
+\DoxyCodeLine{419 }
+\DoxyCodeLine{420 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{421 FMT\_CONSTEXPR ansi\_color\_escape<Char> make\_emphasis(emphasis em) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{422   \textcolor{keywordflow}{return} ansi\_color\_escape<Char>(em);}
+\DoxyCodeLine{423 \}}
+\DoxyCodeLine{424 }
+\DoxyCodeLine{425 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char> \textcolor{keyword}{inline} \textcolor{keywordtype}{void} reset\_color(buffer<Char>\& buffer) \{}
+\DoxyCodeLine{426   \textcolor{keyword}{auto} reset\_color = \mbox{\hyperlink{classbasic__string__view}{string\_view}}(\textcolor{stringliteral}{"{}\(\backslash\)x1b[0m"{}});}
+\DoxyCodeLine{427   buffer.append(reset\_color.begin(), reset\_color.end());}
+\DoxyCodeLine{428 \}}
+\DoxyCodeLine{429 }
+\DoxyCodeLine{430 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1styled__arg}{styled\_arg}} \{}
+\DoxyCodeLine{431   \textcolor{keyword}{const} T\& \mbox{\hyperlink{classdetail_1_1value}{value}};}
+\DoxyCodeLine{432   \mbox{\hyperlink{classtext__style}{text\_style}} style;}
+\DoxyCodeLine{433 \};}
+\DoxyCodeLine{434 }
+\DoxyCodeLine{435 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{436 \textcolor{keywordtype}{void} vformat\_to(\mbox{\hyperlink{classdetail_1_1buffer}{buffer<Char>}}\& buf, \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts,}
+\DoxyCodeLine{437                 \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} format\_str,}
+\DoxyCodeLine{438                 \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__format__context}{buffer\_context}}<type\_identity\_t<Char>>> args) \{}
+\DoxyCodeLine{439   \textcolor{keywordtype}{bool} has\_style = \textcolor{keyword}{false};}
+\DoxyCodeLine{440   \textcolor{keywordflow}{if} (ts.has\_emphasis()) \{}
+\DoxyCodeLine{441     has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{442     \textcolor{keyword}{auto} emphasis = detail::make\_emphasis<Char>(ts.get\_emphasis());}
+\DoxyCodeLine{443     buf.\mbox{\hyperlink{classdetail_1_1buffer_ab12c0beccf64adf0091468e357ed4b92}{append}}(emphasis.begin(), emphasis.end());}
+\DoxyCodeLine{444   \}}
+\DoxyCodeLine{445   \textcolor{keywordflow}{if} (ts.has\_foreground()) \{}
+\DoxyCodeLine{446     has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{447     \textcolor{keyword}{auto} foreground = detail::make\_foreground\_color<Char>(ts.get\_foreground());}
+\DoxyCodeLine{448     buf.\mbox{\hyperlink{classdetail_1_1buffer_ab12c0beccf64adf0091468e357ed4b92}{append}}(foreground.begin(), foreground.end());}
+\DoxyCodeLine{449   \}}
+\DoxyCodeLine{450   \textcolor{keywordflow}{if} (ts.has\_background()) \{}
+\DoxyCodeLine{451     has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{452     \textcolor{keyword}{auto} background = detail::make\_background\_color<Char>(ts.get\_background());}
+\DoxyCodeLine{453     buf.\mbox{\hyperlink{classdetail_1_1buffer_ab12c0beccf64adf0091468e357ed4b92}{append}}(background.begin(), background.end());}
+\DoxyCodeLine{454   \}}
+\DoxyCodeLine{455   detail::vformat\_to(buf, format\_str, args, \{\});}
+\DoxyCodeLine{456   \textcolor{keywordflow}{if} (has\_style) detail::reset\_color<Char>(buf);}
+\DoxyCodeLine{457 \}}
+\DoxyCodeLine{458 }
+\DoxyCodeLine{459 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{460 }
+\DoxyCodeLine{461 \textcolor{keyword}{inline} \textcolor{keywordtype}{void} vprint(std::FILE* f, \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \mbox{\hyperlink{classbasic__string__view}{string\_view}} fmt,}
+\DoxyCodeLine{462                    \mbox{\hyperlink{classbasic__format__args}{format\_args}} args) \{}
+\DoxyCodeLine{463   \textcolor{comment}{// Legacy wide streams are not supported.}}
+\DoxyCodeLine{464   \textcolor{keyword}{auto} buf = \mbox{\hyperlink{classbasic__memory__buffer}{memory\_buffer}}();}
+\DoxyCodeLine{465   detail::vformat\_to(buf, ts, fmt, args);}
+\DoxyCodeLine{466   \textcolor{keywordflow}{if} (detail::is\_utf8()) \{}
+\DoxyCodeLine{467     detail::print(f, \mbox{\hyperlink{classbasic__string__view}{string\_view}}(buf.begin(), buf.\mbox{\hyperlink{classdetail_1_1buffer_a8685285932360c284d19003fc4ba3edc}{size}}()));}
+\DoxyCodeLine{468     \textcolor{keywordflow}{return};}
+\DoxyCodeLine{469   \}}
+\DoxyCodeLine{470   buf.push\_back(\textcolor{charliteral}{'\(\backslash\)0'});}
+\DoxyCodeLine{471   \textcolor{keywordtype}{int} result = std::fputs(buf.\mbox{\hyperlink{classdetail_1_1buffer_aeb33e0a2d2be2bbca9e0236c148089c8}{data}}(), f);}
+\DoxyCodeLine{472   \textcolor{keywordflow}{if} (result < 0)}
+\DoxyCodeLine{473     FMT\_THROW(system\_error(errno, FMT\_STRING(\textcolor{stringliteral}{"{}cannot write to file"{}})));}
+\DoxyCodeLine{474 \}}
+\DoxyCodeLine{475 }
+\DoxyCodeLine{487 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}},}
+\DoxyCodeLine{488           FMT\_ENABLE\_IF(\mbox{\hyperlink{structdetail_1_1is__string}{detail::is\_string<S>::value}})>}
+\DoxyCodeLine{489 \textcolor{keywordtype}{void} print(std::FILE* f, \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \textcolor{keyword}{const} S\& format\_str,}
+\DoxyCodeLine{490            \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{491   vprint(f, ts, format\_str,}
+\DoxyCodeLine{492          fmt::make\_format\_args<\mbox{\hyperlink{classbasic__format__context}{buffer\_context}}<char\_t<S>>>(args...));}
+\DoxyCodeLine{493 \}}
+\DoxyCodeLine{494 }
+\DoxyCodeLine{506 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}},}
+\DoxyCodeLine{507           FMT\_ENABLE\_IF(\mbox{\hyperlink{structdetail_1_1is__string}{detail::is\_string<S>::value}})>}
+\DoxyCodeLine{508 \textcolor{keywordtype}{void} print(\textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \textcolor{keyword}{const} S\& format\_str, \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{509   \textcolor{keywordflow}{return} print(stdout, ts, format\_str, args...);}
+\DoxyCodeLine{510 \}}
+\DoxyCodeLine{511 }
+\DoxyCodeLine{512 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename} Char = \textcolor{keywordtype}{char}\_t<S>>}
+\DoxyCodeLine{513 \textcolor{keyword}{inline} std::basic\_string<Char> vformat(}
+\DoxyCodeLine{514     \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \textcolor{keyword}{const} S\& format\_str,}
+\DoxyCodeLine{515     \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__format__context}{buffer\_context}}<type\_identity\_t<Char>>> args) \{}
+\DoxyCodeLine{516   \mbox{\hyperlink{classbasic__memory__buffer}{basic\_memory\_buffer<Char>}} buf;}
+\DoxyCodeLine{517   detail::vformat\_to(buf, ts, detail::to\_string\_view(format\_str), args);}
+\DoxyCodeLine{518   \textcolor{keywordflow}{return} fmt::to\_string(buf);}
+\DoxyCodeLine{519 \}}
+\DoxyCodeLine{520 }
+\DoxyCodeLine{533 \textcolor{keyword}{template} <\textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}}, \textcolor{keyword}{typename} Char = char\_t<S>>}
+\DoxyCodeLine{534 \textcolor{keyword}{inline} std::basic\_string<Char> format(\textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \textcolor{keyword}{const} S\& format\_str,}
+\DoxyCodeLine{535                                       \textcolor{keyword}{const} \mbox{\hyperlink{classArgs}{Args}}\&... args) \{}
+\DoxyCodeLine{536   \textcolor{keywordflow}{return} fmt::vformat(ts, detail::to\_string\_view(format\_str),}
+\DoxyCodeLine{537                       fmt::make\_format\_args<\mbox{\hyperlink{classbasic__format__context}{buffer\_context<Char>}}>(args...));}
+\DoxyCodeLine{538 \}}
+\DoxyCodeLine{539 }
+\DoxyCodeLine{543 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt, \textcolor{keyword}{typename} Char,}
+\DoxyCodeLine{544           FMT\_ENABLE\_IF(\mbox{\hyperlink{structdetail_1_1is__output__iterator}{detail::is\_output\_iterator<OutputIt, Char>::value}})>}
+\DoxyCodeLine{545 OutputIt vformat\_to(}
+\DoxyCodeLine{546     OutputIt out, \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} format\_str,}
+\DoxyCodeLine{547     \mbox{\hyperlink{classbasic__format__args}{basic\_format\_args}}<\mbox{\hyperlink{classbasic__format__context}{buffer\_context}}<type\_identity\_t<Char>>> args) \{}
+\DoxyCodeLine{548   \textcolor{keyword}{auto}\&\& buf = detail::get\_buffer<Char>(out);}
+\DoxyCodeLine{549   detail::vformat\_to(buf, ts, format\_str, args);}
+\DoxyCodeLine{550   \textcolor{keywordflow}{return} detail::get\_iterator(buf, out);}
+\DoxyCodeLine{551 \}}
+\DoxyCodeLine{552 }
+\DoxyCodeLine{565 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt, \textcolor{keyword}{typename} S, \textcolor{keyword}{typename}... \mbox{\hyperlink{classArgs}{Args}},}
+\DoxyCodeLine{566           \textcolor{keywordtype}{bool} enable = \mbox{\hyperlink{structdetail_1_1is__output__iterator}{detail::is\_output\_iterator<OutputIt, char\_t<S>}}>::value\&\&}
+\DoxyCodeLine{567               \mbox{\hyperlink{structdetail_1_1is__string}{detail::is\_string<S>::value}}>}
+\DoxyCodeLine{568 \textcolor{keyword}{inline} \textcolor{keyword}{auto} format\_to(OutputIt out, \textcolor{keyword}{const} \mbox{\hyperlink{classtext__style}{text\_style}}\& ts, \textcolor{keyword}{const} S\& format\_str,}
+\DoxyCodeLine{569                       \mbox{\hyperlink{classArgs}{Args}}\&\&... args) -\/>}
+\DoxyCodeLine{570     \textcolor{keyword}{typename} std::enable\_if<enable, OutputIt>::type \{}
+\DoxyCodeLine{571   \textcolor{keywordflow}{return} vformat\_to(out, ts, detail::to\_string\_view(format\_str),}
+\DoxyCodeLine{572                     fmt::make\_format\_args<\mbox{\hyperlink{classbasic__format__context}{buffer\_context}}<char\_t<S>>>(args...));}
+\DoxyCodeLine{573 \}}
+\DoxyCodeLine{574 }
+\DoxyCodeLine{575 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{576 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<detail::styled\_arg<T>, Char> : \mbox{\hyperlink{structformatter}{formatter}}<T, Char> \{}
+\DoxyCodeLine{577   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{578   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} \mbox{\hyperlink{structdetail_1_1styled__arg}{detail::styled\_arg<T>}}\& arg, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{579       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{580     \textcolor{keyword}{const} \textcolor{keyword}{auto}\& ts = arg.style;}
+\DoxyCodeLine{581     \textcolor{keyword}{const} \textcolor{keyword}{auto}\& value = arg.value;}
+\DoxyCodeLine{582     \textcolor{keyword}{auto} out = ctx.out();}
+\DoxyCodeLine{583 }
+\DoxyCodeLine{584     \textcolor{keywordtype}{bool} has\_style = \textcolor{keyword}{false};}
+\DoxyCodeLine{585     \textcolor{keywordflow}{if} (ts.has\_emphasis()) \{}
+\DoxyCodeLine{586       has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{587       \textcolor{keyword}{auto} emphasis = detail::make\_emphasis<Char>(ts.get\_emphasis());}
+\DoxyCodeLine{588       out = std::copy(emphasis.begin(), emphasis.end(), out);}
+\DoxyCodeLine{589     \}}
+\DoxyCodeLine{590     \textcolor{keywordflow}{if} (ts.has\_foreground()) \{}
+\DoxyCodeLine{591       has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{592       \textcolor{keyword}{auto} foreground =}
+\DoxyCodeLine{593           detail::make\_foreground\_color<Char>(ts.get\_foreground());}
+\DoxyCodeLine{594       out = std::copy(foreground.begin(), foreground.end(), out);}
+\DoxyCodeLine{595     \}}
+\DoxyCodeLine{596     \textcolor{keywordflow}{if} (ts.has\_background()) \{}
+\DoxyCodeLine{597       has\_style = \textcolor{keyword}{true};}
+\DoxyCodeLine{598       \textcolor{keyword}{auto} background =}
+\DoxyCodeLine{599           detail::make\_background\_color<Char>(ts.get\_background());}
+\DoxyCodeLine{600       out = std::copy(background.begin(), background.end(), out);}
+\DoxyCodeLine{601     \}}
+\DoxyCodeLine{602     out = \mbox{\hyperlink{structformatter}{formatter<T, Char>::format}}(value, ctx);}
+\DoxyCodeLine{603     \textcolor{keywordflow}{if} (has\_style) \{}
+\DoxyCodeLine{604       \textcolor{keyword}{auto} reset\_color = \mbox{\hyperlink{classbasic__string__view}{string\_view}}(\textcolor{stringliteral}{"{}\(\backslash\)x1b[0m"{}});}
+\DoxyCodeLine{605       out = std::copy(reset\_color.begin(), reset\_color.end(), out);}
+\DoxyCodeLine{606     \}}
+\DoxyCodeLine{607     \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{608   \}}
+\DoxyCodeLine{609 \};}
+\DoxyCodeLine{610 }
+\DoxyCodeLine{623 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{624 FMT\_CONSTEXPR \textcolor{keyword}{auto} styled(\textcolor{keyword}{const} T\& value, \mbox{\hyperlink{classtext__style}{text\_style}} ts)}
+\DoxyCodeLine{625     -\/> \mbox{\hyperlink{structdetail_1_1styled__arg}{detail::styled\_arg<remove\_cvref\_t<T>}}> \{}
+\DoxyCodeLine{626   \textcolor{keywordflow}{return} \mbox{\hyperlink{structdetail_1_1styled__arg}{detail::styled\_arg<remove\_cvref\_t<T>}}>\{value, ts\};}
+\DoxyCodeLine{627 \}}
+\DoxyCodeLine{628 }
+\DoxyCodeLine{629 FMT\_END\_EXPORT}
+\DoxyCodeLine{630 FMT\_END\_NAMESPACE}
+\DoxyCodeLine{631 }
+\DoxyCodeLine{632 \textcolor{preprocessor}{\#endif  }\textcolor{comment}{// FMT\_COLOR\_H\_}}
+
+\end{DoxyCode}

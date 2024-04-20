@@ -1,0 +1,719 @@
+\hypertarget{ranges_8h_source}{}\doxysection{ranges.\+h}
+\label{ranges_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/ranges.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/third\_party/fmt/ranges.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// Formatting library for C++ -\/ experimental range support}}
+\DoxyCodeLine{2 \textcolor{comment}{//}}
+\DoxyCodeLine{3 \textcolor{comment}{// Copyright (c) 2012 -\/ present, Victor Zverovich}}
+\DoxyCodeLine{4 \textcolor{comment}{// All rights reserved.}}
+\DoxyCodeLine{5 \textcolor{comment}{//}}
+\DoxyCodeLine{6 \textcolor{comment}{// For the license information refer to format.h.}}
+\DoxyCodeLine{7 \textcolor{comment}{//}}
+\DoxyCodeLine{8 \textcolor{comment}{// Copyright (c) 2018 -\/ present, Remotion (Igor Schulz)}}
+\DoxyCodeLine{9 \textcolor{comment}{// All Rights Reserved}}
+\DoxyCodeLine{10 \textcolor{comment}{// \{fmt\} support for ranges, containers and types tuple interface.}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#ifndef FMT\_RANGES\_H\_}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#define FMT\_RANGES\_H\_}}
+\DoxyCodeLine{14 }
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include <initializer\_list>}}
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include <tuple>}}
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#include <type\_traits>}}
+\DoxyCodeLine{18 }
+\DoxyCodeLine{19 \textcolor{preprocessor}{\#include "{}format.h"{}}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 FMT\_BEGIN\_NAMESPACE}
+\DoxyCodeLine{22 }
+\DoxyCodeLine{23 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Range, \textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{26 \textcolor{keyword}{auto} copy(\textcolor{keyword}{const} Range\& range, OutputIt out) -\/> OutputIt \{}
+\DoxyCodeLine{27   \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} it = range.begin(), end = range.end(); it != end; ++it)}
+\DoxyCodeLine{28     *out++ = *it;}
+\DoxyCodeLine{29   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{30 \}}
+\DoxyCodeLine{31 }
+\DoxyCodeLine{32 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt>}
+\DoxyCodeLine{33 \textcolor{keyword}{auto} copy(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* str, OutputIt out) -\/> OutputIt \{}
+\DoxyCodeLine{34   \textcolor{keywordflow}{while} (*str) *out++ = *str++;}
+\DoxyCodeLine{35   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{36 \}}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{38 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt> \textcolor{keyword}{auto} copy(\textcolor{keywordtype}{char} ch, OutputIt out) -\/> OutputIt \{}
+\DoxyCodeLine{39   *out++ = ch;}
+\DoxyCodeLine{40   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{41 \}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43 \textcolor{keyword}{template} <\textcolor{keyword}{typename} OutputIt> \textcolor{keyword}{auto} copy(\textcolor{keywordtype}{wchar\_t} ch, OutputIt out) -\/> OutputIt \{}
+\DoxyCodeLine{44   *out++ = ch;}
+\DoxyCodeLine{45   \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{46 \}}
+\DoxyCodeLine{47 }
+\DoxyCodeLine{48 \textcolor{comment}{// Returns true if T has a std::string-\/like interface, like std::string\_view.}}
+\DoxyCodeLine{49 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__std__string__like}{is\_std\_string\_like}} \{}
+\DoxyCodeLine{50   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U>}
+\DoxyCodeLine{51   \textcolor{keyword}{static} \textcolor{keyword}{auto} check(U* p)}
+\DoxyCodeLine{52       -\/> \textcolor{keyword}{decltype}((void)p-\/>find(\textcolor{charliteral}{'a'}), p-\/>length(), (void)p-\/>data(), int());}
+\DoxyCodeLine{53   \textcolor{keyword}{template} <\textcolor{keyword}{typename}> \textcolor{keyword}{static} \textcolor{keywordtype}{void} check(...);}
+\DoxyCodeLine{54 }
+\DoxyCodeLine{55  \textcolor{keyword}{public}:}
+\DoxyCodeLine{56   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{57       \mbox{\hyperlink{structdetail_1_1is__string}{is\_string<T>::value}} ||}
+\DoxyCodeLine{58       std::is\_convertible<T, std\_string\_view<char>>::value ||}
+\DoxyCodeLine{59       !std::is\_void<decltype(check<T>(\textcolor{keyword}{nullptr}))>::value;}
+\DoxyCodeLine{60 \};}
+\DoxyCodeLine{61 }
+\DoxyCodeLine{62 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{63 \textcolor{keyword}{struct }\mbox{\hyperlink{classdetail_1_1is__std__string__like}{is\_std\_string\_like}}<fmt::\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view}}<Char>> : std::true\_type \{\};}
+\DoxyCodeLine{64 }
+\DoxyCodeLine{65 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__map}{is\_map}} \{}
+\DoxyCodeLine{66   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U> \textcolor{keyword}{static} \textcolor{keyword}{auto} check(U*) -\/> \textcolor{keyword}{typename} U::mapped\_type;}
+\DoxyCodeLine{67   \textcolor{keyword}{template} <\textcolor{keyword}{typename}> \textcolor{keyword}{static} \textcolor{keywordtype}{void} check(...);}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69  \textcolor{keyword}{public}:}
+\DoxyCodeLine{70 \textcolor{preprocessor}{\#ifdef FMT\_FORMAT\_MAP\_AS\_LIST  }\textcolor{comment}{// DEPRECATED!}}
+\DoxyCodeLine{71   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} = \textcolor{keyword}{false};}
+\DoxyCodeLine{72 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{73   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{74       !std::is\_void<decltype(check<T>(\textcolor{keyword}{nullptr}))>::value;}
+\DoxyCodeLine{75 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{76 \};}
+\DoxyCodeLine{77 }
+\DoxyCodeLine{78 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__set}{is\_set}} \{}
+\DoxyCodeLine{79   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U> \textcolor{keyword}{static} \textcolor{keyword}{auto} check(U*) -\/> \textcolor{keyword}{typename} U::key\_type;}
+\DoxyCodeLine{80   \textcolor{keyword}{template} <\textcolor{keyword}{typename}> \textcolor{keyword}{static} \textcolor{keywordtype}{void} check(...);}
+\DoxyCodeLine{81 }
+\DoxyCodeLine{82  \textcolor{keyword}{public}:}
+\DoxyCodeLine{83 \textcolor{preprocessor}{\#ifdef FMT\_FORMAT\_SET\_AS\_LIST  }\textcolor{comment}{// DEPRECATED!}}
+\DoxyCodeLine{84   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} = \textcolor{keyword}{false};}
+\DoxyCodeLine{85 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{86   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{87       !std::is\_void<decltype(check<T>(\textcolor{keyword}{nullptr}))>::value \&\& !\mbox{\hyperlink{classdetail_1_1is__map}{is\_map<T>::value}};}
+\DoxyCodeLine{88 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{89 \};}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... Ts> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1conditional__helper}{conditional\_helper}} \{\};}
+\DoxyCodeLine{92 }
+\DoxyCodeLine{93 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} \_ = \textcolor{keywordtype}{void}> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1is__range__}{is\_range\_}} : std::false\_type \{\};}
+\DoxyCodeLine{94 }
+\DoxyCodeLine{95 \textcolor{preprocessor}{\#if !FMT\_MSC\_VERSION || FMT\_MSC\_VERSION > 1800}}
+\DoxyCodeLine{96 }
+\DoxyCodeLine{97 \textcolor{preprocessor}{\#  define FMT\_DECLTYPE\_RETURN(val)  \(\backslash\)}}
+\DoxyCodeLine{98 \textcolor{preprocessor}{    -\/>decltype(val) \{ return val; \} \(\backslash\)}}
+\DoxyCodeLine{99 \textcolor{preprocessor}{    static\_assert(                  \(\backslash\)}}
+\DoxyCodeLine{100 \textcolor{preprocessor}{        true, "{}"{}})  \textcolor{comment}{// This makes it so that a semicolon is required after the}}
+\DoxyCodeLine{101                    \textcolor{comment}{// macro, which helps clang-\/format handle the formatting.}}
+\DoxyCodeLine{102 }
+\DoxyCodeLine{103 \textcolor{comment}{// C array overload}}
+\DoxyCodeLine{104 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, std::\textcolor{keywordtype}{size\_t} N>}
+\DoxyCodeLine{105 \textcolor{keyword}{auto} range\_begin(\textcolor{keyword}{const} T (\&arr)[N]) -\/> \textcolor{keyword}{const} T* \{}
+\DoxyCodeLine{106   \textcolor{keywordflow}{return} arr;}
+\DoxyCodeLine{107 \}}
+\DoxyCodeLine{108 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, std::\textcolor{keywordtype}{size\_t} N>}
+\DoxyCodeLine{109 \textcolor{keyword}{auto} range\_end(\textcolor{keyword}{const} T (\&arr)[N]) -\/> \textcolor{keyword}{const} T* \{}
+\DoxyCodeLine{110   \textcolor{keywordflow}{return} arr + N;}
+\DoxyCodeLine{111 \}}
+\DoxyCodeLine{112 }
+\DoxyCodeLine{113 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{114 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__fn__begin__end__t}{has\_member\_fn\_begin\_end\_t}} : std::false\_type \{\};}
+\DoxyCodeLine{115 }
+\DoxyCodeLine{116 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{117 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__member__fn__begin__end__t}{has\_member\_fn\_begin\_end\_t}}<T, void\_t<decltype(std::declval<T>().begin()),}
+\DoxyCodeLine{118                                            decltype(std::declval<T>().end())>>}
+\DoxyCodeLine{119     : std::true\_type \{\};}
+\DoxyCodeLine{120 }
+\DoxyCodeLine{121 \textcolor{comment}{// Member function overload}}
+\DoxyCodeLine{122 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{123 \textcolor{keyword}{auto} range\_begin(T\&\& rng) FMT\_DECLTYPE\_RETURN(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng).begin());}
+\DoxyCodeLine{124 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{125 \textcolor{keyword}{auto} range\_end(T\&\& rng) FMT\_DECLTYPE\_RETURN(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng).end());}
+\DoxyCodeLine{126 }
+\DoxyCodeLine{127 \textcolor{comment}{// ADL overload. Only participates in overload resolution if member functions}}
+\DoxyCodeLine{128 \textcolor{comment}{// are not found.}}
+\DoxyCodeLine{129 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{130 \textcolor{keyword}{auto} range\_begin(T\&\& rng)}
+\DoxyCodeLine{131     -\/> enable\_if\_t<!has\_member\_fn\_begin\_end\_t<T\&\&>::value,}
+\DoxyCodeLine{132                    \textcolor{keyword}{decltype}(begin(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng)))> \{}
+\DoxyCodeLine{133   \textcolor{keywordflow}{return} begin(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng));}
+\DoxyCodeLine{134 \}}
+\DoxyCodeLine{135 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{136 \textcolor{keyword}{auto} range\_end(T\&\& rng) -\/> enable\_if\_t<!has\_member\_fn\_begin\_end\_t<T\&\&>::value,}
+\DoxyCodeLine{137                                        \textcolor{keyword}{decltype}(end(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng)))> \{}
+\DoxyCodeLine{138   \textcolor{keywordflow}{return} end(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(rng));}
+\DoxyCodeLine{139 \}}
+\DoxyCodeLine{140 }
+\DoxyCodeLine{141 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{142 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__const__begin__end}{has\_const\_begin\_end}} : std::false\_type \{\};}
+\DoxyCodeLine{143 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{144 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__mutable__begin__end}{has\_mutable\_begin\_end}} : std::false\_type \{\};}
+\DoxyCodeLine{145 }
+\DoxyCodeLine{146 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{147 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__const__begin__end}{has\_const\_begin\_end}}<}
+\DoxyCodeLine{148     T,}
+\DoxyCodeLine{149     void\_t<}
+\DoxyCodeLine{150         decltype(detail::range\_begin(std::declval<const remove\_cvref\_t<T>\&>())),}
+\DoxyCodeLine{151         decltype(detail::range\_end(std::declval<const remove\_cvref\_t<T>\&>()))>>}
+\DoxyCodeLine{152     : std::true\_type \{\};}
+\DoxyCodeLine{153 }
+\DoxyCodeLine{154 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{155 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1has__mutable__begin__end}{has\_mutable\_begin\_end}}<}
+\DoxyCodeLine{156     T, void\_t<decltype(detail::range\_begin(std::declval<T>())),}
+\DoxyCodeLine{157               decltype(detail::range\_end(std::declval<T>())),}
+\DoxyCodeLine{158               \textcolor{comment}{// the extra int here is because older versions of MSVC don't}}
+\DoxyCodeLine{159               \textcolor{comment}{// SFINAE properly unless there are distinct types}}
+\DoxyCodeLine{160               int>> : std::true\_type \{\};}
+\DoxyCodeLine{161 }
+\DoxyCodeLine{162 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{163 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1is__range__}{is\_range\_}}<T, void>}
+\DoxyCodeLine{164     : std::integral\_constant<bool, (has\_const\_begin\_end<T>::value ||}
+\DoxyCodeLine{165                                     has\_mutable\_begin\_end<T>::value)> \{\};}
+\DoxyCodeLine{166 \textcolor{preprocessor}{\#  undef FMT\_DECLTYPE\_RETURN}}
+\DoxyCodeLine{167 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{168 }
+\DoxyCodeLine{169 \textcolor{comment}{// tuple\_size and tuple\_element check.}}
+\DoxyCodeLine{170 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__tuple__like__}{is\_tuple\_like\_}} \{}
+\DoxyCodeLine{171   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U>}
+\DoxyCodeLine{172   \textcolor{keyword}{static} \textcolor{keyword}{auto} check(U* p) -\/> \textcolor{keyword}{decltype}(std::tuple\_size<U>::value, int());}
+\DoxyCodeLine{173   \textcolor{keyword}{template} <\textcolor{keyword}{typename}> \textcolor{keyword}{static} \textcolor{keywordtype}{void} check(...);}
+\DoxyCodeLine{174 }
+\DoxyCodeLine{175  \textcolor{keyword}{public}:}
+\DoxyCodeLine{176   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{177       !std::is\_void<decltype(check<T>(\textcolor{keyword}{nullptr}))>::value;}
+\DoxyCodeLine{178 \};}
+\DoxyCodeLine{179 }
+\DoxyCodeLine{180 \textcolor{comment}{// Check for integer\_sequence}}
+\DoxyCodeLine{181 \textcolor{preprocessor}{\#if defined(\_\_cpp\_lib\_integer\_sequence) || FMT\_MSC\_VERSION >= 1900}}
+\DoxyCodeLine{182 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, T... N>}
+\DoxyCodeLine{183 \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}} = std::integer\_sequence<T, N...>;}
+\DoxyCodeLine{184 \textcolor{keyword}{template} <\textcolor{keywordtype}{size\_t}... N> \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence}} = std::index\_sequence<N...>;}
+\DoxyCodeLine{185 \textcolor{keyword}{template} <\textcolor{keywordtype}{size\_t} N> \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_index\_sequence}} = std::make\_index\_sequence<N>;}
+\DoxyCodeLine{186 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{187 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, T... N> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}} \{}
+\DoxyCodeLine{188   \textcolor{keyword}{using }value\_type = T;}
+\DoxyCodeLine{189 }
+\DoxyCodeLine{190   \textcolor{keyword}{static} FMT\_CONSTEXPR \textcolor{keywordtype}{size\_t} size() \{ \textcolor{keywordflow}{return} \textcolor{keyword}{sizeof}...(N); \}}
+\DoxyCodeLine{191 \};}
+\DoxyCodeLine{192 }
+\DoxyCodeLine{193 \textcolor{keyword}{template} <\textcolor{keywordtype}{size\_t}... N> \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence}} = \mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}}<size\_t, N...>;}
+\DoxyCodeLine{194 }
+\DoxyCodeLine{195 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keywordtype}{size\_t} N, T... Ns>}
+\DoxyCodeLine{196 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_integer\_sequence}} : \mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_integer\_sequence}}<T, N -\/ 1, N -\/ 1, Ns...> \{\};}
+\DoxyCodeLine{197 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, T... Ns>}
+\DoxyCodeLine{198 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_integer\_sequence}}<T, 0, Ns...> : \mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}}<T, Ns...> \{\};}
+\DoxyCodeLine{199 }
+\DoxyCodeLine{200 \textcolor{keyword}{template} <\textcolor{keywordtype}{size\_t} N>}
+\DoxyCodeLine{201 \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_index\_sequence}} = \mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_integer\_sequence<size\_t, N>}};}
+\DoxyCodeLine{202 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{203 }
+\DoxyCodeLine{204 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{205 \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{tuple\_index\_sequence}} = \mbox{\hyperlink{structdetail_1_1make__integer__sequence}{make\_index\_sequence<std::tuple\_size<T>::value}}>;}
+\DoxyCodeLine{206 }
+\DoxyCodeLine{207 template <typename T, typename C, bool = is\_tuple\_like\_<T>::value>}
+\DoxyCodeLine{208 \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__tuple__formattable__}{is\_tuple\_formattable\_}} \{}
+\DoxyCodeLine{209  \textcolor{keyword}{public}:}
+\DoxyCodeLine{210   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} = \textcolor{keyword}{false};}
+\DoxyCodeLine{211 \};}
+\DoxyCodeLine{212 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} C> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__tuple__formattable__}{is\_tuple\_formattable\_}}<T, C, true> \{}
+\DoxyCodeLine{213   \textcolor{keyword}{template} <std::size\_t... Is>}
+\DoxyCodeLine{214   \textcolor{keyword}{static} std::true\_type check2(\mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence<Is...>}},}
+\DoxyCodeLine{215                                \mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}}<\textcolor{keywordtype}{bool}, (Is == Is)...>);}
+\DoxyCodeLine{216   \textcolor{keyword}{static} std::false\_type check2(...);}
+\DoxyCodeLine{217   \textcolor{keyword}{template} <std::size\_t... Is>}
+\DoxyCodeLine{218   \textcolor{keyword}{static} \textcolor{keyword}{decltype}(check2(}
+\DoxyCodeLine{219       \mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence<Is...>}}\{\},}
+\DoxyCodeLine{220       \mbox{\hyperlink{structdetail_1_1integer__sequence}{integer\_sequence}}<}
+\DoxyCodeLine{221           bool, (is\_formattable<typename std::tuple\_element<Is, T>::type,}
+\DoxyCodeLine{222                                 C>::value)...>\{\})) check(\mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence<Is...>}});}
+\DoxyCodeLine{223 }
+\DoxyCodeLine{224  \textcolor{keyword}{public}:}
+\DoxyCodeLine{225   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{226       \textcolor{keyword}{decltype}(check(\mbox{\hyperlink{structdetail_1_1make__integer__sequence}{tuple\_index\_sequence<T>}}\{\}))::value;}
+\DoxyCodeLine{227 \};}
+\DoxyCodeLine{228 }
+\DoxyCodeLine{229 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple, \textcolor{keyword}{typename} F, \textcolor{keywordtype}{size\_t}... Is>}
+\DoxyCodeLine{230 FMT\_CONSTEXPR \textcolor{keywordtype}{void} for\_each(\mbox{\hyperlink{structdetail_1_1integer__sequence}{index\_sequence<Is...>}}, Tuple\&\& t, F\&\& f) \{}
+\DoxyCodeLine{231   \textcolor{keyword}{using }std::get;}
+\DoxyCodeLine{232   \textcolor{comment}{// Using a free function get<Is>(Tuple) now.}}
+\DoxyCodeLine{233   \textcolor{keyword}{const} \textcolor{keywordtype}{int} unused[] = \{0, ((void)f(get<Is>(t)), 0)...\};}
+\DoxyCodeLine{234   ignore\_unused(unused);}
+\DoxyCodeLine{235 \}}
+\DoxyCodeLine{236 }
+\DoxyCodeLine{237 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple, \textcolor{keyword}{typename} F>}
+\DoxyCodeLine{238 FMT\_CONSTEXPR \textcolor{keywordtype}{void} for\_each(Tuple\&\& t, F\&\& f) \{}
+\DoxyCodeLine{239   for\_each(tuple\_index\_sequence<remove\_cvref\_t<Tuple>>(),}
+\DoxyCodeLine{240            std::forward<Tuple>(t), std::forward<F>(f));}
+\DoxyCodeLine{241 \}}
+\DoxyCodeLine{242 }
+\DoxyCodeLine{243 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple1, \textcolor{keyword}{typename} Tuple2, \textcolor{keyword}{typename} F, \textcolor{keywordtype}{size\_t}... Is>}
+\DoxyCodeLine{244 \textcolor{keywordtype}{void} for\_each2(index\_sequence<Is...>, Tuple1\&\& t1, Tuple2\&\& t2, F\&\& f) \{}
+\DoxyCodeLine{245   \textcolor{keyword}{using }std::get;}
+\DoxyCodeLine{246   \textcolor{keyword}{const} \textcolor{keywordtype}{int} unused[] = \{0, ((void)f(get<Is>(t1), get<Is>(t2)), 0)...\};}
+\DoxyCodeLine{247   ignore\_unused(unused);}
+\DoxyCodeLine{248 \}}
+\DoxyCodeLine{249 }
+\DoxyCodeLine{250 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple1, \textcolor{keyword}{typename} Tuple2, \textcolor{keyword}{typename} F>}
+\DoxyCodeLine{251 \textcolor{keywordtype}{void} for\_each2(Tuple1\&\& t1, Tuple2\&\& t2, F\&\& f) \{}
+\DoxyCodeLine{252   for\_each2(tuple\_index\_sequence<remove\_cvref\_t<Tuple1>>(),}
+\DoxyCodeLine{253             std::forward<Tuple1>(t1), std::forward<Tuple2>(t2),}
+\DoxyCodeLine{254             std::forward<F>(f));}
+\DoxyCodeLine{255 \}}
+\DoxyCodeLine{256 }
+\DoxyCodeLine{257 \textcolor{keyword}{namespace }tuple \{}
+\DoxyCodeLine{258 \textcolor{comment}{// Workaround a bug in MSVC 2019 (v140).}}
+\DoxyCodeLine{259 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{260 \textcolor{keyword}{using }result\_t = std::tuple<formatter<remove\_cvref\_t<T>, Char>...>;}
+\DoxyCodeLine{261 }
+\DoxyCodeLine{262 \textcolor{keyword}{using }std::get;}
+\DoxyCodeLine{263 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple, \textcolor{keyword}{typename} Char, std::size\_t... Is>}
+\DoxyCodeLine{264 \textcolor{keyword}{auto} get\_formatters(index\_sequence<Is...>)}
+\DoxyCodeLine{265     -\/> result\_t<Char, decltype(get<Is>(std::declval<Tuple>()))...>;}
+\DoxyCodeLine{266 \}  \textcolor{comment}{// namespace tuple}}
+\DoxyCodeLine{267 }
+\DoxyCodeLine{268 \textcolor{preprocessor}{\#if FMT\_MSC\_VERSION \&\& FMT\_MSC\_VERSION < 1920}}
+\DoxyCodeLine{269 \textcolor{comment}{// Older MSVC doesn't get the reference type correctly for arrays.}}
+\DoxyCodeLine{270 \textcolor{keyword}{template} <\textcolor{keyword}{typename} R> \textcolor{keyword}{struct }range\_reference\_type\_impl \{}
+\DoxyCodeLine{271   \textcolor{keyword}{using }type = \textcolor{keyword}{decltype}(*detail::range\_begin(std::declval<R\&>()));}
+\DoxyCodeLine{272 \};}
+\DoxyCodeLine{273 }
+\DoxyCodeLine{274 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, std::\textcolor{keywordtype}{size\_t} N> \textcolor{keyword}{struct }range\_reference\_type\_impl<T[N]> \{}
+\DoxyCodeLine{275   \textcolor{keyword}{using }type = T\&;}
+\DoxyCodeLine{276 \};}
+\DoxyCodeLine{277 }
+\DoxyCodeLine{278 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{279 \textcolor{keyword}{using }range\_reference\_type = \textcolor{keyword}{typename} range\_reference\_type\_impl<T>::type;}
+\DoxyCodeLine{280 \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{281 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Range>}
+\DoxyCodeLine{282 \textcolor{keyword}{using }range\_reference\_type =}
+\DoxyCodeLine{283     \textcolor{keyword}{decltype}(*detail::range\_begin(std::declval<Range\&>()));}
+\DoxyCodeLine{284 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{285 }
+\DoxyCodeLine{286 \textcolor{comment}{// We don't use the Range's value\_type for anything, but we do need the Range's}}
+\DoxyCodeLine{287 \textcolor{comment}{// reference type, with cv-\/ref stripped.}}
+\DoxyCodeLine{288 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Range>}
+\DoxyCodeLine{289 \textcolor{keyword}{using }uncvref\_type = remove\_cvref\_t<range\_reference\_type<Range>>;}
+\DoxyCodeLine{290 }
+\DoxyCodeLine{291 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Formatter>}
+\DoxyCodeLine{292 FMT\_CONSTEXPR \textcolor{keyword}{auto} maybe\_set\_debug\_format(Formatter\& f, \textcolor{keywordtype}{bool} set)}
+\DoxyCodeLine{293     -\/> \textcolor{keyword}{decltype}(f.set\_debug\_format(set)) \{}
+\DoxyCodeLine{294   f.set\_debug\_format(set);}
+\DoxyCodeLine{295 \}}
+\DoxyCodeLine{296 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Formatter>}
+\DoxyCodeLine{297 FMT\_CONSTEXPR \textcolor{keywordtype}{void} maybe\_set\_debug\_format(Formatter\&, ...) \{\}}
+\DoxyCodeLine{298 }
+\DoxyCodeLine{299 \textcolor{comment}{// These are not generic lambdas for compatibility with C++11.}}
+\DoxyCodeLine{300 \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1parse__empty__specs}{parse\_empty\_specs}} \{}
+\DoxyCodeLine{301   \textcolor{keyword}{template} <\textcolor{keyword}{typename} Formatter> FMT\_CONSTEXPR \textcolor{keywordtype}{void} operator()(Formatter\& f) \{}
+\DoxyCodeLine{302     f.parse(ctx);}
+\DoxyCodeLine{303     detail::maybe\_set\_debug\_format(f, \textcolor{keyword}{true});}
+\DoxyCodeLine{304   \}}
+\DoxyCodeLine{305   ParseContext\& ctx;}
+\DoxyCodeLine{306 \};}
+\DoxyCodeLine{307 \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1format__tuple__element}{format\_tuple\_element}} \{}
+\DoxyCodeLine{308   \textcolor{keyword}{using }char\_type = \textcolor{keyword}{typename} FormatContext::char\_type;}
+\DoxyCodeLine{309 }
+\DoxyCodeLine{310   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{311   \textcolor{keywordtype}{void} operator()(\textcolor{keyword}{const} \mbox{\hyperlink{structformatter}{formatter<T, char\_type>}}\& f, \textcolor{keyword}{const} T\& v) \{}
+\DoxyCodeLine{312     \textcolor{keywordflow}{if} (i > 0)}
+\DoxyCodeLine{313       ctx.advance\_to(detail::copy\_str<char\_type>(separator, ctx.out()));}
+\DoxyCodeLine{314     ctx.advance\_to(f.format(v, ctx));}
+\DoxyCodeLine{315     ++i;}
+\DoxyCodeLine{316   \}}
+\DoxyCodeLine{317 }
+\DoxyCodeLine{318   \textcolor{keywordtype}{int} i;}
+\DoxyCodeLine{319   FormatContext\& ctx;}
+\DoxyCodeLine{320   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<char\_type>}} separator;}
+\DoxyCodeLine{321 \};}
+\DoxyCodeLine{322 }
+\DoxyCodeLine{323 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{324 }
+\DoxyCodeLine{325 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{struct }\mbox{\hyperlink{structis__tuple__like}{is\_tuple\_like}} \{}
+\DoxyCodeLine{326   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value =}
+\DoxyCodeLine{327       \mbox{\hyperlink{classdetail_1_1is__tuple__like__}{detail::is\_tuple\_like\_<T>::value}} \&\& !\mbox{\hyperlink{structdetail_1_1is__range__}{detail::is\_range\_<T>::value}};}
+\DoxyCodeLine{328 \};}
+\DoxyCodeLine{329 }
+\DoxyCodeLine{330 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} C> \textcolor{keyword}{struct }\mbox{\hyperlink{structis__tuple__formattable}{is\_tuple\_formattable}} \{}
+\DoxyCodeLine{331   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value =}
+\DoxyCodeLine{332       \mbox{\hyperlink{classdetail_1_1is__tuple__formattable__}{detail::is\_tuple\_formattable\_<T, C>::value}};}
+\DoxyCodeLine{333 \};}
+\DoxyCodeLine{334 }
+\DoxyCodeLine{335 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Tuple, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{336 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<Tuple, Char,}
+\DoxyCodeLine{337                  enable\_if\_t<fmt::\mbox{\hyperlink{structis__tuple__like}{is\_tuple\_like}}<Tuple>::value \&\&}
+\DoxyCodeLine{338                              fmt::is\_tuple\_formattable<Tuple, Char>::value>> \{}
+\DoxyCodeLine{339  \textcolor{keyword}{private}:}
+\DoxyCodeLine{340   \textcolor{keyword}{decltype}(detail::tuple::get\_formatters<Tuple, Char>(}
+\DoxyCodeLine{341       \mbox{\hyperlink{structdetail_1_1make__integer__sequence}{detail::tuple\_index\_sequence<Tuple>}}())) formatters\_;}
+\DoxyCodeLine{342 }
+\DoxyCodeLine{343   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} separator\_ = \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, ',', ' '>}}\{\};}
+\DoxyCodeLine{344   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} opening\_bracket\_ =}
+\DoxyCodeLine{345       \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal}}<Char, \textcolor{charliteral}{'('}>\{\};}
+\DoxyCodeLine{346   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} closing\_bracket\_ =}
+\DoxyCodeLine{347       \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, ')'>}}\{\};}
+\DoxyCodeLine{348 }
+\DoxyCodeLine{349  \textcolor{keyword}{public}:}
+\DoxyCodeLine{350   FMT\_CONSTEXPR \mbox{\hyperlink{structformatter}{formatter}}() \{\}}
+\DoxyCodeLine{351 }
+\DoxyCodeLine{352   FMT\_CONSTEXPR \textcolor{keywordtype}{void} set\_separator(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} sep) \{}
+\DoxyCodeLine{353     separator\_ = sep;}
+\DoxyCodeLine{354   \}}
+\DoxyCodeLine{355 }
+\DoxyCodeLine{356   FMT\_CONSTEXPR \textcolor{keywordtype}{void} set\_brackets(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} open,}
+\DoxyCodeLine{357                                   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} close) \{}
+\DoxyCodeLine{358     opening\_bracket\_ = open;}
+\DoxyCodeLine{359     closing\_bracket\_ = close;}
+\DoxyCodeLine{360   \}}
+\DoxyCodeLine{361 }
+\DoxyCodeLine{362   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext>}
+\DoxyCodeLine{363   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(ParseContext\& ctx) -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{364     \textcolor{keyword}{auto} it = ctx.begin();}
+\DoxyCodeLine{365     \textcolor{keywordflow}{if} (it != ctx.end() \&\& *it != \textcolor{charliteral}{'\}'})}
+\DoxyCodeLine{366       FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format specifier"{}}));}
+\DoxyCodeLine{367     detail::for\_each(formatters\_, \mbox{\hyperlink{structdetail_1_1parse__empty__specs}{detail::parse\_empty\_specs<ParseContext>}}\{ctx\});}
+\DoxyCodeLine{368     \textcolor{keywordflow}{return} it;}
+\DoxyCodeLine{369   \}}
+\DoxyCodeLine{370 }
+\DoxyCodeLine{371   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{372   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} Tuple\& value, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{373       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{374     ctx.advance\_to(detail::copy\_str<Char>(opening\_bracket\_, ctx.out()));}
+\DoxyCodeLine{375     detail::for\_each2(}
+\DoxyCodeLine{376         formatters\_, value,}
+\DoxyCodeLine{377         \mbox{\hyperlink{structdetail_1_1format__tuple__element}{detail::format\_tuple\_element<FormatContext>}}\{0, ctx, separator\_\});}
+\DoxyCodeLine{378     \textcolor{keywordflow}{return} detail::copy\_str<Char>(closing\_bracket\_, ctx.out());}
+\DoxyCodeLine{379   \}}
+\DoxyCodeLine{380 \};}
+\DoxyCodeLine{381 }
+\DoxyCodeLine{382 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char> \textcolor{keyword}{struct }\mbox{\hyperlink{structis__range}{is\_range}} \{}
+\DoxyCodeLine{383   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} value =}
+\DoxyCodeLine{384       \mbox{\hyperlink{structdetail_1_1is__range__}{detail::is\_range\_<T>::value}} \&\& !\mbox{\hyperlink{classdetail_1_1is__std__string__like}{detail::is\_std\_string\_like<T>::value}} \&\&}
+\DoxyCodeLine{385       !std::is\_convertible<T, std::basic\_string<Char>>::value \&\&}
+\DoxyCodeLine{386       !std::is\_convertible<T, detail::std\_string\_view<Char>>::value;}
+\DoxyCodeLine{387 \};}
+\DoxyCodeLine{388 }
+\DoxyCodeLine{389 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{390 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Context> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1range__mapper}{range\_mapper}} \{}
+\DoxyCodeLine{391   \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1arg__mapper}{mapper}} = \mbox{\hyperlink{structdetail_1_1arg__mapper}{arg\_mapper<Context>}};}
+\DoxyCodeLine{392 }
+\DoxyCodeLine{393   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T,}
+\DoxyCodeLine{394             FMT\_ENABLE\_IF(has\_formatter<remove\_cvref\_t<T>, Context>::value)>}
+\DoxyCodeLine{395   \textcolor{keyword}{static} \textcolor{keyword}{auto} map(T\&\& \mbox{\hyperlink{classdetail_1_1value}{value}}) -\/> T\&\& \{}
+\DoxyCodeLine{396     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}});}
+\DoxyCodeLine{397   \}}
+\DoxyCodeLine{398   \textcolor{keyword}{template} <\textcolor{keyword}{typename} T,}
+\DoxyCodeLine{399             FMT\_ENABLE\_IF(!has\_formatter<remove\_cvref\_t<T>, Context>::value)>}
+\DoxyCodeLine{400   \textcolor{keyword}{static} \textcolor{keyword}{auto} map(T\&\& \mbox{\hyperlink{classdetail_1_1value}{value}})}
+\DoxyCodeLine{401       -\/> \textcolor{keyword}{decltype}(\mbox{\hyperlink{structdetail_1_1arg__mapper}{mapper}}().map(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}))) \{}
+\DoxyCodeLine{402     \textcolor{keywordflow}{return} \mbox{\hyperlink{structdetail_1_1arg__mapper}{mapper}}().map(\textcolor{keyword}{static\_cast<}T\&\&\textcolor{keyword}{>}(\mbox{\hyperlink{classdetail_1_1value}{value}}));}
+\DoxyCodeLine{403   \}}
+\DoxyCodeLine{404 \};}
+\DoxyCodeLine{405 }
+\DoxyCodeLine{406 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Element>}
+\DoxyCodeLine{407 \textcolor{keyword}{using }\mbox{\hyperlink{structformatter}{range\_formatter\_type}} =}
+\DoxyCodeLine{408     \mbox{\hyperlink{structformatter}{formatter}}<remove\_cvref\_t<\textcolor{keyword}{decltype}(\mbox{\hyperlink{structdetail_1_1range__mapper}{range\_mapper<buffer\_context<Char>}}>\{\}.map(}
+\DoxyCodeLine{409                   std::declval<Element>()))>,}
+\DoxyCodeLine{410               Char>;}
+\DoxyCodeLine{411 }
+\DoxyCodeLine{412 \textcolor{keyword}{template} <\textcolor{keyword}{typename} R>}
+\DoxyCodeLine{413 \textcolor{keyword}{using }maybe\_const\_range =}
+\DoxyCodeLine{414     conditional\_t<has\_const\_begin\_end<R>::value, \textcolor{keyword}{const} R, R>;}
+\DoxyCodeLine{415 }
+\DoxyCodeLine{416 \textcolor{comment}{// Workaround a bug in MSVC 2015 and earlier.}}
+\DoxyCodeLine{417 \textcolor{preprocessor}{\#if !FMT\_MSC\_VERSION || FMT\_MSC\_VERSION >= 1910}}
+\DoxyCodeLine{418 \textcolor{keyword}{template} <\textcolor{keyword}{typename} R, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{419 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1is__formattable__delayed}{is\_formattable\_delayed}}}
+\DoxyCodeLine{420     : is\_formattable<uncvref\_type<maybe\_const\_range<R>>, Char> \{\};}
+\DoxyCodeLine{421 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{422 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{423 }
+\DoxyCodeLine{424 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{425 \textcolor{keyword}{struct }\mbox{\hyperlink{structrange__formatter}{range\_formatter}};}
+\DoxyCodeLine{426 }
+\DoxyCodeLine{427 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{428 \textcolor{keyword}{struct }\mbox{\hyperlink{structrange__formatter}{range\_formatter}}<}
+\DoxyCodeLine{429     T, Char,}
+\DoxyCodeLine{430     enable\_if\_t<\mbox{\hyperlink{structconjunction}{conjunction}}<std::is\_same<T, remove\_cvref\_t<T>>,}
+\DoxyCodeLine{431                             is\_formattable<T, Char>>::value>> \{}
+\DoxyCodeLine{432  \textcolor{keyword}{private}:}
+\DoxyCodeLine{433   \mbox{\hyperlink{structformatter}{detail::range\_formatter\_type<Char, T>}} underlying\_;}
+\DoxyCodeLine{434   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} separator\_ = \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, ',', ' '>}}\{\};}
+\DoxyCodeLine{435   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} opening\_bracket\_ =}
+\DoxyCodeLine{436       \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, '['>}}\{\};}
+\DoxyCodeLine{437   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} closing\_bracket\_ =}
+\DoxyCodeLine{438       \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, ']'>}}\{\};}
+\DoxyCodeLine{439 }
+\DoxyCodeLine{440  \textcolor{keyword}{public}:}
+\DoxyCodeLine{441   FMT\_CONSTEXPR \mbox{\hyperlink{structrange__formatter}{range\_formatter}}() \{\}}
+\DoxyCodeLine{442 }
+\DoxyCodeLine{443   FMT\_CONSTEXPR \textcolor{keyword}{auto} underlying() -\/> \mbox{\hyperlink{structformatter}{detail::range\_formatter\_type<Char, T>}}\& \{}
+\DoxyCodeLine{444     \textcolor{keywordflow}{return} underlying\_;}
+\DoxyCodeLine{445   \}}
+\DoxyCodeLine{446 }
+\DoxyCodeLine{447   FMT\_CONSTEXPR \textcolor{keywordtype}{void} set\_separator(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} sep) \{}
+\DoxyCodeLine{448     separator\_ = sep;}
+\DoxyCodeLine{449   \}}
+\DoxyCodeLine{450 }
+\DoxyCodeLine{451   FMT\_CONSTEXPR \textcolor{keywordtype}{void} set\_brackets(\mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} open,}
+\DoxyCodeLine{452                                   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} close) \{}
+\DoxyCodeLine{453     opening\_bracket\_ = open;}
+\DoxyCodeLine{454     closing\_bracket\_ = close;}
+\DoxyCodeLine{455   \}}
+\DoxyCodeLine{456 }
+\DoxyCodeLine{457   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext>}
+\DoxyCodeLine{458   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(ParseContext\& ctx) -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{459     \textcolor{keyword}{auto} it = ctx.begin();}
+\DoxyCodeLine{460     \textcolor{keyword}{auto} end = ctx.end();}
+\DoxyCodeLine{461 }
+\DoxyCodeLine{462     \textcolor{keywordflow}{if} (it != end \&\& *it == \textcolor{charliteral}{'n'}) \{}
+\DoxyCodeLine{463       set\_brackets(\{\}, \{\});}
+\DoxyCodeLine{464       ++it;}
+\DoxyCodeLine{465     \}}
+\DoxyCodeLine{466 }
+\DoxyCodeLine{467     \textcolor{keywordflow}{if} (it != end \&\& *it != \textcolor{charliteral}{'\}'}) \{}
+\DoxyCodeLine{468       \textcolor{keywordflow}{if} (*it != \textcolor{charliteral}{':'}) FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}invalid format specifier"{}}));}
+\DoxyCodeLine{469       ++it;}
+\DoxyCodeLine{470     \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{471       detail::maybe\_set\_debug\_format(underlying\_, \textcolor{keyword}{true});}
+\DoxyCodeLine{472     \}}
+\DoxyCodeLine{473 }
+\DoxyCodeLine{474     ctx.advance\_to(it);}
+\DoxyCodeLine{475     \textcolor{keywordflow}{return} underlying\_.parse(ctx);}
+\DoxyCodeLine{476   \}}
+\DoxyCodeLine{477 }
+\DoxyCodeLine{478   \textcolor{keyword}{template} <\textcolor{keyword}{typename} R, \textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{479   \textcolor{keyword}{auto} format(R\&\& range, FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{480     \mbox{\hyperlink{structdetail_1_1range__mapper}{detail::range\_mapper<buffer\_context<Char>}}> mapper;}
+\DoxyCodeLine{481     \textcolor{keyword}{auto} out = ctx.out();}
+\DoxyCodeLine{482     out = detail::copy\_str<Char>(opening\_bracket\_, out);}
+\DoxyCodeLine{483     \textcolor{keywordtype}{int} i = 0;}
+\DoxyCodeLine{484     \textcolor{keyword}{auto} it = detail::range\_begin(range);}
+\DoxyCodeLine{485     \textcolor{keyword}{auto} end = detail::range\_end(range);}
+\DoxyCodeLine{486     \textcolor{keywordflow}{for} (; it != end; ++it) \{}
+\DoxyCodeLine{487       \textcolor{keywordflow}{if} (i > 0) out = detail::copy\_str<Char>(separator\_, out);}
+\DoxyCodeLine{488       ctx.advance\_to(out);}
+\DoxyCodeLine{489       out = underlying\_.format(mapper.map(*it), ctx);}
+\DoxyCodeLine{490       ++i;}
+\DoxyCodeLine{491     \}}
+\DoxyCodeLine{492     out = detail::copy\_str<Char>(closing\_bracket\_, out);}
+\DoxyCodeLine{493     \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{494   \}}
+\DoxyCodeLine{495 \};}
+\DoxyCodeLine{496 }
+\DoxyCodeLine{497 \textcolor{keyword}{enum class} range\_format \{ disabled, map, set, sequence, string, debug\_string \};}
+\DoxyCodeLine{498 }
+\DoxyCodeLine{499 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{500 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{501 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1range__format__kind__}{range\_format\_kind\_}}}
+\DoxyCodeLine{502     : std::integral\_constant<range\_format,}
+\DoxyCodeLine{503                              std::is\_same<uncvref\_type<T>, T>::value}
+\DoxyCodeLine{504                                  ? range\_format::disabled}
+\DoxyCodeLine{505                              : is\_map<T>::value ? range\_format::map}
+\DoxyCodeLine{506                              : is\_set<T>::value ? range\_format::set}
+\DoxyCodeLine{507                                                 : range\_format::sequence> \{\};}
+\DoxyCodeLine{508 }
+\DoxyCodeLine{509 \textcolor{keyword}{template} <range\_format K, \textcolor{keyword}{typename} R, \textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{510 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1range__default__formatter}{range\_default\_formatter}};}
+\DoxyCodeLine{511 }
+\DoxyCodeLine{512 \textcolor{keyword}{template} <range\_format K>}
+\DoxyCodeLine{513 \textcolor{keyword}{using }range\_format\_constant = std::integral\_constant<range\_format, K>;}
+\DoxyCodeLine{514 }
+\DoxyCodeLine{515 \textcolor{keyword}{template} <range\_format K, \textcolor{keyword}{typename} R, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{516 \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1range__default__formatter}{range\_default\_formatter}}<}
+\DoxyCodeLine{517     K, R, Char,}
+\DoxyCodeLine{518     enable\_if\_t<(K == range\_format::sequence || K == range\_format::map ||}
+\DoxyCodeLine{519                  K == range\_format::set)>> \{}
+\DoxyCodeLine{520   \textcolor{keyword}{using }range\_type = detail::maybe\_const\_range<R>;}
+\DoxyCodeLine{521   \mbox{\hyperlink{structrange__formatter}{range\_formatter<detail::uncvref\_type<range\_type>}}, Char> underlying\_;}
+\DoxyCodeLine{522 }
+\DoxyCodeLine{523   FMT\_CONSTEXPR \mbox{\hyperlink{structdetail_1_1range__default__formatter}{range\_default\_formatter}}() \{ init(range\_format\_constant<K>()); \}}
+\DoxyCodeLine{524 }
+\DoxyCodeLine{525   FMT\_CONSTEXPR \textcolor{keywordtype}{void} init(range\_format\_constant<range\_format::set>) \{}
+\DoxyCodeLine{526     underlying\_.set\_brackets(\mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal}}<Char, \textcolor{charliteral}{'\{'}>\{\},}
+\DoxyCodeLine{527                              \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, '\}'>}}\{\});}
+\DoxyCodeLine{528   \}}
+\DoxyCodeLine{529 }
+\DoxyCodeLine{530   FMT\_CONSTEXPR \textcolor{keywordtype}{void} init(range\_format\_constant<range\_format::map>) \{}
+\DoxyCodeLine{531     underlying\_.set\_brackets(\mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal}}<Char, \textcolor{charliteral}{'\{'}>\{\},}
+\DoxyCodeLine{532                              \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, '\}'>}}\{\});}
+\DoxyCodeLine{533     underlying\_.underlying().set\_brackets(\{\}, \{\});}
+\DoxyCodeLine{534     underlying\_.underlying().set\_separator(}
+\DoxyCodeLine{535         \mbox{\hyperlink{structdetail_1_1string__literal}{detail::string\_literal<Char, ':', ' '>}}\{\});}
+\DoxyCodeLine{536   \}}
+\DoxyCodeLine{537 }
+\DoxyCodeLine{538   FMT\_CONSTEXPR \textcolor{keywordtype}{void} init(range\_format\_constant<range\_format::sequence>) \{\}}
+\DoxyCodeLine{539 }
+\DoxyCodeLine{540   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext>}
+\DoxyCodeLine{541   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(ParseContext\& ctx) -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{542     \textcolor{keywordflow}{return} underlying\_.parse(ctx);}
+\DoxyCodeLine{543   \}}
+\DoxyCodeLine{544 }
+\DoxyCodeLine{545   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{546   \textcolor{keyword}{auto} format(range\_type\& range, FormatContext\& ctx) \textcolor{keyword}{const}}
+\DoxyCodeLine{547       -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{548     \textcolor{keywordflow}{return} underlying\_.format(range, ctx);}
+\DoxyCodeLine{549   \}}
+\DoxyCodeLine{550 \};}
+\DoxyCodeLine{551 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{552 }
+\DoxyCodeLine{553 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char, \textcolor{keyword}{typename} Enable = \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{554 \textcolor{keyword}{struct }\mbox{\hyperlink{structrange__format__kind}{range\_format\_kind}}}
+\DoxyCodeLine{555     : conditional\_t<}
+\DoxyCodeLine{556           is\_range<T, Char>::value, detail::range\_format\_kind\_<T>,}
+\DoxyCodeLine{557           std::integral\_constant<range\_format, range\_format::disabled>> \{\};}
+\DoxyCodeLine{558 }
+\DoxyCodeLine{559 \textcolor{keyword}{template} <\textcolor{keyword}{typename} R, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{560 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<}
+\DoxyCodeLine{561     R, Char,}
+\DoxyCodeLine{562     enable\_if\_t<\mbox{\hyperlink{structconjunction}{conjunction}}<bool\_constant<\mbox{\hyperlink{structrange__format__kind}{range\_format\_kind}}<R, Char>::value !=}
+\DoxyCodeLine{563                                           range\_format::disabled>}
+\DoxyCodeLine{564 \textcolor{comment}{// Workaround a bug in MSVC 2015 and earlier.}}
+\DoxyCodeLine{565 \textcolor{preprocessor}{\#if !FMT\_MSC\_VERSION || FMT\_MSC\_VERSION >= 1910}}
+\DoxyCodeLine{566                             ,}
+\DoxyCodeLine{567                             \mbox{\hyperlink{structdetail_1_1is__formattable__delayed}{detail::is\_formattable\_delayed}}<R, Char>}
+\DoxyCodeLine{568 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{569                             >::value>>}
+\DoxyCodeLine{570     : \mbox{\hyperlink{structdetail_1_1range__default__formatter}{detail::range\_default\_formatter}}<range\_format\_kind<R, Char>::value, R,}
+\DoxyCodeLine{571                                       Char> \{}
+\DoxyCodeLine{572 \};}
+\DoxyCodeLine{573 }
+\DoxyCodeLine{574 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename}... T> \textcolor{keyword}{struct }\mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view}} : \mbox{\hyperlink{structdetail_1_1view}{detail::view}} \{}
+\DoxyCodeLine{575   \textcolor{keyword}{const} std::tuple<T...>\& tuple;}
+\DoxyCodeLine{576   \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} sep;}
+\DoxyCodeLine{577 }
+\DoxyCodeLine{578   \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view}}(\textcolor{keyword}{const} std::tuple<T...>\& t, \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<Char>}} s)}
+\DoxyCodeLine{579       : tuple(t), sep\{s\} \{\}}
+\DoxyCodeLine{580 \};}
+\DoxyCodeLine{581 }
+\DoxyCodeLine{582 \textcolor{comment}{// Define FMT\_TUPLE\_JOIN\_SPECIFIERS to enable experimental format specifiers}}
+\DoxyCodeLine{583 \textcolor{comment}{// support in tuple\_join. It is disabled by default because of issues with}}
+\DoxyCodeLine{584 \textcolor{comment}{// the dynamic width and precision.}}
+\DoxyCodeLine{585 \textcolor{preprocessor}{\#ifndef FMT\_TUPLE\_JOIN\_SPECIFIERS}}
+\DoxyCodeLine{586 \textcolor{preprocessor}{\#  define FMT\_TUPLE\_JOIN\_SPECIFIERS 0}}
+\DoxyCodeLine{587 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{588 }
+\DoxyCodeLine{589 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Char, \textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{590 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<\mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view}}<Char, T...>, Char> \{}
+\DoxyCodeLine{591   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext>}
+\DoxyCodeLine{592   FMT\_CONSTEXPR \textcolor{keyword}{auto} parse(ParseContext\& ctx) -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{593     \textcolor{keywordflow}{return} do\_parse(ctx, std::integral\_constant<\textcolor{keywordtype}{size\_t}, \textcolor{keyword}{sizeof}...(T)>());}
+\DoxyCodeLine{594   \}}
+\DoxyCodeLine{595 }
+\DoxyCodeLine{596   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{597   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view<Char, T...>}}\& value,}
+\DoxyCodeLine{598               FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{typename} FormatContext::iterator \{}
+\DoxyCodeLine{599     \textcolor{keywordflow}{return} do\_format(value, ctx,}
+\DoxyCodeLine{600                      std::integral\_constant<\textcolor{keywordtype}{size\_t}, \textcolor{keyword}{sizeof}...(T)>());}
+\DoxyCodeLine{601   \}}
+\DoxyCodeLine{602 }
+\DoxyCodeLine{603  \textcolor{keyword}{private}:}
+\DoxyCodeLine{604   std::tuple<formatter<typename std::decay<T>::type, Char>...> formatters\_;}
+\DoxyCodeLine{605 }
+\DoxyCodeLine{606   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext>}
+\DoxyCodeLine{607   FMT\_CONSTEXPR \textcolor{keyword}{auto} do\_parse(ParseContext\& ctx,}
+\DoxyCodeLine{608                               std::integral\_constant<size\_t, 0>)}
+\DoxyCodeLine{609       -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{610     \textcolor{keywordflow}{return} ctx.begin();}
+\DoxyCodeLine{611   \}}
+\DoxyCodeLine{612 }
+\DoxyCodeLine{613   \textcolor{keyword}{template} <\textcolor{keyword}{typename} ParseContext, \textcolor{keywordtype}{size\_t} N>}
+\DoxyCodeLine{614   FMT\_CONSTEXPR \textcolor{keyword}{auto} do\_parse(ParseContext\& ctx,}
+\DoxyCodeLine{615                               std::integral\_constant<size\_t, N>)}
+\DoxyCodeLine{616       -\/> \textcolor{keyword}{decltype}(ctx.begin()) \{}
+\DoxyCodeLine{617     \textcolor{keyword}{auto} end = ctx.begin();}
+\DoxyCodeLine{618 \textcolor{preprocessor}{\#if FMT\_TUPLE\_JOIN\_SPECIFIERS}}
+\DoxyCodeLine{619     end = std::get<\textcolor{keyword}{sizeof}...(T) -\/ N>(formatters\_).parse(ctx);}
+\DoxyCodeLine{620     \textcolor{keywordflow}{if} (N > 1) \{}
+\DoxyCodeLine{621       \textcolor{keyword}{auto} end1 = do\_parse(ctx, std::integral\_constant<size\_t, N -\/ 1>());}
+\DoxyCodeLine{622       \textcolor{keywordflow}{if} (end != end1)}
+\DoxyCodeLine{623         FMT\_THROW(format\_error(\textcolor{stringliteral}{"{}incompatible format specs for tuple elements"{}}));}
+\DoxyCodeLine{624     \}}
+\DoxyCodeLine{625 \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{626     \textcolor{keywordflow}{return} end;}
+\DoxyCodeLine{627   \}}
+\DoxyCodeLine{628 }
+\DoxyCodeLine{629   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{630   \textcolor{keyword}{auto} do\_format(\textcolor{keyword}{const} \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view<Char, T...>}}\&, FormatContext\& ctx,}
+\DoxyCodeLine{631                  std::integral\_constant<size\_t, 0>) \textcolor{keyword}{const} -\/>}
+\DoxyCodeLine{632       \textcolor{keyword}{typename} FormatContext::iterator \{}
+\DoxyCodeLine{633     \textcolor{keywordflow}{return} ctx.out();}
+\DoxyCodeLine{634   \}}
+\DoxyCodeLine{635 }
+\DoxyCodeLine{636   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext, \textcolor{keywordtype}{size\_t} N>}
+\DoxyCodeLine{637   \textcolor{keyword}{auto} do\_format(\textcolor{keyword}{const} \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view<Char, T...>}}\& value, FormatContext\& ctx,}
+\DoxyCodeLine{638                  std::integral\_constant<size\_t, N>) \textcolor{keyword}{const} -\/>}
+\DoxyCodeLine{639       \textcolor{keyword}{typename} FormatContext::iterator \{}
+\DoxyCodeLine{640     \textcolor{keyword}{auto} out = std::get<\textcolor{keyword}{sizeof}...(T) -\/ N>(formatters\_)}
+\DoxyCodeLine{641                    .format(std::get<\textcolor{keyword}{sizeof}...(T) -\/ N>(value.tuple), ctx);}
+\DoxyCodeLine{642     \textcolor{keywordflow}{if} (N > 1) \{}
+\DoxyCodeLine{643       out = std::copy(value.sep.begin(), value.sep.end(), out);}
+\DoxyCodeLine{644       ctx.advance\_to(out);}
+\DoxyCodeLine{645       \textcolor{keywordflow}{return} do\_format(value, ctx, std::integral\_constant<size\_t, N -\/ 1>());}
+\DoxyCodeLine{646     \}}
+\DoxyCodeLine{647     \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{648   \}}
+\DoxyCodeLine{649 \};}
+\DoxyCodeLine{650 }
+\DoxyCodeLine{651 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{652 \textcolor{comment}{// Check if T has an interface like a container adaptor (e.g. std::stack,}}
+\DoxyCodeLine{653 \textcolor{comment}{// std::queue, std::priority\_queue).}}
+\DoxyCodeLine{654 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T> \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1is__container__adaptor__like}{is\_container\_adaptor\_like}} \{}
+\DoxyCodeLine{655   \textcolor{keyword}{template} <\textcolor{keyword}{typename} U> \textcolor{keyword}{static} \textcolor{keyword}{auto} check(U* p) -\/> \textcolor{keyword}{typename} U::container\_type;}
+\DoxyCodeLine{656   \textcolor{keyword}{template} <\textcolor{keyword}{typename}> \textcolor{keyword}{static} \textcolor{keywordtype}{void} check(...);}
+\DoxyCodeLine{657 }
+\DoxyCodeLine{658  \textcolor{keyword}{public}:}
+\DoxyCodeLine{659   \textcolor{keyword}{static} \textcolor{keyword}{constexpr} \textcolor{keyword}{const} \textcolor{keywordtype}{bool} \mbox{\hyperlink{classdetail_1_1value}{value}} =}
+\DoxyCodeLine{660       !std::is\_void<decltype(check<T>(\textcolor{keyword}{nullptr}))>::value;}
+\DoxyCodeLine{661 \};}
+\DoxyCodeLine{662 }
+\DoxyCodeLine{663 \textcolor{keyword}{template} <\textcolor{keyword}{typename} Container> \textcolor{keyword}{struct }\mbox{\hyperlink{structdetail_1_1all}{all}} \{}
+\DoxyCodeLine{664   \textcolor{keyword}{const} Container\& c;}
+\DoxyCodeLine{665   \textcolor{keyword}{auto} begin() \textcolor{keyword}{const} -\/> \textcolor{keyword}{typename} Container::const\_iterator \{ \textcolor{keywordflow}{return} c.begin(); \}}
+\DoxyCodeLine{666   \textcolor{keyword}{auto} end() \textcolor{keyword}{const} -\/> \textcolor{keyword}{typename} Container::const\_iterator \{ \textcolor{keywordflow}{return} c.end(); \}}
+\DoxyCodeLine{667 \};}
+\DoxyCodeLine{668 \}  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{669 }
+\DoxyCodeLine{670 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T, \textcolor{keyword}{typename} Char>}
+\DoxyCodeLine{671 \textcolor{keyword}{struct }\mbox{\hyperlink{structformatter}{formatter}}<}
+\DoxyCodeLine{672     T, Char,}
+\DoxyCodeLine{673     enable\_if\_t<\mbox{\hyperlink{structconjunction}{conjunction}}<detail::is\_container\_adaptor\_like<T>,}
+\DoxyCodeLine{674                             bool\_constant<range\_format\_kind<T, Char>::value ==}
+\DoxyCodeLine{675                                           range\_format::disabled>>::value>>}
+\DoxyCodeLine{676     : \mbox{\hyperlink{structformatter}{formatter}}<detail::all<typename T::container\_type>, Char> \{}
+\DoxyCodeLine{677   \textcolor{keyword}{using }\mbox{\hyperlink{structdetail_1_1all}{all}} = \mbox{\hyperlink{structdetail_1_1all}{detail::all<typename T::container\_type>}};}
+\DoxyCodeLine{678   \textcolor{keyword}{template} <\textcolor{keyword}{typename} FormatContext>}
+\DoxyCodeLine{679   \textcolor{keyword}{auto} format(\textcolor{keyword}{const} T\& t, FormatContext\& ctx) \textcolor{keyword}{const} -\/> \textcolor{keyword}{decltype}(ctx.out()) \{}
+\DoxyCodeLine{680     \textcolor{keyword}{struct }getter : T \{}
+\DoxyCodeLine{681       \textcolor{keyword}{static} \textcolor{keyword}{auto} get(\textcolor{keyword}{const} T\& t) -\/> \mbox{\hyperlink{structdetail_1_1all}{all}} \{}
+\DoxyCodeLine{682         \textcolor{keywordflow}{return} \{t.*(\&getter::c)\};  \textcolor{comment}{// Access c through the derived class.}}
+\DoxyCodeLine{683       \}}
+\DoxyCodeLine{684     \};}
+\DoxyCodeLine{685     \textcolor{keywordflow}{return} \mbox{\hyperlink{structformatter}{formatter<all>::format}}(getter::get(t), ctx);}
+\DoxyCodeLine{686   \}}
+\DoxyCodeLine{687 \};}
+\DoxyCodeLine{688 }
+\DoxyCodeLine{689 FMT\_BEGIN\_EXPORT}
+\DoxyCodeLine{690 }
+\DoxyCodeLine{702 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{703 FMT\_CONSTEXPR \textcolor{keyword}{auto} join(\textcolor{keyword}{const} std::tuple<T...>\& tuple, \mbox{\hyperlink{classbasic__string__view}{string\_view}} sep)}
+\DoxyCodeLine{704     -\/> \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view}}<char, T...> \{}
+\DoxyCodeLine{705   \textcolor{keywordflow}{return} \{tuple, sep\};}
+\DoxyCodeLine{706 \}}
+\DoxyCodeLine{707 }
+\DoxyCodeLine{708 \textcolor{keyword}{template} <\textcolor{keyword}{typename}... T>}
+\DoxyCodeLine{709 FMT\_CONSTEXPR \textcolor{keyword}{auto} join(\textcolor{keyword}{const} std::tuple<T...>\& tuple,}
+\DoxyCodeLine{710                         \mbox{\hyperlink{classbasic__string__view}{basic\_string\_view<wchar\_t>}} sep)}
+\DoxyCodeLine{711     -\/> \mbox{\hyperlink{structtuple__join__view}{tuple\_join\_view}}<wchar\_t, T...> \{}
+\DoxyCodeLine{712   \textcolor{keywordflow}{return} \{tuple, sep\};}
+\DoxyCodeLine{713 \}}
+\DoxyCodeLine{714 }
+\DoxyCodeLine{726 \textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{727 \textcolor{keyword}{auto} join(std::initializer\_list<T> list, \mbox{\hyperlink{classbasic__string__view}{string\_view}} sep)}
+\DoxyCodeLine{728     -\/> \mbox{\hyperlink{structjoin__view}{join\_view<const T*, const T*>}} \{}
+\DoxyCodeLine{729   \textcolor{keywordflow}{return} join(std::begin(list), std::end(list), sep);}
+\DoxyCodeLine{730 \}}
+\DoxyCodeLine{731 }
+\DoxyCodeLine{732 FMT\_END\_EXPORT}
+\DoxyCodeLine{733 FMT\_END\_NAMESPACE}
+\DoxyCodeLine{734 }
+\DoxyCodeLine{735 \textcolor{preprocessor}{\#endif  }\textcolor{comment}{// FMT\_RANGES\_H\_}}
+
+\end{DoxyCode}

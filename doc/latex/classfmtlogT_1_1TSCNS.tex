@@ -1,0 +1,70 @@
+\hypertarget{classfmtlogT_1_1TSCNS}{}\doxysection{fmtlogT\texorpdfstring{$<$}{<} \+\_\+\+\_\+ \texorpdfstring{$>$}{>}\+::TSCNS Class Reference}
+\label{classfmtlogT_1_1TSCNS}\index{fmtlogT$<$ \_\_ $>$::TSCNS@{fmtlogT$<$ \_\_ $>$::TSCNS}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_ab58b03fdc000c92c969870f95f4fd464}\label{classfmtlogT_1_1TSCNS_ab58b03fdc000c92c969870f95f4fd464}} 
+void {\bfseries init} (int64\+\_\+t init\+\_\+calibrate\+\_\+ns=20000000, int64\+\_\+t calibrate\+\_\+interval\+\_\+ns=3 $\ast$Ns\+Per\+Sec)
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a5523370bc1cecd18a250f386ed7b126b}\label{classfmtlogT_1_1TSCNS_a5523370bc1cecd18a250f386ed7b126b}} 
+void {\bfseries calibrate} ()
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a32a9fbc7e61b7f2f2cb882bf663fb322}\label{classfmtlogT_1_1TSCNS_a32a9fbc7e61b7f2f2cb882bf663fb322}} 
+int64\+\_\+t {\bfseries tsc2ns} (int64\+\_\+t tsc) const
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_aa6f1ffa8aef4099308d89860e6ac3bb6}\label{classfmtlogT_1_1TSCNS_aa6f1ffa8aef4099308d89860e6ac3bb6}} 
+int64\+\_\+t {\bfseries rdns} () const
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_aba02b490e2bcb74092c1a03cea68bb78}\label{classfmtlogT_1_1TSCNS_aba02b490e2bcb74092c1a03cea68bb78}} 
+double {\bfseries get\+Tsc\+Ghz} () const
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a26afdc932f7076bef63c19e464113a55}\label{classfmtlogT_1_1TSCNS_a26afdc932f7076bef63c19e464113a55}} 
+void {\bfseries save\+Param} (int64\+\_\+t base\+\_\+tsc, int64\+\_\+t base\+\_\+ns, int64\+\_\+t sys\+\_\+ns, double new\+\_\+ns\+\_\+per\+\_\+tsc)
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a2ce52d17e5110fe9de0f73598c859903}\label{classfmtlogT_1_1TSCNS_a2ce52d17e5110fe9de0f73598c859903}} 
+static int64\+\_\+t {\bfseries rdtsc} ()
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a89a7172abbce918e5a1f8c5c406599f5}\label{classfmtlogT_1_1TSCNS_a89a7172abbce918e5a1f8c5c406599f5}} 
+static int64\+\_\+t {\bfseries rdsysns} ()
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a8cac5a20560003d9743723bcd87e9636}\label{classfmtlogT_1_1TSCNS_a8cac5a20560003d9743723bcd87e9636}} 
+static void {\bfseries sync\+Time} (int64\+\_\+t \&tsc\+\_\+out, int64\+\_\+t \&ns\+\_\+out)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a2c6643dbcc98457fc6dc33ae7927936f}\label{classfmtlogT_1_1TSCNS_a2c6643dbcc98457fc6dc33ae7927936f}} 
+std\+::atomic$<$ uint32\+\_\+t $>$ {\bfseries param\+\_\+seq\+\_\+} = 0
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_ab5d634e7539102cf5bfbebf7f09a119a}\label{classfmtlogT_1_1TSCNS_ab5d634e7539102cf5bfbebf7f09a119a}} 
+double {\bfseries ns\+\_\+per\+\_\+tsc\+\_\+}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a3b9549f7442c07ccbda254771aab5e5a}\label{classfmtlogT_1_1TSCNS_a3b9549f7442c07ccbda254771aab5e5a}} 
+int64\+\_\+t {\bfseries base\+\_\+tsc\+\_\+}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a14cdf29ff3f5a48b4a45e702aaa16140}\label{classfmtlogT_1_1TSCNS_a14cdf29ff3f5a48b4a45e702aaa16140}} 
+int64\+\_\+t {\bfseries base\+\_\+ns\+\_\+}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a16ed27b1a81d57046dbb365e5ef4a56b}\label{classfmtlogT_1_1TSCNS_a16ed27b1a81d57046dbb365e5ef4a56b}} 
+int64\+\_\+t {\bfseries calibate\+\_\+interval\+\_\+ns\+\_\+}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a6d473e7836280897d56eb38b67d8b51f}\label{classfmtlogT_1_1TSCNS_a6d473e7836280897d56eb38b67d8b51f}} 
+int64\+\_\+t {\bfseries base\+\_\+ns\+\_\+err\+\_\+}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a945e2c7215cc2d409a3f6069ef84f5af}\label{classfmtlogT_1_1TSCNS_a945e2c7215cc2d409a3f6069ef84f5af}} 
+int64\+\_\+t {\bfseries next\+\_\+calibrate\+\_\+tsc\+\_\+}
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classfmtlogT_1_1TSCNS_a07e8b267c2b7d93ddf47215073a2e37d}\label{classfmtlogT_1_1TSCNS_a07e8b267c2b7d93ddf47215073a2e37d}} 
+static const int64\+\_\+t {\bfseries Ns\+Per\+Sec} = 1000000000
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/bybit/third\+\_\+party/fmtlog.\+h\end{DoxyCompactItemize}
