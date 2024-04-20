@@ -1,4 +1,0 @@
-<map id="detail::is_output_iterator&lt; It, T, void_t&lt; typename std::iterator_traits&lt; It &gt;::iterator_category, decltype(*std::declval&lt; It &gt;()=std::declval&lt; T &gt;())&gt; &gt;" name="detail::is_output_iterator&lt; It, T, void_t&lt; typename std::iterator_traits&lt; It &gt;::iterator_category, decltype(*std::declval&lt; It &gt;()=std::declval&lt; T &gt;())&gt; &gt;">
-<area shape="rect" id="node1" title=" " alt="" coords="5,80,249,180"/>
-<area shape="rect" id="node2" title=" " alt="" coords="71,5,183,32"/>
-</map>

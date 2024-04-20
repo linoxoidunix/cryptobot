@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.29)
 find_package(OpenSSL)
 add_subdirectory(clickhouse-cpp)
 add_subdirectory(magic_enum)
+add_subdirectory(simdjson)
+add_subdirectory(googletest)
+add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
@@ -30,16 +33,18 @@ target_include_directories(
 )
 
 target_link_libraries(${PROJECT_NAME}
+    PRIVATE
     boost_coroutine
     boost_chrono
     boost_thread
     boost_system
     OpenSSL::SSL OpenSSL::Crypto
-	magic_enum
+    magic_enum
     ${Boost_LIBRARIES}
+    simdjson::simdjson
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 
 add_subdirectory(example)
-
+add_subdirectory(test)

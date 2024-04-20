@@ -1,0 +1,46 @@
+\hypertarget{Exchange_8h_source}{}\doxysection{Exchange.\+h}
+\label{Exchange_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/Exchange.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/Exchange.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <bybit/third\_party/fmt/core.h>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/algorithm/string.hpp>}}
+\DoxyCodeLine{6 }
+\DoxyCodeLine{7 \textcolor{keyword}{class }\mbox{\hyperlink{classChartInterval}{ChartInterval}}}
+\DoxyCodeLine{8 \{}
+\DoxyCodeLine{9     \textcolor{keyword}{public}:}
+\DoxyCodeLine{10         \textcolor{keyword}{virtual} std::string ToString() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{11         \textcolor{keyword}{virtual} \mbox{\hyperlink{classChartInterval}{\string~ChartInterval}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{12 \};}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{18 \textcolor{keyword}{class }\mbox{\hyperlink{classKLineStream}{KLineStream}}}
+\DoxyCodeLine{19 \{}
+\DoxyCodeLine{20     \textcolor{keyword}{public}:}
+\DoxyCodeLine{26         \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classKLineStream_a5f202d83e06bdec3dab6eea7f53efdf9}{ToString}}() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{27         \textcolor{keyword}{virtual} \mbox{\hyperlink{classKLineStream}{\string~KLineStream}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{29 \};}
+\DoxyCodeLine{30 }
+\DoxyCodeLine{35 \textcolor{keyword}{class }\mbox{\hyperlink{classSymbol}{Symbol}}}
+\DoxyCodeLine{36 \{}
+\DoxyCodeLine{37     \textcolor{keyword}{public}:}
+\DoxyCodeLine{38         \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbol}{Symbol}}(std::string\_view first, std::string\_view second) :}
+\DoxyCodeLine{39         first\_(first.data()),}
+\DoxyCodeLine{40         second\_(second.data())}
+\DoxyCodeLine{41         \{}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43         \};}
+\DoxyCodeLine{44         \textcolor{keyword}{virtual} std::string ToString()\textcolor{keyword}{ const}}
+\DoxyCodeLine{45 \textcolor{keyword}{        }\{}
+\DoxyCodeLine{46             \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
+\DoxyCodeLine{47             boost::algorithm::to\_lower(out);}
+\DoxyCodeLine{48             \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{49         \}}
+\DoxyCodeLine{50     \textcolor{keyword}{private}:}
+\DoxyCodeLine{51         std::string first\_;}
+\DoxyCodeLine{52         std::string second\_;}
+\DoxyCodeLine{53 \};}
+
+\end{DoxyCode}

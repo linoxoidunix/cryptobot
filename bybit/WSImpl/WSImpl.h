@@ -165,7 +165,7 @@ public:
     {
         auto size = buffer_.size();
         assert(size == bytes_transferred);
-
+        //buffer_.
         strbuf.reserve(size);
         strbuf = boost::beast::buffers_to_string(buffer_.data());    
         std::cout << strbuf << "\n";

@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['advance_5fto_0',['advance_to',['../classbasic__format__parse__context.html#ad18dcd3d0fbeb0174569b88da00c87f2',1,'basic_format_parse_context']]],
-  ['append_1',['append',['../classdetail_1_1buffer.html#ab12c0beccf64adf0091468e357ed4b92',1,'detail::buffer']]]
+  ['tostring_0',['ToString',['../classbinance_1_1KLineStreamBinance.html#ac57368f8d74c07167aab0ff65ae88f9e',1,'binance::KLineStreamBinance::ToString()'],['../classKLineStream.html#a5f202d83e06bdec3dab6eea7f53efdf9',1,'KLineStream::ToString()']]]
 ];

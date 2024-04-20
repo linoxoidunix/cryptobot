@@ -68,7 +68,7 @@
 \DoxyCodeLine{64         beast::error\_code ec,}
 \DoxyCodeLine{65         tcp::resolver::results\_type results)}
 \DoxyCodeLine{66     \{}
-\DoxyCodeLine{67         Log(ec, \textcolor{stringliteral}{"{}12312321s"{}});}
+\DoxyCodeLine{67         \textcolor{comment}{//Log(ec, "{}12312321s"{});}}
 \DoxyCodeLine{68 }
 \DoxyCodeLine{69         \textcolor{keywordflow}{if}(ec)}
 \DoxyCodeLine{70             \textcolor{keywordflow}{return} Log(ec, \textcolor{stringliteral}{"{}resolve"{}});}
@@ -169,7 +169,7 @@
 \DoxyCodeLine{165     \{}
 \DoxyCodeLine{166         \textcolor{keyword}{auto} size = buffer\_.size();}
 \DoxyCodeLine{167         assert(size == bytes\_transferred);}
-\DoxyCodeLine{168 }
+\DoxyCodeLine{168         \textcolor{comment}{//buffer\_.}}
 \DoxyCodeLine{169         strbuf.reserve(size);}
 \DoxyCodeLine{170         strbuf = boost::beast::buffers\_to\_string(buffer\_.data());    }
 \DoxyCodeLine{171         std::cout << strbuf << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
@@ -179,7 +179,7 @@
 \DoxyCodeLine{175             beast::bind\_front\_handler(}
 \DoxyCodeLine{176                 \&WSSession::on\_read,}
 \DoxyCodeLine{177                 shared\_from\_this()));}
-\DoxyCodeLine{178         Log(ec, strbuf.c\_str());}
+\DoxyCodeLine{178         \textcolor{comment}{//Log(ec, strbuf.c\_str());}}
 \DoxyCodeLine{179     \}}
 \DoxyCodeLine{180 \textcolor{keyword}{private}:}
 \DoxyCodeLine{181     \textcolor{keywordtype}{void} Log(beast::error\_code ec, \textcolor{keywordtype}{char} \textcolor{keyword}{const}* what)}
