@@ -64,7 +64,7 @@ public:
         beast::error_code ec,
         tcp::resolver::results_type results)
     {
-        Log(ec, "12312321s");
+        //Log(ec, "12312321s");
 
         if(ec)
             return Log(ec, "resolve");
@@ -175,7 +175,7 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_read,
                 shared_from_this()));
-        Log(ec, strbuf.c_str());
+        //Log(ec, strbuf.c_str());
     }
 private:
     void Log(beast::error_code ec, char const* what)

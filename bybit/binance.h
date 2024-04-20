@@ -1,13 +1,13 @@
 #pragma once
 #include <string_view>
-#include <bybit/ChartInterval.h>
+#include <bybit/Exchange.h>
 
 namespace binance {
     class s1 : public ChartInterval
     {
         public:
         explicit s1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1s";
         }
     }; 
@@ -15,15 +15,19 @@ namespace binance {
     {
         public:
         explicit m1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1m";
+        }
+        ~m1()
+        {
+            std::cout << "asdasdasd";
         }
     };
     class m3 : public ChartInterval
     {
         public:
         explicit m3() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "3m";
         }
     }; 
@@ -31,7 +35,7 @@ namespace binance {
     {
         public:
         explicit m5() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "5m";
         }
     }; 
@@ -39,7 +43,7 @@ namespace binance {
     {
         public:
         explicit m15() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "15m";
         }
     };
@@ -47,7 +51,7 @@ namespace binance {
     {
         public:
         explicit m30() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "30m";
         }
     };    
@@ -55,7 +59,7 @@ namespace binance {
     {
         public:
         explicit h1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1h";
         }
     };
@@ -63,7 +67,7 @@ namespace binance {
     {
         public:
         explicit h2() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "2h";
         }
     };    
@@ -71,7 +75,7 @@ namespace binance {
     {
         public:
         explicit h4() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "4h";
         }
     };    
@@ -79,7 +83,7 @@ namespace binance {
     {
         public:
         explicit h6() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "6h";
         }
     };    
@@ -87,7 +91,7 @@ namespace binance {
     {
         public:
         explicit h8() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "8h";
         }
     };    
@@ -95,7 +99,7 @@ namespace binance {
     {
         public:
         explicit h12() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "12h";
         }
     };    
@@ -103,7 +107,7 @@ namespace binance {
     {
         public:
         explicit d1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1d";
         }
     };    
@@ -111,7 +115,7 @@ namespace binance {
     {
         public:
         explicit d3() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "3d";
         }
     };    
@@ -119,7 +123,7 @@ namespace binance {
     {
         public:
         explicit w1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1w";
         }
     };
@@ -127,8 +131,24 @@ namespace binance {
     {
         public:
         explicit M1() = default;
-        std::string ToString(){
+        std::string ToString() const override{
             return "1M";
         }
     };
-}
+    class KLineStreamBinance : public KLineStream
+    {
+        public:
+            explicit KLineStreamBinance(const Symbol& s, const ChartInterval* chart_interval) : 
+            symbol_(s),
+            chart_interval_(chart_interval){};
+            virtual std::string ToString() const override
+            {
+                return fmt::format("{0}@kline_{1}", symbol_.ToString(), chart_interval_->ToString());
+            };
+        private:
+            const Symbol& symbol_;
+            const ChartInterval* chart_interval_;
+            
+
+    };
+};
