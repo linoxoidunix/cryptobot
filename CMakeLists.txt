@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.29)
 find_package(OpenSSL)
+add_subdirectory(clickhouse-cpp)
+add_subdirectory(magic_enum)
+
 set (PROJECT_NAME bybit)
 project(${PROJECT_NAME})
 
@@ -26,9 +29,10 @@ target_link_libraries(${PROJECT_NAME}
     boost_thread
     boost_system
     OpenSSL::SSL OpenSSL::Crypto
+	magic_enum
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 
 add_subdirectory(example)
-add_subdirectory(clickhouse-cpp)
+
