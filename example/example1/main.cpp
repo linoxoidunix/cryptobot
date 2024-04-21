@@ -1,11 +1,10 @@
-#include <iostream>
 #include <bybit/Logger.h>
 #include <bybit/binance.h>
 
+#include <iostream>
 
-int main()
-{
+int main() {
     Logger log("logfile.txt");
-    
+
     return 0;
 }

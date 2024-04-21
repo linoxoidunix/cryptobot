@@ -1,7 +1,8 @@
+#include <bybit/WS.h>
+
 #include <iostream>
 #include <memory>
-#include <bybit/WS.h>
-//#include <bybit/root_certificates.hpp>
+// #include <bybit/root_certificates.hpp>
 #include <bybit/binance.h>
 // int main()
 // {
@@ -16,19 +17,19 @@
 //     return 0;
 // }
 
-int main()
-{
+int main() {
     std::function<void(std::string)> func;
-    func = [](std::string){};
+    func = [](std::string) {};
     net::io_context ioc;
     using klsb = binance::KLineStreamBinance;
-    Symbol btcusdt("BTC","USDT");
+    Symbol btcusdt("BTC", "USDT");
     auto chart_interval = binance::m1();
     klsb channel(btcusdt, &chart_interval);
-    std::make_shared<WS>(
-        ioc
-        // func, func, func, func
-        )->Run("stream.binance.com", "9443", fmt::format("/ws/{0}", channel.ToString()));
+    std::make_shared<WS>(ioc
+                         // func, func, func, func
+                         )
+        ->Run("stream.binance.com", "9443",
+              fmt::format("/ws/{0}", channel.ToString()));
     ioc.run();
     return 0;
 }
