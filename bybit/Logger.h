@@ -1,5 +1,5 @@
 #pragma once
-#include <stdio.h>
+#include <cstdio>
 
 #include <memory>
 #include <string_view>
@@ -12,7 +12,7 @@ class LoggerI {
 class Logger : public LoggerI {
   public:
     explicit Logger(std::string_view file_name);
-    void Log(std::string_view message);
+    void Log(std::string_view message) override;
 
   private:
     FILE *file_out_;
@@ -21,7 +21,7 @@ class Logger : public LoggerI {
 class LoggerEmpty : public LoggerI {
   public:
     explicit LoggerEmpty() = default;
-    void Log(std::string_view message);
+    void Log(std::string_view message) override;
 
   private:
 };
