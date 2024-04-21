@@ -89,7 +89,7 @@ class KLineStreamBinance : public KLineStream {
     explicit KLineStreamBinance(const Symbol& s,
                                 const ChartInterval* chart_interval)
         : symbol_(s), chart_interval_(chart_interval){};
-    virtual std::string ToString() const override {
+    std::string ToString() const override {
         return fmt::format("{0}@kline_{1}", symbol_.ToString(),
                            chart_interval_->ToString());
     };

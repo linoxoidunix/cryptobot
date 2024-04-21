@@ -29,12 +29,22 @@ class WSSession : public std::enable_shared_from_this<WSSession>
     std::string end_point_;
     LoggerI* logger_;
     std::string strbuf;
+    std::string request_json_;
+    std::string_view empty_json = "{}";
 public:
-    // Resolver and socket require an io_context
+    /**
+     * @brief Construct a new WSSession object
+     * 
+     * @param ioc 
+     * @param ctx 
+     * @param logger 
+     * @param request_json if no need request than request_json={}
+     */
     explicit
-    WSSession(net::io_context& ioc, ssl::context& ctx, LoggerI* logger)
+    WSSession(net::io_context& ioc, ssl::context& ctx, LoggerI* logger, std::string_view request_json)
         : resolver_(net::make_strand(ioc))
         , ws_(net::make_strand(ioc), ctx),
+        request_json_(request_json.data()),
         logger_(logger)
     {
     }
@@ -148,8 +158,33 @@ public:
     {
         if(ec)
             return Log(ec, "handshake");
+        if(request_json_ == empty_json)
+            //start listen wright now
+            ws_.async_read(
+                buffer_,
+                beast::bind_front_handler(
+                    &WSSession::on_read,
+                    shared_from_this()));
+        else
+            //send subscribe
+            ws_.async_write(
+                net::buffer(request_json_),
+                beast::bind_front_handler(
+                    &WSSession::on_write,
+                    shared_from_this()));
+    }
 
-        // Send the message
+    void
+    on_write(
+        beast::error_code ec,
+        std::size_t bytes_transferred)
+    {
+        boost::ignore_unused(bytes_transferred);
+
+        if(ec)
+            return Log(ec, "write");
+        
+        // Read a message into our buffer
         ws_.async_read(
             buffer_,
             beast::bind_front_handler(
@@ -180,7 +215,8 @@ public:
 private:
     void Log(beast::error_code ec, char const* what)
     {
-        logger_->Log(what);
+        //logger_->Log(what);
+        std::cout << ec << " what:" << what;
     }
 
 };

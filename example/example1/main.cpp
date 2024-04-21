@@ -1,5 +1,5 @@
 #include <bybit/Logger.h>
-#include <bybit/binance.h>
+#include <bybit/Binance.h>
 
 #include <iostream>
 

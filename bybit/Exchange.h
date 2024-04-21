@@ -5,6 +5,32 @@
 #include <string>
 #include <string_view>
 
+/**
+ * @brief Interval = 1day or 1sec
+ * 
+ */
+class Interval
+{
+  enum class Unit
+  {
+    SECONDS,
+    MINUTES,
+    HOURS,
+    DAYS,
+    UNKNOWN
+  };
+  /**
+   * @brief @brief for Interval = 1day unit = DAYS
+   * 
+   */
+  Unit unit = Unit::UNKNOWN;
+  /**
+   * @brief for Interval = 1day val = 1
+   * 
+   */
+  uint val = 0;
+};
+
 class ChartInterval {
   public:
     virtual std::string ToString() const = 0;
@@ -43,6 +69,7 @@ class Symbol {
         boost::algorithm::to_lower(out);
         return out;
     }
+    virtual ~Symbol() = default;
 
   private:
     std::string first_;
