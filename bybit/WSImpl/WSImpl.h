@@ -1,15 +1,22 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/ssl.hpp>
-#include <bybit/Logger.h>
+#include <boost/system/error_code.hpp>
+//#include <bybit/Logger.h>
+#include <bybit/Types.h>
+#define FMT_HEADER_ONLY
+#include <bybit/third_party/fmt/core.h>
+#define FMTLOG_HEADER_ONLY
+#include <bybit/third_party/fmtlog.h>
 
-class LoggerI;
+//class LoggerI;
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -27,10 +34,11 @@ class WSSession : public std::enable_shared_from_this<WSSession>
     std::string host_;
     std::string text_;
     std::string end_point_;
-    LoggerI* logger_;
     std::string strbuf;
     std::string request_json_;
     std::string_view empty_json = "{}";
+    OnMessage on_msg_cb_;
+    std::ofstream ofstream_;
 public:
     /**
      * @brief Construct a new WSSession object
@@ -41,13 +49,14 @@ public:
      * @param request_json if no need request than request_json={}
      */
     explicit
-    WSSession(net::io_context& ioc, ssl::context& ctx, LoggerI* logger, std::string_view request_json)
+    WSSession(net::io_context& ioc, ssl::context& ctx, std::string_view request_json, OnMessage om_msg_cb)
         : resolver_(net::make_strand(ioc))
         , ws_(net::make_strand(ioc), ctx),
-        request_json_(request_json.data()),
-        logger_(logger)
+        on_msg_cb_(om_msg_cb),
+        request_json_(request_json.data())
     {
-    }
+        //ofstream_.open("sadasd");
+    };
 
     // Start the asynchronous operation
     void
@@ -67,17 +76,18 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_resolve,
                 shared_from_this()));
-    }
+    };
 
     void
     on_resolve(
         beast::error_code ec,
         tcp::resolver::results_type results)
     {
-        //Log(ec, "12312321s");
-
         if(ec)
-            return Log(ec, "resolve");
+        {
+            loge("{}", ec.message());
+            return;
+        }
 
         // Set a timeout on the operation
         beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
@@ -88,13 +98,16 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_connect,
                 shared_from_this()));
-    }
+    };
 
     void
     on_connect(beast::error_code ec, tcp::resolver::results_type::endpoint_type ep)
     {
         if(ec)
-            return Log(ec, "connect");
+        {
+            loge("{}", ec.message());
+            return;
+        }
 
         // Set a timeout on the operation
         beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
@@ -106,7 +119,8 @@ public:
         {
             ec = beast::error_code(static_cast<int>(::ERR_get_error()),
                 net::error::get_ssl_category());
-            return Log(ec, "connect");
+            loge("{}", ec.message());
+            return;
         }
 
         // Update the host_ string. This will provide the value of the
@@ -120,13 +134,16 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_ssl_handshake,
                 shared_from_this()));
-    }
+    };
 
     void
     on_ssl_handshake(beast::error_code ec)
     {
         if(ec)
-            return Log(ec, "ssl_handshake");
+        {
+            loge("{}", ec.message());
+            return;
+        }
 
         // Turn off the timeout on the tcp_stream, because
         // the websocket stream has its own timeout system.
@@ -151,13 +168,16 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_handshake,
                 shared_from_this()));
-    }
+    };
 
     
     void on_handshake(beast::error_code ec)
     {
         if(ec)
-            return Log(ec, "handshake");
+        {
+            loge("{}", ec.message());
+            return;
+        }
         if(request_json_ == empty_json)
             //start listen wright now
             ws_.async_read(
@@ -172,7 +192,7 @@ public:
                 beast::bind_front_handler(
                     &WSSession::on_write,
                     shared_from_this()));
-    }
+    };
 
     void
     on_write(
@@ -182,7 +202,10 @@ public:
         boost::ignore_unused(bytes_transferred);
 
         if(ec)
-            return Log(ec, "write");
+        {
+            loge("{}", ec.message());
+            return;
+        }
         
         // Read a message into our buffer
         ws_.async_read(
@@ -190,7 +213,7 @@ public:
             beast::bind_front_handler(
                 &WSSession::on_read,
                 shared_from_this()));
-    }
+    };
     
 
     void
@@ -200,23 +223,21 @@ public:
     {
         auto size = buffer_.size();
         assert(size == bytes_transferred);
-        //buffer_.
         strbuf.reserve(size);
-        strbuf = boost::beast::buffers_to_string(buffer_.data());    
-        std::cout << strbuf << "\n";
+        on_msg_cb_(buffer_);
         buffer_.consume(buffer_.size());
         ws_.async_read(
             buffer_,
             beast::bind_front_handler(
                 &WSSession::on_read,
                 shared_from_this()));
-        //Log(ec, strbuf.c_str());
-    }
+    };
 private:
-    void Log(beast::error_code ec, char const* what)
+    void LogError(beast::error_code& ec)
     {
-        //logger_->Log(what);
-        std::cout << ec << " what:" << what;
-    }
+        loge("{}", ec.message());
+        return;
+    };
+
 
 };

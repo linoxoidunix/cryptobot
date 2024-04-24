@@ -4,7 +4,7 @@
 #include <iostream>
 
 int main() {
-    Logger log("logfile.txt");
+    //Logger log("logfile.txt");
 
     return 0;
 }
