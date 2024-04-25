@@ -1,6 +1,8 @@
 #pragma once
 #include <bybit/Exchange.h>
-
+#include <bybit/OHLCV.h>
+#include <bybit/third_party/fmtlog.h>
+#include <bybit/WS.h>
 #include <string_view>
 
 namespace binance {
@@ -100,18 +102,48 @@ class M1 : public ChartInterval {
     explicit M1() = default;
     std::string ToString() const override { return "1M"; }
 };
-class KLineStream: public KLineStreamI {
+class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(const Symbol* s,
-                                const ChartInterval* chart_interval)
+    explicit KLineStream(const Symbol* s, const ChartInterval* chart_interval)
         : symbol_(s), chart_interval_(chart_interval){};
     std::string ToString() const override {
         return fmt::format("{0}@kline_{1}", symbol_->ToString(),
                            chart_interval_->ToString());
     };
-  ~KLineStream() = default;
+    ~KLineStream() = default;
+
   private:
     const Symbol* symbol_;
+    const ChartInterval* chart_interval_;
+};
+
+class OHLCVI : public OHLCVGetter {
+  public:
+    OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
+        : s_(s), chart_interval_(chart_interval){};
+    void Get(OHLCVIStorage& buffer) override {
+        boost::asio::io_context ioc;
+        // fmtlog::setLogFile("log", true);
+        fmtlog::setLogLevel(fmtlog::DBG);
+
+        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
+        OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+            auto resut = boost::beast::buffers_to_string(buffer.data());
+            logi("{}", resut);
+            fmtlog::poll();
+        };
+
+        using kls = KLineStream;
+        kls channel(s_, chart_interval_);
+        std::string empty_request = "{}";
+        std::make_shared<WS>(ioc, empty_request, OnMessageCB)
+            ->Run("stream.binance.com", "9443",
+                  fmt::format("/ws/{0}", channel.ToString()));
+        ioc.run();
+    };
+
+  private:
+    const Symbol* s_;
     const ChartInterval* chart_interval_;
 };
 };  // namespace binance

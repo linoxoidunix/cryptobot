@@ -1,3 +1,4 @@
+#pragma once
 #include <bybit/WSImpl/WSImpl.h>
 
 #include <functional>
@@ -7,22 +8,22 @@
 #include <unordered_map>
 #include <boost/beast/core.hpp>
 #include "Types.h"
-class Args : public std::unordered_map<std::string, std::string> {
-  public:
-    explicit Args(std::string stream);
-    std::string_view Host();
+// class Args : public std::unordered_map<std::string, std::string> {
+//   public:
+//     explicit Args(std::string stream);
+//     std::string_view Host();
 
-  private:
-    std::string stream_;
-};
+//   private:
+//     std::string stream_;
+// };
 
 namespace bst = boost::beast;
 
 class WS {
   public:
-    using OnError   = std::function<void(std::string)>;
-    using OnClose   = std::function<void(std::string)>;
-    using Args      = std::unordered_map<std::string, std::string>;
+    //using OnError   = std::function<void(std::string)>;
+    //using OnClose   = std::function<void(std::string)>;
+    //using Args      = std::unordered_map<std::string, std::string>;
     explicit WS(boost::asio::io_context& ctx,
                 std::string_view request,
                 OnMessage msg_cb );

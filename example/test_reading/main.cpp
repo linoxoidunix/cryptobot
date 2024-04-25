@@ -71,14 +71,26 @@
 //     return 0;
 // }
 
+// int main()
+// {
+//     //using namespace bybit;
+//     using klsb = bybit::KLineStream;
+//     bybit::Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = bybit::m1();
+//     OHLCVIStorage storage;
+//     bybit::OHLCVI fetcher(&btcusdt, &chart_interval);
+//     fetcher.Get(storage);
+//     return 0;
+// }
+
 int main()
 {
     //using namespace bybit;
-    using klsb = bybit::KLineStream;
-    bybit::Symbol btcusdt("BTC", "USDT");
-    auto chart_interval = bybit::m1();
+    using klsb = binance::KLineStream;
+    binance::Symbol btcusdt("BTC", "USDT");
+    auto chart_interval = binance::m1();
     OHLCVIStorage storage;
-    bybit::OHLCVI fetcher(&btcusdt, &chart_interval);
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval);
     fetcher.Get(storage);
     return 0;
 }
