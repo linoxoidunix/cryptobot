@@ -112,9 +112,7 @@ class OHLCVI : public OHLCVGetter {
         };
 
         using kls = KLineStream;
-        Symbol btcusdt("BTC", "USDT");
-        auto chart_interval = m1();
-        kls channel(&btcusdt, &chart_interval);
+        kls channel(s_, chart_interval_);
         auto request_without_bracket = fmt::format("\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]", channel.ToString());
         std::string request = "{"+request_without_bracket + "}";
         std::make_shared<WS>(ioc, request, OnMessageCB)->Run("stream-testnet.bybit.com", "443","/v5/public/spot");
