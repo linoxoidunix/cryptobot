@@ -1,9 +1,9 @@
 #pragma once
-#include "Exchange.h"
 #include <boost/beast/core.hpp>
 
-struct OHLCV
-{
+#include "Exchange.h"
+
+struct OHLCV {
     uint data;
     double open;
     double high;
@@ -12,19 +12,24 @@ struct OHLCV
     double volume;
 };
 
-struct OHLCVI
-{
+struct OHLCVI {
     OHLCV ohlcv;
     Interval interval;
 };
 
+using OHLCVIStorage = std::list<OHLCVI>;
+
 /**
  * @brief return OHLCVI struct fron raw data from web socket
- * 
+ *
  */
-class OHLCVGetter
-{
-    public:
-        virtual OHLCVI Get(boost::beast::flat_buffer& buffer) = 0;
-        virtual ~OHLCVGetter() = default;
+class OHLCVGetter {
+  public:
+    /**
+     * @brief write all OHLCVI to buffer in real time from exchange
+     *
+     * @param buffer
+     */
+    virtual void Get(OHLCVIStorage& buffer) = 0;
+    virtual ~OHLCVGetter()                  = default;
 };

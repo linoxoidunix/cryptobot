@@ -26,30 +26,30 @@
 //     return 0;
 // }
 
-int main() {
-    net::io_context ioc;
-    fmtlog::setLogFile("log", true);
-    fmtlog::setLogLevel(fmtlog::DBG);
+// int main() {
+//     using namespace binance;
+//     net::io_context ioc;
+//     //fmtlog::setLogFile("log", true);
+//     fmtlog::setLogLevel(fmtlog::DBG);
 
-    std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-    OnMessageCB = [](boost::beast::flat_buffer& buffer) {
-        auto resut = boost::beast::buffers_to_string(buffer.data());
-        logi("{}", resut);
-        fmtlog::poll();
-    };
+//     std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
+//     OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+//         auto resut = boost::beast::buffers_to_string(buffer.data());
+//         logi("{}", resut);
+//         fmtlog::poll();
+//     };
 
-    using klsb = binance::KLineStreamBinance;
-    Symbol btcusdt("BTC", "USDT");
-    auto chart_interval = binance::m1();
-    klsb channel(btcusdt, &chart_interval);
-    std::make_shared<WS>(ioc, OnMessageCB
-                         // func, func, func, func
-                         )
-        ->Run("stream.binance.com", "9443",
-              fmt::format("/ws/{0}", channel.ToString()));
-    ioc.run();
-    return 0;
-}
+//     using klsb = KLineStream;
+//     Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = m1();
+//     klsb channel(btcusdt, &chart_interval);
+//     std::string empty_request = "{}";
+//     std::make_shared<WS>(ioc, empty_request, OnMessageCB)
+//         ->Run("stream.binance.com", "9443",
+//               fmt::format("/ws/{0}", channel.ToString()));
+//     ioc.run();
+//     return 0;
+// }
 
 // int main() {
 //     std::function<void(boost::beast::flat_buffer& buffer)> func;
@@ -70,3 +70,15 @@ int main() {
 //     ioc.run();
 //     return 0;
 // }
+
+int main()
+{
+    //using namespace bybit;
+    using klsb = bybit::KLineStream;
+    bybit::Symbol btcusdt("BTC", "USDT");
+    auto chart_interval = bybit::m1();
+    OHLCVIStorage storage;
+    bybit::OHLCVI fetcher(&btcusdt, &chart_interval);
+    fetcher.Get(storage);
+    return 0;
+}

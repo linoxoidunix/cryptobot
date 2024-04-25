@@ -41,7 +41,7 @@ class ChartInterval {
  * @brief make stream channel for fetch kline from exchange
  *
  */
-class KLineStream {
+class KLineStreamI {
   public:
     /**
      * @brief
@@ -49,7 +49,7 @@ class KLineStream {
      * @return std::string as name channel
      */
     virtual std::string ToString() const = 0;
-    virtual ~KLineStream()               = default;
+    virtual ~KLineStreamI()               = default;
 };
 
 /**
@@ -57,19 +57,20 @@ class KLineStream {
  * have different separate symbol
  *
  */
-class Symbol {
+class SymbolI {
   public:
-    explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()),
-          second_(second.data()){
+    // explicit Symbol(std::string_view first, std::string_view second)
+    //     : first_(first.data()),
+    //       second_(second.data()){
 
-          };
-    virtual std::string ToString() const {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_lower(out);
-        return out;
-    }
-    virtual ~Symbol() = default;
+    //       };
+    virtual std::string ToString() const = 0; 
+    // {
+    //     auto out = fmt::format("{0}{1}", first_, second_);
+    //     //boost::algorithm::to_lower(out);
+    //     return out;
+    // }
+    virtual ~SymbolI() = default;
 
   private:
     std::string first_;

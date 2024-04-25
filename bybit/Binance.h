@@ -4,6 +4,22 @@
 #include <string_view>
 
 namespace binance {
+
+class Symbol : public SymbolI {
+  public:
+    explicit Symbol(std::string_view first, std::string_view second)
+        : first_(first.data()), second_(second.data()){};
+    std::string ToString() const override {
+        auto out = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_lower(out);
+        return out;
+    }
+    ~Symbol() = default;
+
+  private:
+    std::string first_;
+    std::string second_;
+};
 class s1 : public ChartInterval {
   public:
     explicit s1() = default;
@@ -84,18 +100,18 @@ class M1 : public ChartInterval {
     explicit M1() = default;
     std::string ToString() const override { return "1M"; }
 };
-class KLineStreamBinance : public KLineStream {
+class KLineStream: public KLineStreamI {
   public:
-    explicit KLineStreamBinance(const Symbol& s,
+    explicit KLineStream(const Symbol* s,
                                 const ChartInterval* chart_interval)
         : symbol_(s), chart_interval_(chart_interval){};
     std::string ToString() const override {
-        return fmt::format("{0}@kline_{1}", symbol_.ToString(),
+        return fmt::format("{0}@kline_{1}", symbol_->ToString(),
                            chart_interval_->ToString());
     };
-
+  ~KLineStream() = default;
   private:
-    const Symbol& symbol_;
+    const Symbol* symbol_;
     const ChartInterval* chart_interval_;
 };
 };  // namespace binance

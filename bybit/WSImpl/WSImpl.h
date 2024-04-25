@@ -7,6 +7,7 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/asio.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/system/error_code.hpp>
 //#include <bybit/Logger.h>
@@ -68,6 +69,15 @@ public:
         // Save these for later
         host_ = host;
         end_point_ = end_point;
+        // if(! SSL_set_tlsext_host_name(
+        //         ws_.next_layer().native_handle(),
+        //         host_.c_str()))
+        // {
+        //     auto ec = beast::error_code(static_cast<int>(::ERR_get_error()),
+        //         net::error::get_ssl_category());
+        //     loge("{}", ec.message());
+        //     return;
+        // }
 
         // Look up the domain name
         resolver_.async_resolve(
@@ -77,6 +87,30 @@ public:
                 &WSSession::on_resolve,
                 shared_from_this()));
     };
+
+    void OnResolve(const boost::system::error_code& err, tcp::resolver::iterator endpoint_iterator) {
+        if (!err)
+        {
+            int count = 0;
+            boost::system::error_code error = boost::asio::error::host_not_found;
+           // tcp::socket socket(ioc);
+            while (error && endpoint_iterator != tcp::resolver::iterator())
+            {
+                std::cout << endpoint_iterator->endpoint() << std::endl;
+                endpoint_iterator++;
+            }
+            // while ( endpoint_iterator != boost::asio::ip::tcp::resolver::iterator() ) {
+            //     std::cout << endpoint_iterator->endpoint() << std::endl;
+            //     ++endpoint_iterator;
+            //     ++count;
+            // }
+            std::cout << "resolved!";
+        }
+        else
+        {
+            std::cout << "error.";
+        }
+    }
 
     void
     on_resolve(
@@ -88,10 +122,19 @@ public:
             loge("{}", ec.message());
             return;
         }
+        std::cout << results.size()<< std::endl;
 
         // Set a timeout on the operation
-        beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
-
+        beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(10));
+        if(! SSL_set_tlsext_host_name(
+                ws_.next_layer().native_handle(),
+                host_.c_str()))
+        {
+            auto ec = beast::error_code(static_cast<int>(::ERR_get_error()),
+                net::error::get_ssl_category());
+            loge("{}", ec.message());
+            return;
+        }
         // Make the connection on the IP address we get from a lookup
         beast::get_lowest_layer(ws_).async_connect(
             results,
@@ -108,21 +151,21 @@ public:
             loge("{}", ec.message());
             return;
         }
-
+        //std::cout << ep.hostname();
         // Set a timeout on the operation
         beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(30));
 
         // Set SNI Hostname (many hosts need this to handshake successfully)
-        if(! SSL_set_tlsext_host_name(
-                ws_.next_layer().native_handle(),
-                host_.c_str()))
-        {
-            ec = beast::error_code(static_cast<int>(::ERR_get_error()),
-                net::error::get_ssl_category());
-            loge("{}", ec.message());
-            return;
-        }
-
+        // if(! SSL_set_tlsext_host_name(
+        //         ws_.next_layer().native_handle(),
+        //         host_.c_str()))
+        // {
+        //     ec = beast::error_code(static_cast<int>(::ERR_get_error()),
+        //         net::error::get_ssl_category());
+        //     loge("{}", ec.message());
+        //     return;
+        // }
+        std::cout << ep.address() << std::endl;
         // Update the host_ string. This will provide the value of the
         // Host HTTP header during the WebSocket handshake.
         // See https://tools.ietf.org/html/rfc7230#section-5.4
