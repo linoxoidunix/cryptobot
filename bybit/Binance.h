@@ -1,6 +1,5 @@
 #pragma once
 #include <bybit/Exchange.h>
-#include <bybit/OHLCV.h>
 #include <bybit/third_party/fmtlog.h>
 #include <bybit/WS.h>
 #include <string_view>

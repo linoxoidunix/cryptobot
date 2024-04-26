@@ -1,14 +1,14 @@
 #pragma once
 #include <bybit/Exchange.h>
-#include <bybit/OHLCV.h>
 #include <bybit/third_party/fmt/core.h>
+
 #include <string_view>
 
 namespace bybit {
-  class Symbol : public SymbolI {
+class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
+        : first_(first.data()), second_(second.data()){};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(out);
@@ -82,8 +82,7 @@ class M1 : public ChartInterval {
 
 class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(const Symbol* s,
-                              const ChartInterval* chart_interval)
+    explicit KLineStream(const Symbol* s, const ChartInterval* chart_interval)
         : symbol_(s), chart_interval_(chart_interval){};
     std::string ToString() const override {
         return fmt::format("kline.{0}.{1}", chart_interval_->ToString(),
@@ -95,13 +94,19 @@ class KLineStream : public KLineStreamI {
     const ChartInterval* chart_interval_;
 };
 
+class ParserKLineResponse : public ParserKLineResponseI {
+  public:
+    explicit ParserKLineResponse() = default;
+    OHLCVI Get(std::string_view response_from_exchange) const override{return {};};
+};
+
 class OHLCVI : public OHLCVGetter {
   public:
     OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
         : s_(s), chart_interval_(chart_interval){};
     void Get(OHLCVIStorage& buffer) override {
         net::io_context ioc;
-        //fmtlog::setLogFile("log", true);
+        // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
 
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
@@ -113,9 +118,12 @@ class OHLCVI : public OHLCVGetter {
 
         using kls = KLineStream;
         kls channel(s_, chart_interval_);
-        auto request_without_bracket = fmt::format("\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]", channel.ToString());
-        std::string request = "{"+request_without_bracket + "}";
-        std::make_shared<WS>(ioc, request, OnMessageCB)->Run("stream-testnet.bybit.com", "443","/v5/public/spot");
+        auto request_without_bracket = fmt::format(
+            "\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]",
+            channel.ToString());
+        std::string request = "{" + request_without_bracket + "}";
+        std::make_shared<WS>(ioc, request, OnMessageCB)
+            ->Run("stream-testnet.bybit.com", "443", "/v5/public/spot");
         ioc.run();
     };
 
