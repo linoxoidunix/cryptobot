@@ -7,8 +7,24 @@
 #include <string>
 std::string python_path = PYTHON_PATH;
 
+int InitTuplePosition(PyObject *pArgs, int position, double value) {
+    auto pValue = PyFloat_FromDouble(value);
+    if (!pValue) {
+        fprintf(stderr, "Cannot convert argument\n");
+        return 1;
+    }
+    PyTuple_SetItem(pArgs, position, pValue);
+
+    return 0;
+}
 
 int main(int argc, char *argv[]) {
+    double open   = 123.234;
+    double high   = 6.234;
+    double low    = 1.234;
+    double close  = 4.2334;
+    double volume = 13.23434;
+
     setenv("PYTHONPATH", python_path.c_str(), 1);
     PyObject *pName, *pModule, *pFunc;
     PyObject *pArgs, *pValue;
@@ -27,15 +43,15 @@ int main(int argc, char *argv[]) {
 
         if (pFunc && PyCallable_Check(pFunc)) {
             pArgs = PyTuple_New(5);
-            for (i = 0; i < 5; ++i) {
-                pValue = PyFloat_FromDouble(123.312);
-                if (!pValue) {
-                    Py_DECREF(pArgs);
-                    Py_DECREF(pModule);
-                    fprintf(stderr, "Cannot convert argument\n");
-                    return 1;
-                }
-                PyTuple_SetItem(pArgs, i, pValue);
+            if(InitTuplePosition(pArgs, 0, open) || 
+                InitTuplePosition(pArgs, 1, high) ||
+                InitTuplePosition(pArgs, 2, low) ||
+                InitTuplePosition(pArgs, 3, close) ||
+                InitTuplePosition(pArgs, 4, volume))
+            {
+                Py_DECREF(pArgs);
+                Py_DECREF(pModule);
+                fprintf(stderr, "Cannot convert argument\n");
             }
             pValue = PyObject_CallObject(pFunc, pArgs);
             Py_DECREF(pArgs);
@@ -46,7 +62,7 @@ int main(int argc, char *argv[]) {
                     PyObject *key_as_str =
                         PyUnicode_AsEncodedString(key, "utf-8", "~E~");
                     const char *key_local = PyBytes_AS_STRING(key_as_str);
-                    long value_local = PyLong_AS_LONG(value);
+                    long value_local      = PyLong_AS_LONG(value);
                     std::cout << "key = " << key_local
                               << " value = " << value_local << std::endl;
                     Py_XDECREF(key_as_str);

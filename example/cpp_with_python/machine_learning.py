@@ -1,6 +1,7 @@
 import random
 
 def predict(open, high, low, close, volume):
+    print(f'open={open}\nhigh={high}\nlow={low}\nclose={close}\nvolume={volume}')
     list_tag = ['enter_long', 'enter_short','exit_long','exit_short', '','','','']
     list_value = [0,1]
     local_dict = {random.choice(list_tag): random.choice(list_value)}
