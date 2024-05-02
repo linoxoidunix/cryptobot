@@ -3,10 +3,10 @@
 
 #include <memory>
 #include <string_view>
-// #define FMT_HEADER_ONLY
-// #include <bybit/third_party/fmt/core.h>
-// #define FMTLOG_HEADER_ONLY
-// #include <bybit/third_party/fmtlog.h>
+#define FMT_HEADER_ONLY
+#include <bybit/third_party/fmt/core.h>
+#define FMTLOG_HEADER_ONLY
+#include <bybit/third_party/fmtlog.h>
 
 
 // class LoggerI {

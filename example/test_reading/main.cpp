@@ -102,6 +102,8 @@ int main()
     {
         uint a = 2;
         Predictor predictor(a);
+        OHLCV data;
+        predictor.Predict(data);
     }
     catch(const std::exception& e)
     {

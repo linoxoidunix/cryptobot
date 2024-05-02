@@ -1,6 +1,6 @@
 #pragma once
 #include <bybit/Exchange.h>
-
+#include "bybit/Logger.h"
 #include <memory>
 
 enum class Side { LONG, SHORT, NOPE };
@@ -12,27 +12,23 @@ class Action {
 using ActionPtr = std::unique_ptr<Action>;
 
 class Buy : public Action {
-    static Action::Pointer Ptr() {
-        return std::unique_ptr<Buy>(new Buy(Side::NOPE));
-    }
-
   public:
     explicit Buy(Side side) : side_(side){};
-
-    void Do() override {};
-
+    void Do() override {fmt::print("buy {}\n", (int)side_);};
+    static Action::Pointer Ptr(Side side = Side::NOPE) {
+        return std::unique_ptr<Buy>(new Buy(side));
+    };
   private:
     Side side_ = Side::NOPE;
 };
 
 class Sell : public Action {
-    static Action::Pointer Ptr() {
-        return std::unique_ptr<Sell>(new Sell(Side::NOPE));
-    }
-
   public:
     explicit Sell(Side side) : side_(side){};
-    void Do() override {};
+    void Do() override {fmt::print("sell {}\n", (int)side_);};
+    static Action::Pointer Ptr(Side side = Side::NOPE) {
+        return std::unique_ptr<Sell>(new Sell(side));
+    };
 
   private:
     Side side_ = Side::NOPE;
@@ -41,10 +37,17 @@ class Sell : public Action {
 class ActionEmpty : public Action {
   public:
     explicit ActionEmpty() = default;
-    void Do() override {};
+    void Do() override {fmt::print("action nope\n");};
     static inline Action::Pointer Ptr() {
         return std::unique_ptr<ActionEmpty>(new ActionEmpty());
     };
+};
+
+class ActionFactory
+{
+    public:
+       explicit ActionFactory() = default;
+       Action::Pointer Produce(std::pair<std::string, long>);
 };
 
 namespace detail {
