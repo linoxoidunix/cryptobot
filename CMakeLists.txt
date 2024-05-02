@@ -9,7 +9,10 @@ add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF) 
+
 find_package(Boost 1.65.0) 
+find_package(Python COMPONENTS Interpreter Development)
+message("Python_FOUND:${Python_FOUND}")
 
 file(GLOB LIST_H
      "bybit/*.h"
@@ -53,9 +56,11 @@ target_link_libraries(${PROJECT_NAME}
     magic_enum
     ${Boost_LIBRARIES}
     simdjson::simdjson
+    Python::Python
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/bybit/python\"")
 
 add_subdirectory(example)
 add_subdirectory(test)

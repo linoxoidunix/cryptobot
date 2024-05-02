@@ -9,6 +9,7 @@
 #include <boost/beast/core.hpp>
 #include <thread>
 #include <fstream>
+#include "bybit/Predictor.h"
 //#define FMT_HEADER_ONLY
 //#include <bybit/third_party/fmt/core.h>
 // #define FMTLOG_HEADER_ONLY
@@ -71,17 +72,17 @@
 //     return 0;
 // }
 
-int main()
-{
-    //using namespace bybit;
-    using klsb = bybit::KLineStream;
-    bybit::Symbol btcusdt("BTC", "USDT");
-    auto chart_interval = bybit::m1();
-    OHLCVIStorage storage;
-    bybit::OHLCVI fetcher(&btcusdt, &chart_interval);
-    fetcher.Get(storage);
-    return 0;
-}
+// int main()
+// {
+//     //using namespace bybit;
+//     using klsb = bybit::KLineStream;
+//     bybit::Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = bybit::m1();
+//     OHLCVIStorage storage;
+//     bybit::OHLCVI fetcher(&btcusdt, &chart_interval);
+//     fetcher.Get(storage);
+//     return 0;
+// }
 
 // int main()
 // {
@@ -94,3 +95,17 @@ int main()
 //     fetcher.Get(storage);
 //     return 0;
 // }
+
+int main()
+{
+    try
+    {
+        uint a = 2;
+        Predictor predictor(a);
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    return 0;
+}

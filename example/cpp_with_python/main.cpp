@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
                 Py_DECREF(pArgs);
                 Py_DECREF(pModule);
                 fprintf(stderr, "Cannot convert argument\n");
+                return 1;
             }
             pValue = PyObject_CallObject(pFunc, pArgs);
             Py_DECREF(pArgs);

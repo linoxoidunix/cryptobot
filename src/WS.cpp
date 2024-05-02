@@ -5,9 +5,11 @@
 #include "bybit/Logger.h"
 #include "bybit/WSImpl/WSImpl.h"
 #include "bybit/root_certificates.hpp"
+#include "bybit/Types.h"
 
-WS::WS(boost::asio::io_context& ioc,
-       std::string_view request,
+
+
+WS::WS(boost::asio::io_context& ioc, std::string_view request,
        // Args args,
        OnMessage msg_cb
        /*OnError error_cb,
@@ -16,9 +18,11 @@ WS::WS(boost::asio::io_context& ioc,
        )
     : ioc_(ioc) {
     load_root_certificates(ctx_);
-    session_ = std::shared_ptr<WSSession>(
-        new WSSession(ioc, ctx_, request, msg_cb));
+    session_ =
+        std::shared_ptr<WSSession>(new WSSession(ioc, ctx_, request, msg_cb));
 }
+
+WS::~WS() {}
 
 void WS::Run(std::string_view host, std::string_view port,
              std::string_view endpoint) {

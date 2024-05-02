@@ -105,7 +105,7 @@ class OHLCVI : public OHLCVGetter {
     OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
         : s_(s), chart_interval_(chart_interval){};
     void Get(OHLCVIStorage& buffer) override {
-        net::io_context ioc;
+        boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
 
