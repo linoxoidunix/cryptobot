@@ -11,12 +11,7 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/system/error_code.hpp>
 #include "aot/Types.h"
-#define FMT_HEADER_ONLY
-#include "aot/third_party/fmt/core.h"
-#define FMTLOG_HEADER_ONLY
-#include "aot/third_party/fmtlog.h"
-
-//class LoggerI;
+#include "aot/Logger.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>

@@ -3,7 +3,7 @@
 #include <boost/beast/core.hpp>
 
 #include "aot/Logger.h"
-#include "aot/WSImpl/WSImpl.h"
+#include "aot/impl/WSImpl.h"
 #include "aot/root_certificates.hpp"
 #include "aot/Types.h"
 
