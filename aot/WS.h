@@ -1,5 +1,4 @@
 #pragma once
-// #include <bybit/WSImpl/WSImpl.h>
 
 #include <boost/beast/core.hpp>
 #include <boost/asio/ssl/context.hpp>
@@ -9,15 +8,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "bybit/Types.h"
-// class Args : public std::unordered_map<std::string, std::string> {
-//   public:
-//     explicit Args(std::string stream);
-//     std::string_view Host();
-
-//   private:
-//     std::string stream_;
-// };
+#include "aot/Types.h"
 
 namespace bst = boost::beast;
 

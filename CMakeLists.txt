@@ -15,7 +15,7 @@ find_package(Python COMPONENTS Interpreter Development)
 message("Python_FOUND:${Python_FOUND}")
 
 file(GLOB LIST_H
-     "bybit/*.h"
+     "aot/*.h"
 )
 file(GLOB LIST_CPP
      "src/*.cpp"
@@ -23,7 +23,7 @@ file(GLOB LIST_CPP
 set(ALL_FILES ${LIST_H} ${LIST_CPP})
 message (${ALL_FILES})
 
-set (PROJECT_NAME bybit)
+set (PROJECT_NAME aot)
 project(${PROJECT_NAME})
 
 
@@ -60,7 +60,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/bybit/python\"")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/aot/python\"")
 
 add_subdirectory(example)
 add_subdirectory(test)

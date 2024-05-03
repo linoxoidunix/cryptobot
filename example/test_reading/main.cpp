@@ -1,15 +1,14 @@
-#include <bybit/WS.h>
+#include <aot/WS.h>
 
 #include <iostream>
 #include <memory>
-// #include <bybit/root_certificates.hpp>
-#include <bybit/Binance.h>
-#include <bybit/Bybit.h>
+#include <aot/Binance.h>
+#include <aot/Bybit.h>
 
 #include <boost/beast/core.hpp>
 #include <thread>
 #include <fstream>
-#include "bybit/Predictor.h"
+#include "aot/Predictor.h"
 //#define FMT_HEADER_ONLY
 //#include <bybit/third_party/fmt/core.h>
 // #define FMTLOG_HEADER_ONLY
@@ -84,30 +83,30 @@
 //     return 0;
 // }
 
-// int main()
-// {
-//     //using namespace bybit;
-//     using klsb = binance::KLineStream;
-//     binance::Symbol btcusdt("BTC", "USDT");
-//     auto chart_interval = binance::m1();
-//     OHLCVIStorage storage;
-//     binance::OHLCVI fetcher(&btcusdt, &chart_interval);
-//     fetcher.Get(storage);
-//     return 0;
-// }
-
 int main()
 {
-    try
-    {
-        uint a = 2;
-        Predictor predictor(a);
-        OHLCV data;
-        predictor.Predict(data);
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
+    //using namespace bybit;
+    using klsb = binance::KLineStream;
+    binance::Symbol btcusdt("BTC", "USDT");
+    auto chart_interval = binance::m1();
+    OHLCVIStorage storage;
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval);
+    fetcher.Get(storage);
     return 0;
 }
+
+// int main()
+// {
+//     try
+//     {
+//         uint a = 2;
+//         Predictor predictor(a);
+//         OHLCV data;
+//         predictor.Predict(data);
+//     }
+//     catch(const std::exception& e)
+//     {
+//         std::cerr << e.what() << '\n';
+//     }
+//     return 0;
+// }

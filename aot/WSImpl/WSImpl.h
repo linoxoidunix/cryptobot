@@ -10,12 +10,11 @@
 #include <boost/asio.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/system/error_code.hpp>
-//#include <bybit/Logger.h>
-#include <bybit/Types.h>
+#include "aot/Types.h"
 #define FMT_HEADER_ONLY
-#include <bybit/third_party/fmt/core.h>
+#include "aot/third_party/fmt/core.h"
 #define FMTLOG_HEADER_ONLY
-#include <bybit/third_party/fmtlog.h>
+#include "aot/third_party/fmtlog.h"
 
 //class LoggerI;
 

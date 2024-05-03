@@ -5,7 +5,7 @@
 #include "simdjson.h"
 
 #define FMT_HEADER_ONLY
-#include <bybit/third_party/fmt/core.h>
+#include "aot/third_party/fmt/core.h"
 using namespace simdjson;
 
 std::string current_path = PATH_TO_TEST;

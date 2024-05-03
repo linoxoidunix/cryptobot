@@ -13,7 +13,7 @@ add_executable (${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-bybit
+aot
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

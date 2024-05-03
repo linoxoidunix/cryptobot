@@ -1,6 +1,6 @@
-#include "bybit/Predictor.h"
+#include "aot/Predictor.h"
 
-#include "bybit/impl/PredictorImpl.h"
+#include "aot/impl/PredictorImpl.h"
 
 Predictor::Predictor(uint maximum_window)
     : impl(std::unique_ptr<detail::PredictorImpl>(
