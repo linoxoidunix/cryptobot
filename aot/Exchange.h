@@ -1,9 +1,9 @@
 #pragma once
-#include "aot/third_party/fmt/core.h"
-
 #include <boost/algorithm/string.hpp>
 #include <string>
 #include <string_view>
+
+#include "aot/third_party/fmt/core.h"
 
 /**
  * @brief Interval = 1day or 1sec
@@ -99,3 +99,14 @@ class ParserKLineResponseI {
     virtual OHLCVI Get(std::string_view response_from_exchange) const = 0;
     virtual ~ParserKLineResponseI()                                   = default;
 };
+
+namespace inner {
+class OrderNewI {
+  public:
+    /**
+     * @brief send order to exchange
+     *
+     */
+    virtual void Exec() = 0;
+};
+}  // namespace inner

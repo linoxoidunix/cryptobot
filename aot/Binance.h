@@ -145,4 +145,16 @@ class OHLCVI : public OHLCVGetter {
     const Symbol* s_;
     const ChartInterval* chart_interval_;
 };
+
+class OrderNew
+{
+  public:
+    struct Data
+    {
+
+    };
+    explicit OrderNew(Data data) : data_(data){};
+  private:
+    Data data_;
+};
 };  // namespace binance

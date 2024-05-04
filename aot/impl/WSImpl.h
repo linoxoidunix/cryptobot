@@ -50,7 +50,6 @@ public:
         on_msg_cb_(om_msg_cb),
         request_json_(request_json.data())
     {
-        //ofstream_.open("sadasd");
     };
 
     // Start the asynchronous operation
