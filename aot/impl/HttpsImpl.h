@@ -134,25 +134,41 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
         if (ec) return fail(ec, "read");
 
         // Write the message to standard out
-        std::cout << res_ << std::endl;
+        //std::cout << res_ << std::endl;
         cb_(res_);
         // Set a timeout on the operation
         beast::get_lowest_layer(stream_).expires_after(
             std::chrono::seconds(30));
-
         // Gracefully close the stream
-        stream_.async_shutdown(beast::bind_front_handler(
-            &HttpsSession::on_shutdown, shared_from_this()));
+        beast::get_lowest_layer(stream_).socket().cancel(ec);
+        if (ec == net::error::eof) {
+            // Rationale:
+            // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+            ec = {};
+        }
+        if (ec) return fail(ec, "cansel");
+        beast::get_lowest_layer(stream_).socket().close(ec);
+        if (ec == net::error::eof) {
+            // Rationale:
+            // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+            ec = {};
+        }
+        if (ec) return fail(ec, "cansel");
+        // stream_.async_shutdown(beast::bind_front_handler(
+        //     &HttpsSession::on_shutdown, shared_from_this()));
     }
 
     void on_shutdown(beast::error_code ec) {
+        beast::get_lowest_layer(stream_).socket().close(ec);
+
         if (ec == net::error::eof) {
             // Rationale:
             // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
             ec = {};
         }
         if (ec) return fail(ec, "shutdown");
-
         // If we get here then the connection is closed gracefully
+        //beast::get_lowest_layer(stream_).socket().close(ec);
+
     }
 };

@@ -161,9 +161,10 @@ class OrderNew : public inner::OrderNewI {
         OnHttpsResponce cb;
         cb = [](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {
-            // auto resut =
-            // boost::beast::buffers_to_string(buffer.body().data()); logi("{}",
-            // resut); fmtlog::poll();
+                      auto asdasd = buffer.body().data();
+            auto resut = buffer.body();//boost::beast::buffers_to_string(buffer.body().data()); 
+            logi("{}",resut); 
+            fmtlog::poll();
         };
 
         boost::beast::http::request<boost::beast::http::empty_body> request;
