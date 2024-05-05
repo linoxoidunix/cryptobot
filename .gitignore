@@ -3,3 +3,4 @@ build/
 sdk/
 simdjson/
 magic_enum/
+json/
