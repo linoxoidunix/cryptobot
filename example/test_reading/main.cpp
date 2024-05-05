@@ -83,17 +83,17 @@
 //     return 0;
 // }
 
-int main()
-{
-    //using namespace bybit;
-    using klsb = binance::KLineStream;
-    binance::Symbol btcusdt("BTC", "USDT");
-    auto chart_interval = binance::m1();
-    OHLCVIStorage storage;
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval);
-    fetcher.Get(storage);
-    return 0;
-}
+// int main()
+// {
+//     //using namespace bybit;
+//     using klsb = binance::KLineStream;
+//     binance::Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = binance::m1();
+//     OHLCVIStorage storage;
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval);
+//     fetcher.Get(storage);
+//     return 0;
+// }
 
 // int main()
 // {
@@ -110,3 +110,12 @@ int main()
 //     }
 //     return 0;
 // }
+
+int main()
+{
+    using namespace binance;
+    OrderNew::Data d;
+    OrderNew order = OrderNew(d);
+    order.Exec();
+    return 0;
+}

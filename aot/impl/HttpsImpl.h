@@ -39,8 +39,8 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
                           // net::any_io_executor ex,
                           ssl::context& ctx, OnHttpsResponce cb)
         : ioc_(ioc),
-          resolver_(net::make_strand(ioc_)),
-          stream_(net::make_strand(ioc_), ctx),
+          resolver_(net::make_strand(ioc)),
+          stream_(net::make_strand(ioc), ctx),
           cb_(cb) {
         // resolver_ = net::make_strand(ioc_);
         // stream_ = (ex, ctx),
@@ -67,11 +67,11 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
 
         // Set up an HTTP GET request message
         req_ = req;
-        // req_.version(version);
-        // req_.method(http::verb::get);
-        // req_.target(target);
-        // req_.set(http::field::host, host);
-        // req_.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+        req_.version(11);
+        req_.method(http::verb::get);
+        req_.target(target);
+        req_.set(http::field::host, host);
+        req_.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
         // Look up the domain name
         resolver_.async_resolve(

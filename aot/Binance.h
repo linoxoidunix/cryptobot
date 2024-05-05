@@ -1,11 +1,12 @@
 #pragma once
-#include "aot/Exchange.h"
-#include "aot/third_party/fmtlog.h"
-#include "aot/WS.h"
-#include "aot/Https.h"
-#include <string_view>
 #include <boost/beast/http.hpp>
+#include <boost/beast/http/message.hpp>
+#include <string_view>
 
+#include "aot/Exchange.h"
+#include "aot/Https.h"
+#include "aot/WS.h"
+#include "aot/third_party/fmtlog.h"
 namespace binance {
 
 class Symbol : public SymbolI {
@@ -148,32 +149,31 @@ class OHLCVI : public OHLCVGetter {
     const ChartInterval* chart_interval_;
 };
 
-class OrderNew : public inner::OrderNewI
-{
+class OrderNew : public inner::OrderNewI {
   public:
-    struct Data
-    {
-
-    };
+    struct Data {};
     explicit OrderNew(Data data) : data_(data){};
-    void Exec() override{
-      boost::asio::io_context ioc;
+    void Exec() override {
+        boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
 
-       OnHttpsResponce cb;
-        cb = [](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
-            // auto resut = boost::beast::buffers_to_string(buffer.data());
-            //logi("{}");
-            //fmtlog::poll();
+        OnHttpsResponce cb;
+        cb = [](boost::beast::http::response<boost::beast::http::string_body>&
+                    buffer) {
+            // auto resut =
+            // boost::beast::buffers_to_string(buffer.body().data()); logi("{}",
+            // resut); fmtlog::poll();
         };
 
         boost::beast::http::request<boost::beast::http::empty_body> request;
 
-        std::make_shared<Https>(ioc, cb)
-            ->Run("stream.binance.com", "9443","/", std::move(request));
+        std::make_shared<Https>(ioc, cb)->Run("testnet.binance.vision", "443",
+                                              "/api/v3/time",
+                                              std::move(request));
         ioc.run();
     }
+
   private:
     Data data_;
 };
