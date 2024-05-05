@@ -29,6 +29,7 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
     http::request<http::empty_body> req_;
+    beast::flat_buffer buffer_; // (Must persist between reads)
     http::response<http::string_body> res_;
     OnHttpsResponce cb_;
     boost::asio::io_context& ioc_;

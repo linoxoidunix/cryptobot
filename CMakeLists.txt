@@ -1,9 +1,14 @@
 cmake_minimum_required(VERSION 3.29)
+set (PROJECT_NAME aot)
+project(${PROJECT_NAME} C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenSSL)
 add_subdirectory(clickhouse-cpp)
-add_subdirectory(magic_enum)
-add_subdirectory(simdjson)
+#add_subdirectory(magic_enum)
+find_package(Threads REQUIRED)
+find_package(simdjson REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
+#add_subdirectory(simdjson)
 add_subdirectory(googletest)
 add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
@@ -53,7 +58,7 @@ target_link_libraries(${PROJECT_NAME}
     boost_thread
     boost_system
     OpenSSL::SSL OpenSSL::Crypto
-    magic_enum
+    magic_enum::magic_enum
     ${Boost_LIBRARIES}
     simdjson::simdjson
     Python::Python

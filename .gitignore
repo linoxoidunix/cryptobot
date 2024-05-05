@@ -1,2 +1,5 @@
 build/
 .vscode
+sdk/
+simdjson/
+magic_enum/
