@@ -67,12 +67,6 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
 
         // Set up an HTTP GET request message
         req_ = req;
-        req_.version(11);
-        req_.method(http::verb::get);
-        req_.target(target);
-        req_.set(http::field::host, host);
-        req_.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-
         // Look up the domain name
         resolver_.async_resolve(
             host, port,
