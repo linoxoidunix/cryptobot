@@ -76,9 +76,6 @@ class PredictorImpl {
         Py_DECREF(pArgs);
         PyObject *key1, *value1;
         Py_ssize_t pos1 = 0;
-        // while (PyDict_Next(value, &pos1, &key1, &value1)) {
-        //     int x = 0;
-        // }
         std::string key_out;
         long value_out;
         auto sdfsdf = PyDict_Size(value);

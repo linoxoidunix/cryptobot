@@ -1,9 +1,10 @@
 #pragma once
-#include "aot/Exchange.h"
-#include "aot/Logger.h"
 #include <memory>
 
-enum class Side { LONG, SHORT, NOPE };
+#include "aot/Exchange.h"
+#include "aot/Logger.h"
+
+enum class Direction { LONG, SHORT, NOPE };
 class Action {
   public:
     using Pointer     = std::unique_ptr<Action>;
@@ -13,41 +14,41 @@ using ActionPtr = std::unique_ptr<Action>;
 
 class Buy : public Action {
   public:
-    explicit Buy(Side side) : side_(side){};
-    void Do() override {fmt::print("buy {}\n", (int)side_);};
-    static Action::Pointer Ptr(Side side = Side::NOPE) {
+    explicit Buy(Direction side) : side_(side){};
+    void Do() override { fmt::print("buy {}\n", (int)side_); };
+    static Action::Pointer Ptr(Direction side = Direction::NOPE) {
         return std::unique_ptr<Buy>(new Buy(side));
     };
+
   private:
-    Side side_ = Side::NOPE;
+    Direction side_ = Direction::NOPE;
 };
 
 class Sell : public Action {
   public:
-    explicit Sell(Side side) : side_(side){};
-    void Do() override {fmt::print("sell {}\n", (int)side_);};
-    static Action::Pointer Ptr(Side side = Side::NOPE) {
+    explicit Sell(Direction side) : side_(side){};
+    void Do() override { fmt::print("sell {}\n", (int)side_); };
+    static Action::Pointer Ptr(Direction side = Direction::NOPE) {
         return std::unique_ptr<Sell>(new Sell(side));
     };
 
   private:
-    Side side_ = Side::NOPE;
+    Direction side_ = Direction::NOPE;
 };
 
 class ActionEmpty : public Action {
   public:
     explicit ActionEmpty() = default;
-    void Do() override {fmt::print("action nope\n");};
+    void Do() override { fmt::print("action nope\n"); };
     static inline Action::Pointer Ptr() {
         return std::unique_ptr<ActionEmpty>(new ActionEmpty());
     };
 };
 
-class ActionFactory
-{
-    public:
-       explicit ActionFactory() = default;
-       Action::Pointer Produce(std::pair<std::string, long>);
+class ActionFactory {
+  public:
+    explicit ActionFactory() = default;
+    Action::Pointer Produce(std::pair<std::string, long>);
 };
 
 namespace detail {

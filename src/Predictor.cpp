@@ -1,7 +1,6 @@
 #include "aot/Predictor.h"
 
 #include "aot/impl/PredictorImpl.h"
-
 Predictor::Predictor(uint maximum_window)
     : impl(std::unique_ptr<detail::PredictorImpl>(
           new detail::PredictorImpl(maximum_window))) {
@@ -23,15 +22,15 @@ Action::Pointer ActionFactory::Produce(
     std::pair<std::string, long> python_module_answer) {
     if (python_module_answer.first == "enter_long" &&
         python_module_answer.second == 1)
-        return Buy::Ptr(Side::LONG);
+        return Buy::Ptr(Direction::LONG);
     if (python_module_answer.first == "enter_short" &&
         python_module_answer.second == 1)
-        return Buy::Ptr(Side::SHORT);
+        return Buy::Ptr(Direction::SHORT);
     if (python_module_answer.first == "exit_long" &&
         python_module_answer.second == 1)
-        return Sell::Ptr(Side::LONG);
+        return Sell::Ptr(Direction::LONG);
     if (python_module_answer.first == "exit_short" &&
         python_module_answer.second == 1)
-        return Sell::Ptr(Side::SHORT);
+        return Sell::Ptr(Direction::SHORT);
     return ActionEmpty::Ptr();
 }

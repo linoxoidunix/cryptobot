@@ -14,13 +14,36 @@ namespace binance {
 namespace testnet {
 class HttpsExchange : public https::ExchangeI {
   public:
-    explicit HttpsExchange() = default;
+    /**
+     * @brief Construct a new Https Exchange object
+     *
+     * @param recv_window
+     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+     * An additional parameter, recvWindow, may be sent to specify the number of
+     * milliseconds after timestamp the request is valid for. If recvWindow is
+     * not sent, it defaults to 5000.
+     */
+    explicit HttpsExchange(std::uint64_t recv_window = 5000) {
+        /**
+         * @brief
+          https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+          It is recommended to use a small recvWindow of 5000 or less! The max
+         cannot go beyond 60,000!
+         *
+         */
+        recv_window_ = (recv_window > 60000) ? 60000 : recv_window;
+    };
+
     virtual ~HttpsExchange() = default;
     std::string_view Host() const override {
         return std::string_view("testnet.binance.vision");
     };
     std::string_view Port() const override { return "443"; };
-};  // namespace https
+    std::uint64_t RecvWindow() const override { return recv_window_; };
+
+  private:
+    std::uint64_t recv_window_;
+};
 };  // namespace testnet
 
 enum class Side { BUY, SELL };
@@ -41,7 +64,7 @@ class Symbol : public SymbolI {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_lower(out);
         return out;
-    }
+    };
     ~Symbol() = default;
 
   private:
@@ -174,6 +197,8 @@ class OHLCVI : public OHLCVGetter {
 };
 
 class OrderNew : public inner::OrderNewI {
+    static constexpr std::string_view end_point = "/api/v3/order";
+
   public:
     class ArgsI {
       public:
@@ -244,19 +269,22 @@ class OrderNew : public inner::OrderNewI {
             auto out = boost::algorithm::join(merged, "&");
             if (!out.empty()) out.insert(out.begin(), '?');
             return out;
-        }
+        };
     };
     class FactoryPostRequest {
       public:
         explicit FactoryPostRequest(const https::ExchangeI* exchange,
-                                    std::string_view target, Args&& args)
-            : exchange_(exchange), args_(args){target_ = target.data() + args_.QueryString();};
+                                    std::string_view end_point, Args&& args)
+            : exchange_(exchange), args_(args) {
+            AddSignParams();
+            end_point = end_point.data() + args_.QueryString();
+        };
         boost::beast::http::request<boost::beast::http::empty_body>
         operator()() {
             boost::beast::http::request<boost::beast::http::empty_body> req;
             req.version(11);
-            req.method(boost::beast::http::verb::get);
-            req.target(target_.data());
+            req.method(boost::beast::http::verb::post);
+            req.target(end_point_);
             req.set(boost::beast::http::field::host, exchange_->Host().data());
             req.set(boost::beast::http::field::user_agent,
                     BOOST_BEAST_VERSION_STRING);
@@ -264,16 +292,34 @@ class OrderNew : public inner::OrderNewI {
         };
         std::string_view Host() const { return exchange_->Host(); };
         std::string_view Port() const { return exchange_->Port(); };
-        std::string_view Target() const { return target_; }
+        std::string_view EndPoint() const { return end_point_; }
+
+      private:
+        void AddSignParams() {
+            CurrentTime time_service;
+            args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
+            args_["timestamp"] = std::to_string(time_service.Time());
+        };
 
       private:
         const https::ExchangeI* exchange_;
-        std::string target_;
+        std::string end_point_;
         Args args_;
     };
 
   public:
-    explicit OrderNew(FactoryPostRequest* factory) : factory_(factory){};
+    explicit OrderNew(Args&& args, TypeExchange type) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_test_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+        factory_ = std::unique_ptr<FactoryPostRequest>(new FactoryPostRequest(
+            current_exchange_, OrderNew::end_point, std::move(args)));
+    };
     void Exec() override {
         boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
@@ -289,11 +335,13 @@ class OrderNew : public inner::OrderNewI {
         auto& test = *factory_;
         std::make_shared<Https>(ioc, cb)->Run(
             factory_->Host().data(), factory_->Port().data(),
-            factory_->Target().data(), test());
+            factory_->EndPoint().data(), test());
         ioc.run();
-    }
+    };
 
   private:
-    FactoryPostRequest* factory_;
+    std::unique_ptr<FactoryPostRequest> factory_;
+    binance::testnet::HttpsExchange binance_test_net_;
+    https::ExchangeI* current_exchange_;
 };
 };  // namespace binance

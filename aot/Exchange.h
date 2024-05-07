@@ -4,23 +4,38 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/beast/http.hpp>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
 #include "aot/third_party/fmt/core.h"
+
+enum class TypeExchange { TESTNET, MAINNET };
 namespace https {
 class ExchangeI {
   public:
-    virtual ~ExchangeI()                  = default;
-    virtual std::string_view Host() const = 0;
-    virtual std::string_view Port() const = 0;
+    virtual ~ExchangeI()                     = default;
+    virtual std::string_view Host() const    = 0;
+    virtual std::string_view Port() const    = 0;
+    virtual std::uint64_t RecvWindow() const = 0;
 };
 };  // namespace https
+
+class CurrentTime {
+  public:
+    explicit CurrentTime() = default;
+    std::uint64_t Time() const {
+        return static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count());
+    };
+};
 
 namespace hmac_sha256 {
 class Signer {
   public:
-    explicit Signer(std::string_view api_key) : api_key_(api_key) {}
+    explicit Signer(std::string_view api_key) : api_key_(api_key){};
 
     /**
      * @brief add timestamp and recvWindow to data then signed this data
@@ -33,22 +48,16 @@ class Signer {
         std::uint8_t digest[EVP_MAX_MD_SIZE];
         std::uint32_t dilen{};
 
-        auto p = ::HMAC(::EVP_sha256(), api_key_.c_str(), api_key_.length(),
-                        (std::uint8_t *)data.data(), data.size(), digest, &dilen);
+        auto p =
+            ::HMAC(::EVP_sha256(), api_key_.c_str(), api_key_.length(),
+                   (std::uint8_t *)data.data(), data.size(), digest, &dilen);
         assert(p);
 
-        return b2a_hex(digest, dilen);
-    }
+        return B2aHex(digest, dilen);
+    };
 
   private:
-    std::uint64_t get_current_ms_epoch() {
-        return static_cast<std::uint64_t>(
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::system_clock::now().time_since_epoch())
-                .count());
-    }
-
-    std::string b2a_hex(const std::uint8_t *p, std::size_t n) {
+    std::string B2aHex(const std::uint8_t *p, std::size_t n) {
         static const char hex[] = "0123456789abcdef";
         std::string res;
         res.reserve(n * 2);
@@ -60,19 +69,7 @@ class Signer {
         }
 
         return res;
-    }
-
-    std::string hmac_sha256(const char *key, std::size_t klen, const char *data,
-                            std::size_t dlen) {
-        std::uint8_t digest[EVP_MAX_MD_SIZE];
-        std::uint32_t dilen{};
-
-        auto p = ::HMAC(::EVP_sha256(), key, klen, (std::uint8_t *)data, dlen,
-                        digest, &dilen);
-        assert(p);
-
-        return b2a_hex(digest, dilen);
-    }
+    };
 
   private:
     std::string api_key_;

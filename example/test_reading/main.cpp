@@ -115,11 +115,10 @@ int main()
 {
     using namespace binance;
     Symbol btcusdt_symbol("BTC", "USDT");
-    testnet::HttpsExchange exchange;
     binance::Side buy = binance::Side::BUY;
     OrderNew::Args args(&btcusdt_symbol, buy, Type::LIMIT);
-    OrderNew::FactoryPostRequest factory(&exchange, "/api/v3/time", std::move(args));
-    OrderNew order = OrderNew(&factory);
+    //OrderNew::FactoryPostRequest factory(&exchange, "/api/v3/time", std::move(args));
+    OrderNew order = OrderNew(std::move(args), TypeExchange::TESTNET);
     order.Exec();
     return 0;
 }
