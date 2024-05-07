@@ -196,34 +196,74 @@ class OHLCVI : public OHLCVGetter {
     const ChartInterval* chart_interval_;
 };
 
-class OrderNew : public inner::OrderNewI {
-    static constexpr std::string_view end_point = "/api/v3/order";
+class Args : public std::unordered_map<std::string, std::string>
+{
 
-  public:
-    class ArgsI {
+};
+
+class ArgsQuery : public Args {
       public:
-        virtual void SetSymbol(SymbolI* symbol) = 0;
-        virtual void SetSide(Side side)         = 0;
-        virtual void SetType(Type type)         = 0;
+      explicit ArgsQuery() : Args(){};
         /**
          * @brief return query string starts with ?
          *
          * @return std::string
          */
-        virtual std::string QueryString()       = 0;
+        virtual std::string QueryString(){return {};};
+};
+class FactoryRequest {
+  public:
+    explicit FactoryRequest(const https::ExchangeI* exchange,
+                            std::string_view end_point, ArgsQuery args,
+                            boost::beast::http::verb action,
+                            bool need_sign = false)
+        : exchange_(exchange), args_(args), action_(action) {
+        if (need_sign) AddSignParams();
+        end_point = end_point.data() + args_.QueryString();
     };
-    class Args : public std::unordered_map<std::string, std::string>,
-                 public ArgsI {
+    boost::beast::http::request<boost::beast::http::empty_body> operator()() {
+        boost::beast::http::request<boost::beast::http::empty_body> req;
+        req.version(11);
+        req.method(action_);
+        req.target(end_point_);
+        req.set(boost::beast::http::field::host, exchange_->Host().data());
+        req.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+        return req;
+    };
+    std::string_view Host() const { return exchange_->Host(); };
+    std::string_view Port() const { return exchange_->Port(); };
+    std::string_view EndPoint() const { return end_point_; }
+
+  private:
+    void AddSignParams() {
+        CurrentTime time_service;
+        args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
+        args_["timestamp"]  = std::to_string(time_service.Time());
+    };
+
+  private:
+    const https::ExchangeI* exchange_;
+    std::string end_point_;
+    boost::beast::http::verb action_;
+    ArgsQuery args_;
+};
+
+class OrderNew : public inner::OrderNewI {
+    static constexpr std::string_view end_point = "/api/v3/order";
+
+  public:
+    class ArgsOrder : public ArgsQuery{
       public:
-        explicit Args(SymbolI* symbol, Side side, Type type) {
+        explicit ArgsOrder(SymbolI* symbol, Side side, Type type) : ArgsQuery() {
             SetSymbol(symbol);
             SetSide(side);
             SetType(type);
         };
-        void SetSymbol(SymbolI* symbol) override {
+        void SetSymbol(SymbolI* symbol) {
             insert({"symbol", symbol->ToString()});
         };
-        void SetSide(Side side) override {
+        void SetSide(Side side) {
             auto& storage = *this;
             switch (side) {
                 case Side::BUY:
@@ -234,7 +274,7 @@ class OrderNew : public inner::OrderNewI {
                     break;
             }
         };
-        void SetType(Type type) override {
+        void SetType(Type type) {
             auto& storage = *this;
             switch (type) {
                 case Type::LIMIT:
@@ -271,44 +311,9 @@ class OrderNew : public inner::OrderNewI {
             return out;
         };
     };
-    class FactoryPostRequest {
-      public:
-        explicit FactoryPostRequest(const https::ExchangeI* exchange,
-                                    std::string_view end_point, Args&& args)
-            : exchange_(exchange), args_(args) {
-            AddSignParams();
-            end_point = end_point.data() + args_.QueryString();
-        };
-        boost::beast::http::request<boost::beast::http::empty_body>
-        operator()() {
-            boost::beast::http::request<boost::beast::http::empty_body> req;
-            req.version(11);
-            req.method(boost::beast::http::verb::post);
-            req.target(end_point_);
-            req.set(boost::beast::http::field::host, exchange_->Host().data());
-            req.set(boost::beast::http::field::user_agent,
-                    BOOST_BEAST_VERSION_STRING);
-            return req;
-        };
-        std::string_view Host() const { return exchange_->Host(); };
-        std::string_view Port() const { return exchange_->Port(); };
-        std::string_view EndPoint() const { return end_point_; }
-
-      private:
-        void AddSignParams() {
-            CurrentTime time_service;
-            args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
-            args_["timestamp"] = std::to_string(time_service.Time());
-        };
-
-      private:
-        const https::ExchangeI* exchange_;
-        std::string end_point_;
-        Args args_;
-    };
 
   public:
-    explicit OrderNew(Args&& args, TypeExchange type) {
+    explicit OrderNew(ArgsOrder&& args, TypeExchange type) : args_(args) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_test_net_;
@@ -317,10 +322,10 @@ class OrderNew : public inner::OrderNewI {
                 current_exchange_ = &binance_test_net_;
                 break;
         }
-        factory_ = std::unique_ptr<FactoryPostRequest>(new FactoryPostRequest(
-            current_exchange_, OrderNew::end_point, std::move(args)));
     };
     void Exec() override {
+        bool need_sign = true;
+        FactoryRequest factory{current_exchange_, OrderNew::end_point, args_, boost::beast::http::verb::post, need_sign};
         boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
@@ -332,15 +337,14 @@ class OrderNew : public inner::OrderNewI {
             logi("{}", resut);
             fmtlog::poll();
         };
-        auto& test = *factory_;
         std::make_shared<Https>(ioc, cb)->Run(
-            factory_->Host().data(), factory_->Port().data(),
-            factory_->EndPoint().data(), test());
+            factory.Host().data(), factory.Port().data(),
+            factory.EndPoint().data(), factory());
         ioc.run();
     };
 
   private:
-    std::unique_ptr<FactoryPostRequest> factory_;
+    ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
     https::ExchangeI* current_exchange_;
 };
