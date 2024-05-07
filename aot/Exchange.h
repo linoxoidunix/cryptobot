@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-#include "aot/third_party/fmt/core.h"
+#include "aot/Logger.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
 namespace https {
@@ -31,11 +31,25 @@ class CurrentTime {
                 .count());
     };
 };
-
-namespace hmac_sha256 {
-class Signer {
+class SignerI {
   public:
-    explicit Signer(std::string_view api_key) : api_key_(api_key){};
+    virtual std::string Sign(std::string_view data) = 0;
+    virtual std::string ApiKey()                    = 0;
+};
+namespace hmac_sha256 {
+struct Keys {
+    std::string api_key;
+    std::string secret_key;
+    Keys(std::string _api_key, std::string _secret_key) {
+        api_key    = _api_key;
+        secret_key = _secret_key;
+    };
+};
+class Signer : public SignerI {
+  public:
+    explicit Signer(std::string_view secret_key) : secret_key_(secret_key){};
+    explicit Signer(Keys keys)
+        : secret_key_(keys.secret_key), api_key_(keys.api_key){};
 
     /**
      * @brief add timestamp and recvWindow to data then signed this data
@@ -44,17 +58,18 @@ class Signer {
      * @param data class sign this data
      * @return std::string
      */
-    std::string Sign(std::string_view data) {
+    std::string Sign(std::string_view data) override {
         std::uint8_t digest[EVP_MAX_MD_SIZE];
         std::uint32_t dilen{};
 
         auto p =
-            ::HMAC(::EVP_sha256(), api_key_.c_str(), api_key_.length(),
+            ::HMAC(::EVP_sha256(), secret_key_.c_str(), secret_key_.length(),
                    (std::uint8_t *)data.data(), data.size(), digest, &dilen);
         assert(p);
 
         return B2aHex(digest, dilen);
     };
+    std::string ApiKey() override { return api_key_; }
 
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
@@ -72,6 +87,7 @@ class Signer {
     };
 
   private:
+    std::string secret_key_;
     std::string api_key_;
 };
 };  // namespace hmac_sha256
@@ -158,6 +174,38 @@ class SymbolI {
   public:
     virtual std::string ToString() const = 0;
     virtual ~SymbolI()                   = default;
+};
+
+class SymbolUpperCase : public SymbolI {
+  public:
+    explicit SymbolUpperCase(std::string_view first, std::string_view second)
+        : first_(first.data()), second_(second.data()){};
+    std::string ToString() const override {
+        auto out = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_upper(out);
+        return out;
+    };
+    ~SymbolUpperCase() = default;
+
+  private:
+    std::string first_;
+    std::string second_;
+};
+
+class SymbolLowerCase : public SymbolI {
+  public:
+    explicit SymbolLowerCase(std::string_view first, std::string_view second)
+        : first_(first.data()), second_(second.data()){};
+    std::string ToString() const override {
+        auto out = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_lower(out);
+        return out;
+    };
+    ~SymbolLowerCase() = default;
+
+  private:
+    std::string first_;
+    std::string second_;
 };
 
 /**

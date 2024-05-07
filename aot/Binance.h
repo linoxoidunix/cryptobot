@@ -4,6 +4,7 @@
 #include <boost/beast/version.hpp>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "aot/Exchange.h"
 #include "aot/Https.h"
@@ -196,39 +197,69 @@ class OHLCVI : public OHLCVGetter {
     const ChartInterval* chart_interval_;
 };
 
-class Args : public std::unordered_map<std::string, std::string>
-{
-
-};
+class Args : public std::unordered_map<std::string, std::string> {};
 
 class ArgsQuery : public Args {
-      public:
-      explicit ArgsQuery() : Args(){};
-        /**
-         * @brief return query string starts with ?
-         *
-         * @return std::string
-         */
-        virtual std::string QueryString(){return {};};
+  public:
+    explicit ArgsQuery() : Args(){};
+    /**
+     * @brief return query string starts with ?
+     *
+     * @return std::string
+     */
+    virtual std::string QueryString() {
+        std::list<std::string> merged;
+        std::for_each(begin(), end(), [&merged](const auto& expr) {
+            merged.emplace_back(fmt::format("{}={}", expr.first, expr.second));
+        });
+        auto out = boost::algorithm::join(merged, "&");
+        return out;
+    };
+    virtual std::string FinalQueryString() {
+        auto out = QueryString();
+        if (!out.empty()) out.insert(out.begin(), '?');
+        return out;
+    };
 };
 class FactoryRequest {
   public:
     explicit FactoryRequest(const https::ExchangeI* exchange,
                             std::string_view end_point, ArgsQuery args,
-                            boost::beast::http::verb action,
+                            boost::beast::http::verb action, SignerI* signer,
                             bool need_sign = false)
-        : exchange_(exchange), args_(args), action_(action) {
-        if (need_sign) AddSignParams();
-        end_point = end_point.data() + args_.QueryString();
+        : exchange_(exchange), args_(args), action_(action), signer_(signer) {
+        if (need_sign) {
+            AddSignParams();
+            auto request_args = args_.QueryString();
+            auto signature    = signer_->Sign(request_args);
+            AddSignature(signature);
+        }
+        end_point_ = end_point.data() + args_.FinalQueryString();
     };
     boost::beast::http::request<boost::beast::http::empty_body> operator()() {
         boost::beast::http::request<boost::beast::http::empty_body> req;
         req.version(11);
         req.method(action_);
         req.target(end_point_);
+        /**
+         * @brief API-keys are passed into the REST API via the X-MBX-APIKEY
+         * header.
+         *
+         */
+        req.insert("X-MBX-APIKEY", signer_->ApiKey());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
+        /**
+         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
+         * sent as a query string or in the request body with content type
+         * application/x-www-form-urlencoded. You may mix parameters between
+         * both the query string and request body if you wish to do so.
+         *
+         */
+        req.set(boost::beast::http::field::content_type,
+                "application/x-www-form-urlencoded");
+
         return req;
     };
     std::string_view Host() const { return exchange_->Host(); };
@@ -241,27 +272,34 @@ class FactoryRequest {
         args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
         args_["timestamp"]  = std::to_string(time_service.Time());
     };
+    void AddSignature(std::string_view signature) {
+        args_["signature"] = signature.data();
+    };
 
   private:
     const https::ExchangeI* exchange_;
     std::string end_point_;
     boost::beast::http::verb action_;
     ArgsQuery args_;
+    SignerI* signer_;
 };
 
 class OrderNew : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
 
   public:
-    class ArgsOrder : public ArgsQuery{
+    class ArgsOrder : public ArgsQuery {
       public:
-        explicit ArgsOrder(SymbolI* symbol, Side side, Type type) : ArgsQuery() {
+        using SymbolType = std::pair<std::string, std::string>;
+        explicit ArgsOrder(SymbolType symbol, Side side, Type type)
+            : ArgsQuery() {
             SetSymbol(symbol);
             SetSide(side);
             SetType(type);
         };
-        void SetSymbol(SymbolI* symbol) {
-            insert({"symbol", symbol->ToString()});
+        void SetSymbol(SymbolType symbol) {
+            SymbolUpperCase formatter(symbol.first, symbol.second);
+            insert({"symbol", formatter.ToString()});
         };
         void SetSide(Side side) {
             auto& storage = *this;
@@ -300,20 +338,11 @@ class OrderNew : public inner::OrderNewI {
                     break;
             }
         };
-        std::string QueryString() override {
-            std::list<std::string> merged;
-            std::for_each(begin(), end(), [&merged](const auto& expr) {
-                merged.emplace_back(
-                    fmt::format("{}={}", expr.first, expr.second));
-            });
-            auto out = boost::algorithm::join(merged, "&");
-            if (!out.empty()) out.insert(out.begin(), '?');
-            return out;
-        };
     };
 
   public:
-    explicit OrderNew(ArgsOrder&& args, TypeExchange type) : args_(args) {
+    explicit OrderNew(ArgsOrder&& args, SignerI* signer, TypeExchange type)
+        : args_(args), signer_(signer) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_test_net_;
@@ -325,7 +354,12 @@ class OrderNew : public inner::OrderNewI {
     };
     void Exec() override {
         bool need_sign = true;
-        FactoryRequest factory{current_exchange_, OrderNew::end_point, args_, boost::beast::http::verb::post, need_sign};
+        FactoryRequest factory{current_exchange_,
+                               OrderNew::end_point,
+                               args_,
+                               boost::beast::http::verb::post,
+                               signer_,
+                               need_sign};
         boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
@@ -347,5 +381,6 @@ class OrderNew : public inner::OrderNewI {
     ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
     https::ExchangeI* current_exchange_;
+    SignerI* signer_;
 };
 };  // namespace binance

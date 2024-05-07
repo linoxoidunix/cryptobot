@@ -8,7 +8,9 @@
 #include <boost/beast/core.hpp>
 #include <thread>
 #include <fstream>
+#include <string>
 #include "aot/Predictor.h"
+
 //#define FMT_HEADER_ONLY
 //#include <bybit/third_party/fmt/core.h>
 // #define FMTLOG_HEADER_ONLY
@@ -111,13 +113,15 @@
 //     return 0;
 // }
 
-int main()
+int main(int argc, char** argv)
 {
     using namespace binance;
-    Symbol btcusdt_symbol("BTC", "USDT");
     binance::Side buy = binance::Side::BUY;
-    OrderNew::ArgsOrder args(&btcusdt_symbol, buy, Type::LIMIT);
-    OrderNew order = OrderNew(std::move(args), TypeExchange::TESTNET);
+    OrderNew::ArgsOrder args(std::make_pair("BTC", "USDT"), buy, Type::LIMIT);
+    hmac_sha256::Keys keys{argv[1],
+            argv[2]};
+    hmac_sha256::Signer signer(keys);        
+    OrderNew order = OrderNew(std::move(args), &signer, TypeExchange::TESTNET);
     order.Exec();
     return 0;
 }
