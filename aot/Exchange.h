@@ -180,6 +180,7 @@ class SymbolUpperCase : public SymbolI {
   public:
     explicit SymbolUpperCase(std::string_view first, std::string_view second)
         : first_(first.data()), second_(second.data()){};
+    explicit SymbolUpperCase(std::string_view first) : first_(first.data()){};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(out);
@@ -196,6 +197,7 @@ class SymbolLowerCase : public SymbolI {
   public:
     explicit SymbolLowerCase(std::string_view first, std::string_view second)
         : first_(first.data()), second_(second.data()){};
+    explicit SymbolLowerCase(std::string_view first) : first_(first.data()){};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_lower(out);
@@ -225,6 +227,7 @@ class OrderNewI {
      * @brief send order to exchange
      *
      */
-    virtual void Exec() = 0;
+    virtual void Exec()  = 0;
+    virtual ~OrderNewI() = default;
 };
-}  // namespace inner
+};  // namespace inner

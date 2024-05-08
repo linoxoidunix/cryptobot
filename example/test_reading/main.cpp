@@ -117,11 +117,11 @@ int main(int argc, char** argv)
 {
     using namespace binance;
     binance::Side buy = binance::Side::BUY;
-    OrderNew::ArgsOrder args(std::make_pair("BTC", "USDT"), buy, Type::LIMIT);
+    OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK, buy, Type::LIMIT};
     hmac_sha256::Keys keys{argv[1],
             argv[2]};
     hmac_sha256::Signer signer(keys);        
-    OrderNew order = OrderNew(std::move(args), &signer, TypeExchange::TESTNET);
+    OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
     order.Exec();
     return 0;
 }

@@ -220,7 +220,9 @@ class ArgsQuery : public Args {
         if (!out.empty()) out.insert(out.begin(), '?');
         return out;
     };
+    virtual ~ArgsQuery() = default;
 };
+namespace detail {
 class FactoryRequest {
   public:
     explicit FactoryRequest(const https::ExchangeI* exchange,
@@ -283,26 +285,46 @@ class FactoryRequest {
     ArgsQuery args_;
     SignerI* signer_;
 };
+/**
+ * @brief in future read property from file
+ * now - just copy qty from input
+ */
+class FormatterQty {
+  public:
+    explicit FormatterQty() = default;
+    double Format(std::string_view symbol, double qty) { return qty; };
+};
 
-class OrderNew : public inner::OrderNewI {
+class FormatterPrice {
+  public:
+    explicit FormatterPrice() = default;
+    double Format(std::string_view symbol, double price) { return price; };
+};
+};  // namespace detail
+
+enum class TimeInForce { GTC, IOC, FOK };
+class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
 
   public:
     class ArgsOrder : public ArgsQuery {
       public:
-        using SymbolType = std::pair<std::string, std::string>;
-        explicit ArgsOrder(SymbolType symbol, Side side, Type type)
+        using SymbolType = std::string_view;
+        explicit ArgsOrder(SymbolType symbol, double quantity, double price,
+                           TimeInForce time_in_force, Side side, Type type)
             : ArgsQuery() {
             SetSymbol(symbol);
             SetSide(side);
             SetType(type);
+            SetQuantity(quantity);
+            SetPrice(price);
+            SetTimeInForce(time_in_force);
         };
         void SetSymbol(SymbolType symbol) {
-            SymbolUpperCase formatter(symbol.first, symbol.second);
-            insert({"symbol", formatter.ToString()});
+            SymbolUpperCase formatter(symbol.data());
+            storage["symbol"] = formatter.ToString();
         };
         void SetSide(Side side) {
-            auto& storage = *this;
             switch (side) {
                 case Side::BUY:
                     storage["side"] = "BUY";
@@ -313,7 +335,6 @@ class OrderNew : public inner::OrderNewI {
             }
         };
         void SetType(Type type) {
-            auto& storage = *this;
             switch (type) {
                 case Type::LIMIT:
                     storage["type"] = "LIMIT";
@@ -338,10 +359,39 @@ class OrderNew : public inner::OrderNewI {
                     break;
             }
         };
+        void SetQuantity(double quantity) {
+            storage["quantity"] =
+                std::to_string(formater_qty_.Format(storage["symbol"], quantity));
+        };
+        void SetPrice(double price) {
+            storage["price"] =
+                std::to_string(formater_qty_.Format(storage["symbol"], price));
+        };
+        void SetTimeInForce(TimeInForce time_in_force) {
+            switch (time_in_force) {
+                case TimeInForce::FOK:
+                    storage["timeInForce"] = "FOK";
+                    break;
+                case TimeInForce::GTC:
+                    storage["timeInForce"] = "GTC";
+                    break;
+                case TimeInForce::IOC:
+                    storage["timeInForce"] = "IOC";
+                    break;
+                default:
+                    storage["timeInForce"] = "FOK";
+            }
+        };
+
+      private:
+        ArgsOrder& storage = *this;
+
+        detail::FormatterQty formater_qty_;
+        detail::FormatterPrice formatter_price_;
     };
 
   public:
-    explicit OrderNew(ArgsOrder&& args, SignerI* signer, TypeExchange type)
+    explicit OrderNewLimit(ArgsOrder&& args, SignerI* signer, TypeExchange type)
         : args_(args), signer_(signer) {
         switch (type) {
             case TypeExchange::MAINNET:
@@ -354,14 +404,13 @@ class OrderNew : public inner::OrderNewI {
     };
     void Exec() override {
         bool need_sign = true;
-        FactoryRequest factory{current_exchange_,
-                               OrderNew::end_point,
-                               args_,
-                               boost::beast::http::verb::post,
-                               signer_,
-                               need_sign};
+        detail::FactoryRequest factory{current_exchange_,
+                                       OrderNewLimit::end_point,
+                                       args_,
+                                       boost::beast::http::verb::post,
+                                       signer_,
+                                       need_sign};
         boost::asio::io_context ioc;
-        // fmtlog::setLogFile("log", true);
         fmtlog::setLogLevel(fmtlog::DBG);
 
         OnHttpsResponce cb;
