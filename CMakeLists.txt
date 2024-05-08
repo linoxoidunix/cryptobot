@@ -7,7 +7,7 @@ add_subdirectory(clickhouse-cpp)
 find_package(Threads REQUIRED)
 find_package(simdjson REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
+find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
 add_subdirectory(googletest)
 add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
@@ -16,7 +16,6 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
-message("Python_FOUND:${Python_FOUND}")
 
 file(GLOB LIST_H
      "aot/*.h"
@@ -60,6 +59,7 @@ target_link_libraries(${PROJECT_NAME}
     magic_enum::magic_enum
     ${Boost_LIBRARIES}
     simdjson::simdjson
+    nlohmann_json::nlohmann_json
     Python::Python
 )
 

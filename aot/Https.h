@@ -20,7 +20,7 @@ class Https {
     explicit Https(boost::asio::io_context& ctx,
                 OnHttpsResponce msg_cb);
     void Run(std::string_view host, std::string_view port,
-             std::string_view endpoint, boost::beast::http::request<boost::beast::http::empty_body>&& req);
+             std::string_view endpoint, boost::beast::http::request<boost::beast::http::string_body>&& req);
     Https(const Https&)                = delete;
     Https& operator=(const Https&)     = delete;
     Https(Https&&) noexcept            = default;

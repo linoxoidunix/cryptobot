@@ -28,7 +28,7 @@ void fail(beast::error_code ec, char const* what) {
 class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
-    http::request<http::empty_body> req_;
+    http::request<http::string_body> req_;
     beast::flat_buffer buffer_; // (Must persist between reads)
     http::response<http::string_body> res_;
     OnHttpsResponce cb_;
@@ -56,7 +56,7 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
      * @param req user must fill request
      */
     void Run(char const* host, char const* port, char const* target,
-             http::request<http::empty_body>&& req) {
+             http::request<http::string_body>&& req) {
         // Set SNI Hostname (many hosts need this to handshake successfully)
         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
             beast::error_code ec{static_cast<int>(::ERR_get_error()),

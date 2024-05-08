@@ -11,6 +11,8 @@
 #include "aot/Logger.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
+enum class Side { BUY, SELL };
+
 namespace https {
 class ExchangeI {
   public:
@@ -35,6 +37,7 @@ class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
     virtual std::string ApiKey()                    = 0;
+    virtual ~SignerI() = default;
 };
 namespace hmac_sha256 {
 struct Keys {

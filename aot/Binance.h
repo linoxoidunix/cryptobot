@@ -11,6 +11,7 @@
 #include "aot/Logger.h"
 #include "aot/WS.h"
 namespace binance {
+enum class TimeInForce { GTC, IOC, FOK };
 
 namespace testnet {
 class HttpsExchange : public https::ExchangeI {
@@ -47,7 +48,6 @@ class HttpsExchange : public https::ExchangeI {
 };
 };  // namespace testnet
 
-enum class Side { BUY, SELL };
 enum class Type {
     LIMIT,
     MARKET,
@@ -178,8 +178,8 @@ class OHLCVI : public OHLCVGetter {
 
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
-            // auto resut = boost::beast::buffers_to_string(buffer.data());
-            // logi("{}", resut);
+            auto resut = boost::beast::buffers_to_string(buffer.data());
+            logi("{}", resut);
             fmtlog::poll();
         };
 
@@ -238,8 +238,8 @@ class FactoryRequest {
         }
         end_point_ = end_point.data() + args_.FinalQueryString();
     };
-    boost::beast::http::request<boost::beast::http::empty_body> operator()() {
-        boost::beast::http::request<boost::beast::http::empty_body> req;
+    boost::beast::http::request<boost::beast::http::string_body> operator()() {
+        boost::beast::http::request<boost::beast::http::string_body> req;
         req.version(11);
         req.method(action_);
         req.target(end_point_);
@@ -281,8 +281,8 @@ class FactoryRequest {
   private:
     const https::ExchangeI* exchange_;
     std::string end_point_;
-    boost::beast::http::verb action_;
     ArgsQuery args_;
+    boost::beast::http::verb action_;
     SignerI* signer_;
 };
 /**
@@ -302,7 +302,6 @@ class FormatterPrice {
 };
 };  // namespace detail
 
-enum class TimeInForce { GTC, IOC, FOK };
 class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
 
@@ -360,12 +359,12 @@ class OrderNewLimit : public inner::OrderNewI {
             }
         };
         void SetQuantity(double quantity) {
-            storage["quantity"] =
-                std::to_string(formater_qty_.Format(storage["symbol"], quantity));
+            storage["quantity"] = std::to_string(
+                formatter_qty_.Format(storage["symbol"], quantity));
         };
         void SetPrice(double price) {
             storage["price"] =
-                std::to_string(formater_qty_.Format(storage["symbol"], price));
+                std::to_string(formatter_price_.Format(storage["symbol"], price));
         };
         void SetTimeInForce(TimeInForce time_in_force) {
             switch (time_in_force) {
@@ -386,7 +385,7 @@ class OrderNewLimit : public inner::OrderNewI {
       private:
         ArgsOrder& storage = *this;
 
-        detail::FormatterQty formater_qty_;
+        detail::FormatterQty formatter_qty_;
         detail::FormatterPrice formatter_price_;
     };
 

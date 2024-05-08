@@ -7,7 +7,6 @@
 
 #include <boost/beast/core.hpp>
 #include <thread>
-#include <fstream>
 #include <string>
 #include "aot/Predictor.h"
 
@@ -113,15 +112,28 @@
 //     return 0;
 // }
 
+// int main(int argc, char** argv)
+// {
+//     using namespace binance;
+//     Side buy = Side::BUY;
+//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK, buy, Type::LIMIT};
+//     hmac_sha256::Keys keys{argv[1],
+//             argv[2]};
+//     hmac_sha256::Signer signer(keys);        
+//     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
+//     order.Exec();
+//     return 0;
+// };
+
 int main(int argc, char** argv)
 {
-    using namespace binance;
-    binance::Side buy = binance::Side::BUY;
-    OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK, buy, Type::LIMIT};
+    using namespace bybit;
+    Side buy = Side::BUY;
+    OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000, TimeInForce::POST_ONLY, buy, Type::LIMIT};
     hmac_sha256::Keys keys{argv[1],
             argv[2]};
     hmac_sha256::Signer signer(keys);        
     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
     order.Exec();
     return 0;
-}
+};
