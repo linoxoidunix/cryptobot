@@ -9,6 +9,9 @@
 #include <thread>
 #include <string>
 #include "aot/Predictor.h"
+#include "aot/Logger.h"
+#include "moodycamel/concurrentqueue.h"
+#include <thread>
 
 //#define FMT_HEADER_ONLY
 //#include <bybit/third_party/fmt/core.h>
@@ -125,15 +128,61 @@
 //     return 0;
 // };
 
-int main(int argc, char** argv)
+// int main(int argc, char** argv)
+// {
+//     using namespace bybit;
+//     Side buy = Side::BUY;
+//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000, TimeInForce::POST_ONLY, buy, Type::LIMIT};
+//     hmac_sha256::Keys keys{argv[1],
+//             argv[2]};
+//     hmac_sha256::Signer signer(keys);        
+//     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
+//     order.Exec();
+//     return 0;
+// };
+
+// void sender(moodycamel::ConcurrentQueue<int>& q)
+// {
+//     for (int i = 0; i < 100; ++i)
+//     {
+//         q.enqueue(i);
+//         std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//     }
+// }
+
+// void receiver(moodycamel::ConcurrentQueue<int>& q)
+// {   
+//     for (int i = 0; i < 100; ++i)
+//     {
+//         int item;
+//         bool found = q.try_dequeue(item);
+//         if(found)
+//             logi("{}", item);
+//         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+
+//     }
+// }
+
+// int main(int argc, char** argv)
+// {
+//     moodycamel::ConcurrentQueue<int> q;
+//     std::thread t1(sender, std::ref(q)); // pass by value
+//     std::thread t2(receiver, std::ref(q)); // pass by value
+//     t1.join();
+//     t2.join();
+
+
+// };
+
+void my_task()
 {
-    using namespace bybit;
-    Side buy = Side::BUY;
-    OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000, TimeInForce::POST_ONLY, buy, Type::LIMIT};
-    hmac_sha256::Keys keys{argv[1],
-            argv[2]};
-    hmac_sha256::Signer signer(keys);        
-    OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
-    order.Exec();
-    return 0;
-};
+  logi("{}", "log info");
+}
+
+
+int main()
+{
+    boost::asio::io_context ctx;
+    boost::asio::post(ctx, my_task);
+    ctx.run();
+}

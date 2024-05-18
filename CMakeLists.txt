@@ -16,6 +16,8 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
+find_package(concurrentqueue)
+
 
 file(GLOB LIST_H
      "aot/*.h"
@@ -61,6 +63,7 @@ target_link_libraries(${PROJECT_NAME}
     simdjson::simdjson
     nlohmann_json::nlohmann_json
     Python::Python
+    concurrentqueue::concurrentqueue
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

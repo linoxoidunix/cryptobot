@@ -4,3 +4,5 @@ sdk/
 simdjson/
 magic_enum/
 json/
+CppTrader/
+concurrentqueue/
