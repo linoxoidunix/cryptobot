@@ -120,8 +120,8 @@
 //     using namespace binance;
 //     Side buy = Side::BUY;
 //     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK,
-//     buy, Type::LIMIT}; hmac_sha256::Keys keys{argv[1],
-//             argv[2]};
+//     buy, Type::LIMIT}; 
+//     hmac_sha256::Keys keys{argv[1], argv[2]};
 //     hmac_sha256::Signer signer(keys);
 //     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
 //     order.Exec();
@@ -179,11 +179,20 @@
 //    Trading::MarketOrderBook order_book(12345);
 // }
 
+// int main() {
+//     using namespace binance;
+//     DiffDepthStream::ms100 interval;
+//     Symbol btcusdt("BTC", "USDT");
+//     BookEventGetter event_capturer(&btcusdt, &interval);
+//     BookEvent buffer;
+//     event_capturer.Get(buffer);
+// }
+
 int main() {
     using namespace binance;
-    DiffDepthStream::ms100 interval;
-    Symbol btcusdt("BTC", "USDT");
-    BookEventGetter event_capturer(&btcusdt, &interval);
-    BookEvent buffer;
-    event_capturer.Get(buffer);
+    BookSnapshot::ArgsOrder args{"BTCUSDT", 1000};
+    BookSnapshot book_snapshoter(std::move(args), TypeExchange::TESTNET);
+    book_snapshoter.Exec();
 }
+
+

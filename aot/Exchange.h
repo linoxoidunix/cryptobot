@@ -37,7 +37,7 @@ class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
     virtual std::string ApiKey()                    = 0;
-    virtual ~SignerI() = default;
+    virtual ~SignerI()                              = default;
 };
 namespace hmac_sha256 {
 struct Keys {
@@ -142,23 +142,21 @@ class OHLCVGetter {
     virtual ~OHLCVGetter()                  = default;
 };
 
-
-struct BookEvent
-{
-  using Price = double;
-  using Qty = double;
-  using PriceQty = std::pair<Price, Qty>;
-  std::list<PriceQty> bids;
-  std::list<PriceQty> asks;
+struct BookEvent {
+    using Price    = double;
+    using Qty      = double;
+    using PriceQty = std::pair<Price, Qty>;
+    std::list<PriceQty> bids;
+    std::list<PriceQty> asks;
 };
 /**
  * @brief capture price and quantity updates from exchange
- * 
+ *
  */
-class BookEventGetterI{
+class BookEventGetterI {
   public:
-    virtual void Get(BookEvent& event) = 0;
-    virtual ~BookEventGetterI() = default;
+    virtual void Get(BookEvent &event) = 0;
+    virtual ~BookEventGetterI()        = default;
 };
 
 /**
@@ -195,7 +193,7 @@ class DiffDepthStreamI {
      * @return std::string as name channel
      */
     virtual std::string ToString() const = 0;
-    virtual ~DiffDepthStreamI()              = default;
+    virtual ~DiffDepthStreamI()          = default;
 };
 
 /**
@@ -262,5 +260,11 @@ class OrderNewI {
      */
     virtual void Exec()  = 0;
     virtual ~OrderNewI() = default;
+};
+
+class BookSnapshotI {
+  public:
+    virtual void Exec()      = 0;
+    virtual ~BookSnapshotI() = default;
 };
 };  // namespace inner

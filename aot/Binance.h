@@ -172,7 +172,7 @@ class DiffDepthStream : public DiffDepthStreamI {
     class StreamIntervalI {
       public:
         virtual std::string ToString() const = 0;
-        virtual ~StreamIntervalI()     = default;
+        virtual ~StreamIntervalI()           = default;
     };
     class ms1000 : public StreamIntervalI {
       public:
@@ -187,14 +187,14 @@ class DiffDepthStream : public DiffDepthStreamI {
         ~ms100() override = default;
     };
 
-    explicit DiffDepthStream(const Symbol* s,
-                             const StreamIntervalI* interval)
+    explicit DiffDepthStream(const Symbol* s, const StreamIntervalI* interval)
         : symbol_(s), interval_(interval){};
     std::string ToString() const override {
         return fmt::format("{0}@depth@{1}", symbol_->ToString(),
                            interval_->ToString());
     };
-      private:
+
+  private:
     const Symbol* symbol_;
     const StreamIntervalI* interval_;
 };
@@ -312,7 +312,8 @@ class FactoryRequest {
          * header.
          *
          */
-        req.insert("X-MBX-APIKEY", signer_->ApiKey());
+        if(signer_)
+          req.insert("X-MBX-APIKEY", signer_->ApiKey());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -325,7 +326,6 @@ class FactoryRequest {
          */
         req.set(boost::beast::http::field::content_type,
                 "application/x-www-form-urlencoded");
-
         return req;
     };
     std::string_view Host() const { return exchange_->Host(); };
@@ -494,5 +494,77 @@ class OrderNewLimit : public inner::OrderNewI {
     binance::testnet::HttpsExchange binance_test_net_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+};
+
+class BookSnapshot : public inner::BookSnapshotI {
+    static constexpr std::string_view end_point = "/api/v3/depth";
+
+  public:
+    class ArgsOrder : public ArgsQuery {
+      public:
+        using SymbolType = std::string_view;
+        using Limit      = uint16_t;
+        explicit ArgsOrder(SymbolType symbol, Limit limit) : ArgsQuery() {
+            SetSymbol(symbol);
+            SetLimit(limit);
+        };
+        void SetSymbol(SymbolType symbol) {
+            SymbolUpperCase formatter(symbol.data());
+            storage["symbol"] = formatter.ToString();
+        };
+        void SetLimit(Limit limit) {
+            /**
+             * @brief If limit > 5000, then the response will truncate to 5000.
+             * https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+             */
+            limit            = (limit > 5000) ? 5000 : limit;
+
+            storage["limit"] = std::to_string(limit);
+        };
+
+      private:
+        ArgsOrder& storage = *this;
+    };
+
+  public:
+    explicit BookSnapshot(ArgsOrder&& args, TypeExchange type) : args_(args) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_test_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+    };
+    void Exec() override {
+        bool need_sign = false;
+        detail::FactoryRequest factory{current_exchange_,
+                                       BookSnapshot::end_point,
+                                       args_,
+                                       boost::beast::http::verb::get,
+                                       signer_,
+                                       need_sign};
+        boost::asio::io_context ioc;
+        fmtlog::setLogLevel(fmtlog::DBG);
+
+        OnHttpsResponce cb;
+        cb = [](boost::beast::http::response<boost::beast::http::string_body>&
+                    buffer) {
+            const auto& resut = buffer.body();
+            logi("{}", resut);
+            fmtlog::poll();
+        };
+        std::make_shared<Https>(ioc, cb)->Run(
+            factory.Host().data(), factory.Port().data(),
+            factory.EndPoint().data(), factory());
+        ioc.run();
+    };
+
+  private:
+    ArgsOrder args_;
+    binance::testnet::HttpsExchange binance_test_net_;
+    https::ExchangeI* current_exchange_;
+    SignerI* signer_ = nullptr;
 };
 };  // namespace binance
