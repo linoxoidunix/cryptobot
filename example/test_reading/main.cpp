@@ -1,36 +1,34 @@
 #include <aot/WS.h>
 
+#include <boost/beast/core.hpp>
 #include <iostream>
 #include <memory>
-#include <thread>
 #include <string>
-#include <boost/beast/core.hpp>
+#include <thread>
 
 #include "aot/Binance.h"
 #include "aot/Bybit.h"
-
-
-#include "aot/Predictor.h"
 #include "aot/Logger.h"
+#include "aot/Predictor.h"
 #include "aot/strategy/market_order_book.h"
 #include "moodycamel/concurrentqueue.h"
 
-//#define FMT_HEADER_ONLY
-//#include <bybit/third_party/fmt/core.h>
-// #define FMTLOG_HEADER_ONLY
-// #include <bybit/third_party/fmtlog.h>
-// int main()
-// {
-//     std::function<void(std::string)> func;
-//     func = [](std::string){};
-//     net::io_context ioc;
-//     std::make_shared<WS>(
-//         ioc
-//         // func, func, func, func
-//         )->Run("stream.binance.com", "9443", "/ws/bnbusdt@depth@100ms");
-//     ioc.run();
-//     return 0;
-// }
+// #define FMT_HEADER_ONLY
+// #include <bybit/third_party/fmt/core.h>
+//  #define FMTLOG_HEADER_ONLY
+//  #include <bybit/third_party/fmtlog.h>
+//  int main()
+//  {
+//      std::function<void(std::string)> func;
+//      func = [](std::string){};
+//      net::io_context ioc;
+//      std::make_shared<WS>(
+//          ioc
+//          // func, func, func, func
+//          )->Run("stream.binance.com", "9443", "/ws/bnbusdt@depth@100ms");
+//      ioc.run();
+//      return 0;
+//  }
 
 // int main() {
 //     using namespace binance;
@@ -121,10 +119,10 @@
 // {
 //     using namespace binance;
 //     Side buy = Side::BUY;
-//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK, buy, Type::LIMIT};
-//     hmac_sha256::Keys keys{argv[1],
+//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK,
+//     buy, Type::LIMIT}; hmac_sha256::Keys keys{argv[1],
 //             argv[2]};
-//     hmac_sha256::Signer signer(keys);        
+//     hmac_sha256::Signer signer(keys);
 //     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
 //     order.Exec();
 //     return 0;
@@ -134,10 +132,11 @@
 // {
 //     using namespace bybit;
 //     Side buy = Side::BUY;
-//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000, TimeInForce::POST_ONLY, buy, Type::LIMIT};
-//     hmac_sha256::Keys keys{argv[1],
+//     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000,
+//     TimeInForce::POST_ONLY, buy, Type::LIMIT}; hmac_sha256::Keys
+//     keys{argv[1],
 //             argv[2]};
-//     hmac_sha256::Signer signer(keys);        
+//     hmac_sha256::Signer signer(keys);
 //     OrderNewLimit order (std::move(args), &signer, TypeExchange::TESTNET);
 //     order.Exec();
 //     return 0;
@@ -153,7 +152,7 @@
 // }
 
 // void receiver(moodycamel::ConcurrentQueue<int>& q)
-// {   
+// {
 //     for (int i = 0; i < 100; ++i)
 //     {
 //         int item;
@@ -173,10 +172,18 @@
 //     t1.join();
 //     t2.join();
 
-
 // };
 
-int main()
-{
-   Trading::MarketOrderBook order_book(12345);
+// int main()
+// {
+//    Trading::MarketOrderBook order_book(12345);
+// }
+
+int main() {
+    using namespace binance;
+    DiffDepthStream::ms100 interval;
+    Symbol btcusdt("BTC", "USDT");
+    BookEventGetter event_capturer(&btcusdt, &interval);
+    BookEvent buffer;
+    event_capturer.Get(buffer);
 }

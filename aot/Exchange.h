@@ -142,6 +142,25 @@ class OHLCVGetter {
     virtual ~OHLCVGetter()                  = default;
 };
 
+
+struct BookEvent
+{
+  using Price = double;
+  using Qty = double;
+  using PriceQty = std::pair<Price, Qty>;
+  std::list<PriceQty> bids;
+  std::list<PriceQty> asks;
+};
+/**
+ * @brief capture price and quantity updates from exchange
+ * 
+ */
+class BookEventGetterI{
+  public:
+    virtual void Get(BookEvent& event) = 0;
+    virtual ~BookEventGetterI() = default;
+};
+
 /**
  * @brief for different exchanges ChartInterval has different format 1m or 1s or
  * 1M or 1d
@@ -168,6 +187,17 @@ class KLineStreamI {
     virtual ~KLineStreamI()              = default;
 };
 
+class DiffDepthStreamI {
+  public:
+    /**
+     * @brief
+     *
+     * @return std::string as name channel
+     */
+    virtual std::string ToString() const = 0;
+    virtual ~DiffDepthStreamI()              = default;
+};
+
 /**
  * @brief Symbol e.g BTCUSDT. May be on different exchane that symbol may be
  * have different separate symbol
@@ -189,7 +219,7 @@ class SymbolUpperCase : public SymbolI {
         boost::algorithm::to_upper(out);
         return out;
     };
-    ~SymbolUpperCase() = default;
+    ~SymbolUpperCase() override = default;
 
   private:
     std::string first_;
@@ -206,7 +236,7 @@ class SymbolLowerCase : public SymbolI {
         boost::algorithm::to_lower(out);
         return out;
     };
-    ~SymbolLowerCase() = default;
+    ~SymbolLowerCase() override = default;
 
   private:
     std::string first_;

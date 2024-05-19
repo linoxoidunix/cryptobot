@@ -167,6 +167,38 @@ class KLineStream : public KLineStreamI {
     const ChartInterval* chart_interval_;
 };
 
+class DiffDepthStream : public DiffDepthStreamI {
+  public:
+    class StreamIntervalI {
+      public:
+        virtual std::string ToString() const = 0;
+        virtual ~StreamIntervalI()     = default;
+    };
+    class ms1000 : public StreamIntervalI {
+      public:
+        explicit ms1000() = default;
+        std::string ToString() const override { return "1000ms"; };
+        ~ms1000() override = default;
+    };
+    class ms100 : public StreamIntervalI {
+      public:
+        explicit ms100() = default;
+        std::string ToString() const override { return "100ms"; };
+        ~ms100() override = default;
+    };
+
+    explicit DiffDepthStream(const Symbol* s,
+                             const StreamIntervalI* interval)
+        : symbol_(s), interval_(interval){};
+    std::string ToString() const override {
+        return fmt::format("{0}@depth@{1}", symbol_->ToString(),
+                           interval_->ToString());
+    };
+      private:
+    const Symbol* symbol_;
+    const StreamIntervalI* interval_;
+};
+
 class OHLCVI : public OHLCVGetter {
   public:
     OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
@@ -195,6 +227,38 @@ class OHLCVI : public OHLCVGetter {
   private:
     const Symbol* s_;
     const ChartInterval* chart_interval_;
+};
+
+class BookEventGetter : public BookEventGetterI {
+  public:
+    BookEventGetter(const Symbol* s,
+                    const DiffDepthStream::StreamIntervalI* interval)
+        : s_(s), interval_(interval){};
+    void Get(BookEvent& buffer) override {
+        boost::asio::io_context ioc;
+        // fmtlog::setLogFile("log", true);
+        fmtlog::setLogLevel(fmtlog::DBG);
+
+        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
+        OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+            auto resut = boost::beast::buffers_to_string(buffer.data());
+            logi("{}", resut);
+            fmtlog::poll();
+        };
+
+        using dds = DiffDepthStream;
+        dds channel(s_, interval_);
+        std::string empty_request = "{}";
+        std::make_shared<WS>(ioc, empty_request, OnMessageCB)
+            ->Run("stream.binance.com", "9443",
+                  fmt::format("/ws/{0}", channel.ToString()));
+        ioc.run();
+    };
+    ~BookEventGetter() override = default;
+
+  private:
+    const Symbol* s_;
+    const DiffDepthStream::StreamIntervalI* interval_;
 };
 
 class Args : public std::unordered_map<std::string, std::string> {};
@@ -363,8 +427,8 @@ class OrderNewLimit : public inner::OrderNewI {
                 formatter_qty_.Format(storage["symbol"], quantity));
         };
         void SetPrice(double price) {
-            storage["price"] =
-                std::to_string(formatter_price_.Format(storage["symbol"], price));
+            storage["price"] = std::to_string(
+                formatter_price_.Format(storage["symbol"], price));
         };
         void SetTimeInForce(TimeInForce time_in_force) {
             switch (time_in_force) {
