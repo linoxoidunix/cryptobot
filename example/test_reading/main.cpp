@@ -2,16 +2,18 @@
 
 #include <iostream>
 #include <memory>
-#include <aot/Binance.h>
-#include <aot/Bybit.h>
-
-#include <boost/beast/core.hpp>
 #include <thread>
 #include <string>
+#include <boost/beast/core.hpp>
+
+#include "aot/Binance.h"
+#include "aot/Bybit.h"
+
+
 #include "aot/Predictor.h"
 #include "aot/Logger.h"
+#include "aot/strategy/market_order_book.h"
 #include "moodycamel/concurrentqueue.h"
-#include <thread>
 
 //#define FMT_HEADER_ONLY
 //#include <bybit/third_party/fmt/core.h>
@@ -174,15 +176,7 @@
 
 // };
 
-void my_task()
-{
-  logi("{}", "log info");
-}
-
-
 int main()
 {
-    boost::asio::io_context ctx;
-    boost::asio::post(ctx, my_task);
-    ctx.run();
+   Trading::MarketOrderBook order_book(12345);
 }

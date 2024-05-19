@@ -4,16 +4,16 @@
 #include <sstream>
 #include "aot/common/types.h"
 
-using namespace Common;
+//using namespace Common;
 
 namespace Trading {
   /// Used by the trade engine to represent a single order in the limit order book.
   struct MarketOrder {
-    OrderId order_id_ = OrderId_INVALID;
-    Side side_ = Side::INVALID;
-    Price price_ = Price_INVALID;
-    Qty qty_ = Qty_INVALID;
-    Priority priority_ = Priority_INVALID;
+    Common::OrderId order_id_ = Common::OrderId_INVALID;
+    Common::Side side_ = Common::Side::INVALID;
+    Common::Price price_ = Common::Price_INVALID;
+    Common::Qty qty_ = Common::Qty_INVALID;
+    //Common::Priority priority_ = Common::Priority_INVALID;
 
     /// MarketOrder also serves as a node in a doubly linked list of all orders at price level arranged in FIFO order.
     MarketOrder *prev_order_ = nullptr;
@@ -22,20 +22,20 @@ namespace Trading {
     /// Only needed for use with MemPool.
     MarketOrder() = default;
 
-    MarketOrder(OrderId order_id, Side side, Price price, Qty qty, Priority priority, MarketOrder *prev_order, MarketOrder *next_order) noexcept
-        : order_id_(order_id), side_(side), price_(price), qty_(qty), priority_(priority), prev_order_(prev_order), next_order_(next_order) {}
+    MarketOrder(Common::OrderId order_id, Common::Side side, Common::Price price, Common::Qty qty, MarketOrder *prev_order, MarketOrder *next_order) noexcept
+        : order_id_(order_id), side_(side), price_(price), qty_(qty), prev_order_(prev_order), next_order_(next_order) {}
 
     auto toString() const -> std::string;
   };
 
   /// Hash map from OrderId -> MarketOrder.
-  typedef std::array<MarketOrder *, ME_MAX_ORDER_IDS> OrderHashMap;
+  typedef std::array<MarketOrder *, Common::ME_MAX_ORDER_IDS> OrderHashMap;
 
   /// Used by the trade engine to represent a price level in the limit order book.
   /// Internally maintains a list of MarketOrder objects arranged in FIFO order.
   struct MarketOrdersAtPrice {
-    Side side_ = Side::INVALID;
-    Price price_ = Price_INVALID;
+    Common::Side side_ = Common::Side::INVALID;
+    Common::Price price_ = Common::Price_INVALID;
 
     MarketOrder *first_mkt_order_ = nullptr;
 
@@ -46,36 +46,36 @@ namespace Trading {
     /// Only needed for use with MemPool.
     MarketOrdersAtPrice() = default;
 
-    MarketOrdersAtPrice(Side side, Price price, MarketOrder *first_mkt_order, MarketOrdersAtPrice *prev_entry, MarketOrdersAtPrice *next_entry)
+    MarketOrdersAtPrice(Common::Side side, Common::Price price, MarketOrder *first_mkt_order, MarketOrdersAtPrice *prev_entry, MarketOrdersAtPrice *next_entry)
         : side_(side), price_(price), first_mkt_order_(first_mkt_order), prev_entry_(prev_entry), next_entry_(next_entry) {}
 
     auto toString() const {
       std::stringstream ss;
       ss << "MarketOrdersAtPrice["
          << "side:" << sideToString(side_) << " "
-         << "price:" << priceToString(price_) << " "
+         << "price:" << Common::priceToString(price_) << " "
          << "first_mkt_order:" << (first_mkt_order_ ? first_mkt_order_->toString() : "null") << " "
-         << "prev:" << priceToString(prev_entry_ ? prev_entry_->price_ : Price_INVALID) << " "
-         << "next:" << priceToString(next_entry_ ? next_entry_->price_ : Price_INVALID) << "]";
+         << "prev:" << Common::priceToString(prev_entry_ ? prev_entry_->price_ : Common::Price_INVALID) << " "
+         << "next:" << Common::priceToString(next_entry_ ? next_entry_->price_ : Common::Price_INVALID) << "]";
 
       return ss.str();
     }
   };
 
   /// Hash map from Price -> MarketOrdersAtPrice.
-  typedef std::array<MarketOrdersAtPrice *, ME_MAX_PRICE_LEVELS> OrdersAtPriceHashMap;
+  typedef std::array<MarketOrdersAtPrice *, Common::ME_MAX_PRICE_LEVELS> OrdersAtPriceHashMap;
 
   /// Represents a Best Bid Offer (BBO) abstraction for components which only need a small summary of top of book price and liquidity instead of the full order book.
   struct BBO {
-    Price bid_price_ = Price_INVALID, ask_price_ = Price_INVALID;
-    Qty bid_qty_ = Qty_INVALID, ask_qty_ = Qty_INVALID;
+    Common::Price bid_price_ = Common::Price_INVALID, ask_price_ = Common::Price_INVALID;
+    Common::Qty bid_qty_ = Common::Qty_INVALID, ask_qty_ = Common::Qty_INVALID;
 
     auto toString() const {
       std::stringstream ss;
       ss << "BBO{"
-         << qtyToString(bid_qty_) << "@" << priceToString(bid_price_)
+         << Common::qtyToString(bid_qty_) << "@" << Common::priceToString(bid_price_)
          << "X"
-         << priceToString(ask_price_) << "@" << qtyToString(ask_qty_)
+         << Common::priceToString(ask_price_) << "@" << Common::qtyToString(ask_qty_)
          << "}";
 
       return ss.str();

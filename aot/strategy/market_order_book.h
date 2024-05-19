@@ -2,26 +2,27 @@
 
 #include "aot/common/types.h"
 #include "aot/common/mem_pool.h"
-#include "aot/common/logging.h"
+#include "aot/Logger.h"
 
-#include "market_order.h"
-#include "exchange/market_data/market_update.h"
+#include "aot/strategy/market_order.h"
+#include "aot/market_data/market_update.h"
+#include "aot/common/mem_pool.h"
 
 namespace Trading {
   class TradeEngine;
 
   class MarketOrderBook final {
   public:
-    MarketOrderBook(TickerId ticker_id, Logger *logger);
+    explicit MarketOrderBook(Common::TickerId ticker_id);
 
     ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
     auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept -> void;
 
-    auto setTradeEngine(TradeEngine *trade_engine) {
-      trade_engine_ = trade_engine;
-    }
+    // auto setTradeEngine(TradeEngine *trade_engine) {
+    //   trade_engine_ = trade_engine;
+    // }
 
     /// Update the BBO abstraction, the two boolean parameters represent if the buy or the sekk (or both) sides or both need to be updated.
     auto updateBBO(bool update_bid, bool update_ask) noexcept {
@@ -33,8 +34,8 @@ namespace Trading {
             bbo_.bid_qty_ += order->qty_;
         }
         else {
-          bbo_.bid_price_ = Price_INVALID;
-          bbo_.bid_qty_ = Qty_INVALID;
+          bbo_.bid_price_ = Common::Price_INVALID;
+          bbo_.bid_qty_ = Common::Qty_INVALID;
         }
       }
 
@@ -46,8 +47,8 @@ namespace Trading {
             bbo_.ask_qty_ += order->qty_;
         }
         else {
-          bbo_.ask_price_ = Price_INVALID;
-          bbo_.ask_qty_ = Qty_INVALID;
+          bbo_.ask_price_ = Common::Price_INVALID;
+          bbo_.ask_qty_ = Common::Qty_INVALID;
         }
       }
     }
@@ -70,16 +71,16 @@ namespace Trading {
     MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    const TickerId ticker_id_;
+    const Common::TickerId ticker_id_;
 
     /// Parent trade engine that owns this limit order book, used to send notifications when book changes or trades occur.
-    TradeEngine *trade_engine_ = nullptr;
+    //TradeEngine *trade_engine_ = nullptr;
 
     /// Hash map from OrderId -> MarketOrder.
     OrderHashMap oid_to_order_;
 
     /// Memory pool to manage MarketOrdersAtPrice objects.
-    MemPool<MarketOrdersAtPrice> orders_at_price_pool_;
+    Common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
 
     /// Pointers to beginning / best prices / top of book of buy and sell price levels.
     MarketOrdersAtPrice *bids_by_price_ = nullptr;
@@ -89,20 +90,19 @@ namespace Trading {
     OrdersAtPriceHashMap price_orders_at_price_;
 
     /// Memory pool to manage MarketOrder objects.
-    MemPool<MarketOrder> order_pool_;
+    Common::MemPool<Trading::MarketOrder> order_pool_;
 
     BBO bbo_;
 
     std::string time_str_;
-    Logger *logger_ = nullptr;
 
   private:
-    auto priceToIndex(Price price) const noexcept {
-      return (price % ME_MAX_PRICE_LEVELS);
+    auto priceToIndex(Common::Price price) const noexcept {
+      return (price % Common::ME_MAX_PRICE_LEVELS);
     }
 
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided price.
-    auto getOrdersAtPrice(Price price) const noexcept -> MarketOrdersAtPrice * {
+    auto getOrdersAtPrice(Common::Price price) const noexcept -> Trading::MarketOrdersAtPrice * {
       return price_orders_at_price_.at(priceToIndex(price));
     }
 
@@ -110,22 +110,22 @@ namespace Trading {
     auto addOrdersAtPrice(MarketOrdersAtPrice *new_orders_at_price) noexcept {
       price_orders_at_price_.at(priceToIndex(new_orders_at_price->price_)) = new_orders_at_price;
 
-      const auto best_orders_by_price = (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_);
+      const auto best_orders_by_price = (new_orders_at_price->side_ == Common::Side::BUY ? bids_by_price_ : asks_by_price_);
       if (UNLIKELY(!best_orders_by_price)) {
-        (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
+        (new_orders_at_price->side_ == Common::Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
         new_orders_at_price->prev_entry_ = new_orders_at_price->next_entry_ = new_orders_at_price;
       } else {
         auto target = best_orders_by_price;
-        bool add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) ||
-                          (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
+        bool add_after = ((new_orders_at_price->side_ == Common::Side::SELL && new_orders_at_price->price_ > target->price_) ||
+                          (new_orders_at_price->side_ == Common::Side::BUY && new_orders_at_price->price_ < target->price_));
         if (add_after) {
           target = target->next_entry_;
-          add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) ||
-                       (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
+          add_after = ((new_orders_at_price->side_ == Common::Side::SELL && new_orders_at_price->price_ > target->price_) ||
+                       (new_orders_at_price->side_ == Common::Side::BUY && new_orders_at_price->price_ < target->price_));
         }
         while (add_after && target != best_orders_by_price) {
-          add_after = ((new_orders_at_price->side_ == Side::SELL && new_orders_at_price->price_ > target->price_) ||
-                       (new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ < target->price_));
+          add_after = ((new_orders_at_price->side_ == Common::Side::SELL && new_orders_at_price->price_ > target->price_) ||
+                       (new_orders_at_price->side_ == Common::Side::BUY && new_orders_at_price->price_ < target->price_));
           if (add_after)
             target = target->next_entry_;
         }
@@ -144,30 +144,30 @@ namespace Trading {
           target->prev_entry_->next_entry_ = new_orders_at_price;
           target->prev_entry_ = new_orders_at_price;
 
-          if ((new_orders_at_price->side_ == Side::BUY && new_orders_at_price->price_ > best_orders_by_price->price_) ||
-              (new_orders_at_price->side_ == Side::SELL &&
+          if ((new_orders_at_price->side_ == Common::Side::BUY && new_orders_at_price->price_ > best_orders_by_price->price_) ||
+              (new_orders_at_price->side_ == Common::Side::SELL &&
                new_orders_at_price->price_ < best_orders_by_price->price_)) {
             target->next_entry_ = (target->next_entry_ == best_orders_by_price ? new_orders_at_price
                                                                                : target->next_entry_);
-            (new_orders_at_price->side_ == Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
+            (new_orders_at_price->side_ == Common::Side::BUY ? bids_by_price_ : asks_by_price_) = new_orders_at_price;
           }
         }
       }
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and the doubly linked list of price levels.
-    auto removeOrdersAtPrice(Side side, Price price) noexcept {
-      const auto best_orders_by_price = (side == Side::BUY ? bids_by_price_ : asks_by_price_);
+    auto removeOrdersAtPrice(Common::Side side, Common::Price price) noexcept {
+      const auto best_orders_by_price = (side == Common::Side::BUY ? bids_by_price_ : asks_by_price_);
       auto orders_at_price = getOrdersAtPrice(price);
 
       if (UNLIKELY(orders_at_price->next_entry_ == orders_at_price)) { // empty side of book.
-        (side == Side::BUY ? bids_by_price_ : asks_by_price_) = nullptr;
+        (side == Common::Side::BUY ? bids_by_price_ : asks_by_price_) = nullptr;
       } else {
         orders_at_price->prev_entry_->next_entry_ = orders_at_price->next_entry_;
         orders_at_price->next_entry_->prev_entry_ = orders_at_price->prev_entry_;
 
         if (orders_at_price == best_orders_by_price) {
-          (side == Side::BUY ? bids_by_price_ : asks_by_price_) = orders_at_price->next_entry_;
+          (side == Common::Side::BUY ? bids_by_price_ : asks_by_price_) = orders_at_price->next_entry_;
         }
 
         orders_at_price->prev_entry_ = orders_at_price->next_entry_ = nullptr;
@@ -221,8 +221,30 @@ namespace Trading {
 
       oid_to_order_.at(order->order_id_) = order;
     }
+
+    void ClearOrderBook() {
+       for (auto &order: oid_to_order_) {
+          if (order)
+            order_pool_.deallocate(order);
+        }
+        oid_to_order_.fill(nullptr);
+
+        if(bids_by_price_) {
+          for(auto bid = bids_by_price_->next_entry_; bid != bids_by_price_; bid = bid->next_entry_)
+            orders_at_price_pool_.deallocate(bid);
+          orders_at_price_pool_.deallocate(bids_by_price_);
+        }
+
+        if(asks_by_price_) {
+          for(auto ask = asks_by_price_->next_entry_; ask != asks_by_price_; ask = ask->next_entry_)
+            orders_at_price_pool_.deallocate(ask);
+          orders_at_price_pool_.deallocate(asks_by_price_);
+        }
+
+        bids_by_price_ = asks_by_price_ = nullptr;
+    }
   };
 
   /// Hash map from TickerId -> MarketOrderBook.
-  typedef std::array<MarketOrderBook *, ME_MAX_TICKERS> MarketOrderBookHashMap;
+using MarketOrderBookHashMap = std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
 }
