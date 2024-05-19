@@ -8,3 +8,4 @@ The subcomponent in the trading infrastructure responsible for sending, modifyin
 2. Order book - [NOT DEBUGED]
 3. Capture __raw__ exchange market order book update event for Binance
 4. Capture __raw__ Klines for Binance and Bybit  
+5. Capture __raw__ order book snapshot for Binance
