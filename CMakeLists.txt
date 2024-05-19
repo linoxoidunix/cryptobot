@@ -5,9 +5,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenSSL)
 add_subdirectory(clickhouse-cpp)
 find_package(Threads REQUIRED)
-find_package(simdjson REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
+find_package(fast_double_parser REQUIRED)
 add_subdirectory(googletest)
 add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
@@ -21,6 +22,10 @@ find_package(concurrentqueue)
 
 file(GLOB LIST_H
      "aot/*.h"
+     "aot/common/*.h"
+     "aot/market_data/*.h"
+     "aot/strategy/*.h"
+     "aot/python/*.h"
 )
 file(GLOB LIST_CPP
      "src/*.cpp"
@@ -64,6 +69,7 @@ target_link_libraries(${PROJECT_NAME}
     nlohmann_json::nlohmann_json
     Python::Python
     concurrentqueue::concurrentqueue
+    fast_double_parser::fast_double_parser
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

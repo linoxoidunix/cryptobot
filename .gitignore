@@ -6,3 +6,4 @@ magic_enum/
 json/
 CppTrader/
 concurrentqueue/
+fast_double_parser/

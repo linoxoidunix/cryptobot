@@ -10,6 +10,8 @@
 #include "aot/Https.h"
 #include "aot/Logger.h"
 #include "aot/WS.h"
+#include "aot/market_data/market_update.h"
+
 namespace binance {
 enum class TimeInForce { GTC, IOC, FOK };
 
@@ -312,8 +314,7 @@ class FactoryRequest {
          * header.
          *
          */
-        if(signer_)
-          req.insert("X-MBX-APIKEY", signer_->ApiKey());
+        if (signer_) req.insert("X-MBX-APIKEY", signer_->ApiKey());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -498,9 +499,13 @@ class OrderNewLimit : public inner::OrderNewI {
 
 class BookSnapshot : public inner::BookSnapshotI {
     static constexpr std::string_view end_point = "/api/v3/depth";
-
+    class ParserResponse {
+      public:
+        explicit ParserResponse() = default;
+        Exchange::BookSnapshot Parse(std::string_view response);
+    };
   public:
-    class ArgsOrder : public ArgsQuery {
+      class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
         using Limit      = uint16_t;
@@ -525,8 +530,6 @@ class BookSnapshot : public inner::BookSnapshotI {
       private:
         ArgsOrder& storage = *this;
     };
-
-  public:
     explicit BookSnapshot(ArgsOrder&& args, TypeExchange type) : args_(args) {
         switch (type) {
             case TypeExchange::MAINNET:
@@ -552,7 +555,22 @@ class BookSnapshot : public inner::BookSnapshotI {
         cb = [](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {
             const auto& resut = buffer.body();
-            logi("{}", resut);
+            //logi("{}", resut);
+            ParserResponse parser;
+            auto answer = parser.Parse(resut);
+            logd("asks:");
+
+            for(auto it : answer.asks)
+            {
+              logd("{}", it.ToString());
+            }
+
+            logd("bids:");
+
+            for(auto it : answer.bids)
+            {
+              logd("{}", it.ToString());
+            }
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -566,5 +584,6 @@ class BookSnapshot : public inner::BookSnapshotI {
     binance::testnet::HttpsExchange binance_test_net_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
+    // MEMarketUpdateLFQueue& queue_;
 };
 };  // namespace binance

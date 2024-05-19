@@ -36,14 +36,11 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
 
   public:
     explicit HttpsSession(boost::asio::io_context& ioc,
-                          // net::any_io_executor ex,
                           ssl::context& ctx, OnHttpsResponce cb)
-        : ioc_(ioc),
-          resolver_(net::make_strand(ioc)),
+        : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
+          ioc_(ioc),
           cb_(cb) {
-        // resolver_ = net::make_strand(ioc_);
-        // stream_ = (ex, ctx),
     }
 
     // Start the asynchronous operation
