@@ -31,19 +31,19 @@ class TimeManager {
   public:
     explicit TimeManager() = default;
     void Update() { last = common::getCurrentNanoS(); };
-    common::Nanos GetDeltaInNanos() {
+    common::Delta GetDeltaInNanos() {
         Update();
         return last - start;
     };
-    common::Nanos GetDeltaInS() {
+    common::Delta GetDeltaInS() {
         Update();
         return (last - start) / NANOS_TO_SECS;
     };
-    common::Nanos GetDeltaInMilliS() {
+    common::Delta GetDeltaInMilliS() {
         Update();
         return (last - start) / NANOS_TO_MILLIS;
     };
-    common::Nanos GetDeltaInMicroS() {
+    common::Delta GetDeltaInMicroS() {
         Update();
         return (last - start) / NANOS_TO_MICROS;
     };
