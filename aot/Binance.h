@@ -231,7 +231,12 @@ class OHLCVI : public OHLCVGetter {
     const ChartInterval* chart_interval_;
 };
 
-class BookEventGetter : public BookEventGetterI {
+ class BookEventGetter : public BookEventGetterI {
+  class ParserResponse {
+      public:
+        explicit ParserResponse() = default;
+        Exchange::BookDiffSnapshot Parse(std::string_view response);
+    };
   public:
     BookEventGetter(const Symbol* s,
                     const DiffDepthStream::StreamIntervalI* interval)
@@ -245,6 +250,23 @@ class BookEventGetter : public BookEventGetterI {
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
             logi("{}", resut);
+            ParserResponse parser;
+            auto answer = parser.Parse(resut);
+            logd("first_id:{} second_id:{}", answer.first_id, answer.last_id);
+
+            logd("asks:");
+
+            for(auto it : answer.asks)
+            {
+              logd("{}", it.ToString());
+            }
+
+            logd("bids:");
+
+            for(auto it : answer.bids)
+            {
+              logd("{}", it.ToString());
+            }
             fmtlog::poll();
         };
 
@@ -555,9 +577,11 @@ class BookSnapshot : public inner::BookSnapshotI {
         cb = [](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {
             const auto& resut = buffer.body();
-            //logi("{}", resut);
+            logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
+            logd("lastUpdateId:{}", answer.lastUpdateId);
+
             logd("asks:");
 
             for(auto it : answer.asks)

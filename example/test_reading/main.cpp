@@ -179,20 +179,20 @@
 //    Trading::MarketOrderBook order_book(12345);
 // }
 
-// int main() {
-//     using namespace binance;
-//     DiffDepthStream::ms100 interval;
-//     Symbol btcusdt("BTC", "USDT");
-//     BookEventGetter event_capturer(&btcusdt, &interval);
-//     BookEvent buffer;
-//     event_capturer.Get(buffer);
-// }
-
 int main() {
     using namespace binance;
-    BookSnapshot::ArgsOrder args{"BTCUSDT", 1000};
-    BookSnapshot book_snapshoter(std::move(args), TypeExchange::TESTNET);
-    book_snapshoter.Exec();
+    DiffDepthStream::ms100 interval;
+    Symbol btcusdt("BTC", "USDT");
+    BookEventGetter event_capturer(&btcusdt, &interval);
+    BookEvent buffer;
+    event_capturer.Get(buffer);
 }
+
+// int main() {
+//     using namespace binance;
+//     BookSnapshot::ArgsOrder args{"BTCUSDT", 1000};
+//     BookSnapshot book_snapshoter(std::move(args), TypeExchange::TESTNET);
+//     book_snapshoter.Exec();
+// }
 
 

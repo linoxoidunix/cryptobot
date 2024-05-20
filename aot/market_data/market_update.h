@@ -38,6 +38,14 @@ struct BookSnapshotElem {
 struct BookSnapshot {
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
+    uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
+};
+
+struct BookDiffSnapshot {
+    std::list<BookSnapshotElem> bids;
+    std::list<BookSnapshotElem> asks;
+    uint64_t first_id = std::numeric_limits<uint64_t>::max();
+    uint64_t last_id = std::numeric_limits<uint64_t>::max();
 };
 
 // using MEMarketUpdateLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
