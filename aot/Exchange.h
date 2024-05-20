@@ -267,4 +267,5 @@ class BookSnapshotI {
     virtual void Exec()      = 0;
     virtual ~BookSnapshotI() = default;
 };
+
 };  // namespace inner

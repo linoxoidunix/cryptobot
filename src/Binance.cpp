@@ -10,7 +10,7 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    book_snapshot.lastUpdateId = doc["lastUpdateId"].get_uint64();
+    book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
 
     for (auto all : doc["bids"]) {
         simdjson::ondemand::array arr = all.get_array();
@@ -41,8 +41,8 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    book_diff_snapshot.first_id = doc["U"].get_uint64();
-    book_diff_snapshot.last_id = doc["u"].get_uint64();
+    book_diff_snapshot.first_id      = doc["U"].get_uint64();
+    book_diff_snapshot.last_id       = doc["u"].get_uint64();
 
     for (auto all : doc["b"]) {
         simdjson::ondemand::array arr = all.get_array();
@@ -65,4 +65,14 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
         book_diff_snapshot.asks.emplace_back(pair[0], pair[1]);
     }
     return book_diff_snapshot;
+}
+
+auto binance::GeneratorBidAskService::Run() noexcept -> void {
+    logd("start");
+    while (run_) {
+        using namespace std::literals::chrono_literals;
+
+        std::this_thread::sleep_for(100ms);
+        time_manager_.Update();
+    }
 }

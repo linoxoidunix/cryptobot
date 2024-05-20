@@ -11,7 +11,8 @@
 #include "aot/Logger.h"
 #include "aot/WS.h"
 #include "aot/market_data/market_update.h"
-
+#include "aot/common/thread_utils.h"
+#include "aot/common/time_utils.h"
 namespace binance {
 enum class TimeInForce { GTC, IOC, FOK };
 
@@ -231,12 +232,13 @@ class OHLCVI : public OHLCVGetter {
     const ChartInterval* chart_interval_;
 };
 
- class BookEventGetter : public BookEventGetterI {
-  class ParserResponse {
+class BookEventGetter : public BookEventGetterI {
+    class ParserResponse {
       public:
         explicit ParserResponse() = default;
         Exchange::BookDiffSnapshot Parse(std::string_view response);
     };
+
   public:
     BookEventGetter(const Symbol* s,
                     const DiffDepthStream::StreamIntervalI* interval)
@@ -256,16 +258,14 @@ class OHLCVI : public OHLCVGetter {
 
             logd("asks:");
 
-            for(auto it : answer.asks)
-            {
-              logd("{}", it.ToString());
+            for (auto it : answer.asks) {
+                logd("{}", it.ToString());
             }
 
             logd("bids:");
 
-            for(auto it : answer.bids)
-            {
-              logd("{}", it.ToString());
+            for (auto it : answer.bids) {
+                logd("{}", it.ToString());
             }
             fmtlog::poll();
         };
@@ -526,8 +526,9 @@ class BookSnapshot : public inner::BookSnapshotI {
         explicit ParserResponse() = default;
         Exchange::BookSnapshot Parse(std::string_view response);
     };
+
   public:
-      class ArgsOrder : public ArgsQuery {
+    class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
         using Limit      = uint16_t;
@@ -584,16 +585,14 @@ class BookSnapshot : public inner::BookSnapshotI {
 
             logd("asks:");
 
-            for(auto it : answer.asks)
-            {
-              logd("{}", it.ToString());
+            for (auto it : answer.asks) {
+                logd("{}", it.ToString());
             }
 
             logd("bids:");
 
-            for(auto it : answer.bids)
-            {
-              logd("{}", it.ToString());
+            for (auto it : answer.bids) {
+                logd("{}", it.ToString());
             }
             fmtlog::poll();
         };
@@ -609,5 +608,40 @@ class BookSnapshot : public inner::BookSnapshotI {
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
     // MEMarketUpdateLFQueue& queue_;
+};
+
+/**
+ * @brief generator service new bid ask from exchange
+ * the main aim of this class is pack new bids and asks to NewBidLFQueue and
+ * NewAskLFQueue
+ *
+ */
+class GeneratorBidAskService {
+  public:
+    explicit GeneratorBidAskService(Exchange::NewBidLFQueue* new_bid_lfqueue,
+                                    Exchange::NewAskLFQueue* new_ask_lfqueue)
+        : new_bid_lfqueue_(new_bid_lfqueue),
+          new_ask_lfqueue_(new_ask_lfqueue){};
+    auto Start() {
+        run_ = true;
+        ASSERT(common::createAndStartThread(-1, "Trading/MarketDataConsumer",
+                                            [this]() { Run(); }) != nullptr,
+               "Failed to start MarketData thread.");
+    };
+    common::Delta GetDownTimeInS(){
+      return time_manager_.GetDeltaInS();
+    }
+
+  private:
+    volatile bool run_                        = false;
+
+    Exchange::NewBidLFQueue* new_bid_lfqueue_ = nullptr;
+    Exchange::NewAskLFQueue* new_ask_lfqueue_ = nullptr;
+    common::TimeManager time_manager_;
+  private:
+    /// Main loop for this thread - reads and processes messages from the
+    /// multicast sockets - the heavy lifting is in the recvCallback() and
+    /// checkSnapshotSync() methods.
+    auto Run() noexcept -> void;
 };
 };  // namespace binance
