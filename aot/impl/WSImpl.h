@@ -62,7 +62,15 @@ public:
         // Save these for later
         host_ = host;
         end_point_ = end_point;
-
+        // if(! SSL_set_tlsext_host_name(
+        //         ws_.next_layer().native_handle(),
+        //         host_.c_str()))
+        // {
+        //     auto ec = beast::error_code(static_cast<int>(::ERR_get_error()),
+        //         net::error::get_ssl_category());
+        //     loge("{}", ec.message());
+        //     return;
+        // }
         // Look up the domain name
         resolver_.async_resolve(
             host_,
@@ -82,8 +90,11 @@ public:
             loge("{}", ec.message());
             return;
         }
-        std::cout << results.size()<< std::endl;
-
+        // std::cout << results.size()<< std::endl;
+        // for(auto it : results)
+        // {
+        //     std::cout << it.host_name() << ":" << it.service_name() << " -> " << it.endpoint() << std::endl;
+        // }
         // Set a timeout on the operation
         beast::get_lowest_layer(ws_).expires_after(std::chrono::seconds(10));
         if(! SSL_set_tlsext_host_name(

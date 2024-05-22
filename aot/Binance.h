@@ -50,7 +50,6 @@ class HttpsExchange : public https::ExchangeI {
     std::uint64_t recv_window_;
 };
 };  // namespace testnet
-
 enum class Type {
     LIMIT,
     MARKET,
@@ -251,7 +250,7 @@ class BookEventGetter : public BookEventGetterI {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&queue](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
-            // logi("{}", resut);
+             //logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
             queue.enqueue(answer);
@@ -260,8 +259,11 @@ class BookEventGetter : public BookEventGetterI {
         using dds = DiffDepthStream;
         dds channel(s_, interval_);
         std::string empty_request = "{}";
+        // std::make_shared<WS>(ioc, empty_request, OnMessageCB)
+        //     ->Run("stream.binance.com", "9443",
+        //           fmt::format("/ws/{0}", channel.ToString()));
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run("stream.binance.com", "9443",
+            ->Run("testnet.binance.vision", "443",
                   fmt::format("/ws/{0}", channel.ToString()));
     };
 
@@ -271,6 +273,7 @@ class BookEventGetter : public BookEventGetterI {
     boost::asio::io_context ioc;
     const Symbol* s_;
     const DiffDepthStream::StreamIntervalI* interval_;
+    bool callback_execute_ = false;
 };
 
 class Args : public std::unordered_map<std::string, std::string> {};
@@ -541,7 +544,9 @@ class BookSnapshot : public inner::BookSnapshotI {
       private:
         ArgsOrder& storage = *this;
     };
-    explicit BookSnapshot(ArgsOrder&& args, TypeExchange type) : args_(args) {
+    explicit BookSnapshot(ArgsOrder&& args, TypeExchange type,
+                          Exchange::BookSnapshot* snapshot)
+        : args_(args), snapshot_(snapshot) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_test_net_;
@@ -563,25 +568,28 @@ class BookSnapshot : public inner::BookSnapshotI {
         fmtlog::setLogLevel(fmtlog::DBG);
 
         OnHttpsResponce cb;
-        cb = [](boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
+        cb = [this](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
             const auto& resut = buffer.body();
-            logi("{}", resut);
+            // logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
-            logd("lastUpdateId:{}", answer.lastUpdateId);
+            *snapshot_  = answer;
+            // logd("lastUpdateId:{}", answer.lastUpdateId);
 
-            logd("asks:");
+            // logd("asks:");
 
-            for (auto it : answer.asks) {
-                logd("{}", it.ToString());
-            }
+            // for (auto it : answer.asks) {
+            //     logd("{}", it.ToString());
+            // }
 
-            logd("bids:");
+            // logd("bids:");
 
-            for (auto it : answer.bids) {
-                logd("{}", it.ToString());
-            }
+            // for (auto it : answer.bids) {
+            //     logd("{}", it.ToString());
+            // }
+            // s
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -593,8 +601,11 @@ class BookSnapshot : public inner::BookSnapshotI {
   private:
     ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
+    //binance::main::HttpsExchange binance_test_net_;
+
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
+    Exchange::BookSnapshot* snapshot_;
     // MEMarketUpdateLFQueue& queue_;
 };
 
@@ -642,8 +653,11 @@ class GeneratorBidAskService {
     size_t next_inc_seq_num_                             = 0;
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
     Exchange::BookDiffLFQueue book_diff_lfqueue_;
+    Exchange::BookSnapshot snapshot_;
     const Symbol* symbol_;
     const DiffDepthStream::StreamIntervalI* interval_;
+    bool need_snapshot_ = true;
+    uint64_t last_id_diff_book_event;
 
   private:
     /// Main loop for this thread - reads and processes messages from the

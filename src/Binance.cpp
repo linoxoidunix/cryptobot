@@ -79,11 +79,53 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         if (bool found = book_diff_lfqueue_.try_dequeue(item); found) {
             logd("fetch diff book event from exchange {}", item.ToString());
             fmtlog::poll();
-        } 
+            const bool already_need_snapshot = need_snapshot_;
+            // logd("need_snapshot_ = {}; item.first_id = {};
+            // last_id_diff_book_event = {}", need_snapshot_, item.first_id,
+            // last_id_diff_book_event);
+            need_snapshot_                   = (already_need_snapshot ||
+                              (item.first_id != last_id_diff_book_event + 1));
 
-        //using namespace std::literals::chrono_literals;
+            if (UNLIKELY(need_snapshot_)) {
+                logd("try make snapshot");
+                fmtlog::poll();
+                /**
+                 * @brief init snapshot request
+                 *
+                 */
+                binance::BookSnapshot::ArgsOrder args{
+                    symbol_->ToString(), 1000};  // TODO parametrize 1000
+                binance::BookSnapshot book_snapshoter(
+                    std::move(args), TypeExchange::TESTNET,
+                    &snapshot_);  // TODO parametrize 1000
+                book_snapshoter.Exec();
+                // если item.lastUpdateId <= снапшот.last_id, то need snapshot_
+                // = false и ждём следующий итем если item.first_id <=
+                // снапшот.last_id + 1 and item.last_id >= снапшот.last_id + 1,
+                // то need snapshot_ = false и ждём следующий итем иначе
+                // повторить
+                if (item.last_id <= snapshot_.lastUpdateId) {
+                    logd("snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
+                    need_snapshot_ = false;
+                } else if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
+                           (item.last_id >= snapshot_.lastUpdateId + 1)) {
+                    need_snapshot_ = false;
+                    logd("snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
+                } else {
+                    logd("snapshot too old snapshot_.lastUpdateId = {}. Need new snapshot", snapshot_.lastUpdateId);
+                    fmtlog::poll();
+                    continue;
+                }
+            }
+            // need get snapshot and sync with inc changes
+            // push changes to lf queue
+            //}
+            // push changes to lf queue
+            // logd("consume diff book event form exchange");
+            last_id_diff_book_event = item.last_id;
 
-        //std::this_thread::sleep_for(100ms);
+            fmtlog::poll();
+        }
         time_manager_.Update();
     }
 }

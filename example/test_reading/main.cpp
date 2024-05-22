@@ -184,8 +184,11 @@
 //     DiffDepthStream::ms100 interval;
 //     Symbol btcusdt("BTC", "USDT");
 //     BookEventGetter event_capturer(&btcusdt, &interval);
-//     BookEvent buffer;
-//     event_capturer.Get(buffer);
+//     Exchange::BookDiffLFQueue queue;
+//     event_capturer.Init(queue);
+//     while(true)
+//         event_capturer.LaunchOne();
+//     fmtlog::poll();
 // }
 
 // int main() {
