@@ -30,27 +30,23 @@ inline auto& getCurrentTimeStr(std::string* time_str) {
 class TimeManager {
   public:
     explicit TimeManager() = default;
-    void Update() { last = common::getCurrentNanoS(); };
-    common::Delta GetDeltaInNanos() {
-        Update();
-        return last - start;
+    void Update() { last_ = common::getCurrentNanoS(); };
+    common::Delta GetDeltaInNanos() const {
+        return common::getCurrentNanoS() - last_;
     };
-    common::Delta GetDeltaInS() {
-        Update();
-        return (last - start) / NANOS_TO_SECS;
+    common::Delta GetDeltaInS() const {
+        return (common::getCurrentNanoS() - last_) / NANOS_TO_SECS;
     };
-    common::Delta GetDeltaInMilliS() {
-        Update();
-        return (last - start) / NANOS_TO_MILLIS;
+    common::Delta GetDeltaInMilliS() const {
+        return (common::getCurrentNanoS() - last_) / NANOS_TO_MILLIS;
     };
-    common::Delta GetDeltaInMicroS() {
-        Update();
-        return (last - start) / NANOS_TO_MICROS;
+    common::Delta GetDeltaInMicroS() const {
+        return (common::getCurrentNanoS() - last_) / NANOS_TO_MICROS;
     };
 
   private:
-    common::Nanos start = common::getCurrentNanoS();
-    common::Nanos last  = start;
+    common::Nanos start_ = common::getCurrentNanoS();
+    common::Nanos last_  = start_;
 };
 
 }  // namespace Common

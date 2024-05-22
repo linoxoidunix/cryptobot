@@ -10,9 +10,9 @@
 #include "aot/Https.h"
 #include "aot/Logger.h"
 #include "aot/WS.h"
-#include "aot/market_data/market_update.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
+#include "aot/market_data/market_update.h"
 namespace binance {
 enum class TimeInForce { GTC, IOC, FOK };
 
@@ -243,31 +243,18 @@ class BookEventGetter : public BookEventGetterI {
     BookEventGetter(const Symbol* s,
                     const DiffDepthStream::StreamIntervalI* interval)
         : s_(s), interval_(interval){};
-    void Get(BookEvent& buffer) override {
-        boost::asio::io_context ioc;
-        // fmtlog::setLogFile("log", true);
-        fmtlog::setLogLevel(fmtlog::DBG);
+    void Get() override {
 
+    };
+    void LaunchOne() override { ioc.run_one(); };
+    void Init(Exchange::BookDiffLFQueue& queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+        OnMessageCB = [&queue](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
-            logi("{}", resut);
+            // logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
-            logd("first_id:{} second_id:{}", answer.first_id, answer.last_id);
-
-            logd("asks:");
-
-            for (auto it : answer.asks) {
-                logd("{}", it.ToString());
-            }
-
-            logd("bids:");
-
-            for (auto it : answer.bids) {
-                logd("{}", it.ToString());
-            }
-            fmtlog::poll();
+            queue.enqueue(answer);
         };
 
         using dds = DiffDepthStream;
@@ -276,11 +263,12 @@ class BookEventGetter : public BookEventGetterI {
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
             ->Run("stream.binance.com", "9443",
                   fmt::format("/ws/{0}", channel.ToString()));
-        ioc.run();
     };
+
     ~BookEventGetter() override = default;
 
   private:
+    boost::asio::io_context ioc;
     const Symbol* s_;
     const DiffDepthStream::StreamIntervalI* interval_;
 };
@@ -618,26 +606,45 @@ class BookSnapshot : public inner::BookSnapshotI {
  */
 class GeneratorBidAskService {
   public:
-    explicit GeneratorBidAskService(Exchange::NewBidLFQueue* new_bid_lfqueue,
-                                    Exchange::NewAskLFQueue* new_ask_lfqueue)
-        : new_bid_lfqueue_(new_bid_lfqueue),
-          new_ask_lfqueue_(new_ask_lfqueue){};
+    explicit GeneratorBidAskService(
+        Exchange::EventLFQueue* event_lfqueue, const Symbol* s,
+        const DiffDepthStream::StreamIntervalI* interval);
     auto Start() {
         run_ = true;
-        ASSERT(common::createAndStartThread(-1, "Trading/MarketDataConsumer",
-                                            [this]() { Run(); }) != nullptr,
-               "Failed to start MarketData thread.");
+        ASSERT(
+            common::createAndStartThread(-1, "Trading/GeneratorBidAskService",
+                                         [this]() { Run(); }) != nullptr,
+            "Failed to start MarketData thread.");
     };
-    common::Delta GetDownTimeInS(){
-      return time_manager_.GetDeltaInS();
+    common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
+    ~GeneratorBidAskService() {
+        stop();
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(2s);
     }
+    auto stop() -> void { run_ = false; }
+
+    GeneratorBidAskService()                                          = delete;
+
+    GeneratorBidAskService(const GeneratorBidAskService&)             = delete;
+
+    GeneratorBidAskService(const GeneratorBidAskService&&)            = delete;
+
+    GeneratorBidAskService& operator=(const GeneratorBidAskService&)  = delete;
+
+    GeneratorBidAskService& operator=(const GeneratorBidAskService&&) = delete;
 
   private:
-    volatile bool run_                        = false;
+    volatile bool run_                     = false;
 
-    Exchange::NewBidLFQueue* new_bid_lfqueue_ = nullptr;
-    Exchange::NewAskLFQueue* new_ask_lfqueue_ = nullptr;
+    Exchange::EventLFQueue* event_lfqueue_ = nullptr;
     common::TimeManager time_manager_;
+    size_t next_inc_seq_num_                             = 0;
+    std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
+    Exchange::BookDiffLFQueue book_diff_lfqueue_;
+    const Symbol* symbol_;
+    const DiffDepthStream::StreamIntervalI* interval_;
+
   private:
     /// Main loop for this thread - reads and processes messages from the
     /// multicast sockets - the heavy lifting is in the recvCallback() and

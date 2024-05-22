@@ -7,7 +7,24 @@
 #include "aot/common/types.h"
 #include "moodycamel/concurrentqueue.h"
 namespace Exchange {
+    enum class MarketUpdateType : uint8_t {
+    CLEAR = 0,//if this event occured then neen clear order book
+    DEFAULT = 1
+  };
+
+  inline std::string marketUpdateTypeToString(MarketUpdateType type) {
+    switch (type) {
+      case MarketUpdateType::CLEAR:
+        return "CLEAR";
+      default:
+        return "DEFAULT";
+    }
+    return "UNKNOWN";
+  };
 struct MEMarketUpdate {
+    MarketUpdateType type_ = MarketUpdateType::DEFAULT;
+
+
     Common::OrderId order_id_   = Common::OrderId_INVALID;
     Common::TickerId ticker_id_ = Common::TickerId_INVALID;
     Common::Side side_          = Common::Side::INVALID;
@@ -44,8 +61,14 @@ struct BookDiffSnapshot {
     std::list<BookSnapshotElem> asks;
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
     uint64_t last_id  = std::numeric_limits<uint64_t>::max();
+    auto ToString() const {
+        return fmt::format("BookDiffSnapshot[first_id:{} last_id:{}]", first_id, last_id);
+    };
 };
 
-using NewBidLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
-using NewAskLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+//using NewBidLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+//using NewAskLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
+
 };  // namespace Exchange

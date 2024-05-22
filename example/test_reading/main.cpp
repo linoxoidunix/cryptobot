@@ -199,12 +199,12 @@ int main() {
     fmtlog::setLogLevel(fmtlog::DBG);
 
     using namespace binance;
-    Exchange::NewAskLFQueue ask_queue;
-    Exchange::NewBidLFQueue bid_queue;
-
-    GeneratorBidAskService generator(&bid_queue, &ask_queue);
+    Exchange::EventLFQueue event_queue;
+    DiffDepthStream::ms100 interval;
+    Symbol btcusdt("BTC", "USDT");
+    GeneratorBidAskService generator(&event_queue, &btcusdt, &interval);
     generator.Start();
-    while (generator.GetDownTimeInS() < 60) {
+    while (generator.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
              generator.GetDownTimeInS());
         using namespace std::literals::chrono_literals;

@@ -68,11 +68,30 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
 }
 
 auto binance::GeneratorBidAskService::Run() noexcept -> void {
-    logd("start");
-    while (run_) {
-        using namespace std::literals::chrono_literals;
+    logd("GeneratorBidAskService start");
+    book_event_getter_->Init(book_diff_lfqueue_);
+    logd("start subscribe book diff binance");
+    fmtlog::poll();
 
-        std::this_thread::sleep_for(100ms);
+    while (run_) {
+        book_event_getter_->LaunchOne();
+        Exchange::BookDiffSnapshot item;
+        if (bool found = book_diff_lfqueue_.try_dequeue(item); found) {
+            logd("fetch diff book event from exchange {}", item.ToString());
+            fmtlog::poll();
+        } 
+
+        //using namespace std::literals::chrono_literals;
+
+        //std::this_thread::sleep_for(100ms);
         time_manager_.Update();
     }
+}
+
+binance::GeneratorBidAskService::GeneratorBidAskService(
+    Exchange::EventLFQueue* event_lfqueue, const Symbol* s,
+    const DiffDepthStream::StreamIntervalI* interval)
+    : event_lfqueue_(event_lfqueue), symbol_(s), interval_(interval) {
+    book_event_getter_ = std::unique_ptr<BookEventGetter>(
+        new BookEventGetter(symbol_, interval_));
 }

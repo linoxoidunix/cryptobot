@@ -1,4 +1,5 @@
 #pragma once
+#include "moodycamel/concurrentqueue.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
@@ -9,6 +10,7 @@
 #include <string_view>
 
 #include "aot/Logger.h"
+#include "aot/market_data/market_update.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
 enum class Side { BUY, SELL };
@@ -142,20 +144,15 @@ class OHLCVGetter {
     virtual ~OHLCVGetter()                  = default;
 };
 
-struct BookEvent {
-    using Price    = double;
-    using Qty      = double;
-    using PriceQty = std::pair<Price, Qty>;
-    std::list<PriceQty> bids;
-    std::list<PriceQty> asks;
-};
 /**
  * @brief capture price and quantity updates from exchange
  *
  */
 class BookEventGetterI {
   public:
-    virtual void Get(BookEvent &event) = 0;
+    virtual void Init(Exchange::BookDiffLFQueue &queue) = 0;
+    virtual void Get() = 0;
+    virtual void LaunchOne() = 0;
     virtual ~BookEventGetterI()        = default;
 };
 
