@@ -13,6 +13,12 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+
+// Spot API URL                               Spot Test Network URL
+// https://api.binance.com/api https://testnet.binance.vision/api
+// wss://stream.binance.com:9443/ws	         wss://testnet.binance.vision/ws
+// wss://stream.binance.com:9443/stream	     wss://testnet.binance.vision/stream
+
 namespace binance {
 enum class TimeInForce { GTC, IOC, FOK };
 
@@ -250,7 +256,7 @@ class BookEventGetter : public BookEventGetterI {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&queue](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
-             //logi("{}", resut);
+            // logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
             queue.enqueue(answer);
@@ -601,7 +607,7 @@ class BookSnapshot : public inner::BookSnapshotI {
   private:
     ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
-    //binance::main::HttpsExchange binance_test_net_;
+    // binance::main::HttpsExchange binance_test_net_;
 
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;

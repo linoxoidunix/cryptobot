@@ -7,23 +7,22 @@
 #include "aot/common/types.h"
 #include "moodycamel/concurrentqueue.h"
 namespace Exchange {
-    enum class MarketUpdateType : uint8_t {
-    CLEAR = 0,//if this event occured then neen clear order book
+enum class MarketUpdateType : uint8_t {
+    CLEAR   = 0,  // if this event occured then neen clear order book
     DEFAULT = 1
-  };
+};
 
-  inline std::string marketUpdateTypeToString(MarketUpdateType type) {
+inline std::string marketUpdateTypeToString(MarketUpdateType type) {
     switch (type) {
-      case MarketUpdateType::CLEAR:
-        return "CLEAR";
-      default:
-        return "DEFAULT";
+        case MarketUpdateType::CLEAR:
+            return "CLEAR";
+        default:
+            return "DEFAULT";
     }
     return "UNKNOWN";
-  };
+};
 struct MEMarketUpdate {
-    MarketUpdateType type_ = MarketUpdateType::DEFAULT;
-
+    MarketUpdateType type_      = MarketUpdateType::DEFAULT;
 
     Common::OrderId order_id_   = Common::OrderId_INVALID;
     Common::TickerId ticker_id_ = Common::TickerId_INVALID;
@@ -48,12 +47,22 @@ struct BookSnapshotElem {
     auto ToString() const {
         return fmt::format("BookSnapshotElem[price:{} qty:{}]", price, qty);
     };
+    friend bool operator==(const BookSnapshotElem& left, const BookSnapshotElem& right) {
+        if ((left.price == right.price) && (left.qty == right.qty)) return true;
+        return false;
+    }
 };
 
 struct BookSnapshot {
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
+    friend bool operator==(const BookSnapshot& left, const BookSnapshot& right) {
+        if ((left.bids == right.bids) && (left.asks == right.asks) &&
+            (left.lastUpdateId == right.lastUpdateId))
+            return true;
+        return false;
+    }
 };
 
 struct BookDiffSnapshot {
@@ -62,13 +71,14 @@ struct BookDiffSnapshot {
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
     uint64_t last_id  = std::numeric_limits<uint64_t>::max();
     auto ToString() const {
-        return fmt::format("BookDiffSnapshot[first_id:{} last_id:{}]", first_id, last_id);
+        return fmt::format("BookDiffSnapshot[first_id:{} last_id:{}]", first_id,
+                           last_id);
     };
 };
 
-//using NewBidLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
-//using NewAskLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
-using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+// using NewBidLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+// using NewAskLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
+using EventLFQueue    = moodycamel::ConcurrentQueue<MEMarketUpdate>;
 using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
 
 };  // namespace Exchange

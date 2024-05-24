@@ -72,23 +72,20 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
     book_event_getter_->Init(book_diff_lfqueue_);
     logd("start subscribe book diff binance");
     fmtlog::poll();
-
+    bool snapshot_and_diff_is_sync = false;
     while (run_) {
         book_event_getter_->LaunchOne();
         Exchange::BookDiffSnapshot item;
         if (bool found = book_diff_lfqueue_.try_dequeue(item); found) {
             logd("fetch diff book event from exchange {}", item.ToString());
-            fmtlog::poll();
             const bool already_need_snapshot = need_snapshot_;
-            // logd("need_snapshot_ = {}; item.first_id = {};
-            // last_id_diff_book_event = {}", need_snapshot_, item.first_id,
-            // last_id_diff_book_event);
             need_snapshot_                   = (already_need_snapshot ||
                               (item.first_id != last_id_diff_book_event + 1));
 
+            // check that smapsot
+
             if (UNLIKELY(need_snapshot_)) {
                 logd("try make snapshot");
-                fmtlog::poll();
                 /**
                  * @brief init snapshot request
                  *
@@ -105,27 +102,44 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
                 // то need snapshot_ = false и ждём следующий итем иначе
                 // повторить
                 if (item.last_id <= snapshot_.lastUpdateId) {
-                    logd("snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
-                    need_snapshot_ = false;
+                    logd("need new diff event from excnage. snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
                 } else if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
                            (item.last_id >= snapshot_.lastUpdateId + 1)) {
-                    need_snapshot_ = false;
+                            //snapshot_and_diff_is_sync = true;
                     logd("snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
                 } else {
-                    logd("snapshot too old snapshot_.lastUpdateId = {}. Need new snapshot", snapshot_.lastUpdateId);
-                    fmtlog::poll();
+                    logd(
+                        "snapshot too old snapshot_.lastUpdateId = {}. Need "
+                        "new snapshot",
+                        snapshot_.lastUpdateId);
                     continue;
                 }
+                need_snapshot_ = false;
             }
+            last_id_diff_book_event = item.last_id;
             // need get snapshot and sync with inc changes
             // push changes to lf queue
             //}
             // push changes to lf queue
             // logd("consume diff book event form exchange");
-            last_id_diff_book_event = item.last_id;
-
-            fmtlog::poll();
+            if (snapshot_ != Exchange::BookSnapshot()) {
+                if ((item.first_id <= snapshot_.lastUpdateId + 1)
+                    && (item.last_id >= snapshot_.lastUpdateId + 1)) {
+                        // add snapsot to queue order book
+                        // add item to queue order book
+                        snapshot_ = Exchange::BookSnapshot();
+                    } else
+                    if (item.last_id <= snapshot_.lastUpdateId)
+                    {
+                        logd("need new diff event from excnage. snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
+                        //need new item
+                    }else
+                        need_snapshot_ = true;
+            } else {
+                // add item to queue order book
+            }
         }
+        fmtlog::poll();
         time_manager_.Update();
     }
 }
