@@ -67,15 +67,15 @@ namespace Trading {
 
   /// Represents a Best Bid Offer (BBO) abstraction for components which only need a small summary of top of book price and liquidity instead of the full order book.
   struct BBO {
-    Common::Price bid_price_ = Common::Price_INVALID, ask_price_ = Common::Price_INVALID;
-    Common::Qty bid_qty_ = Common::Qty_INVALID, ask_qty_ = Common::Qty_INVALID;
+    Common::Price bid_price = Common::Price_INVALID, ask_price = Common::Price_INVALID;
+    Common::Qty bid_qty = Common::Qty_INVALID, ask_qty = Common::Qty_INVALID;
 
     auto toString() const {
       std::stringstream ss;
       ss << "BBO{"
-         << Common::qtyToString(bid_qty_) << "@" << Common::priceToString(bid_price_)
+         << Common::qtyToString(bid_qty) << "@" << Common::priceToString(bid_price)
          << "X"
-         << Common::priceToString(ask_price_) << "@" << Common::qtyToString(ask_qty_)
+         << Common::priceToString(ask_price) << "@" << Common::qtyToString(ask_qty)
          << "}";
 
       return ss.str();

@@ -22,23 +22,23 @@ inline std::string marketUpdateTypeToString(MarketUpdateType type) {
     return "UNKNOWN";
 };
 struct MEMarketUpdate {
-    MarketUpdateType type_      = MarketUpdateType::DEFAULT;
+    MarketUpdateType type      = MarketUpdateType::DEFAULT;
 
-    Common::OrderId order_id_   = Common::OrderId_INVALID;
-    Common::TickerId ticker_id_ = Common::TickerId_INVALID;
-    Common::Side side_          = Common::Side::INVALID;
-    Common::Price price_        = Common::Price_INVALID;
-    Common::Qty qty_            = Common::Qty_INVALID;
-    // Priority priority_  = Priority_INVALID;
+    Common::OrderId order_id   = Common::OrderId_INVALID;
+    Common::TickerId ticker_id = Common::TickerId_INVALID;
+    Common::Side side          = Common::Side::INVALID;
+    Common::Price price        = Common::Price_INVALID;
+    Common::Qty qty            = Common::Qty_INVALID;
 
-    auto toString() const {
+    auto ToString() const {
         return fmt::format(
             "MEMarketUpdate[ticker:{} oid:{} side:{} qty:{} price:{}]",
-            Common::tickerIdToString(ticker_id_),
-            Common::orderIdToString(order_id_), sideToString(side_),
-            Common::qtyToString(qty_), Common::priceToString(price_));
+            Common::tickerIdToString(ticker_id),
+            Common::orderIdToString(order_id), sideToString(side),
+            Common::qtyToString(qty), Common::priceToString(price));
     };
 };
+using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
 
 struct BookSnapshotElem {
     double price = std::numeric_limits<double>::max();
@@ -47,21 +47,32 @@ struct BookSnapshotElem {
     auto ToString() const {
         return fmt::format("BookSnapshotElem[price:{} qty:{}]", price, qty);
     };
-    friend bool operator==(const BookSnapshotElem& left, const BookSnapshotElem& right) {
-        if ((left.price == right.price) && (left.qty == right.qty)) return true;
-        return false;
-    }
+    // friend bool operator==(const BookSnapshotElem& left, const
+    // BookSnapshotElem& right) {
+    //     if ((left.price == right.price) && (left.qty == right.qty)) return
+    //     true; return false;
+    // }
 };
 
 struct BookSnapshot {
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
-    friend bool operator==(const BookSnapshot& left, const BookSnapshot& right) {
-        if ((left.bids == right.bids) && (left.asks == right.asks) &&
-            (left.lastUpdateId == right.lastUpdateId))
-            return true;
-        return false;
+    void AddToQueue(EventLFQueue& queue) {
+        for (auto& bid : bids) {
+            MEMarketUpdate event;
+            event.side  = Common::Side::BUY;
+            event.price = bid.price;
+            event.price = bid.price;
+            queue.enqueue(event);
+        }
+        for (auto& ask : asks) {
+            MEMarketUpdate event;
+            event.side  = Common::Side::SELL;
+            event.price = ask.price;
+            event.price = ask.price;
+            queue.enqueue(event);
+        }
     }
 };
 
@@ -74,11 +85,24 @@ struct BookDiffSnapshot {
         return fmt::format("BookDiffSnapshot[first_id:{} last_id:{}]", first_id,
                            last_id);
     };
+    void AddToQueue(EventLFQueue& queue) {
+        for (auto& bid : bids) {
+            MEMarketUpdate event;
+            event.side  = Common::Side::BUY;
+            event.price = bid.price;
+            event.price = bid.price;
+            queue.enqueue(event);
+        }
+        for (auto& ask : asks) {
+            MEMarketUpdate event;
+            event.side  = Common::Side::SELL;
+            event.price = ask.price;
+            event.price = ask.price;
+            queue.enqueue(event);
+        }
+    }
 };
 
-// using NewBidLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
-// using NewAskLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
-using EventLFQueue    = moodycamel::ConcurrentQueue<MEMarketUpdate>;
 using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
 
 };  // namespace Exchange

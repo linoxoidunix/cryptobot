@@ -28,27 +28,27 @@ namespace Trading {
     auto updateBBO(bool update_bid, bool update_ask) noexcept {
       if(update_bid) {
         if(bids_by_price_) {
-          bbo_.bid_price_ = bids_by_price_->price_;
-          bbo_.bid_qty_ = bids_by_price_->first_mkt_order_->qty_;
+          bbo_.bid_price = bids_by_price_->price_;
+          bbo_.bid_qty = bids_by_price_->first_mkt_order_->qty_;
           for(auto order = bids_by_price_->first_mkt_order_->next_order_; order != bids_by_price_->first_mkt_order_; order = order->next_order_)
-            bbo_.bid_qty_ += order->qty_;
+            bbo_.bid_qty += order->qty_;
         }
         else {
-          bbo_.bid_price_ = Common::Price_INVALID;
-          bbo_.bid_qty_ = Common::Qty_INVALID;
+          bbo_.bid_price = Common::Price_INVALID;
+          bbo_.bid_qty = Common::Qty_INVALID;
         }
       }
 
       if(update_ask) {
         if(asks_by_price_) {
-          bbo_.ask_price_ = asks_by_price_->price_;
-          bbo_.ask_qty_ = asks_by_price_->first_mkt_order_->qty_;
+          bbo_.ask_price = asks_by_price_->price_;
+          bbo_.ask_qty = asks_by_price_->first_mkt_order_->qty_;
           for(auto order = asks_by_price_->first_mkt_order_->next_order_; order != asks_by_price_->first_mkt_order_; order = order->next_order_)
-            bbo_.ask_qty_ += order->qty_;
+            bbo_.ask_qty += order->qty_;
         }
         else {
-          bbo_.ask_price_ = Common::Price_INVALID;
-          bbo_.ask_qty_ = Common::Qty_INVALID;
+          bbo_.ask_price = Common::Price_INVALID;
+          bbo_.ask_qty = Common::Qty_INVALID;
         }
       }
     }

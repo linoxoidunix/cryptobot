@@ -88,7 +88,11 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
 
             if (need_snapshot) [[unlikely]] {
                 snapshot_and_diff_is_sync = false;
+                Exchange::MEMarketUpdate event_clear_queue;
+                event_clear_queue.type = Exchange::MarketUpdateType::CLEAR;
                 logd("clear order book. try make snapshot");
+                event_lfqueue_->enqueue(event_clear_queue);
+
                 binance::BookSnapshot::ArgsOrder args{
                     symbol_->ToString(), 1000};  // TODO parametrize 1000
                 binance::BookSnapshot book_snapshoter(
@@ -104,16 +108,15 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
                     continue;
                 } else if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
                            (item.last_id >= snapshot_.lastUpdateId + 1)) {
-                    is_first_run              = false;
-                    snapshot_and_diff_is_sync = true;
+                    is_first_run = false;
                     logd(
                         "add snapshot and diff {} to order book. "
                         "snapshot_.lastUpdateId = {}",
                         item.ToString(), snapshot_.lastUpdateId);
                 } else {
                     logd(
-                        "snapshot too old snapshot_.lastUpdateId = {}. 
-                        Need new snapshot",
+                        "snapshot too old snapshot_.lastUpdateId = {}. Need "
+                        "new snapshot",
                         snapshot_.lastUpdateId);
                     is_first_run = true;
                     continue;
@@ -121,13 +124,17 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             }
             if (!snapshot_and_diff_is_sync) [[unlikely]] {
                 if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
-                    (item.last_id >= snapshot_.lastUpdateId + 1))
+                    (item.last_id >= snapshot_.lastUpdateId + 1)) {
                     snapshot_and_diff_is_sync = true;
+                    snapshot_.AddToQueue(*event_lfqueue_);
+                }
             }
             if (!diff_packet_lost && snapshot_and_diff_is_sync == true)
-                [[likely]]
+                [[likely]] {
                 logd("add diff {} to order book. snapshot_.lastUpdateId = {}",
                      item.ToString(), snapshot_.lastUpdateId);
+                item.AddToQueue(*event_lfqueue_);
+            }
         }
         fmtlog::poll();
         time_manager_.Update();

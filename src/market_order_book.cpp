@@ -20,23 +20,23 @@ MarketOrderBook::~MarketOrderBook() {
 auto MarketOrderBook::onMarketUpdate(
     const Exchange::MEMarketUpdate *market_update) noexcept -> void {
     const auto bid_updated =
-        (bids_by_price_ && market_update->side_ == Common::Side::BUY &&
-         market_update->price_ >= bids_by_price_->price_);
+        (bids_by_price_ && market_update->side == Common::Side::BUY &&
+         market_update->price >= bids_by_price_->price_);
     const auto ask_updated =
-        (asks_by_price_ && market_update->side_ == Common::Side::SELL &&
-         market_update->price_ <= asks_by_price_->price_);
+        (asks_by_price_ && market_update->side == Common::Side::SELL &&
+         market_update->price <= asks_by_price_->price_);
 
-    if (market_update->qty_ != 0) {
+    if (market_update->qty != 0) {
         auto order = order_pool_.allocate(
-            market_update->order_id_, market_update->side_,
-            market_update->price_, market_update->qty_, nullptr, nullptr);
+            market_update->order_id, market_update->side,
+            market_update->price, market_update->qty, nullptr, nullptr);
         addOrder(order);
     } else {
-        removeOrdersAtPrice(market_update->side_, market_update->price_);
+        removeOrdersAtPrice(market_update->side, market_update->price);
     }
 
     updateBBO(bid_updated, ask_updated);
-    logi("{} {}", market_update->toString(), bbo_.toString());
+    logi("{} {}", market_update->ToString(), bbo_.toString());
 
     // trade_engine_->onOrderBookUpdate(market_update->ticker_id_,
     // market_update->price_, market_update->side_, this);
