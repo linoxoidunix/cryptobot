@@ -662,7 +662,6 @@ class GeneratorBidAskService {
     Exchange::BookSnapshot snapshot_;
     const Symbol* symbol_;
     const DiffDepthStream::StreamIntervalI* interval_;
-    bool need_snapshot_ = true;
     uint64_t last_id_diff_book_event;
 
   private:

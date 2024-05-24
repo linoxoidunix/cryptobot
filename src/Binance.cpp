@@ -72,72 +72,62 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
     book_event_getter_->Init(book_diff_lfqueue_);
     logd("start subscribe book diff binance");
     fmtlog::poll();
+    bool is_first_run              = true;
+    bool diff_packet_lost          = true;
     bool snapshot_and_diff_is_sync = false;
     while (run_) {
         book_event_getter_->LaunchOne();
         Exchange::BookDiffSnapshot item;
-        if (bool found = book_diff_lfqueue_.try_dequeue(item); found) {
+        if (bool found = book_diff_lfqueue_.try_dequeue(item); found)
+            [[likely]] {
             logd("fetch diff book event from exchange {}", item.ToString());
-            const bool already_need_snapshot = need_snapshot_;
-            need_snapshot_                   = (already_need_snapshot ||
-                              (item.first_id != last_id_diff_book_event + 1));
+            diff_packet_lost =
+                !is_first_run && (item.first_id != last_id_diff_book_event + 1);
+            auto need_snapshot      = (is_first_run || diff_packet_lost);
+            last_id_diff_book_event = item.last_id;
 
-            // check that smapsot
-
-            if (UNLIKELY(need_snapshot_)) {
-                logd("try make snapshot");
-                /**
-                 * @brief init snapshot request
-                 *
-                 */
+            if (need_snapshot) [[unlikely]] {
+                snapshot_and_diff_is_sync = false;
+                logd("clear order book. try make snapshot");
                 binance::BookSnapshot::ArgsOrder args{
                     symbol_->ToString(), 1000};  // TODO parametrize 1000
                 binance::BookSnapshot book_snapshoter(
                     std::move(args), TypeExchange::TESTNET,
                     &snapshot_);  // TODO parametrize 1000
                 book_snapshoter.Exec();
-                // если item.lastUpdateId <= снапшот.last_id, то need snapshot_
-                // = false и ждём следующий итем если item.first_id <=
-                // снапшот.last_id + 1 and item.last_id >= снапшот.last_id + 1,
-                // то need snapshot_ = false и ждём следующий итем иначе
-                // повторить
                 if (item.last_id <= snapshot_.lastUpdateId) {
-                    logd("need new diff event from excnage. snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
-                } else if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
-                           (item.last_id >= snapshot_.lastUpdateId + 1)) {
-                            //snapshot_and_diff_is_sync = true;
-                    logd("snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
-                } else {
+                    is_first_run = false;
                     logd(
-                        "snapshot too old snapshot_.lastUpdateId = {}. Need "
-                        "new snapshot",
+                        "need new diff event from excnage. "
+                        "snapshot_.lastUpdateId = {}",
                         snapshot_.lastUpdateId);
                     continue;
+                } else if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
+                           (item.last_id >= snapshot_.lastUpdateId + 1)) {
+                    is_first_run              = false;
+                    snapshot_and_diff_is_sync = true;
+                    logd(
+                        "add snapshot and diff {} to order book. "
+                        "snapshot_.lastUpdateId = {}",
+                        item.ToString(), snapshot_.lastUpdateId);
+                } else {
+                    logd(
+                        "snapshot too old snapshot_.lastUpdateId = {}. 
+                        Need new snapshot",
+                        snapshot_.lastUpdateId);
+                    is_first_run = true;
+                    continue;
                 }
-                need_snapshot_ = false;
             }
-            last_id_diff_book_event = item.last_id;
-            // need get snapshot and sync with inc changes
-            // push changes to lf queue
-            //}
-            // push changes to lf queue
-            // logd("consume diff book event form exchange");
-            if (snapshot_ != Exchange::BookSnapshot()) {
-                if ((item.first_id <= snapshot_.lastUpdateId + 1)
-                    && (item.last_id >= snapshot_.lastUpdateId + 1)) {
-                        // add snapsot to queue order book
-                        // add item to queue order book
-                        snapshot_ = Exchange::BookSnapshot();
-                    } else
-                    if (item.last_id <= snapshot_.lastUpdateId)
-                    {
-                        logd("need new diff event from excnage. snapshot_.lastUpdateId = {}", snapshot_.lastUpdateId);
-                        //need new item
-                    }else
-                        need_snapshot_ = true;
-            } else {
-                // add item to queue order book
+            if (!snapshot_and_diff_is_sync) [[unlikely]] {
+                if ((item.first_id <= snapshot_.lastUpdateId + 1) &&
+                    (item.last_id >= snapshot_.lastUpdateId + 1))
+                    snapshot_and_diff_is_sync = true;
             }
+            if (!diff_packet_lost && snapshot_and_diff_is_sync == true)
+                [[likely]]
+                logd("add diff {} to order book. snapshot_.lastUpdateId = {}",
+                     item.ToString(), snapshot_.lastUpdateId);
         }
         fmtlog::poll();
         time_manager_.Update();
