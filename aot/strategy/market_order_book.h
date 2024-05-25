@@ -13,7 +13,7 @@ namespace Trading {
 
   class MarketOrderBook final {
   public:
-    explicit MarketOrderBook(Common::TickerId ticker_id);
+    explicit MarketOrderBook();
 
     ~MarketOrderBook();
 
@@ -60,7 +60,7 @@ namespace Trading {
     auto toString(bool detailed, bool validity_check) const -> std::string;
 
     /// Deleted default, copy & move constructors and assignment-operators.
-    MarketOrderBook() = delete;
+    //MarketOrderBook() = delete;
 
     MarketOrderBook(const MarketOrderBook &) = delete;
 
@@ -71,7 +71,7 @@ namespace Trading {
     MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    const Common::TickerId ticker_id_;
+    //const Common::TickerId ticker_id_;
 
     /// Parent trade engine that owns this limit order book, used to send notifications when book changes or trades occur.
     //TradeEngine *trade_engine_ = nullptr;
@@ -80,7 +80,7 @@ namespace Trading {
     OrderHashMap oid_to_order_;
 
     /// Memory pool to manage MarketOrdersAtPrice objects.
-    Common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
+    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
 
     /// Pointers to beginning / best prices / top of book of buy and sell price levels.
     MarketOrdersAtPrice *bids_by_price_ = nullptr;
@@ -90,7 +90,7 @@ namespace Trading {
     OrdersAtPriceHashMap price_orders_at_price_;
 
     /// Memory pool to manage MarketOrder objects.
-    Common::MemPool<Trading::MarketOrder> order_pool_;
+    common::MemPool<Trading::MarketOrder> order_pool_;
 
     BBO bbo_;
 
@@ -98,7 +98,7 @@ namespace Trading {
 
   private:
     auto priceToIndex(Common::Price price) const noexcept {
-      return (price % Common::ME_MAX_PRICE_LEVELS);
+      return (size_t)(price / Common::ME_MAX_PRICE_LEVELS);
     }
 
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided price.

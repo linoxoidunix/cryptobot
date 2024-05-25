@@ -5,8 +5,7 @@
 // #include "trade_engine.h"
 
 namespace Trading {
-MarketOrderBook::MarketOrderBook(Common::TickerId ticker_id)
-    : ticker_id_(ticker_id),
+MarketOrderBook::MarketOrderBook():     
       orders_at_price_pool_(Common::ME_MAX_PRICE_LEVELS),
       order_pool_(Common::ME_MAX_ORDER_IDS) {}
 
@@ -97,7 +96,7 @@ auto MarketOrderBook::toString(bool detailed,
         }
     };
 
-    ss << "Ticker:" << Common::tickerIdToString(ticker_id_) << std::endl;
+    ss << "Ticker:" << /*Common::tickerIdToString(ticker_id_)*/ "no ticker" << std::endl;
     {
         auto ask_itr        = asks_by_price_;
         auto last_ask_price = std::numeric_limits<Common::Price>::min();

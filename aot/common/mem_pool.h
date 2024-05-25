@@ -6,7 +6,7 @@
 
 #include "aot/common/macros.h"
 
-namespace Common {
+namespace common {
   template<typename T>
   class MemPool final {
   public:

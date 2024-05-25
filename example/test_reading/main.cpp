@@ -11,6 +11,7 @@
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
 #include "aot/strategy/market_order_book.h"
+#include "aot/strategy/trade_engine.h"
 #include "moodycamel/concurrentqueue.h"
 
 // #define FMT_HEADER_ONLY
@@ -207,6 +208,8 @@ int main() {
     Symbol btcusdt("BTC", "USDT");
     GeneratorBidAskService generator(&event_queue, &btcusdt, &interval, TypeExchange::TESTNET);
     generator.Start();
+    Trading::TradeEngine trade_engine_service(&event_queue);
+    trade_engine_service.Start();
     while (generator.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
              generator.GetDownTimeInS());

@@ -58,14 +58,14 @@ struct BookSnapshot {
             MEMarketUpdate event;
             event.side  = Common::Side::BUY;
             event.price = bid.price;
-            event.price = bid.price;
+            event.qty = bid.qty;
             queue.enqueue(event);
         }
         for (auto& ask : asks) {
             MEMarketUpdate event;
             event.side  = Common::Side::SELL;
             event.price = ask.price;
-            event.price = ask.price;
+            event.qty = ask.qty;
             queue.enqueue(event);
         }
     }
@@ -85,14 +85,14 @@ struct BookDiffSnapshot {
             MEMarketUpdate event;
             event.side  = Common::Side::BUY;
             event.price = bid.price;
-            event.price = bid.price;
+            event.qty = bid.qty;
             queue.enqueue(event);
         }
         for (auto& ask : asks) {
             MEMarketUpdate event;
             event.side  = Common::Side::SELL;
             event.price = ask.price;
-            event.price = ask.price;
+            event.qty = ask.qty;
             queue.enqueue(event);
         }
     }

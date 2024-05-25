@@ -50,7 +50,7 @@ namespace Common {
     return std::to_string(client_id);
   }
 
-  using Price = int64_t;
+  using Price = double;
   constexpr auto Price_INVALID = std::numeric_limits<Price>::max();
 
   inline auto priceToString(Price price) -> std::string {
@@ -61,7 +61,7 @@ namespace Common {
     return std::to_string(price);
   }
 
-  using Qty = uint32_t;
+  using Qty = double;
   constexpr auto Qty_INVALID = std::numeric_limits<Qty>::max();
 
   inline auto qtyToString(Qty qty) -> std::string {
