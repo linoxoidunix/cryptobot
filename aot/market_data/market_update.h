@@ -47,11 +47,6 @@ struct BookSnapshotElem {
     auto ToString() const {
         return fmt::format("BookSnapshotElem[price:{} qty:{}]", price, qty);
     };
-    // friend bool operator==(const BookSnapshotElem& left, const
-    // BookSnapshotElem& right) {
-    //     if ((left.price == right.price) && (left.qty == right.qty)) return
-    //     true; return false;
-    // }
 };
 
 struct BookSnapshot {

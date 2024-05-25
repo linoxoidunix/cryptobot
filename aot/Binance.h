@@ -56,6 +56,40 @@ class HttpsExchange : public https::ExchangeI {
     std::uint64_t recv_window_;
 };
 };  // namespace testnet
+namespace mainnet {
+class HttpsExchange : public https::ExchangeI {
+  public:
+    /**
+     * @brief Construct a new Https Exchange object
+     *
+     * @param recv_window
+     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+     * An additional parameter, recvWindow, may be sent to specify the number of
+     * milliseconds after timestamp the request is valid for. If recvWindow is
+     * not sent, it defaults to 5000.
+     */
+    explicit HttpsExchange(std::uint64_t recv_window = 5000) {
+        /**
+         * @brief
+          https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+          It is recommended to use a small recvWindow of 5000 or less! The max
+         cannot go beyond 60,000!
+         *
+         */
+        recv_window_ = (recv_window > 60000) ? 60000 : recv_window;
+    };
+
+    virtual ~HttpsExchange() = default;
+    std::string_view Host() const override {
+        return std::string_view("stream.binance.com");
+    };
+    std::string_view Port() const override { return "9443"; };
+    std::uint64_t RecvWindow() const override { return recv_window_; };
+
+  private:
+    std::uint64_t recv_window_;
+};
+};  // namespace mainnet
 enum class Type {
     LIMIT,
     MARKET,
@@ -246,11 +280,19 @@ class BookEventGetter : public BookEventGetterI {
 
   public:
     BookEventGetter(const Symbol* s,
-                    const DiffDepthStream::StreamIntervalI* interval)
-        : s_(s), interval_(interval){};
-    void Get() override {
-
+                    const DiffDepthStream::StreamIntervalI* interval,
+                    TypeExchange type_exchange)
+        : s_(s), interval_(interval), type_exchange_(type_exchange) {
+        switch (type_exchange) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_main_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
     };
+    void Get() override {};
     void LaunchOne() override { ioc.run_one(); };
     void Init(Exchange::BookDiffLFQueue& queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
@@ -269,7 +311,7 @@ class BookEventGetter : public BookEventGetterI {
         //     ->Run("stream.binance.com", "9443",
         //           fmt::format("/ws/{0}", channel.ToString()));
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run("testnet.binance.vision", "443",
+            ->Run(current_exchange_->Host(), current_exchange_->Port(),
                   fmt::format("/ws/{0}", channel.ToString()));
     };
 
@@ -280,6 +322,10 @@ class BookEventGetter : public BookEventGetterI {
     const Symbol* s_;
     const DiffDepthStream::StreamIntervalI* interval_;
     bool callback_execute_ = false;
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+    https::ExchangeI* current_exchange_;
+    TypeExchange type_exchange_;
 };
 
 class Args : public std::unordered_map<std::string, std::string> {};
@@ -555,7 +601,7 @@ class BookSnapshot : public inner::BookSnapshotI {
         : args_(args), snapshot_(snapshot) {
         switch (type) {
             case TypeExchange::MAINNET:
-                current_exchange_ = &binance_test_net_;
+                current_exchange_ = &binance_main_net_;
                 break;
             default:
                 current_exchange_ = &binance_test_net_;
@@ -607,7 +653,7 @@ class BookSnapshot : public inner::BookSnapshotI {
   private:
     ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
-    // binance::main::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
 
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
@@ -625,7 +671,7 @@ class GeneratorBidAskService {
   public:
     explicit GeneratorBidAskService(
         Exchange::EventLFQueue* event_lfqueue, const Symbol* s,
-        const DiffDepthStream::StreamIntervalI* interval);
+        const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
     auto Start() {
         run_ = true;
         ASSERT(
@@ -663,6 +709,11 @@ class GeneratorBidAskService {
     const Symbol* symbol_;
     const DiffDepthStream::StreamIntervalI* interval_;
     uint64_t last_id_diff_book_event;
+    TypeExchange type_exchange_;
+
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+    https::ExchangeI* current_exchange_;
 
   private:
     /// Main loop for this thread - reads and processes messages from the

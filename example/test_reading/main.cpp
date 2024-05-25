@@ -205,7 +205,7 @@ int main() {
     Exchange::EventLFQueue event_queue;
     DiffDepthStream::ms100 interval;
     Symbol btcusdt("BTC", "USDT");
-    GeneratorBidAskService generator(&event_queue, &btcusdt, &interval);
+    GeneratorBidAskService generator(&event_queue, &btcusdt, &interval, TypeExchange::TESTNET);
     generator.Start();
     while (generator.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
