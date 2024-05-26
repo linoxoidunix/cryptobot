@@ -1,23 +1,28 @@
-#include "aot/strategy/market_order_book.h"
+#include <algorithm>
 
+#include "aot/strategy/market_order_book.h"
 #include "aot/Logger.h"
 
 // #include "trade_engine.h"
 
 namespace Trading {
-MarketOrderBook::MarketOrderBook():     
-      orders_at_price_pool_(Common::ME_MAX_PRICE_LEVELS),
-      order_pool_(Common::ME_MAX_ORDER_IDS) {}
+MarketOrderBook::MarketOrderBook() 
+ : orders_at_price_pool_(Common::ME_MAX_PRICE_LEVELS),
+ order_pool_(Common::ME_MAX_ORDER_IDS)
+{
+    oid_to_order_.resize(Common::ME_MAX_ORDER_IDS);
+    price_orders_at_price_.resize(Common::ME_MAX_PRICE_LEVELS);
+}
 
 MarketOrderBook::~MarketOrderBook() {
-    logi("OrderBook\n{}", toString(false, true));
+    logi("call ~MarketOrderBook() OrderBook\n{}", toString(false, true));
     bids_by_price_ = asks_by_price_ = nullptr;
-    oid_to_order_.fill(nullptr);
+    
+    std::fill(oid_to_order_.begin(), oid_to_order_.end(), nullptr);
 }
 
 /// Process market data update and update the limit order book.
-auto MarketOrderBook::onMarketUpdate(
-    const Exchange::MEMarketUpdate *market_update) noexcept -> void {
+auto MarketOrderBook::onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept -> void {
     const auto bid_updated =
         (bids_by_price_ && market_update->side == Common::Side::BUY &&
          market_update->price >= bids_by_price_->price_);
@@ -27,7 +32,8 @@ auto MarketOrderBook::onMarketUpdate(
 
     if (market_update->qty != 0) {
         auto order = order_pool_.allocate(
-            market_update->order_id, market_update->side,
+            Common::OrderId_INVALID,
+            market_update->side,
             market_update->price, market_update->qty, nullptr, nullptr);
         addOrder(order);
     } else {

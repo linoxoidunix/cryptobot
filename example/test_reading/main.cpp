@@ -13,7 +13,8 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "moodycamel/concurrentqueue.h"
-
+#include "aot/common/types.h"
+#include <cmath>
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -175,10 +176,25 @@
 
 // };
 
-// int main()
-// {
-//    Trading::MarketOrderBook order_book(12345);
-// }
+int main()
+{
+   //std::array<int, 1048 * 1048> board;
+   //logi("sizeof int ={}byte sizeof map elem={}", sizeof(int), 1048 * 1048);
+   //std::vector<int> board(10048*2048);
+   //logi("sizeof board elem={} size={}", sizeof(board), board.size());
+
+   //int x = 0;
+   Trading::MarketOrderBook order_book;
+   //std::array<Trading::MarketOrder *, Common::ME_MAX_ORDER_IDS> map;
+   //std::array<Trading::MarketOrder *, 1'000'000> map;
+   // logi("sizeof market_order ptr ={}byte sizeof map byte={} KByte={} MByte={} Gbyte={} ", sizeof(Trading::MarketOrder*), sizeof(map), 1.0* sizeof(map)/1024, 1.0* sizeof(map)/1024/1024, 1.0* sizeof(map)/1024/1024/1024);
+   //Trading::OrderHashMap map(8048*8048);
+    //logi("sizeof board elem={} size={}", sizeof(map), map.size());
+
+   //map.fill(nullptr);
+   //int x = 0;
+   //common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_(Common::ME_MAX_PRICE_LEVELS);
+}
 
 // int main() {
 //     using namespace binance;
@@ -199,21 +215,34 @@
 //     book_snapshoter.Exec();
 // }
 
-int main() {
-    fmtlog::setLogLevel(fmtlog::DBG);
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     //Trading::MarketOrderBook book;
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     DiffDepthStream::ms100 interval;
+//     Symbol btcusdt("BTC", "USDT");
+//     GeneratorBidAskService generator(&event_queue, &btcusdt, &interval, TypeExchange::TESTNET);
+//     generator.Start();
+//     Trading::TradeEngine trade_engine_service(&event_queue);
+//     trade_engine_service.Start();
+//     while (generator.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              generator.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
 
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    DiffDepthStream::ms100 interval;
-    Symbol btcusdt("BTC", "USDT");
-    GeneratorBidAskService generator(&event_queue, &btcusdt, &interval, TypeExchange::TESTNET);
-    generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue);
-    trade_engine_service.Start();
-    while (generator.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             generator.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+// int main()
+// {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     // auto x = 12345;
+//     // logd("for x={}, Digits10={}", x, Common::Digits10(x));
+//     int exp;
+//     auto x = 12345.567000001;
+//     std::frexp(x, &exp);
+//     logd("for x={}, length_fractional_part={}", x, Common::LeengthFractionalPart(x));
+
+//     return 0;
+// }

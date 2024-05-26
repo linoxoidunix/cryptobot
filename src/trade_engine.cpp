@@ -33,7 +33,7 @@ namespace Trading {
   auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     while (run_) {
-        Exchange::MEMarketUpdate event;
+        Exchange::MEMarketUpdateDouble event;
         if (bool found = incoming_md_updates_->try_dequeue(event); !found) [[unlikely]]
             continue;
         logd("Processing in trade engine {}", event.ToString());

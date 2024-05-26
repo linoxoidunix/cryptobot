@@ -92,7 +92,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             (item.last_id >= snapshot_.lastUpdateId + 1);
         if (need_snapshot) [[unlikely]] {
             snapshot_and_diff_was_synced = false;
-            Exchange::MEMarketUpdate event_clear_queue;
+            Exchange::MEMarketUpdateDouble event_clear_queue;
             event_clear_queue.type = Exchange::MarketUpdateType::CLEAR;
             logd("clear order book. try make snapshot");
             event_lfqueue_->enqueue(event_clear_queue);
@@ -128,11 +128,13 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         if (!snapshot_and_diff_was_synced) [[unlikely]] {
             if (snapshot_and_diff_now_sync) {
                 snapshot_and_diff_was_synced = true;
+                logd("add {} to order book",
+                 snapshot_.ToString());
                 snapshot_.AddToQueue(*event_lfqueue_);
             }
         }
         if (!diff_packet_lost && snapshot_and_diff_was_synced) [[likely]] {
-            logd("add diff {} to order book. snapshot_.lastUpdateId = {}",
+            logd("add {} to order book. snapshot_.lastUpdateId = {}",
                  item.ToString(), snapshot_.lastUpdateId);
             item.AddToQueue(*event_lfqueue_);
         }
