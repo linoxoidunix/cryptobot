@@ -149,8 +149,6 @@ class OHLCVI : public OHLCVGetter {
     void Get(OHLCVIStorage& buffer) override {
         boost::asio::io_context ioc;
         // fmtlog::setLogFile("log", true);
-        fmtlog::setLogLevel(fmtlog::DBG);
-
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
@@ -413,8 +411,6 @@ class OrderNewLimit : public inner::OrderNewI {
                                        signer_,
                                        need_sign};
         boost::asio::io_context ioc;
-        fmtlog::setLogLevel(fmtlog::DBG);
-
         OnHttpsResponce cb;
         cb = [](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {

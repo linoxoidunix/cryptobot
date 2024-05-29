@@ -9,3 +9,7 @@ The subcomponent in the trading infrastructure responsible for sending, modifyin
 3. Capture __raw__ exchange market order book update event for Binance
 4. Capture __raw__ Klines for Binance and Bybit  
 5. Capture __raw__ order book snapshot for Binance
+
+
+
+https://martin.ankerl.com/2022/08/27/hashmap-bench-01/

@@ -81,8 +81,7 @@ namespace Trading {
     
     Exchange::EventLFQueue *incoming_md_updates_ = nullptr;
     common::TimeManager time_manager_;
-    //Trading::MarketOrderBook order_book;
+    Trading::MarketOrderBookDouble order_book_;
     volatile bool run_ = false;
-
   };
 }

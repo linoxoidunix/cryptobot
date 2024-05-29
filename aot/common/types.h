@@ -17,7 +17,7 @@ constexpr size_t ME_MAX_MARKET_UPDATES = 256 * 1024;
 
 constexpr size_t ME_MAX_NUM_CLIENTS    = 256;
 constexpr size_t ME_MAX_ORDER_IDS      = 1024 * 1024;
-constexpr size_t ME_MAX_PRICE_LEVELS   = 256;
+constexpr size_t ME_MAX_ORDERS_AT_PRICE  = 5000 * 2;//for binance max depth for bid is 5000.//for binance max depth for ask is 5000.
 
 typedef uint64_t OrderId;
 constexpr auto OrderId_INVALID = std::numeric_limits<OrderId>::max();

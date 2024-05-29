@@ -39,7 +39,8 @@ struct MEMarketUpdate {
             Common::orderIdToString(order_id), sideToString(side),
             Common::qtyToString(qty), Common::priceToString(price));
     };
-    explicit MEMarketUpdate(const MEMarketUpdateDouble*, uint precission_price, uint precission_qty);
+    explicit MEMarketUpdate(const MEMarketUpdateDouble*, uint precission_price,
+                            uint precission_qty);
     explicit MEMarketUpdate() = default;
 };
 
@@ -48,18 +49,17 @@ struct MEMarketUpdateDouble {
 
     Common::TickerId ticker_id = Common::TickerId_INVALID;
     Common::Side side          = Common::Side::INVALID;
-    double price        = std::numeric_limits<double>::max();
-    double qty            = std::numeric_limits<double>::max();
+    double price               = std::numeric_limits<double>::max();
+    double qty                 = std::numeric_limits<double>::max();
 
     auto ToString() const {
         return fmt::format(
             "MEMarketUpdateDouble[ticker:{} type:{} side:{} qty:{} price:{}]",
-            Common::tickerIdToString(ticker_id),
-            marketUpdateTypeToString(type),
-            sideToString(side),
-            qty, price);
+            Common::tickerIdToString(ticker_id), marketUpdateTypeToString(type),
+            sideToString(side), qty, price);
     };
-    explicit MEMarketUpdateDouble(const MEMarketUpdate*, uint precission_price, uint precission_qty);
+    explicit MEMarketUpdateDouble(const MEMarketUpdate*, uint precission_price,
+                                  uint precission_qty);
     explicit MEMarketUpdateDouble() = default;
 };
 
@@ -81,21 +81,21 @@ struct BookSnapshot {
     void AddToQueue(EventLFQueue& queue) {
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::BUY;
+            event.side  = Common::Side::SELL;
             event.price = bid.price;
-            event.qty = bid.qty;
+            event.qty   = bid.qty;
             queue.enqueue(event);
         }
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::SELL;
+            event.side  = Common::Side::BUY;
             event.price = ask.price;
-            event.qty = ask.qty;
+            event.qty   = ask.qty;
             queue.enqueue(event);
         }
     }
     auto ToString() const {
-        return fmt::format("BookDiffSnapshot[lastUpdateId:{}]", lastUpdateId);
+        return fmt::format("BookSnapshot[lastUpdateId:{}]", lastUpdateId);
     };
 };
 
@@ -111,16 +111,16 @@ struct BookDiffSnapshot {
     void AddToQueue(EventLFQueue& queue) {
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::BUY;
+            event.side  = Common::Side::SELL;
             event.price = bid.price;
-            event.qty = bid.qty;
+            event.qty   = bid.qty;
             queue.enqueue(event);
         }
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::SELL;
+            event.side  = Common::Side::BUY;
             event.price = ask.price;
-            event.qty = ask.qty;
+            event.qty   = ask.qty;
             queue.enqueue(event);
         }
     }
@@ -129,3 +129,39 @@ struct BookDiffSnapshot {
 using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
 
 };  // namespace Exchange
+
+// template <> struct fmt::formatter<Exchange::BookSnapshotElem>:
+// formatter<std::string> {
+//   // parse is inherited from formatter<string_view>.
+
+//   auto format(const Exchange::BookSnapshotElem& c, format_context& ctx)
+//   const;
+// };
+
+template <>
+class fmt::formatter<Exchange::BookSnapshotElem> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const Exchange::BookSnapshotElem& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "BookSnapshotElem[price:{} qty:{}]",
+                              foo.price, foo.qty);
+    }
+};
+
+template <>
+class fmt::formatter<Exchange::BookSnapshot> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const Exchange::BookSnapshot& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(),
+                              "BookSnapshot[lastUpdateId:{} bids_length:{} "
+                              "asks_length:{} bids:{} asks:{}]",
+                              foo.lastUpdateId, foo.bids.size(),
+                              foo.asks.size(), fmt::join(foo.bids, ";"),
+                              fmt::join(foo.asks, ";"));
+    }
+};
