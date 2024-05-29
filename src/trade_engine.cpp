@@ -32,13 +32,23 @@ auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     while (run_) {
         Exchange::MEMarketUpdateDouble event;
-        if (bool found = incoming_md_updates_->try_dequeue(event); !found)
-            [[unlikely]]
-            continue;
-        //logd("Processing in trade engine {}", event.ToString());
+        Exchange::MEMarketUpdateDouble results[50];     // Could also be any iterator
+        size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
+        for(uint i = 0; i < count; i++)[[likely]]
+            order_book_.OnMarketUpdate(&results[i]);
 
-        order_book_.OnMarketUpdate(&event);
-        time_manager_.Update();
+
+        // if (bool found = incoming_md_updates_->try_dequeue(event); !found)
+        //     [[unlikely]]
+        //     continue;
+        // //logd("Processing in trade engine {}", event.ToString());
+
+        //order_book_.OnMarketUpdate(&event);
+        if(count) [[likely]]
+        {
+            logi("process {} operations", count);
+            time_manager_.Update();
+        }    
     }
 }
 }  // namespace Trading

@@ -79,20 +79,32 @@ struct BookSnapshot {
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
     void AddToQueue(EventLFQueue& queue) {
+        std::vector<MEMarketUpdateDouble> bulk;
+        bulk.reserve(bids.size());
+        int i = 0;
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
             event.side  = Common::Side::SELL;
             event.price = bid.price;
             event.qty   = bid.qty;
-            queue.enqueue(event);
+            bulk[i] = event;
+            i++;
         }
+        bool status = false;
+        while(!status) status = queue.try_enqueue_bulk(&bulk[0], bids.size());
+        
+        bulk.reserve(asks.size());
+        i = 0;
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
             event.side  = Common::Side::BUY;
             event.price = ask.price;
             event.qty   = ask.qty;
-            queue.enqueue(event);
+            bulk[i] = event;
+            i++;
         }
+        status = false;
+        while(!status) status = queue.try_enqueue_bulk(&bulk[0], asks.size());
     }
     auto ToString() const {
         return fmt::format("BookSnapshot[lastUpdateId:{}]", lastUpdateId);

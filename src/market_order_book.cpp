@@ -20,7 +20,7 @@ MarketOrderBook::~MarketOrderBook() {
 
 /// Process market data update and update the limit order book.
 auto MarketOrderBook::onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept -> void {
-    if(market_update->type == Exchange::MarketUpdateType::CLEAR)
+    if(market_update->type == Exchange::MarketUpdateType::CLEAR)[[unlikely]]
     {
         ClearOrderBook();
         return;
