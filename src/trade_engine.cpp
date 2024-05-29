@@ -2,7 +2,7 @@
 
 namespace Trading {
 TradeEngine::TradeEngine(Exchange::EventLFQueue *market_updates)
-    : order_book_(2, 5),
+    : order_book_(6, 3),
       incoming_md_updates_(market_updates){
           // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
           //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
