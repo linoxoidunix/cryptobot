@@ -159,6 +159,8 @@ class MarketOrderBook final {
     void ClearOrderBook() {
         bids_at_price_map_.clear();
         asks_at_price_map_.clear();
+        for(const auto& order_at_price : price_orders_at_price_)
+            orders_at_price_pool_.deallocate(order_at_price.second);
         price_orders_at_price_.clear();
     }
 };
