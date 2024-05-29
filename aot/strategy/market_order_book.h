@@ -29,8 +29,10 @@ class MarketOrderBook final {
     auto updateBBO(bool update_bid, bool update_ask) noexcept {
         if (update_bid) {
             if (bids_at_price_map_.size()) {
-                bbo_.bid_price = bids_at_price_map_.begin()->first_mkt_order_.price_;
-                bbo_.bid_qty   = bids_at_price_map_.begin()->first_mkt_order_.qty_;
+                bbo_.bid_price =
+                    bids_at_price_map_.begin()->first_mkt_order_.price_;
+                bbo_.bid_qty =
+                    bids_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
                 bbo_.bid_price = Common::Price_INVALID;
                 bbo_.bid_qty   = Common::Qty_INVALID;
@@ -39,8 +41,10 @@ class MarketOrderBook final {
 
         if (update_ask) {
             if (asks_at_price_map_.size()) {
-                bbo_.ask_price = asks_at_price_map_.begin()->first_mkt_order_.price_;
-                bbo_.ask_qty   = asks_at_price_map_.begin()->first_mkt_order_.qty_;
+                bbo_.ask_price =
+                    asks_at_price_map_.begin()->first_mkt_order_.price_;
+                bbo_.ask_qty =
+                    asks_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
                 bbo_.ask_price = Common::Price_INVALID;
                 bbo_.ask_qty   = Common::Qty_INVALID;
@@ -114,14 +118,17 @@ class MarketOrderBook final {
     auto removeOrdersAtPrice(Common::Side side, Common::Price price) noexcept {
         auto order_at_price = price_orders_at_price_.at(price);
         if (!order_at_price) {
-            //https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
-            //How to manage a local order book correctly
-            //9.Receiving an event that removes a price level that is not in your local order book can happen and is normal.
+            // https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
+            // How to manage a local order book correctly
+            // 9.Receiving an event that removes a price level that is not in
+            // your local order book can happen and is normal.
             loge("order_book not contain such price");
-            return ;
+            return;
         }
-        if (side == Common::Side::BUY) asks_at_price_map_.erase(*order_at_price);
-        if (side == Common::Side::SELL) bids_at_price_map_.erase(*order_at_price);
+        if (side == Common::Side::BUY)
+            asks_at_price_map_.erase(*order_at_price);
+        if (side == Common::Side::SELL)
+            bids_at_price_map_.erase(*order_at_price);
 
         price_orders_at_price_.at(price) = nullptr;
         price_orders_at_price_.erase(price);
@@ -140,9 +147,12 @@ class MarketOrderBook final {
             addOrdersAtPrice(new_orders_at_price);
         } else {
             orders_at_price->first_mkt_order_.order_id_ = order->order_id_;
-            orders_at_price->first_mkt_order_.side_     = order->side_;
-            orders_at_price->first_mkt_order_.price_    = order->price_;
-            orders_at_price->first_mkt_order_.qty_      = order->qty_;
+            if (orders_at_price->first_mkt_order_.side_ != order->side_)
+                [[unlikely]]
+                ASSERT(true,
+                       "try change asks_at_price_map_ or bids_at_price_map_");
+            orders_at_price->first_mkt_order_.price_ = order->price_;
+            orders_at_price->first_mkt_order_.qty_   = order->qty_;
         }
     }
 
