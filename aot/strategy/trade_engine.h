@@ -23,7 +23,7 @@
 namespace Trading {
   class TradeEngine {
   public:
-    explicit TradeEngine(Exchange::EventLFQueue *market_updates);
+    explicit TradeEngine(Exchange::EventLFQueue *market_updates, const Ticker& ticker);
 
     ~TradeEngine();
 
@@ -83,5 +83,6 @@ namespace Trading {
     common::TimeManager time_manager_;
     Trading::MarketOrderBookDouble order_book_;
     volatile bool run_ = false;
+    const Ticker& ticker_;
   };
 }

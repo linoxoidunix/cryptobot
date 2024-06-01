@@ -98,7 +98,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             event_lfqueue_->enqueue(event_clear_queue);
 
             binance::BookSnapshot::ArgsOrder args{
-                symbol_->ToString(), 1000};  // TODO parametrize 1000
+                ticker_.symbol->ToString(), 1000};  // TODO parametrize 1000
             binance::BookSnapshot book_snapshoter(
                 std::move(args), type_exchange_,
                 &snapshot_);  // TODO parametrize 1000
@@ -145,11 +145,11 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
 }
 
 binance::GeneratorBidAskService::GeneratorBidAskService(
-    Exchange::EventLFQueue* event_lfqueue, const Symbol* s,
+    Exchange::EventLFQueue* event_lfqueue, const Ticker& ticker,
     const DiffDepthStream::StreamIntervalI* interval,
     TypeExchange type_exchange)
     : event_lfqueue_(event_lfqueue),
-      symbol_(s),
+      ticker_(ticker),
       interval_(interval),
       type_exchange_(type_exchange) {
         switch (type_exchange_) {
@@ -160,5 +160,5 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
                 current_exchange_ = &binance_test_net_;
                 break;
         }
-    book_event_getter_ = std::make_unique<BookEventGetter>(symbol_, interval, type_exchange_);
+    book_event_getter_ = std::make_unique<BookEventGetter>(ticker.symbol, interval, type_exchange_);
 }

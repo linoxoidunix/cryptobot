@@ -1,5 +1,4 @@
 #pragma once
-#include "moodycamel/concurrentqueue.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 
@@ -11,6 +10,7 @@
 
 #include "aot/Logger.h"
 #include "aot/market_data/market_update.h"
+#include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
 enum class Side { BUY, SELL };
@@ -96,6 +96,11 @@ class Signer : public SignerI {
     std::string api_key_;
 };
 };  // namespace hmac_sha256
+struct TickerInfo {
+    double price_precission;
+    double qty_precission;
+};
+
 /**
  * @brief Interval = 1day or 1sec
  *
@@ -151,9 +156,9 @@ class OHLCVGetter {
 class BookEventGetterI {
   public:
     virtual void Init(Exchange::BookDiffLFQueue &queue) = 0;
-    virtual void Get() = 0;
-    virtual void LaunchOne() = 0;
-    virtual ~BookEventGetterI()        = default;
+    virtual void Get()                                  = 0;
+    virtual void LaunchOne()                            = 0;
+    virtual ~BookEventGetterI()                         = default;
 };
 
 /**
@@ -215,7 +220,6 @@ class SymbolUpperCase : public SymbolI {
         return out;
     };
     ~SymbolUpperCase() override = default;
-
   private:
     std::string first_;
     std::string second_;
@@ -236,6 +240,13 @@ class SymbolLowerCase : public SymbolI {
   private:
     std::string first_;
     std::string second_;
+};
+
+struct Ticker
+{
+  const SymbolI* symbol;
+  TickerInfo info;
+  Ticker(const SymbolI* _symbol, const TickerInfo& _info): symbol(_symbol), info(_info){};
 };
 
 /**

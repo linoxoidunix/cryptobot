@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 
+#include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/common/mem_pool.h"
 #include "aot/common/types.h"
@@ -167,9 +168,9 @@ class MarketOrderBook final {
 
 class MarketOrderBookDouble {
   public:
-    explicit MarketOrderBookDouble(uint precission_price, uint precission_qty)
-        : precission_price_(precission_price),
-          precission_qty_(precission_qty){};
+    explicit MarketOrderBookDouble(const Ticker& ticker)
+        : precission_price_(ticker.info.price_precission),
+          precission_qty_(ticker.info.qty_precission){};
 
     ~MarketOrderBookDouble() = default;
 

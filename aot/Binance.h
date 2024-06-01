@@ -196,7 +196,7 @@ class M1 : public ChartInterval {
 };
 class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(const Symbol* s, const ChartInterval* chart_interval)
+    explicit KLineStream(const SymbolI* s, const ChartInterval* chart_interval)
         : symbol_(s), chart_interval_(chart_interval){};
     std::string ToString() const override {
         return fmt::format("{0}@kline_{1}", symbol_->ToString(),
@@ -205,7 +205,7 @@ class KLineStream : public KLineStreamI {
     ~KLineStream() = default;
 
   private:
-    const Symbol* symbol_;
+    const SymbolI* symbol_;
     const ChartInterval* chart_interval_;
 };
 
@@ -229,7 +229,7 @@ class DiffDepthStream : public DiffDepthStreamI {
         ~ms100() override = default;
     };
 
-    explicit DiffDepthStream(const Symbol* s, const StreamIntervalI* interval)
+    explicit DiffDepthStream(const SymbolI* s, const StreamIntervalI* interval)
         : symbol_(s), interval_(interval){};
     std::string ToString() const override {
         return fmt::format("{0}@depth@{1}", symbol_->ToString(),
@@ -237,7 +237,7 @@ class DiffDepthStream : public DiffDepthStreamI {
     };
 
   private:
-    const Symbol* symbol_;
+    const SymbolI* symbol_;
     const StreamIntervalI* interval_;
 };
 
@@ -277,7 +277,7 @@ class BookEventGetter : public BookEventGetterI {
     };
 
   public:
-    BookEventGetter(const Symbol* s,
+    BookEventGetter(const SymbolI* s,
                     const DiffDepthStream::StreamIntervalI* interval,
                     TypeExchange type_exchange)
         : s_(s), interval_(interval), type_exchange_(type_exchange) {
@@ -317,7 +317,7 @@ class BookEventGetter : public BookEventGetterI {
 
   private:
     boost::asio::io_context ioc;
-    const Symbol* s_;
+    const SymbolI* s_;
     const DiffDepthStream::StreamIntervalI* interval_;
     bool callback_execute_ = false;
     binance::testnet::HttpsExchange binance_test_net_;
@@ -664,7 +664,7 @@ class BookSnapshot : public inner::BookSnapshotI {
 class GeneratorBidAskService {
   public:
     explicit GeneratorBidAskService(
-        Exchange::EventLFQueue* event_lfqueue, const Symbol* s,
+        Exchange::EventLFQueue* event_lfqueue, const Ticker& ticker,
         const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
     auto Start() {
         run_ = true;
@@ -700,7 +700,8 @@ class GeneratorBidAskService {
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
     Exchange::BookDiffLFQueue book_diff_lfqueue_;
     Exchange::BookSnapshot snapshot_;
-    const Symbol* symbol_;
+    //const Symbol* symbol_;
+    const Ticker& ticker_;
     const DiffDepthStream::StreamIntervalI* interval_;
     uint64_t last_id_diff_book_event;
     TypeExchange type_exchange_;

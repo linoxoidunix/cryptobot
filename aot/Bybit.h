@@ -54,7 +54,6 @@ class Symbol : public SymbolI {
         boost::algorithm::to_upper(out);
         return out;
     }
-
   private:
     std::string first_;
     std::string second_;

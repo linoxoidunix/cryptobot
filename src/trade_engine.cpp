@@ -1,9 +1,10 @@
 #include "aot/strategy/trade_engine.h"
 
 namespace Trading {
-TradeEngine::TradeEngine(Exchange::EventLFQueue *market_updates)
-    : order_book_(2, 5),
-      incoming_md_updates_(market_updates){
+TradeEngine::TradeEngine(Exchange::EventLFQueue *market_updates, const Ticker& ticker)
+    : incoming_md_updates_(market_updates),
+      order_book_(ticker),
+      ticker_(ticker){
           // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
           //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
           //   ticker_order_book_[i]->setTradeEngine(this);
@@ -46,7 +47,8 @@ auto TradeEngine::Run() noexcept -> void {
         //order_book_.OnMarketUpdate(&event);
         if(count) [[likely]]
         {
-            logi("process {} operations", count);
+            auto bbo = order_book_.getBBO();
+            logi("process {} operations {}", count, bbo->ToString());
             time_manager_.Update();
         }    
     }

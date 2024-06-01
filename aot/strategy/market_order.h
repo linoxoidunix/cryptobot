@@ -50,13 +50,16 @@ struct MarketOrdersAtPrice {
     /// price levels arranged in order from most aggressive to least aggressive
     /// price.
     boost::intrusive::avl_set_member_hook<> member_hook_;
-    friend bool operator<(const MarketOrdersAtPrice &a, const MarketOrdersAtPrice &b) {
+    friend bool operator<(const MarketOrdersAtPrice &a,
+                          const MarketOrdersAtPrice &b) {
         return a.price_ < b.price_;
     }
-    friend bool operator>(const MarketOrdersAtPrice &a, const MarketOrdersAtPrice &b) {
+    friend bool operator>(const MarketOrdersAtPrice &a,
+                          const MarketOrdersAtPrice &b) {
         return a.price_ > b.price_;
     }
-    friend bool operator==(const MarketOrdersAtPrice &a, const MarketOrdersAtPrice &b) {
+    friend bool operator==(const MarketOrdersAtPrice &a,
+                           const MarketOrdersAtPrice &b) {
         return a.price_ == b.price_;
     }
     /// Only needed for use with MemPool.
@@ -80,10 +83,16 @@ struct MarketOrdersAtPrice {
         return ss.str();
     }
 };
-using MemberOption = boost::intrusive::member_hook<MarketOrdersAtPrice, boost::intrusive::avl_set_member_hook<>, &MarketOrdersAtPrice::member_hook_> ;
-using BidsatPriceMap = boost::intrusive::avltree< MarketOrdersAtPrice, boost::intrusive::compare<std::greater<MarketOrdersAtPrice>>, MemberOption>   ;
-using AsksatPriceMap = boost::intrusive::avltree< MarketOrdersAtPrice, boost::intrusive::compare<std::less<MarketOrdersAtPrice>>,  MemberOption>   ;
-
+using MemberOption =
+    boost::intrusive::member_hook<MarketOrdersAtPrice,
+                                  boost::intrusive::avl_set_member_hook<>,
+                                  &MarketOrdersAtPrice::member_hook_>;
+using BidsatPriceMap = boost::intrusive::avltree<
+    MarketOrdersAtPrice,
+    boost::intrusive::compare<std::greater<MarketOrdersAtPrice>>, MemberOption>;
+using AsksatPriceMap = boost::intrusive::avltree<
+    MarketOrdersAtPrice,
+    boost::intrusive::compare<std::less<MarketOrdersAtPrice>>, MemberOption>;
 
 /// Hash map from Price -> MarketOrdersAtPrice.
 using OrdersAtPriceHashMap =
@@ -94,17 +103,28 @@ using OrdersAtPriceHashMap =
 /// book.
 
 struct BBO;
+constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
+constexpr auto kQTY_DOUBLE_INVALID = std::numeric_limits<double>::max();
+
 struct BBODouble {
-    double bid_price = std::numeric_limits<double>::max();
-    double ask_price = std::numeric_limits<double>::max();
-    double bid_qty   = std::numeric_limits<double>::max();
-    double ask_qty   = std::numeric_limits<double>::max();
+
+    double bid_price   = kPRICE_DOUBLE_INVALID;
+    double ask_price   = kPRICE_DOUBLE_INVALID;
+    double bid_qty     = kQTY_DOUBLE_INVALID;
+    double ask_qty     = kQTY_DOUBLE_INVALID;
+    uint8_t price_prec = 0;
+    uint8_t qty_prec   = 0;
+
     auto ToString() const {
-        return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty, bid_price,
-                           ask_price, ask_qty);
+        auto bid_qty_string = (bid_qty != kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_qty, qty_prec) : "INVALID";
+        auto ask_qty_string = (ask_qty != kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_qty, qty_prec) : "INVALID";
+        auto bid_price_string = (bid_price != kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_price, price_prec) : "INVALID";
+        auto ask_price_string = (ask_qty != kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_price, price_prec) : "INVALID";
+        return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty_string, bid_price_string,
+                           ask_price_string, ask_qty_string);
     };
-    explicit BBODouble(const BBO *bbo, uint precission_price,
-                       uint precission_qty);
+    explicit BBODouble(const BBO *bbo, uint8_t precission_price,
+                       uint8_t precission_qty);
     explicit BBODouble() = default;
 };
 
@@ -123,8 +143,8 @@ struct BBO {
 
         return ss.str();
     };
-    explicit BBO(const BBODouble *bbo_double, uint precission_price,
-                 uint precission_qty);
+    explicit BBO(const BBODouble *bbo_double, uint8_t precission_price,
+                 uint8_t precission_qty);
     explicit BBO() = default;
 };
 }  // namespace Trading

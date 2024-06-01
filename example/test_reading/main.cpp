@@ -228,16 +228,21 @@
 // }
 
 int main() {
+    //double ddd = std::pow(10, -2);
     fmtlog::setLogLevel(fmtlog::INF);
-    //Trading::MarketOrderBook book;
+    // Trading::MarketOrderBook book;
     using namespace binance;
     Exchange::EventLFQueue event_queue;
     DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};
     Symbol btcusdt("BTC", "USDT");
-    GeneratorBidAskService generator(&event_queue, &btcusdt, &interval,
-    TypeExchange::TESTNET); generator.Start(); Trading::TradeEngine
-    trade_engine_service(&event_queue); trade_engine_service.Start(); while
-    (trade_engine_service.GetDownTimeInS() < 120) {
+    Ticker ticker(&btcusdt, info);
+    GeneratorBidAskService generator(&event_queue, ticker, &interval,
+                                     TypeExchange::TESTNET);
+    generator.Start();
+    Trading::TradeEngine trade_engine_service(&event_queue, ticker);
+    trade_engine_service.Start();
+    while (trade_engine_service.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
              generator.GetDownTimeInS());
         using namespace std::literals::chrono_literals;
