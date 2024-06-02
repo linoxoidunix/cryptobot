@@ -416,7 +416,7 @@ class OrderNewLimit : public inner::OrderNewI {
                 break;
         }
     };
-    void Exec(Exchange::RequestNewOrder* new_order) override {
+    void Exec(Exchange::RequestNewOrder* new_order, Exchange::ClientResponseLFQueue *response_lfqueue) override {
         ArgsOrder args(new_order);
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -427,7 +427,7 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [](boost::beast::http::response<boost::beast::http::string_body>&
+        cb = [response_lfqueue](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);

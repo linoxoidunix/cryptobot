@@ -10,10 +10,11 @@
 #include "aot/Https.h"
 #include "aot/Logger.h"
 #include "aot/WS.h"
+#include "aot/client_request.h"
+#include "aot/client_response.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
-#include "aot/client_request.h"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -433,13 +434,18 @@ class FormatterPrice {
 
 class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
-
+    class ParserResponse {
+      public:
+        explicit ParserResponse() = default;
+        Exchange::MEClientResponse Parse(std::string_view response);
+    };
   public:
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Common::Side side, Type type)
+                           TimeInForce time_in_force, Common::Side side,
+                           Type type)
             : ArgsQuery() {
             SetSymbol(symbol);
             SetSide(side);
@@ -448,16 +454,17 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order)
-            : ArgsQuery() {
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order) : ArgsQuery() {
             SetSymbol(new_order->ticker);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);
             SetPrice(new_order->price);
             SetTimeInForce(TimeInForce::FOK);
+            SetOrderId(new_order->order_id);
         };
-        private:
+
+      private:
         void SetSymbol(SymbolType symbol) {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
@@ -520,6 +527,10 @@ class OrderNewLimit : public inner::OrderNewI {
                     storage["timeInForce"] = "FOK";
             }
         };
+        void SetOrderId(Common::OrderId order_id) {
+            if (order_id != Common::OrderId_INVALID)[[likely]]
+                storage["newClientOrderId"] = Common::orderIdToString(order_id);
+        };
 
       private:
         ArgsOrder& storage = *this;
@@ -540,9 +551,9 @@ class OrderNewLimit : public inner::OrderNewI {
                 break;
         }
     };
-    void Exec(Exchange::RequestNewOrder* new_order) override {
+    void Exec(Exchange::RequestNewOrder* new_order, Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(new_order);
-        
+
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
                                        OrderNewLimit::end_point,
@@ -552,10 +563,13 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [](boost::beast::http::response<boost::beast::http::string_body>&
+        cb = [response_lfqueue](boost::beast::http::response<boost::beast::http::string_body>&
                     buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
+            ParserResponse parser;
+            auto answer = parser.Parse(resut);
+            response_lfqueue->enqueue(answer);
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -698,7 +712,7 @@ class GeneratorBidAskService {
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
     Exchange::BookDiffLFQueue book_diff_lfqueue_;
     Exchange::BookSnapshot snapshot_;
-    //const Symbol* symbol_;
+    // const Symbol* symbol_;
     const Ticker& ticker_;
     const DiffDepthStream::StreamIntervalI* interval_;
     uint64_t last_id_diff_book_event;

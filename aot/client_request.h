@@ -66,8 +66,8 @@ class RequestNewOrder{
                                      ? fmt::format("{:.{}f}", qty, qty_prec)
                                      : "INVALID";
         return fmt::format(
-            "RequestNewOrder[type:{} ticker:{} side:{} qty:{} price:{}]",
-            ClientRequestTypeToString(type), ticker,
+            "RequestNewOrder[type:{} ticker:{} order_id:{} side:{} qty:{} price:{}]",
+            ClientRequestTypeToString(type), ticker, order_id,
             Common::sideToString(side), qty_string, price_string);
     }
 };

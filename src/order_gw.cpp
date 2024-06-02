@@ -10,7 +10,7 @@ auto Trading::OrderGateway::Run() noexcept -> void {
 
         size_t count_new_order = requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
         for (int i = 0; i < count_new_order; i++) {
-            new_order_->Exec(&results_new_orders[i]);
+            new_order_->Exec(&results_new_orders[i], incoming_responses_);
         }
         Exchange::RequestCancelOrder results_cancel_orders[50];  // Could also be any iterator
 

@@ -1,5 +1,5 @@
 /**
- * @file client_responce.h
+ * @file client_response.h
  * @author your name (you@domain.com)
  * @brief responce from exchange to for gateway module
  * @version 0.1
@@ -48,21 +48,28 @@ inline std::string ClientResponseTypeToString(ClientResponseType type) {
 
 /// Client response structure used internally by the matching engine.
 struct MEClientResponse {
+    /**
+     * @brief PriceQty first - price, second - qty
+     *
+     */
+    using PriceQty          = std::pair<double, double>;
     ClientResponseType type = ClientResponseType::INVALID;
     std::string ticker;
-    // OrderId client_order_id_ = OrderId_INVALID;
+    Common::OrderId order_id = Common::OrderId_INVALID;
     // OrderId market_order_id_ = OrderId_INVALID;
-    Common::Side side = Common::Side::INVALID;
-    double price      = Common::kPRICE_DOUBLE_INVALID;
-    double exec_qty   = Common::kQTY_DOUBLE_INVALID;
-    double leaves_qty = Common::kQTY_DOUBLE_INVALID;
+    Common::Side side        = Common::Side::INVALID;
+    double price             = Common::kPRICE_DOUBLE_INVALID;
+    double exec_qty          = Common::kQTY_DOUBLE_INVALID;
+    double leaves_qty        = Common::kQTY_DOUBLE_INVALID;
 
     auto toString() const {
         return fmt::format(
-            "MEClientResponse[type:{} ticker:{} side:{} exec_qty:{} "
+            "MEClientResponse[type:{} ticker:{} order_id:{} side:{} "
+            "exec_qty:{} "
             "leaves_qty:{} price:{}]",
-            ClientResponseTypeToString(type), ticker, sideToString(side),
-            exec_qty, leaves_qty, price);
+            ClientResponseTypeToString(type), ticker,
+            Common::orderIdToString(order_id), sideToString(side), exec_qty,
+            leaves_qty, price);
     }
 };
 

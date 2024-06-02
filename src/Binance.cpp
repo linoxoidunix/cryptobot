@@ -1,5 +1,5 @@
 #include "aot/Binance.h"
-
+#include <set>
 #include "aot/Logger.h"
 #include "fast_double_parser.h"
 #include "simdjson.h"
@@ -128,8 +128,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         if (!snapshot_and_diff_was_synced) [[unlikely]] {
             if (snapshot_and_diff_now_sync) {
                 snapshot_and_diff_was_synced = true;
-                logd("add {} to order book",
-                 snapshot_.ToString());
+                logd("add {} to order book", snapshot_.ToString());
                 snapshot_.AddToQueue(*event_lfqueue_);
             }
         }
@@ -152,13 +151,62 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
       ticker_(ticker),
       interval_(interval),
       type_exchange_(type_exchange) {
-        switch (type_exchange_) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
+    switch (type_exchange_) {
+        case TypeExchange::MAINNET:
+            current_exchange_ = &binance_main_net_;
+            break;
+        default:
+            current_exchange_ = &binance_test_net_;
+            break;
+    }
+    book_event_getter_ = std::make_unique<BookEventGetter>(
+        ticker.symbol, interval, type_exchange_);
+}
+
+Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
+    std::string_view response) {
+    Exchange::MEClientResponse output;
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string my_padded_data(response.data(), response.size());
+    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
+    output.order_id =
+        doc["clientOrderId"].get_uint64();  // TODO check this is uint64
+    std::string_view status;
+    auto error_status = doc["status"].get_string().get(status);
+    if (error_status) {
+        loge("no key status in response");
+        return output;
+    }
+    std::set<std::string> success_status{"NEW", "PARTIALLY_FILLED", "FILLED"};
+    if (!success_status.count(status.data())) return output;
+    std::set<std::string> accepted_status{"NEW"};
+    if (success_status.count(status.data()))
+        output.type = Exchange::ClientResponseType::ACCEPTED;
+    std::set<std::string> filled_status{"PARTIALLY_FILLED", "FILLED"};
+    if (success_status.count(status.data()))
+        output.type = Exchange::ClientResponseType::FILLED;
+    auto error = doc["cummulativeQuoteQty"].get_double().get(output.price);
+    if (error) [[unlikely]] {
+        loge("no key cummulativeQuoteQty in response");
+    }
+    error = doc["executedQty"].get_double().get(output.exec_qty);
+    if (error) [[unlikely]] {
+        loge("no key executedQty in response");
+    } else {
+        double orig_qty;
+        error = doc["origQty"].get_double().get(orig_qty);
+        if (error) [[unlikely]] {
+            loge("no key origQty in response");
+        } else {
+            output.leaves_qty = orig_qty - output.exec_qty;
         }
-    book_event_getter_ = std::make_unique<BookEventGetter>(ticker.symbol, interval, type_exchange_);
+    }
+    std::string_view ticker;
+    auto error_symbol = doc["symbol"].get_string().get(ticker);
+    if (error_symbol) [[unlikely]] {
+        loge("no key symbol in response");
+        return output;
+    }
+    output.ticker = ticker;
+    return output;
 }

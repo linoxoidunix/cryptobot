@@ -10,10 +10,11 @@
 
 #include "aot/Logger.h"
 #include "aot/market_data/market_update.h"
+#include "aot/client_response.h"
 #include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
-//enum class Side { BUY, SELL };
+// enum class Side { BUY, SELL };
 
 namespace https {
 class ExchangeI {
@@ -220,6 +221,7 @@ class SymbolUpperCase : public SymbolI {
         return out;
     };
     ~SymbolUpperCase() override = default;
+
   private:
     std::string first_;
     std::string second_;
@@ -242,11 +244,11 @@ class SymbolLowerCase : public SymbolI {
     std::string second_;
 };
 
-struct Ticker
-{
-  const SymbolI* symbol;
-  TickerInfo info;
-  Ticker(const SymbolI* _symbol, const TickerInfo& _info): symbol(_symbol), info(_info){};
+struct Ticker {
+    const SymbolI *symbol;
+    TickerInfo info;
+    Ticker(const SymbolI *_symbol, const TickerInfo &_info)
+        : symbol(_symbol), info(_info){};
 };
 
 /**
@@ -258,20 +260,21 @@ class ParserKLineResponseI {
     virtual OHLCVI Get(std::string_view response_from_exchange) const = 0;
     virtual ~ParserKLineResponseI()                                   = default;
 };
-namespace Exchange
-{
-  class RequestNewOrder;
+namespace Exchange {
+class RequestNewOrder;
 };
 
 namespace inner {
 class OrderNewI {
   public:
     /**
-     * @brief send order to exchange
+     * @brief send RequestNewOrder order to exchange and get response from
+     * exchange and transfer responce* to ClientResponseLFQueue
      *
      */
-    virtual void Exec(Exchange::RequestNewOrder*)  = 0;
-    virtual ~OrderNewI() = default;
+    virtual void Exec(Exchange::RequestNewOrder *,
+                      Exchange::ClientResponseLFQueue *) = 0;
+    virtual ~OrderNewI()                                 = default;
 };
 
 class BookSnapshotI {
