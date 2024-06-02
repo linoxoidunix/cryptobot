@@ -13,7 +13,7 @@
 #include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
-enum class Side { BUY, SELL };
+//enum class Side { BUY, SELL };
 
 namespace https {
 class ExchangeI {
@@ -258,6 +258,10 @@ class ParserKLineResponseI {
     virtual OHLCVI Get(std::string_view response_from_exchange) const = 0;
     virtual ~ParserKLineResponseI()                                   = default;
 };
+namespace Exchange
+{
+  class RequestNewOrder;
+};
 
 namespace inner {
 class OrderNewI {
@@ -266,7 +270,7 @@ class OrderNewI {
      * @brief send order to exchange
      *
      */
-    virtual void Exec()  = 0;
+    virtual void Exec(Exchange::RequestNewOrder*)  = 0;
     virtual ~OrderNewI() = default;
 };
 

@@ -103,23 +103,21 @@ using OrdersAtPriceHashMap =
 /// book.
 
 struct BBO;
-constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
-constexpr auto kQTY_DOUBLE_INVALID = std::numeric_limits<double>::max();
 
 struct BBODouble {
 
-    double bid_price   = kPRICE_DOUBLE_INVALID;
-    double ask_price   = kPRICE_DOUBLE_INVALID;
-    double bid_qty     = kQTY_DOUBLE_INVALID;
-    double ask_qty     = kQTY_DOUBLE_INVALID;
+    double bid_price   = Common::kPRICE_DOUBLE_INVALID;
+    double ask_price   = Common::kPRICE_DOUBLE_INVALID;
+    double bid_qty     = Common::kQTY_DOUBLE_INVALID;
+    double ask_qty     = Common::kQTY_DOUBLE_INVALID;
     uint8_t price_prec = 0;
     uint8_t qty_prec   = 0;
 
     auto ToString() const {
-        auto bid_qty_string = (bid_qty != kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_qty, qty_prec) : "INVALID";
-        auto ask_qty_string = (ask_qty != kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_qty, qty_prec) : "INVALID";
-        auto bid_price_string = (bid_price != kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_price, price_prec) : "INVALID";
-        auto ask_price_string = (ask_qty != kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_price, price_prec) : "INVALID";
+        auto bid_qty_string = (bid_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_qty, qty_prec) : "INVALID";
+        auto ask_qty_string = (ask_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_qty, qty_prec) : "INVALID";
+        auto bid_price_string = (bid_price != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_price, price_prec) : "INVALID";
+        auto ask_price_string = (ask_qty != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_price, price_prec) : "INVALID";
         return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty_string, bid_price_string,
                            ask_price_string, ask_qty_string);
     };

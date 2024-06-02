@@ -21,21 +21,21 @@ BBODouble::BBODouble(const BBO* bbo, uint8_t precission_price,
         bid_price =
             (double)bbo->bid_price * 1.0 * std::pow(10, -precission_price);
     else
-        bid_price = kPRICE_DOUBLE_INVALID;
+        bid_price = Common::kPRICE_DOUBLE_INVALID;
 
     if (bbo->ask_price != Common::Price_INVALID) [[likely]]
         ask_price =
             (double)bbo->ask_price * 1.0 * std::pow(10, -precission_price);
     else
-        ask_price = kPRICE_DOUBLE_INVALID;
+        ask_price = Common::kPRICE_DOUBLE_INVALID;
     if (bbo->bid_qty != Common::Qty_INVALID) [[likely]]
         bid_qty = (double)bbo->bid_qty * 1.0 * std::pow(10, -precission_qty);
     else
-        bid_qty = kQTY_DOUBLE_INVALID;
+        bid_qty = Common::kQTY_DOUBLE_INVALID;
     if (bbo->ask_qty != Common::Qty_INVALID) [[likely]]
         ask_qty = (double)bbo->ask_qty * 1.0 * std::pow(10, -precission_qty);
     else
-        ask_qty = kQTY_DOUBLE_INVALID;
+        ask_qty = Common::kQTY_DOUBLE_INVALID;
 };
 
 BBO::BBO(const BBODouble* bbo_double, uint8_t precission_price,

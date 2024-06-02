@@ -13,6 +13,7 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/client_request.h"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -438,7 +439,7 @@ class OrderNewLimit : public inner::OrderNewI {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Side side, Type type)
+                           TimeInForce time_in_force, Common::Side side, Type type)
             : ArgsQuery() {
             SetSymbol(symbol);
             SetSide(side);
@@ -447,16 +448,26 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order)
+            : ArgsQuery() {
+            SetSymbol(new_order->ticker);
+            SetSide(new_order->side);
+            SetType(Type::LIMIT);
+            SetQuantity(new_order->qty);
+            SetPrice(new_order->price);
+            SetTimeInForce(TimeInForce::FOK);
+        };
+        private:
         void SetSymbol(SymbolType symbol) {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetSide(Side side) {
+        void SetSide(Common::Side side) {
             switch (side) {
-                case Side::BUY:
+                case Common::Side::BUY:
                     storage["side"] = "BUY";
                     break;
-                case Side::SELL:
+                case Common::Side::SELL:
                     storage["side"] = "SELL";
                     break;
             }
@@ -518,8 +529,8 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   public:
-    explicit OrderNewLimit(ArgsOrder&& args, SignerI* signer, TypeExchange type)
-        : args_(args), signer_(signer) {
+    explicit OrderNewLimit(SignerI* signer, TypeExchange type)
+        : signer_(signer) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_test_net_;
@@ -529,11 +540,13 @@ class OrderNewLimit : public inner::OrderNewI {
                 break;
         }
     };
-    void Exec() override {
+    void Exec(Exchange::RequestNewOrder* new_order) override {
+        ArgsOrder args(new_order);
+        
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
                                        OrderNewLimit::end_point,
-                                       args_,
+                                       args,
                                        boost::beast::http::verb::post,
                                        signer_,
                                        need_sign};
@@ -552,7 +565,6 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   private:
-    ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
@@ -622,20 +634,6 @@ class BookSnapshot : public inner::BookSnapshotI {
             ParserResponse parser;
             auto answer = parser.Parse(resut);
             *snapshot_  = answer;
-            // logd("lastUpdateId:{}", answer.lastUpdateId);
-
-            // logd("asks:");
-
-            // for (auto it : answer.asks) {
-            //     logd("{}", it.ToString());
-            // }
-
-            // logd("bids:");
-
-            // for (auto it : answer.bids) {
-            //     logd("{}", it.ToString());
-            // }
-            // s
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(

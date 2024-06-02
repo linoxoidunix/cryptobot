@@ -22,6 +22,9 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE  = 5000 * 2;//for binance max depth for 
 typedef uint64_t OrderId;
 constexpr auto OrderId_INVALID = std::numeric_limits<OrderId>::max();
 
+constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
+constexpr auto kQTY_DOUBLE_INVALID = std::numeric_limits<double>::max();
+
 inline auto orderIdToString(OrderId order_id) -> std::string {
     if (UNLIKELY(order_id == OrderId_INVALID)) {
         return "INVALID";
@@ -40,6 +43,8 @@ inline auto tickerIdToString(TickerId ticker_id) -> std::string {
 
     return std::to_string(ticker_id);
 }
+
+typedef std::string TickerString;
 
 typedef uint32_t ClientId;
 constexpr auto ClientId_INVALID = std::numeric_limits<ClientId>::max();
