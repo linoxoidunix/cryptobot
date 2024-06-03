@@ -62,14 +62,27 @@ struct MEClientResponse {
     double exec_qty          = Common::kQTY_DOUBLE_INVALID;
     double leaves_qty        = Common::kQTY_DOUBLE_INVALID;
 
-    auto toString() const {
+    auto ToString() const {
+        std::string price_string =
+            (price != Common::kPRICE_DOUBLE_INVALID)
+                ? fmt::format("{}", price)
+                : "INVALID";
+        std::string exec_qty_string =
+            (exec_qty != Common::kQTY_DOUBLE_INVALID)
+                ? fmt::format("{}", exec_qty)
+                : "INVALID";
+
+        std::string leaves_qty_string =
+            (leaves_qty != Common::kQTY_DOUBLE_INVALID)
+                ? fmt::format("{}", leaves_qty)
+                : "INVALID";
         return fmt::format(
             "MEClientResponse[type:{} ticker:{} order_id:{} side:{} "
             "exec_qty:{} "
             "leaves_qty:{} price:{}]",
             ClientResponseTypeToString(type), ticker,
-            Common::orderIdToString(order_id), sideToString(side), exec_qty,
-            leaves_qty, price);
+            Common::orderIdToString(order_id), sideToString(side), exec_qty_string,
+            leaves_qty_string, price_string);
     }
 };
 

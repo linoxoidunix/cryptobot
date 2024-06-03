@@ -1,5 +1,7 @@
 #include "aot/Binance.h"
-#include <set>
+
+#include <unordered_set>
+#include <string_view>
 #include "aot/Logger.h"
 #include "fast_double_parser.h"
 #include "simdjson.h"
@@ -169,44 +171,51 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    output.order_id =
-        doc["clientOrderId"].get_uint64();  // TODO check this is uint64
-    std::string_view status;
-    auto error_status = doc["status"].get_string().get(status);
-    if (error_status) {
-        loge("no key status in response");
-        return output;
-    }
-    std::set<std::string> success_status{"NEW", "PARTIALLY_FILLED", "FILLED"};
-    if (!success_status.count(status.data())) return output;
-    std::set<std::string> accepted_status{"NEW"};
-    if (success_status.count(status.data()))
-        output.type = Exchange::ClientResponseType::ACCEPTED;
-    std::set<std::string> filled_status{"PARTIALLY_FILLED", "FILLED"};
-    if (success_status.count(status.data()))
-        output.type = Exchange::ClientResponseType::FILLED;
-    auto error = doc["cummulativeQuoteQty"].get_double().get(output.price);
-    if (error) [[unlikely]] {
-        loge("no key cummulativeQuoteQty in response");
-    }
-    error = doc["executedQty"].get_double().get(output.exec_qty);
-    if (error) [[unlikely]] {
-        loge("no key executedQty in response");
-    } else {
-        double orig_qty;
-        error = doc["origQty"].get_double().get(orig_qty);
-        if (error) [[unlikely]] {
-            loge("no key origQty in response");
-        } else {
-            output.leaves_qty = orig_qty - output.exec_qty;
+    try {
+        output.order_id =
+            doc["clientOrderId"]
+                .get_uint64_in_string();  // TODO check this is uint64
+        std::string_view status;
+        auto error_status = doc["status"].get_string().get(status);
+        if (error_status != simdjson::SUCCESS) {
+            loge("no key status in response");
+            return output;
         }
+        std::unordered_set<std::string_view> success_status{"NEW", "PARTIALLY_FILLED",
+                                             "FILLED"};
+        if (!success_status.count(status)) return output;
+        std::unordered_set<std::string_view> accepted_status{"NEW"};
+        if (accepted_status.count(status))
+            output.type = Exchange::ClientResponseType::ACCEPTED;
+        std::unordered_set<std::string_view> filled_status{"PARTIALLY_FILLED", "FILLED"};
+        if (filled_status.count(status))
+            output.type = Exchange::ClientResponseType::FILLED;
+        auto error = doc["price"].get_double_in_string().get(output.price);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key price in response");
+        }
+        error = doc["executedQty"].get_double_in_string().get(output.exec_qty);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key executedQty in response");
+        } else {
+            double orig_qty;
+            error = doc["origQty"].get_double_in_string().get(orig_qty);
+            if (error != simdjson::SUCCESS) [[unlikely]] {
+                loge("no key origQty in response");
+            } else {
+                output.leaves_qty = orig_qty - output.exec_qty;
+            }
+        }
+        std::string_view ticker;
+        auto error_symbol = doc["symbol"].get_string().get(ticker);
+        if (error_symbol != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key symbol in response");
+            return output;
+        }
+        output.ticker = ticker;
+    } catch (simdjson::simdjson_error& error) {
+        // std::cerr << "JSON error: " << error.what() <<
+        loge("JSON error: {}", error.what());
     }
-    std::string_view ticker;
-    auto error_symbol = doc["symbol"].get_string().get(ticker);
-    if (error_symbol) [[unlikely]] {
-        loge("no key symbol in response");
-        return output;
-    }
-    output.ticker = ticker;
     return output;
 }

@@ -434,12 +434,13 @@ class FormatterPrice {
 
 class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
-    class ParserResponse {
+   
+  public:
+   class ParserResponse {
       public:
         explicit ParserResponse() = default;
         Exchange::MEClientResponse Parse(std::string_view response);
     };
-  public:
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
@@ -460,7 +461,7 @@ class OrderNewLimit : public inner::OrderNewI {
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);
             SetPrice(new_order->price);
-            SetTimeInForce(TimeInForce::FOK);
+            SetTimeInForce(TimeInForce::GTC);
             SetOrderId(new_order->order_id);
         };
 
@@ -567,6 +568,7 @@ class OrderNewLimit : public inner::OrderNewI {
                     buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
+            fmtlog::poll();
             ParserResponse parser;
             auto answer = parser.Parse(resut);
             response_lfqueue->enqueue(answer);
@@ -576,6 +578,7 @@ class OrderNewLimit : public inner::OrderNewI {
             factory.Host().data(), factory.Port().data(),
             factory.EndPoint().data(), factory());
         ioc.run();
+        int x = 0;
     };
 
   private:

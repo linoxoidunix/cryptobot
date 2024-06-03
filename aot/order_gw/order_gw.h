@@ -2,10 +2,11 @@
 
 #include <functional>
 
-#include "aot/common/macros.h"
-#include "aot/common/thread_utils.h"
 #include "aot/client_request.h"
 #include "aot/client_response.h"
+#include "aot/common/macros.h"
+#include "aot/common/thread_utils.h"
+#include "aot/common/time_utils.h"
 
 
 namespace inner {
@@ -40,7 +41,7 @@ class OrderGateway {
                                             [this]() { Run(); }) != nullptr,
                "Failed to start OrderGateway thread.");
     }
-
+    common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
     auto stop() -> void { run_ = false; }
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -69,6 +70,7 @@ class OrderGateway {
     /// Main thread loop - sends out client requests to the exchange and reads
     /// and dispatches incoming client responses.
     auto Run() noexcept -> void;
+    common::TimeManager time_manager_;
 
     /// Callback when an incoming client response is read, we perform some
     /// checks and forward it to the lock free queue connected to the trade

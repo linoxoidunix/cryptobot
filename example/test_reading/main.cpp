@@ -12,6 +12,7 @@
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
 #include "aot/common/types.h"
+#include "aot/order_gw/order_gw.h"
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
@@ -227,28 +228,26 @@
 
 // }
 
-int main() {
-    //double ddd = std::pow(10, -2);
-    fmtlog::setLogLevel(fmtlog::INF);
-    // Trading::MarketOrderBook book;
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
-    GeneratorBidAskService generator(&event_queue, ticker, &interval,
-                                     TypeExchange::TESTNET);
-    generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue, ticker);
-    trade_engine_service.Start();
-    while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             generator.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+//     GeneratorBidAskService generator(&event_queue, ticker, &interval,
+//                                      TypeExchange::TESTNET);
+//     generator.Start();
+//     Trading::TradeEngine trade_engine_service(&event_queue, ticker);
+//     trade_engine_service.Start();
+//     while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              generator.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
 
 // int main()
 // {
@@ -273,3 +272,46 @@ int main() {
 //     logd("size:{} value:{}", map.size(), map.at(2));
 //     return 0;
 // }
+
+int main(int argc, char** argv) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+
+    using namespace binance;
+    OrderNewLimit::ArgsOrder args{
+        "BTCUSDT",         0.001,      40000, TimeInForce::FOK,
+        Common::Side::BUY, Type::LIMIT};
+    hmac_sha256::Keys keys{argv[1], argv[2]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    OrderNewLimit new_order(&signer, type);
+    using namespace Trading;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+    Exchange::RequestNewOrder request_new_order;
+    request_new_order.ticker   = "BTCUSDT";
+    request_new_order.order_id = 6;
+    request_new_order.side     = Common::Side::BUY;
+    request_new_order.price    = 40000;
+    request_new_order.qty      = 0.001;
+
+    requests_new_order.enqueue(request_new_order);
+    OrderGateway gw(&new_order, &requests_new_order, &requests_cancel_order,
+                    &client_responses);
+    gw.start();
+    while (gw.GetDownTimeInS() < 40) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             gw.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(3s);
+    }
+
+    Exchange::MEClientResponse response[50];  // Could also be any iterator
+
+    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+    for (int i = 0; i < count_new_order; i++) {
+        logd("{}", response[i].ToString());
+    }
+
+    return 0;
+}
