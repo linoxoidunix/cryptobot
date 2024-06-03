@@ -8,6 +8,6 @@ bot for algo trading
 4. Capture __raw__ order book snapshot for Binance
 5. Order book sync snap and diff for binance
 6. Get bbo using order book for binance 
-7. Order gateway [NOT DEBUG] 
+7. Order gateway [PARTITIAL DEBUG for BINANCE] 
 
 thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
