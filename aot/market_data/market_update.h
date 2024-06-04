@@ -47,7 +47,8 @@ struct MEMarketUpdate {
 struct MEMarketUpdateDouble {
     MarketUpdateType type      = MarketUpdateType::DEFAULT;
 
-    Common::TickerId ticker_id = Common::TickerId_INVALID;
+    //Common::TickerId ticker_id = Common::TickerId_INVALID;
+    std::string ticker;
     Common::Side side          = Common::Side::INVALID;
     double price               = std::numeric_limits<double>::max();
     double qty                 = std::numeric_limits<double>::max();
@@ -55,7 +56,7 @@ struct MEMarketUpdateDouble {
     auto ToString() const {
         return fmt::format(
             "MEMarketUpdateDouble[ticker:{} type:{} side:{} qty:{} price:{}]",
-            Common::tickerIdToString(ticker_id), marketUpdateTypeToString(type),
+            ticker, marketUpdateTypeToString(type),
             sideToString(side), qty, price);
     };
     explicit MEMarketUpdateDouble(const MEMarketUpdate*, uint precission_price,
@@ -75,6 +76,7 @@ struct BookSnapshotElem {
 };
 
 struct BookSnapshot {
+    std::string ticker;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
@@ -84,6 +86,7 @@ struct BookSnapshot {
         int i = 0;
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
+            event.ticker = ticker;
             event.side  = Common::Side::SELL;
             event.price = bid.price;
             event.qty   = bid.qty;
@@ -97,6 +100,7 @@ struct BookSnapshot {
         i = 0;
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
+            event.ticker = ticker;
             event.side  = Common::Side::BUY;
             event.price = ask.price;
             event.qty   = ask.qty;

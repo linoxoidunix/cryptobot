@@ -6,6 +6,7 @@ TradeEngine::TradeEngine(Exchange::EventLFQueue* market_updates,
     : incoming_md_updates_(market_updates),
       order_book_(ticker),
       ticker_(ticker){
+        order_book_.SetTradeEngine(this);
           // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
           //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
           //   ticker_order_book_[i]->setTradeEngine(this);
@@ -57,11 +58,19 @@ auto TradeEngine::Run() noexcept -> void {
 }
 }  // namespace Trading
 
+auto Trading::TradeEngine::OnOrderBookUpdate(
+    std::string ticker, Price price, Side side,
+    MarketOrderBookDouble* book) noexcept -> void {
+        auto bbo = order_book_.getBBO();
+        position_keeper_.UpdateBBO(ticker, bbo);
+
+    }
+
 auto Trading::TradeEngine::OnOrderResponse(
     const Exchange::MEClientResponse* client_response) noexcept -> void {
     if (client_response->type == Exchange::ClientResponseType::FILLED)
         [[unlikely]] {
-        position_keeper.AddFill(client_response);
+        position_keeper_.AddFill(client_response);
     }
 }
 

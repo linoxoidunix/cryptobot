@@ -21,9 +21,9 @@ class MarketOrderBook final {
     auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
         -> void;
 
-    // auto setTradeEngine(TradeEngine *trade_engine) {
-    //   trade_engine_ = trade_engine;
-    // }
+    //  auto setTradeEngine(TradeEngine *trade_engine) {
+    //    trade_engine_ = trade_engine;
+    //  }
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
     /// buy or the sekk (or both) sides or both need to be updated.
@@ -73,7 +73,6 @@ class MarketOrderBook final {
 
     /// Parent trade engine that owns this limit order book, used to send
     /// notifications when book changes or trades occur.
-    // TradeEngine *trade_engine_ = nullptr;
 
     /// Hash map from OrderId -> MarketOrder.
     // OrderHashMap oid_to_order_;
@@ -176,15 +175,11 @@ class MarketOrderBookDouble {
 
     /// Process market data update and update the limit order book.
     auto OnMarketUpdate(
-        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void {
-        const Exchange::MEMarketUpdate buf(market_update, precission_price_,
-                                           precission_qty_);
-        book_.onMarketUpdate(&buf);
-    };
+        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
 
-    // auto setTradeEngine(TradeEngine *trade_engine) {
-    //   trade_engine_ = trade_engine;
-    // }
+    auto SetTradeEngine(TradeEngine *trade_engine) {
+       trade_engine_ = trade_engine;
+    }
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
     /// buy or the sekk (or both) sides or both need to be updated.
@@ -216,6 +211,8 @@ class MarketOrderBookDouble {
     uint precission_qty_;
     BBODouble bbo_double_;
     MarketOrderBook book_;
+    TradeEngine *trade_engine_ = nullptr;
+
 };
 
 /// Hash map from TickerId -> MarketOrderBook.

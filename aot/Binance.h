@@ -650,6 +650,7 @@ class BookSnapshot : public inner::BookSnapshotI {
             // logi("{}", resut);
             ParserResponse parser;
             auto answer = parser.Parse(resut);
+            answer.ticker = args_["symbol"];
             *snapshot_  = answer;
             fmtlog::poll();
         };

@@ -52,7 +52,7 @@ namespace Trading {
     //auto sendClientRequest(const Exchange::MEClientRequest *client_request) noexcept -> void;
 
     /// Process changes to the order book - updates the position keeper, feature engine and informs the trading algorithm about the update.
-    //auto onOrderBookUpdate(TickerId ticker_id, Price price, Side side, MarketOrderBook *book) noexcept -> void;
+    auto OnOrderBookUpdate(std::string ticker, Price price, Side side, MarketOrderBookDouble *book) noexcept -> void;
 
     /// Process trade events - updates the  feature engine and informs the trading algorithm about the trade event.
     //auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update, MarketOrderBook *book) noexcept -> void;
@@ -84,6 +84,6 @@ namespace Trading {
     Trading::MarketOrderBookDouble order_book_;
     volatile bool run_ = false;
     const Ticker& ticker_;
-    PositionKeeper position_keeper;
+    PositionKeeper position_keeper_;
   };
 }
