@@ -27,7 +27,8 @@ struct MEMarketUpdate {
     MarketUpdateType type      = MarketUpdateType::DEFAULT;
 
     Common::OrderId order_id   = Common::OrderId_INVALID;
-    Common::TickerId ticker_id = Common::TickerId_INVALID;
+    //Common::TickerId ticker_id = Common::TickerId_INVALID;
+    std::string ticker;
     Common::Side side          = Common::Side::INVALID;
     Common::Price price        = Common::Price_INVALID;
     Common::Qty qty            = Common::Qty_INVALID;
@@ -35,7 +36,7 @@ struct MEMarketUpdate {
     auto ToString() const {
         return fmt::format(
             "MEMarketUpdate[ticker:{} oid:{} side:{} qty:{} price:{}]",
-            Common::tickerIdToString(ticker_id),
+            ticker,
             Common::orderIdToString(order_id), sideToString(side),
             Common::qtyToString(qty), Common::priceToString(price));
     };
@@ -82,7 +83,7 @@ struct BookSnapshot {
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
     void AddToQueue(EventLFQueue& queue) {
         std::vector<MEMarketUpdateDouble> bulk;
-        bulk.reserve(bids.size());
+        bulk.resize(bids.size());
         int i = 0;
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
@@ -96,7 +97,7 @@ struct BookSnapshot {
         bool status = false;
         while(!status) status = queue.try_enqueue_bulk(&bulk[0], bids.size());
         
-        bulk.reserve(asks.size());
+        bulk.resize(asks.size());
         i = 0;
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
