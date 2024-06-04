@@ -1,7 +1,8 @@
 #include "aot/Binance.h"
 
-#include <unordered_set>
 #include <string_view>
+#include <unordered_set>
+
 #include "aot/Logger.h"
 #include "fast_double_parser.h"
 #include "simdjson.h"
@@ -181,18 +182,36 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
             loge("no key status in response");
             return output;
         }
-        std::unordered_set<std::string_view> success_status{"NEW", "PARTIALLY_FILLED",
-                                             "FILLED"};
+        std::unordered_set<std::string_view> success_status{
+            "NEW", "PARTIALLY_FILLED", "FILLED"};
         if (!success_status.count(status)) return output;
         std::unordered_set<std::string_view> accepted_status{"NEW"};
-        if (accepted_status.count(status))
+        if (accepted_status.count(status)) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
-        std::unordered_set<std::string_view> filled_status{"PARTIALLY_FILLED", "FILLED"};
-        if (filled_status.count(status))
+            auto error  = doc["price"].get_double_in_string().get(output.price);
+            if (error != simdjson::SUCCESS) [[unlikely]] {
+                loge("no key price in response");
+            }
+        }
+        std::unordered_set<std::string_view> filled_status{"PARTIALLY_FILLED",
+                                                           "FILLED"};
+        if (filled_status.count(status)) {
             output.type = Exchange::ClientResponseType::FILLED;
-        auto error = doc["price"].get_double_in_string().get(output.price);
+            auto error  = doc["cummulativeQuoteQty"].get_double_in_string().get(
+                output.price);
+            if (error != simdjson::SUCCESS) [[unlikely]] {
+                loge("no key cummulativeQuoteQty in response");
+            }
+        }
+        std::string_view side;
+        auto error = doc["side"].get_string().get(side);
         if (error != simdjson::SUCCESS) [[unlikely]] {
-            loge("no key price in response");
+            loge("no key side in response");
+        } else {
+            std::string_view buy_side  = "BUY";
+            std::string_view sell_side = "SELL";
+            if (side == buy_side) output.side = Common::Side::BUY;
+            if (side == sell_side) output.side = Common::Side::SELL;
         }
         error = doc["executedQty"].get_double_in_string().get(output.exec_qty);
         if (error != simdjson::SUCCESS) [[unlikely]] {
