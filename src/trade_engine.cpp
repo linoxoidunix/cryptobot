@@ -57,11 +57,20 @@ auto TradeEngine::Run() noexcept -> void {
 }
 }  // namespace Trading
 
+auto Trading::TradeEngine::OnOrderResponse(
+    const Exchange::MEClientResponse* client_response) noexcept -> void {
+    if (client_response->type == Exchange::ClientResponseType::FILLED)
+        [[unlikely]] {
+        position_keeper.AddFill(client_response);
+    }
+}
+
 //   /// Process changes to the order book - updates the position keeper,
 //   feature engine and informs the trading algorithm about the update. auto
-//   TradeEngine::onOrderBookUpdate(TickerId ticker_id, Price price, Side side,
-//   MarketOrderBook *book) noexcept -> void {
-//     logger_.log("%:% %() % ticker:% price:% side:%\n", __FILE__, __LINE__,
+//   TradeEngine::onOrderBookUpdate(TickerId ticker_id, Price price, Side
+//   side, MarketOrderBook *book) noexcept -> void {
+//     logger_.log("%:% %() % ticker:% price:% side:%\n", __FILE__,
+//     __LINE__,
 //     __FUNCTION__,
 //                 Common::getCurrentTimeStr(&time_str_), ticker_id,
 //                 Common::priceToString(price).c_str(),
@@ -78,8 +87,8 @@ auto TradeEngine::Run() noexcept -> void {
 
 //   /// Process trade events - updates the  feature engine and informs the
 //   trading algorithm about the trade event. auto
-//   TradeEngine::onTradeUpdate(const Exchange::MEMarketUpdate *market_update,
-//   MarketOrderBook *book) noexcept -> void {
+//   TradeEngine::onTradeUpdate(const Exchange::MEMarketUpdate
+//   *market_update, MarketOrderBook *book) noexcept -> void {
 //     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
 //     Common::getCurrentTimeStr(&time_str_),
 //                 market_update->toString().c_str());
@@ -89,9 +98,10 @@ auto TradeEngine::Run() noexcept -> void {
 //     algoOnTradeUpdate_(market_update, book);
 //   }
 
-//   /// Process client responses - updates the position keeper and informs the
-//   trading algorithm about the response. auto TradeEngine::onOrderUpdate(const
-//   Exchange::MEClientResponse *client_response) noexcept -> void {
+//   /// Process client responses - updates the position keeper and informs
+//   the trading algorithm about the response. auto
+//   TradeEngine::onOrderUpdate(const Exchange::MEClientResponse
+//   *client_response) noexcept -> void {
 //     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
 //     Common::getCurrentTimeStr(&time_str_),
 //                 client_response->toString().c_str());

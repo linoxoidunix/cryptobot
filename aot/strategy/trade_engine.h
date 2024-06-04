@@ -13,7 +13,7 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/Logger.h"
 //#include "feature_engine.h"
-//#include "position_keeper.h"
+#include "aot/strategy/position_keeper.h"
 //#include "order_manager.h"
 //#include "risk_manager.h"
 
@@ -42,7 +42,7 @@ namespace Trading {
       run_ = false;
     }
 
-    common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
+    common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
 
 
     /// Main loop for this thread - processes incoming client responses and market data updates which in turn may generate client requests.
@@ -58,7 +58,7 @@ namespace Trading {
     //auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update, MarketOrderBook *book) noexcept -> void;
 
     /// Process client responses - updates the position keeper and informs the trading algorithm about the response.
-    //auto onOrderUpdate(const Exchange::MEClientResponse *client_response) noexcept -> void;
+    auto OnOrderResponse(const Exchange::MEClientResponse *client_response) noexcept -> void;
 
     /// Function wrappers to dispatch order book updates, trade events and client responses to the trading algorithm.
     //std::function<void(const Exchange::MEMarketUpdate *market_update, MarketOrderBook *book)> algoOnTradeUpdate_;
@@ -84,5 +84,6 @@ namespace Trading {
     Trading::MarketOrderBookDouble order_book_;
     volatile bool run_ = false;
     const Ticker& ticker_;
+    PositionKeeper position_keeper;
   };
 }
