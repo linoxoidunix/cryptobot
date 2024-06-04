@@ -16,6 +16,7 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
+//#include "aot/strategy/position_keeper.h"
 #include "moodycamel/concurrentqueue.h"
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>

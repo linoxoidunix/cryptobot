@@ -1,7 +1,8 @@
 #include "aot/strategy/trade_engine.h"
 
 namespace Trading {
-TradeEngine::TradeEngine(Exchange::EventLFQueue *market_updates, const Ticker& ticker)
+TradeEngine::TradeEngine(Exchange::EventLFQueue* market_updates,
+                         const Ticker& ticker)
     : incoming_md_updates_(market_updates),
       order_book_(ticker),
       ticker_(ticker){
@@ -33,24 +34,25 @@ auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     while (run_) {
         Exchange::MEMarketUpdateDouble event;
-        Exchange::MEMarketUpdateDouble results[50];     // Could also be any iterator
+        Exchange::MEMarketUpdateDouble
+            results[50];  // Could also be any iterator
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
-        for(uint i = 0; i < count; i++)[[likely]]
+        for (uint i = 0; i < count; i++) [[likely]]
+        {
             order_book_.OnMarketUpdate(&results[i]);
-
+            time_manager_.Update();
+        }
 
         // if (bool found = incoming_md_updates_->try_dequeue(event); !found)
         //     [[unlikely]]
         //     continue;
         // //logd("Processing in trade engine {}", event.ToString());
 
-        //order_book_.OnMarketUpdate(&event);
-        if(count) [[likely]]
-        {
+        // order_book_.OnMarketUpdate(&event);
+        if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
-            time_manager_.Update();
-        }    
+        }
     }
 }
 }  // namespace Trading
