@@ -14,6 +14,7 @@
 #include "aot/Logger.h"
 //#include "feature_engine.h"
 #include "aot/strategy/position_keeper.h"
+
 //#include "order_manager.h"
 //#include "risk_manager.h"
 

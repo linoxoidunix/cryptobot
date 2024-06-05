@@ -19,7 +19,7 @@ find_package(benchmark)
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
-
+find_package(unordered_dense)
 
 file(GLOB LIST_H
      "aot/*.h"
@@ -71,6 +71,7 @@ target_link_libraries(${PROJECT_NAME}
     Python::Python
     concurrentqueue::concurrentqueue
     fast_double_parser::fast_double_parser
+    unordered_dense::unordered_dense
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

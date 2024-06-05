@@ -9,3 +9,4 @@ concurrentqueue/
 fast_double_parser/
 emhash/
 benchmark/
+unordered_dense/
