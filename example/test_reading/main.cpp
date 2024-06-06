@@ -238,6 +238,9 @@ int main() {
     fmtlog::setLogLevel(fmtlog::INF);
     using namespace binance;
     Exchange::EventLFQueue event_queue;
+    Exchange::RequestNewLimitOrderLFQueue request_new_order;
+    Exchange::RequestCancelOrderLFQueue request_cancel_order;
+    Exchange::ClientResponseLFQueue response;   
     DiffDepthStream::ms100 interval;
     TickerInfo info{2, 5};
     Symbol btcusdt("BTC", "USDT");
@@ -245,7 +248,7 @@ int main() {
     GeneratorBidAskService generator(&event_queue, ticker, &interval,
                                      TypeExchange::TESTNET);
     generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue, ticker);
+    Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order, &request_cancel_order,  &response, ticker);
     trade_engine_service.Start();
     while (trade_engine_service.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",

@@ -5,15 +5,33 @@
 #include "ankerl/unordered_dense.h"
 #include "aot/common/types.h"
 
-using namespace Common;
-
 namespace Trading {
   /// Represents the type / action in the order structure in the order manager.
   enum class OMOrderState : int8_t {
+    /**
+     * @brief The INVALID state represents an invalid order state
+     * 
+     */
     INVALID = 0,
+    /**
+     * @brief The PENDING_NEW state signifies that a new order has been sent out by OrderManager but it has not been accepted by the electronic trading exchange yet
+     * 
+     */
     PENDING_NEW = 1,
+    /**
+     * @brief When we receive a response from the exchange to signify acceptance, the order goes from PENDING_NEW to LIVE
+     * 
+     */
     LIVE = 2,
+    /**
+     * @brief Like PENDING_NEW, the PENDING_CANCEL state represents the state of an order when a cancellation for an order has been sent to the exchange but has not been processed by the exchange or the response has not been received back
+     * 
+     */
     PENDING_CANCEL = 3,
+    /**
+     * @brief The DEAD state represents an order that does not exist – it has either not been sent yet or fully executed or successfully cancelled:
+     * 
+     */
     DEAD = 4
   };
 
@@ -43,7 +61,7 @@ namespace Trading {
     double qty = Common::kQTY_DOUBLE_INVALID;
     OMOrderState order_state = OMOrderState::INVALID;
 
-    auto toString() const {
+    auto ToString() const {
       std::stringstream ss;
       ss << "OMOrder" << "["
          << "tid:" << ticker << " "
@@ -61,6 +79,5 @@ namespace Trading {
   using OMOrderSideHashMap = std::array<OMOrder, sideToIndex(Side::MAX) + 1>;
 
   /// Hash map from TickerId -> Side -> OMOrder.
-  //typedef std::array<OMOrderSideHashMap, ME_MAX_TICKERS> OMOrderTickerSideHashMap;
   using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<std::string, OMOrderSideHashMap>;
 }

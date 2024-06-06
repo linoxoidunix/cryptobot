@@ -11,3 +11,8 @@ bot for algo trading
 7. Order gateway [PARTITIAL DEBUG for BINANCE] 
 
 thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
+
+TODO
+
+1. make order manager move_order function
+2. for order manager need consider riskmanager 

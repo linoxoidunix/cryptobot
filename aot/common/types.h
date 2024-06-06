@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <limits>
 #include <sstream>
+#include <string>
 
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
@@ -17,13 +18,31 @@ constexpr size_t ME_MAX_MARKET_UPDATES = 256 * 1024;
 
 constexpr size_t ME_MAX_NUM_CLIENTS    = 256;
 constexpr size_t ME_MAX_ORDER_IDS      = 1024 * 1024;
-constexpr size_t ME_MAX_ORDERS_AT_PRICE  = 5000 * 2;//for binance max depth for bid is 5000.//for binance max depth for ask is 5000.
+constexpr size_t ME_MAX_ORDERS_AT_PRICE =
+    5000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
+               // for ask is 5000.
 
 typedef uint64_t OrderId;
-constexpr auto OrderId_INVALID = std::numeric_limits<OrderId>::max();
+constexpr auto OrderId_INVALID       = std::numeric_limits<OrderId>::max();
+
+/**
+ * @brief PriceD = price double
+ * 
+ */
+using PriceD                         = double;
+/**
+ * @brief QtyD = qty double
+ * 
+ */
+using QtyD                           = double;
+/**
+ * @brief TickerS = ticker string
+ * 
+ */
+using TickerS = std::string;
 
 constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
-constexpr auto kQTY_DOUBLE_INVALID = std::numeric_limits<double>::max();
+constexpr auto kQTY_DOUBLE_INVALID   = std::numeric_limits<double>::max();
 
 inline auto orderIdToString(OrderId order_id) -> std::string {
     if (UNLIKELY(order_id == OrderId_INVALID)) {
@@ -215,14 +234,14 @@ inline uint32_t LeengthFractionalPart(double v) {
     auto v10 = v * 10000000000;
     double part;
     auto xx0 = (std::modf(v, &part) == 0);
-    if 
-        (xx0) [[likely]] return 0;
+    if (xx0) [[likely]]
+        return 0;
     auto xx1 = (std::modf(v * 10, &part) == 0);
-    if 
-        (xx1) [[likely]] return 1;
+    if (xx1) [[likely]]
+        return 1;
     auto xx2 = (std::modf(v * 100, &part) == 0);
-    if 
-        (xx2) [[likely]] return 2;
+    if (xx2) [[likely]]
+        return 2;
     auto xx3 = (std::modf(v * 1000, &part) == 0);
     if (xx3) return 3;
     auto xx4 = (std::modf(v * 10000, &part) == 0);
