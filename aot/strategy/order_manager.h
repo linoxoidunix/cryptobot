@@ -142,6 +142,6 @@ namespace Trading {
     OMOrderTickerSideHashMap ticker_side_order_;
 
     /// Used to set OrderIds on outgoing new order requests.
-    //OrderId next_order_id_ = 1;
+    Common::OrderId next_order_id_ = 1;
   };
 }

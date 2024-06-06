@@ -48,7 +48,6 @@ namespace Trading {
       case OMOrderState::INVALID:
         return "INVALID";
     }
-
     return "UNKNOWN";
   }
 

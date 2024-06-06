@@ -40,7 +40,12 @@ struct PositionInfo {
         return ss.str();
     }
 
-    /// Process an execution and update the position, pnl and volume.
+    /**
+     * @brief add only filled order. it is regulate from trade_engine.cpp
+     * Process an execution and update the position, pnl and volume.
+     * @param client_response 
+     * @return auto 
+     */
     auto addFill(const Exchange::MEClientResponse *client_response) noexcept {
         const auto old_position   = position;
         const auto side_index     = Common::sideToIndex(client_response->side);

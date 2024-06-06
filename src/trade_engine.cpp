@@ -1,23 +1,23 @@
 #include "aot/strategy/trade_engine.h"
 
 namespace Trading {
-TradeEngine::TradeEngine(Exchange::EventLFQueue* market_updates,
-Exchange::RequestNewLimitOrderLFQueue* request_new_order,
+TradeEngine::TradeEngine(
+    Exchange::EventLFQueue* market_updates,
+    Exchange::RequestNewLimitOrderLFQueue* request_new_order,
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
-    Exchange::ClientResponseLFQueue* response,
-                         const Ticker& ticker)
+    Exchange::ClientResponseLFQueue* response, const Ticker& ticker)
     : incoming_md_updates_(market_updates),
-    request_new_order_(request_new_order),
-    request_cancel_order_(request_cancel_order),
-    response_(response),
+      request_new_order_(request_new_order),
+      request_cancel_order_(request_cancel_order),
+      response_(response),
       order_book_(ticker),
-      ticker_(ticker){
-        order_book_.SetTradeEngine(this);
-          // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
-          //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
-          //   ticker_order_book_[i]->setTradeEngine(this);
-          // }
-      };
+      ticker_(ticker) {
+    order_book_.SetTradeEngine(this);
+    // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
+    //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
+    //   ticker_order_book_[i]->setTradeEngine(this);
+    // }
+};
 
 TradeEngine::~TradeEngine() {
     run_ = false;
@@ -40,22 +40,20 @@ TradeEngine::~TradeEngine() {
 auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     while (run_) {
-        //Exchange::MEMarketUpdateDouble event;
-        Exchange::MEMarketUpdateDouble
-            results[50];  // Could also be any iterator
+        Exchange::MEClientResponse results_responses[50];  // Could also be any iterator
+        size_t count_responses = response_->try_dequeue_bulk(results_responses, 50);
+        for (uint i = 0; i < count_responses; i++) [[likely]]{
+            OnOrderResponse(&results_responses[i]);
+            time_manager_.Update();
+        } 
+
+        Exchange::MEMarketUpdateDouble results[50];  // Could also be any iterator
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
-        for (uint i = 0; i < count; i++) [[likely]]
-        {
+        for (uint i = 0; i < count; i++) [[likely]]{
             order_book_.OnMarketUpdate(&results[i]);
             time_manager_.Update();
         }
 
-        // if (bool found = incoming_md_updates_->try_dequeue(event); !found)
-        //     [[unlikely]]
-        //     continue;
-        // //logd("Processing in trade engine {}", event.ToString());
-
-        // order_book_.OnMarketUpdate(&event);
         if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
@@ -67,10 +65,9 @@ auto TradeEngine::Run() noexcept -> void {
 auto Trading::TradeEngine::OnOrderBookUpdate(
     std::string ticker, Price price, Side side,
     MarketOrderBookDouble* book) noexcept -> void {
-        auto bbo = order_book_.getBBO();
-        position_keeper_.UpdateBBO(ticker, bbo);
-
-    }
+    auto bbo = order_book_.getBBO();
+    position_keeper_.UpdateBBO(ticker, bbo);
+}
 
 auto Trading::TradeEngine::OnOrderResponse(
     const Exchange::MEClientResponse* client_response) noexcept -> void {
