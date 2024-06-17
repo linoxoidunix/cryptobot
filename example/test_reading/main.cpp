@@ -93,17 +93,29 @@
 //     return 0;
 // }
 
-// int main()
-// {
-//     //using namespace bybit;
-//     using klsb = binance::KLineStream;
-//     binance::Symbol btcusdt("BTC", "USDT");
-//     auto chart_interval = binance::m1();
-//     OHLCVIStorage storage;
-//     binance::OHLCVI fetcher(&btcusdt, &chart_interval);
-//     fetcher.Get(storage);
-//     return 0;
-// }
+int main()
+{
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using klsb = binance::KLineStream;
+    binance::Symbol btcusdt("BTC", "USDT");
+    auto chart_interval = binance::m1();
+    OHLCVIStorage storage;
+    OHLCVLFQueue queue;
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+    fetcher.Init(queue);
+    while(true)
+    {
+        fetcher.LaunchOne();
+        OHLCV results[50];  // Could also be any iterator
+
+        size_t count_klines = queue.try_dequeue_bulk(results, 50);
+        for (int i = 0; i < count_klines; i++) {
+            logd("{}", results[i].ToString());
+        }
+        fmtlog::poll();
+    }
+    return 0;
+}
 
 // int main()
 // {
@@ -234,29 +246,29 @@
  * 
  * @return int 
  */
-int main() {
-    fmtlog::setLogLevel(fmtlog::INF);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    Exchange::RequestNewLimitOrderLFQueue request_new_order;
-    Exchange::RequestCancelOrderLFQueue request_cancel_order;
-    Exchange::ClientResponseLFQueue response;   
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
-    GeneratorBidAskService generator(&event_queue, ticker, &interval,
-                                     TypeExchange::TESTNET);
-    generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order, &request_cancel_order,  &response, ticker);
-    trade_engine_service.Start();
-    while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             generator.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
+//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
+//     Exchange::ClientResponseLFQueue response;   
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+//     GeneratorBidAskService generator(&event_queue, ticker, &interval,
+//                                      TypeExchange::TESTNET);
+//     generator.Start();
+//     Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order, &request_cancel_order,  &response, ticker);
+//     trade_engine_service.Start();
+//     while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              generator.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
 
 // int main()
 // {

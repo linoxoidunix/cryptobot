@@ -267,6 +267,11 @@ class DiffDepthStream : public DiffDepthStreamI {
 };
 
 class OHLCVI : public OHLCVGetter {
+  class ParserResponse {
+      public:
+        explicit ParserResponse() = default;
+        OHLCV Parse(std::string_view response);
+    };
   public:
     OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
            TypeExchange type_exchange)
@@ -279,10 +284,12 @@ class OHLCVI : public OHLCVGetter {
 
     void Init(OHLCVLFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [](boost::beast::flat_buffer& buffer) {
-            auto resut = boost::beast::buffers_to_string(buffer.data());
-            logi("{}", resut);
-            fmtlog::poll();
+        OnMessageCB = [&lf_queue](boost::beast::flat_buffer& buffer) {
+            auto result = boost::beast::buffers_to_string(buffer.data());
+            ParserResponse parser;
+            lf_queue.try_enqueue(parser.Parse(result));
+            //logi("{}", result);
+            //fmtlog::poll();
         };
 
         using kls = KLineStream;

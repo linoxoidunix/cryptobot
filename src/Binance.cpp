@@ -238,3 +238,40 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     }
     return output;
 }
+
+OHLCV binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
+    OHLCV output;
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string my_padded_data(response.data(), response.size());
+    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
+    try {
+        auto error = doc["k"]["o"].get_double_in_string().get(output.open);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key open in response");
+            return output;
+        }
+        error = doc["k"]["c"].get_double_in_string().get(output.close);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key close in response");
+            return output;
+        }
+        error = doc["k"]["h"].get_double_in_string().get(output.high);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key high in response");
+            return output;
+        }
+        error = doc["k"]["l"].get_double_in_string().get(output.low);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key low in response");
+            return output;
+        }
+        error = doc["k"]["v"].get_double_in_string().get(output.volume);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key volume in response");
+            return output;
+        }
+    } catch (simdjson::simdjson_error& error) {
+        loge("JSON error: {}", error.what());
+    }
+    return output;
+}

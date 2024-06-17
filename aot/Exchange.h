@@ -127,6 +127,9 @@ struct OHLCV {
     double low;
     double close;
     double volume;
+    std::string ToString(){
+      return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close, volume);
+    }
 };
 
 struct OHLCVI {
@@ -134,7 +137,7 @@ struct OHLCVI {
     Interval interval;
     Common::TickerS ticker;
 };
-using OHLCVLFQueue  = moodycamel::ConcurrentQueue<OHLCVI>;
+using OHLCVLFQueue  = moodycamel::ConcurrentQueue<OHLCV>;
 
 using OHLCVIStorage = std::list<OHLCVI>;
 
