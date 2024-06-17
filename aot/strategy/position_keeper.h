@@ -132,7 +132,7 @@ struct PositionInfo {
 /// trading instruments.
 class PositionKeeper {
   public:
-    explicit PositionKeeper() {}
+    explicit PositionKeeper() = default;
 
     /// Deleted default, copy & move constructors and assignment-operators.
 

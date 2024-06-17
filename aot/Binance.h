@@ -92,6 +92,29 @@ class HttpsExchange : public https::ExchangeI {
     std::uint64_t recv_window_;
 };
 };  // namespace mainnet
+
+class ExchangeChooser {
+  public:
+    explicit ExchangeChooser() = default;
+    https::ExchangeI* Get(TypeExchange type_exchange) {
+        https::ExchangeI* current_exchange;
+        switch (type_exchange) {
+            case TypeExchange::MAINNET:
+                current_exchange = &main_net_;
+                break;
+            case TypeExchange::TESTNET:
+            default:
+                current_exchange = &test_net_;
+                break;
+        }
+        return current_exchange;
+    }
+
+  private:
+    binance::testnet::HttpsExchange test_net_;
+    binance::mainnet::HttpsExchange main_net_;
+};
+
 enum class Type {
     LIMIT,
     MARKET,
@@ -245,11 +268,16 @@ class DiffDepthStream : public DiffDepthStreamI {
 
 class OHLCVI : public OHLCVGetter {
   public:
-    OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
-        : s_(s), chart_interval_(chart_interval){};
-    void Get(OHLCVIStorage& buffer) override {
-        boost::asio::io_context ioc;
-        // fmtlog::setLogFile("log", true);
+    OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
+           TypeExchange type_exchange)
+        : s_(s),
+          chart_interval_(chart_interval),
+          type_exchange_(type_exchange) {
+        current_exchange_ = exchange_.Get(type_exchange);
+    };
+    void LaunchOne() override { ioc.run_one(); };
+
+    void Init(OHLCVLFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
@@ -261,14 +289,17 @@ class OHLCVI : public OHLCVGetter {
         kls channel(s_, chart_interval_);
         std::string empty_request = "{}";
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run("stream.binance.com", "9443",
+            ->Run(current_exchange_->Host(), current_exchange_->Port(),
                   fmt::format("/ws/{0}", channel.ToString()));
-        ioc.run();
     };
 
   private:
+    boost::asio::io_context ioc;
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_ = nullptr;
     const Symbol* s_;
     const ChartInterval* chart_interval_;
+    TypeExchange type_exchange_;
 };
 
 class BookEventGetter : public BookEventGetterI {
@@ -283,14 +314,7 @@ class BookEventGetter : public BookEventGetterI {
                     const DiffDepthStream::StreamIntervalI* interval,
                     TypeExchange type_exchange)
         : s_(s), interval_(interval), type_exchange_(type_exchange) {
-        switch (type_exchange) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
-        }
+        current_exchange_ = exchange_.Get(type_exchange);
     };
     void Get() override {};
     void LaunchOne() override { ioc.run_one(); };
@@ -307,9 +331,6 @@ class BookEventGetter : public BookEventGetterI {
         using dds = DiffDepthStream;
         dds channel(s_, interval_);
         std::string empty_request = "{}";
-        // std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-        //     ->Run("stream.binance.com", "9443",
-        //           fmt::format("/ws/{0}", channel.ToString()));
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
             ->Run(current_exchange_->Host(), current_exchange_->Port(),
                   fmt::format("/ws/{0}", channel.ToString()));
@@ -319,12 +340,11 @@ class BookEventGetter : public BookEventGetterI {
 
   private:
     boost::asio::io_context ioc;
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_;
     const SymbolI* s_;
     const DiffDepthStream::StreamIntervalI* interval_;
     bool callback_execute_ = false;
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
-    https::ExchangeI* current_exchange_;
     TypeExchange type_exchange_;
 };
 
@@ -434,9 +454,9 @@ class FormatterPrice {
 
 class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
-   
+
   public:
-   class ParserResponse {
+    class ParserResponse {
       public:
         explicit ParserResponse() = default;
         Exchange::MEClientResponse Parse(std::string_view response);
@@ -529,7 +549,7 @@ class OrderNewLimit : public inner::OrderNewI {
             }
         };
         void SetOrderId(Common::OrderId order_id) {
-            if (order_id != Common::OrderId_INVALID)[[likely]]
+            if (order_id != Common::OrderId_INVALID) [[likely]]
                 storage["newClientOrderId"] = Common::orderIdToString(order_id);
         };
 
@@ -552,7 +572,8 @@ class OrderNewLimit : public inner::OrderNewI {
                 break;
         }
     };
-    void Exec(Exchange::RequestNewOrder* new_order, Exchange::ClientResponseLFQueue* response_lfqueue) override {
+    void Exec(Exchange::RequestNewOrder* new_order,
+              Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(new_order);
 
         bool need_sign = true;
@@ -564,8 +585,9 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
+        cb = [response_lfqueue](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();
@@ -649,9 +671,9 @@ class BookSnapshot : public inner::BookSnapshotI {
             const auto& resut = buffer.body();
             // logi("{}", resut);
             ParserResponse parser;
-            auto answer = parser.Parse(resut);
+            auto answer   = parser.Parse(resut);
             answer.ticker = args_["symbol"];
-            *snapshot_  = answer;
+            *snapshot_    = answer;
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(

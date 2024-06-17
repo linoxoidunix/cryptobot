@@ -15,7 +15,6 @@
 #include "aot/WS.h"
 #include "aot/client_request.h"
 
-
 namespace bybit {
 enum class Type { LIMIT, MARKET };
 enum class TimeInForce { GTC, IOC, FOK, POST_ONLY };
@@ -33,7 +32,9 @@ class HttpsExchange : public https::ExchangeI {
      * to prevent replay attacks.
      */
     explicit HttpsExchange(std::uint64_t recv_window = 5000)
-        : recv_window_(recv_window){};
+        : recv_window_(recv_window) {
+        recv_window_ = (recv_window > 5000) ? 5000 : recv_window;
+    };
 
     ~HttpsExchange() override = default;
     std::string_view Host() const override {
@@ -47,6 +48,63 @@ class HttpsExchange : public https::ExchangeI {
 };
 };  // namespace testnet
 
+namespace mainnet {
+class HttpsExchange : public https::ExchangeI {
+  public:
+    /**
+     * @brief Construct a new Https Exchange object
+     *
+     * @param recv_window
+     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+     * An additional parameter, recvWindow, may be sent to specify the number of
+     * milliseconds after timestamp the request is valid for. If recvWindow is
+     * not sent, it defaults to 5000.
+     */
+    explicit HttpsExchange(std::uint64_t recv_window = 5000) {
+        /**
+         * @brief
+          https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+          It is recommended to use a small recvWindow of 5000 or less! The max
+         cannot go beyond 60,000!
+         *
+         */
+        recv_window_ = (recv_window > 5000) ? 5000 : recv_window;
+    };
+
+    virtual ~HttpsExchange() = default;
+    std::string_view Host() const override {
+        return std::string_view("api.bybit.com");
+    };
+    std::string_view Port() const override { return "443"; };
+    std::uint64_t RecvWindow() const override { return recv_window_; };
+
+  private:
+    std::uint64_t recv_window_;
+};
+};  // namespace mainnet
+
+class ExchangeChooser {
+  public:
+    explicit ExchangeChooser() = default;
+    https::ExchangeI* Get(TypeExchange type_exchange) {
+        https::ExchangeI* current_exchange;
+        switch (type_exchange) {
+            case TypeExchange::MAINNET:
+                current_exchange = &main_net_;
+                break;
+            case TypeExchange::TESTNET:
+            default:
+                current_exchange = &test_net_;
+                break;
+        }
+        return current_exchange;
+    }
+
+  private:
+    bybit::testnet::HttpsExchange test_net_;
+    bybit::mainnet::HttpsExchange main_net_;
+};
+
 class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
@@ -56,6 +114,7 @@ class Symbol : public SymbolI {
         boost::algorithm::to_upper(out);
         return out;
     }
+
   private:
     std::string first_;
     std::string second_;
@@ -145,11 +204,16 @@ class ParserKLineResponse : public ParserKLineResponseI {
 
 class OHLCVI : public OHLCVGetter {
   public:
-    OHLCVI(const Symbol* s, const ChartInterval* chart_interval)
-        : s_(s), chart_interval_(chart_interval){};
-    void Get(OHLCVIStorage& buffer) override {
-        boost::asio::io_context ioc;
-        // fmtlog::setLogFile("log", true);
+    OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
+           TypeExchange type_exchange)
+        : s_(s),
+          chart_interval_(chart_interval),
+          type_exchange_(type_exchange) {
+        current_exchange_ = exchange_.Get(type_exchange);
+    };
+    void LaunchOne() override { ioc.run_one(); };
+
+    void Init(OHLCVLFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
@@ -169,8 +233,12 @@ class OHLCVI : public OHLCVGetter {
     };
 
   private:
+    boost::asio::io_context ioc;
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_ = nullptr;
     const Symbol* s_;
     const ChartInterval* chart_interval_;
+    TypeExchange type_exchange_;
 };
 
 class Args : public std::unordered_map<std::string, std::string> {};
@@ -263,8 +331,9 @@ class FactoryRequest {
      * @param req
      * @return std::string return time which insert into headers
      */
-    std::string AddSignParams (
-        boost::beast::http::request<boost::beast::http::string_body>& req) const{
+    std::string AddSignParams(
+        boost::beast::http::request<boost::beast::http::string_body>& req)
+        const {
         CurrentTime time_service;
         auto time = std::to_string(time_service.Time());
         req.insert("X-BAPI-TIMESTAMP", time);
@@ -281,9 +350,10 @@ class FactoryRequest {
      * @param signature
      * @param req
      */
-    void AddSignature (
+    void AddSignature(
         std::string_view signature,
-        boost::beast::http::request<boost::beast::http::string_body>& req) const{
+        boost::beast::http::request<boost::beast::http::string_body>& req)
+        const {
         req.insert("X-BAPI-SIGN", signature.data());
         req.insert("X-BAPI-SIGN-TYPE", "2");
     };
@@ -316,7 +386,8 @@ class OrderNewLimit : public inner::OrderNewI {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Common::Side side, Type type)
+                           TimeInForce time_in_force, Common::Side side,
+                           Type type)
             : ArgsBody() {
             storage["category"] = "spot";
             SetSymbol(symbol);
@@ -326,8 +397,7 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order)
-            : ArgsBody() {
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order) : ArgsBody() {
             storage["category"] = "spot";
             SetSymbol(new_order->ticker);
             SetSide(new_order->side);
@@ -337,8 +407,7 @@ class OrderNewLimit : public inner::OrderNewI {
             SetTimeInForce(TimeInForce::IOC);
         };
 
-
-        private:
+      private:
         void SetSymbol(SymbolType symbol) {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
@@ -416,7 +485,8 @@ class OrderNewLimit : public inner::OrderNewI {
                 break;
         }
     };
-    void Exec(Exchange::RequestNewOrder* new_order, Exchange::ClientResponseLFQueue *response_lfqueue) override {
+    void Exec(Exchange::RequestNewOrder* new_order,
+              Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(new_order);
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -427,8 +497,9 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
+        cb = [response_lfqueue](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();

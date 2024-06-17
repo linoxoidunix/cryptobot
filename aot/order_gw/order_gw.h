@@ -13,12 +13,6 @@ namespace inner {
 class OrderNewI;
 };
 
-// namespace Exchange {
-// class RequestNewLimitOrderLFQueue;
-// class RequestCancelOrderLFQueue;
-// class ClientResponseLFQueue;
-// };  // namespace Exchange
-
 namespace Trading {
 class OrderGateway {
   public:

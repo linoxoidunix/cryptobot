@@ -9,8 +9,9 @@
 #include <string_view>
 
 #include "aot/Logger.h"
-#include "aot/market_data/market_update.h"
 #include "aot/client_response.h"
+#include "aot/common/types.h"
+#include "aot/market_data/market_update.h"
 #include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
@@ -131,7 +132,9 @@ struct OHLCV {
 struct OHLCVI {
     OHLCV ohlcv;
     Interval interval;
+    Common::TickerS ticker;
 };
+using OHLCVLFQueue  = moodycamel::ConcurrentQueue<OHLCVI>;
 
 using OHLCVIStorage = std::list<OHLCVI>;
 
@@ -146,8 +149,9 @@ class OHLCVGetter {
      *
      * @param buffer
      */
-    virtual void Get(OHLCVIStorage &buffer) = 0;
-    virtual ~OHLCVGetter()                  = default;
+    virtual void Init(OHLCVLFQueue &lf_queue) = 0;
+    virtual void LaunchOne()                  = 0;
+    virtual ~OHLCVGetter()                    = default;
 };
 
 /**

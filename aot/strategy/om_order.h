@@ -75,7 +75,7 @@ namespace Trading {
   };
 
   /// Hash map from Side -> OMOrder.
-  using OMOrderSideHashMap = std::array<OMOrder, sideToIndex(Side::MAX) + 1>;
+  using OMOrderSideHashMap = std::array<Trading::OMOrder, sideToIndex(Common::Side::MAX) + 1>;
 
   /// Hash map from TickerId -> Side -> OMOrder.
   using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<std::string, OMOrderSideHashMap>;
