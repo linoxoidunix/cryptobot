@@ -16,6 +16,7 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/strategy/kline.h"
 //#include "aot/strategy/position_keeper.h"
 //#include "aot/strategy/om_order.h"
 #include "moodycamel/concurrentqueue.h"
@@ -93,6 +94,35 @@
 //     return 0;
 // }
 
+// int main()
+// {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using klsb = binance::KLineStream;
+//     binance::Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = binance::m1();
+//     OHLCVIStorage storage;
+//     OHLCVLFQueue queue;
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+//     fetcher.Init(queue);
+//     while(true)
+//     {
+//         fetcher.LaunchOne();
+//         OHLCV results[50];  // Could also be any iterator
+
+//         size_t count_klines = queue.try_dequeue_bulk(results, 50);
+//         for (int i = 0; i < count_klines; i++) {
+//             logd("{}", results[i].ToString());
+//         }
+//         fmtlog::poll();
+//     }
+//     return 0;
+// }
+
+/**
+ * @brief kline service performance check
+ * 
+ * @return int 
+ */
 int main()
 {
     fmtlog::setLogLevel(fmtlog::DBG);
@@ -102,15 +132,14 @@ int main()
     OHLCVIStorage storage;
     OHLCVLFQueue queue;
     binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
-    fetcher.Init(queue);
-    while(true)
+    KLineService service(&fetcher, &queue);
+    service.start();
+    while(service.GetDownTimeInS() < 10)
     {
-        fetcher.LaunchOne();
         OHLCV results[50];  // Could also be any iterator
-
         size_t count_klines = queue.try_dequeue_bulk(results, 50);
         for (int i = 0; i < count_klines; i++) {
-            logd("{}", results[i].ToString());
+            logd("{} countklines:{}", results[i].ToString(), count_klines);
         }
         fmtlog::poll();
     }

@@ -26,7 +26,8 @@ class TradeEngine {
         Exchange::EventLFQueue *market_updates,
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
-        Exchange::ClientResponseLFQueue *response, const Ticker &ticker);
+        Exchange::ClientResponseLFQueue *response, OHLCVLFQueue *klines,
+        const Ticker &ticker);
 
     ~TradeEngine();
 
@@ -101,6 +102,7 @@ class TradeEngine {
     Exchange::RequestNewLimitOrderLFQueue *request_new_order_  = nullptr;
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
+    OHLCVLFQueue *klines_                                      = nullptr;
     common::TimeManager time_manager_;
     Trading::MarketOrderBookDouble order_book_;
     volatile bool run_ = false;

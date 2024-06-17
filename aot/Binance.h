@@ -133,7 +133,7 @@ class Symbol : public SymbolI {
         boost::algorithm::to_lower(out);
         return out;
     };
-    ~Symbol() = default;
+    ~Symbol() override = default;
 
   private:
     std::string first_;

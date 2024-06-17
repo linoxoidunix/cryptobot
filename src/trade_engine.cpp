@@ -5,11 +5,14 @@ TradeEngine::TradeEngine(
     Exchange::EventLFQueue* market_updates,
     Exchange::RequestNewLimitOrderLFQueue* request_new_order,
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
-    Exchange::ClientResponseLFQueue* response, const Ticker& ticker)
+    Exchange::ClientResponseLFQueue* response,
+    OHLCVLFQueue* klines, 
+    const Ticker& ticker)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
       request_cancel_order_(request_cancel_order),
       response_(response),
+      klines_(klines),
       order_book_(ticker),
       ticker_(ticker) {
     order_book_.SetTradeEngine(this);
