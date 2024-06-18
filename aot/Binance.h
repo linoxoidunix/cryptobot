@@ -267,19 +267,19 @@ class DiffDepthStream : public DiffDepthStreamI {
 };
 
 class OHLCVI : public OHLCVGetter {
-  class ParserResponse {
+    class ParserResponse {
       public:
         explicit ParserResponse() = default;
         OHLCV Parse(std::string_view response);
     };
+
   public:
     OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
            TypeExchange type_exchange)
-        : s_(s),
+        : current_exchange_(exchange_.Get(type_exchange)),
+          s_(s),
           chart_interval_(chart_interval),
-          type_exchange_(type_exchange) {
-        current_exchange_ = exchange_.Get(type_exchange);
-    };
+          type_exchange_(type_exchange){};
     void LaunchOne() override { ioc.run_one(); };
 
     void Init(OHLCVLFQueue& lf_queue) override {
@@ -288,8 +288,8 @@ class OHLCVI : public OHLCVGetter {
             auto result = boost::beast::buffers_to_string(buffer.data());
             ParserResponse parser;
             lf_queue.try_enqueue(parser.Parse(result));
-            //logi("{}", result);
-            //fmtlog::poll();
+            // logi("{}", result);
+            // fmtlog::poll();
         };
 
         using kls = KLineStream;
@@ -320,9 +320,10 @@ class BookEventGetter : public BookEventGetterI {
     BookEventGetter(const SymbolI* s,
                     const DiffDepthStream::StreamIntervalI* interval,
                     TypeExchange type_exchange)
-        : s_(s), interval_(interval), type_exchange_(type_exchange) {
-        current_exchange_ = exchange_.Get(type_exchange);
-    };
+        : current_exchange_(exchange_.Get(type_exchange)),
+          s_(s),
+          interval_(interval),
+          type_exchange_(type_exchange){};
     void Get() override {};
     void LaunchOne() override { ioc.run_one(); };
     void Init(Exchange::BookDiffLFQueue& queue) override {
@@ -474,7 +475,8 @@ class OrderNewLimit : public inner::OrderNewI {
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
                            TimeInForce time_in_force, Common::Side side,
                            Type type)
-            : ArgsQuery() {
+            : ArgsQuery() {  // TODO UNUSED. NEED USE ONLY CTOR WITH
+                             // Exchange::RequestNewOrder*
             SetSymbol(symbol);
             SetSide(side);
             SetType(type);
@@ -569,16 +571,7 @@ class OrderNewLimit : public inner::OrderNewI {
 
   public:
     explicit OrderNewLimit(SignerI* signer, TypeExchange type)
-        : signer_(signer) {
-        switch (type) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_test_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
-        }
-    };
+        : current_exchange_(exchange_.Get(type)), signer_(signer){};
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(new_order);
@@ -607,11 +600,87 @@ class OrderNewLimit : public inner::OrderNewI {
             factory.Host().data(), factory.Port().data(),
             factory.EndPoint().data(), factory());
         ioc.run();
-        int x = 0;
+    };
+    ~OrderNewLimit() override = default;
+  private:
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_;
+    SignerI* signer_;
+};
+
+class CancelOrder : public inner::CancelOrderI {
+    static constexpr std::string_view end_point = "/api/v3/order";
+
+  public:
+    class ParserResponse {
+      public:
+        explicit ParserResponse() = default;
+        Exchange::MEClientResponse Parse(std::string_view response);
+    };
+    class ArgsOrder : public ArgsQuery {
+      public:
+        using SymbolType = std::string_view;
+        explicit ArgsOrder(SymbolType symbol, Common::OrderId order_id)
+            : ArgsQuery() {
+            SetSymbol(symbol);
+            SetOrderId(order_id);
+        };
+        explicit ArgsOrder(Exchange::RequestCancelOrder* request_cancel_order)
+            : ArgsQuery() {
+            SetSymbol(request_cancel_order->ticker);
+            SetOrderId(request_cancel_order->order_id);
+        };
+
+      private:
+        void SetSymbol(SymbolType symbol) {
+            SymbolUpperCase formatter(symbol.data());
+            storage["symbol"] = formatter.ToString();
+        };
+        void SetOrderId(Common::OrderId order_id) {
+            if (order_id != Common::OrderId_INVALID) [[likely]]
+                storage["origClientOrderId"] =
+                    Common::orderIdToString(order_id);
+        };
+
+      private:
+        ArgsOrder& storage = *this;
     };
 
+  public:
+    explicit CancelOrder(SignerI* signer, TypeExchange type)
+        : current_exchange_(exchange_.Get(type)), signer_(signer){};
+    void Exec(Exchange::RequestCancelOrder* request_cancel_order,
+              Exchange::ClientResponseLFQueue* response_lfqueue) override {
+        ArgsOrder args(request_cancel_order);
+
+        bool need_sign = true;
+        detail::FactoryRequest factory{current_exchange_,
+                                       CancelOrder::end_point,
+                                       args,
+                                       boost::beast::http::verb::delete_,
+                                       signer_,
+                                       need_sign};
+        boost::asio::io_context ioc;
+        OnHttpsResponce cb;
+        cb = [response_lfqueue](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
+            const auto& resut = buffer.body();
+            logi("{}", resut);
+            fmtlog::poll();
+            ParserResponse parser;
+            auto answer = parser.Parse(resut);
+            response_lfqueue->enqueue(answer);
+            fmtlog::poll();
+        };
+        std::make_shared<Https>(ioc, cb)->Run(
+            factory.Host().data(), factory.Port().data(),
+            factory.EndPoint().data(), factory());
+        ioc.run();
+    };
+    ~CancelOrder() override{};
   private:
-    binance::testnet::HttpsExchange binance_test_net_;
+    ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
 };
@@ -697,7 +766,6 @@ class BookSnapshot : public inner::BookSnapshotI {
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
     Exchange::BookSnapshot* snapshot_;
-    // MEMarketUpdateLFQueue& queue_;
 };
 
 /**

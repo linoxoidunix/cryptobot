@@ -239,6 +239,39 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     return output;
 }
 
+Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
+    std::string_view response) {
+    Exchange::MEClientResponse output;
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string my_padded_data(response.data(), response.size());
+    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
+    try {
+        output.order_id =
+            doc["clientOrderId"]
+                .get_uint64_in_string();  // TODO check this is uint64
+        std::string_view status;
+        auto error_status = doc["status"].get_string().get(status);
+        if (error_status != simdjson::SUCCESS) {
+            loge("no key status in response");
+            return output;
+        }
+        std::unordered_set<std::string_view> success_status{
+            "CANCELED"};
+        if (!success_status.count(status)) return output;
+        output.type = Exchange::ClientResponseType::CANCELED;
+        std::string_view ticker;
+        auto error_symbol = doc["symbol"].get_string().get(ticker);
+        if (error_symbol != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key symbol in response");
+            return output;
+        }
+        output.ticker = ticker;
+    } catch (simdjson::simdjson_error& error) {
+        loge("JSON error: {}", error.what());
+    }
+    return output;
+}
+
 OHLCV binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     OHLCV output;
     simdjson::ondemand::parser parser;

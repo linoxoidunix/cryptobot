@@ -127,8 +127,9 @@ struct OHLCV {
     double low;
     double close;
     double volume;
-    std::string ToString(){
-      return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close, volume);
+    std::string ToString() {
+        return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close,
+                           volume);
     }
 };
 
@@ -269,7 +270,8 @@ class ParserKLineResponseI {
 };
 namespace Exchange {
 class RequestNewOrder;
-};
+class RequestCancelOrder;
+};  // namespace Exchange
 
 namespace inner {
 class OrderNewI {
@@ -282,6 +284,18 @@ class OrderNewI {
     virtual void Exec(Exchange::RequestNewOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
     virtual ~OrderNewI()                                 = default;
+};
+
+class CancelOrderI {
+  public:
+    /**
+     * @brief send RequestNewOrder order to exchange and get response from
+     * exchange and transfer responce* to ClientResponseLFQueue
+     *
+     */
+    virtual void Exec(Exchange::RequestCancelOrder *,
+                      Exchange::ClientResponseLFQueue *) = 0;
+    virtual ~CancelOrderI()                              = default;
 };
 
 class BookSnapshotI {
