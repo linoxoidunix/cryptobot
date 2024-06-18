@@ -247,7 +247,7 @@ Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     try {
         output.order_id =
-            doc["clientOrderId"]
+            doc["origClientOrderId"]
                 .get_uint64_in_string();  // TODO check this is uint64
         std::string_view status;
         auto error_status = doc["status"].get_string().get(status);

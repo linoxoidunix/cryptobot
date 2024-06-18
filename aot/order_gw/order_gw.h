@@ -8,15 +8,16 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 
-
 namespace inner {
 class OrderNewI;
+class CancelOrderI;
 };
 
 namespace Trading {
 class OrderGateway {
   public:
-    OrderGateway(inner::OrderNewI *new_order,
+    OrderGateway(inner::OrderNewI *executor_new_orders,
+                 inner::CancelOrderI *executor_canceled_orders,
                  Exchange::RequestNewLimitOrderLFQueue *requests_new_order,
                  Exchange::RequestCancelOrderLFQueue *requests_cancel_order,
                  Exchange::ClientResponseLFQueue *client_responses);
@@ -50,7 +51,8 @@ class OrderGateway {
     OrderGateway &operator=(const OrderGateway &&) = delete;
 
   private:
-    inner::OrderNewI *new_order_;
+    inner::OrderNewI *executor_new_orders_;
+    inner::CancelOrderI *executor_canceled_orders_;
 
     /// Lock free queue on which we consume client requests from the trade
     /// engine and forward them to the exchange's order server.

@@ -63,6 +63,15 @@ struct MEClientResponse {
     double leaves_qty        = Common::kQTY_DOUBLE_INVALID;
 
     auto ToString() const {
+        auto PrintAsCancelled = [this]()
+        {
+            return fmt::format(
+                        "MEClientResponse[type:{} ticker:{} order_id:{}]",
+                        ClientResponseTypeToString(type), ticker,
+                        Common::orderIdToString(order_id));
+        };
+        if(type == ClientResponseType::CANCELED)
+            return PrintAsCancelled();
         std::string price_string =
             (price != Common::kPRICE_DOUBLE_INVALID)
                 ? fmt::format("{}", price)
