@@ -16,8 +16,6 @@ Action::Pointer Predictor::Predict(OHLCV data) {
     return action;
 }
 
-Predictor::~Predictor() {}
-
 Action::Pointer ActionFactory::Produce(
     std::pair<std::string, long> python_module_answer) {
     if (python_module_answer.first == "enter_long" &&

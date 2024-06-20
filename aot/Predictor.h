@@ -71,7 +71,7 @@ class Predictor {
     Action::Pointer Predict(OHLCV data);
     Predictor(const Predictor&)            = delete;
     Predictor& operator=(const Predictor&) = delete;
-    ~Predictor();
+    ~Predictor() = default;
 
   private:
     std::unique_ptr<detail::PredictorImpl> impl;

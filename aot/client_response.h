@@ -56,7 +56,6 @@ struct MEClientResponse {
     ClientResponseType type = ClientResponseType::INVALID;
     std::string ticker;
     Common::OrderId order_id = Common::OrderId_INVALID;
-    // OrderId market_order_id_ = OrderId_INVALID;
     Common::Side side        = Common::Side::INVALID;
     double price             = Common::kPRICE_DOUBLE_INVALID;
     double exec_qty          = Common::kQTY_DOUBLE_INVALID;
