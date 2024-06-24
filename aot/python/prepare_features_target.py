@@ -9,9 +9,6 @@ import talib
 from talib import RSI, BBANDS, MACD, ATR, NATR, PPO
 from dateutil.parser import parse
 
-p = parse('2023-01-01 00:00:01+00:00', fuzzy=True)
-print(f'y:{p.year} m:{p.month} d:{p.day}')
-
 MONTH = 21
 YEAR = 12 * MONTH
 
@@ -26,7 +23,13 @@ percentiles += [1-p for p in percentiles[::-1]]
 
 T = [1, 5, 10, 21, 42, 63]
 
-prices = pd.read_csv('data/ohlcv.csv', sep='\t')
+prices1 = pd.read_csv('data/ohlcv1.csv', sep='\t')
+prices2 = pd.read_csv('data/ohlcv2.csv', sep='\t')
+
+
+frames = [prices1, prices2]
+
+prices = pd.concat(frames)
 
 prices['dollar_vol'] = prices[['close', 'volume']].prod(1).div(1e3)
 dollar_vol_ma = (prices
@@ -104,7 +107,6 @@ prices['year'] = prices['year'].apply(lambda x : x.year)
 prices['month'] = prices['month'].apply(lambda x : x.month)
 prices['day'] = prices['day'].apply(lambda x : x.day)
 prices['weekday'] = prices['weekday'].apply(lambda x : x.weekday())
-
 prices.drop(['open', 'close', 'low', 'high', 'volume'], axis=1).to_hdf('data.h5', 'model_data')
 # print(prices.info())
 
