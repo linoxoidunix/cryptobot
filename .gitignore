@@ -11,6 +11,5 @@ emhash/
 benchmark/
 unordered_dense/
 data/
-/data.h5
 results/
 aot/python/__pycache__/
