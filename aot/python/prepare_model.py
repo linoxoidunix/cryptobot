@@ -14,7 +14,7 @@ import pandas as pd
 
 import lightgbm as lgb
 from catboost import Pool, CatBoostRegressor
-
+from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
 from scipy.stats import spearmanr
 
@@ -34,7 +34,7 @@ sns.set_style('whitegrid')
 YEAR = 252
 idx = pd.IndexSlice
 
-data = pd.read_hdf('data.h5', 'model_data')
+data = pd.read_hdf('data/data.h5', 'model_data')
 data = data.set_index('ts_parsed')
 data.drop('timestamp', axis=1, inplace=True)
 
@@ -49,7 +49,7 @@ test_lengths = [63, 21]
 
 test_params = list(product(lookaheads, train_lengths, test_lengths))
 
-results_path = Path('results', 'BTCUSD')
+results_path = Path('results', 'BTCUSDT')
 if not results_path.exists():
     results_path.mkdir(parents=True)
 
@@ -63,6 +63,7 @@ for lookahead, train_length, test_length in tqdm(test_params):
     df = pd.get_dummies(data.loc[:, features + [label]].dropna(), 
                         columns=categoricals, 
                         drop_first=True)
+    #print(df)
     X, y = df.drop(label, axis=1), df[label]
     n_splits = int(YEAR / test_length)
     cv = MultipleTimeSeriesCV(n_splits=n_splits,
@@ -103,7 +104,7 @@ axes[1].set_ylabel('')
 fig.tight_layout()
 #plt.show(block=True)
 
-print(lr_metrics)
+# print(lr_metrics)
 
 lr_metrics = (lr_metrics.groupby('lookahead', group_keys=False)
  .apply(lambda x: x.nlargest(2, 'ic_by_day')))
@@ -196,14 +197,10 @@ for lookahead, train_length, test_length in test_params:
                               test_period_length=test_length,
                               train_period_length=train_length,
                               date_idx='ts_parsed')
-
     label = label_dict[lookahead]
-    outcome_data = data.loc[:, features + [label]].dropna()
-    
-    # binary dataset
-    # print(outcome_data.drop(label, axis=1))
-    # print(outcome_data[label])
-
+    #select only 2021 year among 2021-2022. outcome_data index has delta 6 hours. for working alphalens need result only every day not intaday
+    outcome_data = data.loc['2020-01-01':'2021-12-31', features + [label]].dropna()
+    #print(outcome_data)
     lgb_data = lgb.Dataset(data=outcome_data.drop(label, axis=1),
                            label=outcome_data[label],
                            categorical_feature=categoricals,
@@ -216,7 +213,7 @@ for lookahead, train_length, test_length in test_params:
         key = f'{lookahead}/{train_length}/{test_length}/' + '/'.join([str(p) for p in param_vals])
         params = dict(zip(param_names, param_vals))
         params.update(base_params)
-
+        print(key)
         start = time()
         cv_preds, nrounds = [], []
         ic_cv = defaultdict(list)
@@ -227,12 +224,6 @@ for lookahead, train_length, test_length in test_params:
             # select train subset
             lgb_train = lgb_data.subset(used_indices=train_idx.tolist(),
                                        params=params).construct()
-            # lgb_train = lgb_data.subset(used_indices=[1,2],
-            #                            params=params).construct()
-            # print(11111)
-            # print(lgb_train.get_data())
-            # print(lgb_train.get_label())
-            # train model for num_boost_round
             model = lgb.train(params=params,
                               train_set=lgb_train,
                               num_boost_round=num_boost_round)
@@ -255,23 +246,13 @@ for lookahead, train_length, test_length in test_params:
         
         # combine fold results
         cv_preds = pd.concat(cv_preds).assign(**params)
+        cv_preds['date'] = cv_preds.index.date
         predictions.append(cv_preds)
-        
         # compute IC per day
-        # print (111111111111)
-        # #by_day = cv_preds.groupby('ts_parsed')
-        # #by_day.apply(print)
-        # print(cv_preds[['y_test', '10']])
+        by_day = cv_preds.groupby('date')
 
-        # v = spearmanr(cv_preds.y_test, cv_preds[str(10)])
-        # print(v)
-
-        # x = by_day.apply(lambda x: spearmanr(x.y_test, x[str(10)])[0]).to_frame(10)
-        # #print(x)
-
-        ic_by_day = pd.concat([cv_preds.apply(lambda x: spearmanr(cv_preds.y_test, cv_preds[str(n)])[0]).to_frame(n)
+        ic_by_day = pd.concat([by_day.apply(lambda x: spearmanr(x.y_test, x[str(n)])[0]).to_frame(n)
                                for n in num_iterations], axis=1)
-        #print(ic_by_day)
         daily_ic_mean = ic_by_day.mean()
         daily_ic_mean_n = daily_ic_mean.idxmax()
         daily_ic_median = ic_by_day.median()

@@ -13,7 +13,7 @@ MONTH = 21
 YEAR = 12 * MONTH
 
 START = '2020-01-01'
-END = '2023-01-01'
+END = '2023-12-31'
 
 sns.set_style('darkgrid')
 idx = pd.IndexSlice
@@ -23,11 +23,11 @@ percentiles += [1-p for p in percentiles[::-1]]
 
 T = [1, 5, 10, 21, 42, 63]
 
-prices1 = pd.read_csv('data/ohlcv1.csv', sep='\t')
-prices2 = pd.read_csv('data/ohlcv2.csv', sep='\t')
+prices = pd.read_csv('data/ohlcv.csv', sep='\t')
+#prices2 = pd.read_csv('data/ohlcv2.csv', sep='\t')
 
 
-frames = [prices1, prices2]
+frames = [prices]
 
 prices = pd.concat(frames)
 
@@ -107,7 +107,7 @@ prices['year'] = prices['year'].apply(lambda x : x.year)
 prices['month'] = prices['month'].apply(lambda x : x.month)
 prices['day'] = prices['day'].apply(lambda x : x.day)
 prices['weekday'] = prices['weekday'].apply(lambda x : x.weekday())
-prices.drop(['open', 'close', 'low', 'high', 'volume'], axis=1).to_hdf('data.h5', 'model_data')
+prices.drop(['open', 'close', 'low', 'high', 'volume'], axis=1).to_hdf('data/data.h5', 'model_data')
 # print(prices.info())
 
 
