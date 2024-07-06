@@ -227,7 +227,6 @@ for lookahead, train_length, test_length in test_params:
             model = lgb.train(params=params,
                               train_set=lgb_train,
                               num_boost_round=num_boost_round)
-            xxx = model.feature_importance(importance_type='gain')
 
             # log feature importance
             if i == 0:

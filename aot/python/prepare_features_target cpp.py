@@ -107,8 +107,7 @@ prices['year'] = prices['year'].apply(lambda x : x.year)
 prices['month'] = prices['month'].apply(lambda x : x.month)
 prices['day'] = prices['day'].apply(lambda x : x.day)
 prices['weekday'] = prices['weekday'].apply(lambda x : x.weekday())
-prices.drop(['open', 'close', 'low', 'high', 'volume'], axis=1).to_hdf('data/data.h5', 'model_data')
-print(prices.drop(['open', 'close', 'low', 'high', 'volume'], axis=1))
+prices.to_hdf('data/data.h5', 'model_data')
 # print(prices.info())
 
 

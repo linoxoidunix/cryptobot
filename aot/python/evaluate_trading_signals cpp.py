@@ -414,7 +414,6 @@ param_names = ['learning_rate', 'num_leaves',
 base_params = dict(boosting='gbdt',
                    objective='regression',
                    verbose=-1)
-    
 #     # iterate over (shuffled) hyperparameter combinations
 #     for p, param_vals in enumerate(cv_params_):
 #         key = f'{lookahead}/{train_length}/{test_length}/' + '/'.join([str(p) for p in param_vals])
@@ -499,14 +498,14 @@ for best in range(topn):
 
     # iterate over folds
     for train_idx in cv.split(X=outcome_data):
-
     # select train subset
         lgb_train = lgb_data.subset(used_indices=train_idx[0],
                                     params=params).construct()
         
         if(need_write_x):
-            print(lgb_train.get_data())
             lgb_train.get_data().to_hdf(lgb_store, 'features')
+            data.iloc[train_idx[0]].to_hdf(lgb_store, 'test_idx')
+            #np.save(arr=train_idx[0], file='models/test_idx')
             need_write_x = False
 
         model = lgb.train(params=params,
