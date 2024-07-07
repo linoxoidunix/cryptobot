@@ -129,7 +129,7 @@ class BaseStrategy:
         """suppose we have 3 models in models folder
         """
         self.__list_model__ = [lgb.Booster(model_file=f'models/model_{current}.txt') for current in range(3)]
-        self.__name_features_for_model__ = list_model[0].feature_name()
+        self.__name_features_for_model__ = self.__list_model__[0].feature_name()
 
     def __load_trained_subset__(self):
         """load X trained subset
