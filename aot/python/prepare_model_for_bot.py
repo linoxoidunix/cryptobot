@@ -4,120 +4,153 @@ import numpy as np
 from talib import RSI, BBANDS, MACD, ATR, NATR, PPO
 import lightgbm as lgb
 import statistics
+import my_types as types
 
+class BaseStrategy:
+    """_summary_
+    """
+    def __init__(self):
+        """__window__ - i suppose we calculate forward return 21
+        __min_period__ -  need for calculate dollar rank. mesure in month
+        __T__ - list timeperiods
+        """
+        self.__window__ = 21
+        self.__min_period__ = 1
+        self.__T__ = [1, 5, 10, 21, 42, 63]
+        self.__data__ = pd.DataFrame()
+        self.__load_trained_subset__()
+        self.__load_prediction_models__()
 
-T = [1, 5, 10, 21, 42, 63]
+    def get_action(self, open, high, low, close, volume):
+        """function that transformate raw data to action 
 
-results_path = Path('models')
-lgb_store = Path(results_path /'features_df.h5')
+        Args:
+            open (float): open price during tick
+            high (float): highest price during tick
+            low (float): lowest price during tick
+            close (float): close price during tick
+            volume (float): volume during tick
 
-test_idx = np.load(results_path / 'test_idx.npy')
+        Returns:
+            tuple: return action: enter_long, enter_short, exit_long, exit_short or nothing with confidence?? 0 or 1
+        """
+        date = pd.Timestamp.utcnow()
+        dict_with_new_data = {'date':date, 'open':open, 'high':high, 'low':low, 'close':close, 'volume':volume}
+        new_row = pd.DataFrame([dict_with_new_data])
+        new_row.set_index('date', inplace=True)
+        data_with_new_row = pd.concat([self.__data__, new_row], ignore_index=False)
+        self.__calculate_features__(data_with_new_row, date)
+        predicted_value = self.__predict__(data_with_new_row.loc[date, self.__name_features_for_model__])
+        action = self.__generate_action__(predicted_value)
+        return {action:1}
+    
+    def __calculate_features__(self, data, date):
+        self.__calculate_dol_vol__(data, date)
+        self.__calculate_dollar_vol_rank__(data, date)
+        self.__calculate_rsi__(data, date)
+        self.__calculate_bb_high_bb_low__(data, date)
+        self.__calculate_natr__(data, date)
+        self.__calculate_atr__(data, date)
+        self.__calculate_ppo__(data, date)
+        self.__calculate_macd__(data, date)
+        self.__calculate_return__(data, date)
+        self.__calculate_quantile_return__(data, date)
+        self.__calculate_ymdw__(data, date)
 
-data = pd.DataFrame()
+    def __calculate_dol_vol__(self, data, date):
+        data.loc[date:,'dollar_vol'] = data.loc[date:][['close', 'volume']].prod(1).div(1e3)
 
-with pd.HDFStore(results_path / 'features_df.h5') as store:
-    for i, key in enumerate(
-        [k[1:] for k in store.keys() if k[1:].startswith('test_idx')]):
-        data = store[key]
+    def __calculate_dollar_vol_rank__(self, data, date):
+        dollar_vol_ma = (data
+                        .dollar_vol
+                        .rolling(window=self.__window__, min_periods=self.__min_period__) # 1 trading month
+                        .mean())
+        data['dollar_vol_rank'] = (dollar_vol_ma.rank(axis=0, ascending=False))
 
-open = 55555.5
-high = 66666.6
-low = 44444.4
-close = 55577.9
-volume = 20000.9
-date = pd.Timestamp.utcnow()
-dict = {'date':date, 'open':open, 'high':high, 'low':low, 'close':close, 'volume':volume}
-new_row = pd.DataFrame([dict])
-new_row.set_index('date', inplace=True)
+    def __calculate_rsi__(self, data, date):
+       data['rsi'] = RSI(data['close'])
 
-print(new_row)
+    def __calculate_bb_high_bb_low__(self, data, date):
+        data['bb_high'] = BBANDS(data['close'], timeperiod=20)[0]
+        data['bb_low'] = BBANDS(data['close'], timeperiod=20)[2]
+        data['bb_high'] = data.bb_high.sub(data.close).div(data.bb_high).apply(np.log1p)
+        data['bb_low'] = data.close.sub(data.bb_low).div(data.close).apply(np.log1p)  
 
-data_with_new_row = pd.concat([data, new_row], ignore_index=False)
+    def __calculate_natr__(self, data, date):
+        data['NATR'] = NATR(data.high, data.low, data.close)
 
-#asign dollar_vol
-data_with_new_row.loc[date:,'dollar_vol'] = data_with_new_row.loc[date:][['close', 'volume']].prod(1).div(1e3)
+    def __calculate_atr__(self, data, date):
+        def compute_atr(stock_data):
+            df = ATR(stock_data.high, stock_data.low, 
+                    stock_data.close, timeperiod=14)
+            return df.sub(df.mean()).div(df.std())
 
-#asign dollar_vol_rank
-window = 21
-min_period = 1
+        data['ATR'] = compute_atr(data)
 
-dollar_vol_ma = (data_with_new_row
-                 .dollar_vol
-                 .rolling(window=window, min_periods=min_period) # 1 trading month
-                 .mean())
-data_with_new_row['dollar_vol_rank'] = (dollar_vol_ma.rank(axis=0, ascending=False))
+    def __calculate_ppo__(self, data, date):
+        data['PPO'] = PPO(data.close)
 
-#asign rsi
-data_with_new_row['rsi'] = RSI(data_with_new_row['close'])
+    def __calculate_macd__(self, data, date):
+        def compute_macd(close):
+            macd = MACD(close)[0]
+            return (macd - np.mean(macd))/np.std(macd)
+        data['MACD'] = compute_macd(data.close)
 
-#asign bb_high bb_low
-data_with_new_row['bb_high'] = BBANDS(data_with_new_row['close'], timeperiod=20)[0]
-data_with_new_row['bb_low'] = BBANDS(data_with_new_row['close'], timeperiod=20)[2]
-data_with_new_row['bb_high'] = data_with_new_row.bb_high.sub(data_with_new_row.close).div(data_with_new_row.bb_high).apply(np.log1p)
-data_with_new_row['bb_low'] = data_with_new_row.close.sub(data_with_new_row.bb_low).div(data_with_new_row.close).apply(np.log1p)
+    def __calculate_return__(self, data, date):
+        by_sym = data.close
+        for t in self.__T__:
+            data[f'r{t:02}'] = by_sym.pct_change(t)
 
-#asign NATR
-data_with_new_row['NATR'] = NATR(data_with_new_row.high, data_with_new_row.low, data_with_new_row.close)
+    def __calculate_quantile_return__(self, data, date):
+        for t in self.__T__:
+            data[f'r{t:02}dec'] = pd.qcut(data[f'r{t:02}'], 
+                                                        q=10, 
+                                                        labels=False, 
+                                                        duplicates='drop')
+            
+    def __calculate_ymdw__(self, data, date):
+        """calculate year(y) month(m) day(d) weekday(w)
 
-def compute_atr(stock_data):
-    df = ATR(stock_data.high, stock_data.low, 
-             stock_data.close, timeperiod=14)
-    return df.sub(df.mean()).div(df.std())
+        Args:
+            data (pandas.DataFrame): _description_
+            date (Timestamp): _description_
+        """
+        data['year'] = data.index
+        data['month'] = data.index
+        data['day'] = data.index
+        data['weekday'] = data.index
 
-#asign ATR
-data_with_new_row['ATR'] = compute_atr(data_with_new_row)
+        data['year'] = data['year'].apply(lambda x : x.year)
+        data['month'] = data['month'].apply(lambda x : x.month)
+        data['day'] = data['day'].apply(lambda x : x.day)
+        data['weekday'] = data['weekday'].apply(lambda x : x.weekday())
 
-#asign PPO
-data_with_new_row['PPO'] = PPO(data_with_new_row.close)
+    def __load_prediction_models__(self):
+        """suppose we have 3 models in models folder
+        """
+        self.__list_model__ = [lgb.Booster(model_file=f'models/model_{current}.txt') for current in range(3)]
+        self.__name_features_for_model__ = list_model[0].feature_name()
 
-#asign MACD
-def compute_macd(close):
-    macd = MACD(close)[0]
-    return (macd - np.mean(macd))/np.std(macd)
-data_with_new_row['MACD'] = compute_macd(data_with_new_row.close)
+    def __load_trained_subset__(self):
+        """load X trained subset
+        """
+        results_path = Path('models')
+        with pd.HDFStore(results_path / 'features_df.h5') as store:
+            for i, key in enumerate(
+                [k[1:] for k in store.keys() if k[1:].startswith('test_idx')]):
+                self.__data__ = store[key]
 
-#asign return
-by_sym = data_with_new_row.close
-for t in T:
-    data_with_new_row[f'r{t:02}'] = by_sym.pct_change(t)
+    def __predict__(self, new_features):
+        predicted_value = [ model.predict(new_features)[0] for model in self.__list_model__]
+        return statistics.mean(predicted_value)
 
-#asign return per quantile
-for t in T:
-    data_with_new_row[f'r{t:02}dec'] = pd.qcut(data_with_new_row[f'r{t:02}'], 
-                                                    q=10, 
-                                                    labels=False, 
-                                                    duplicates='drop')
-#asign year moth weekday
-data_with_new_row['year'] = data_with_new_row.index
-data_with_new_row['month'] = data_with_new_row.index
-data_with_new_row['day'] = data_with_new_row.index
-data_with_new_row['weekday'] = data_with_new_row.index
-
-def compute_year(x):
-    return x.year
-
-def compute_month(x):
-    return x.month
-
-def compute_day(x):
-    return x.day
-
-data_with_new_row['year'] = data_with_new_row['year'].apply(lambda x : x.year)
-data_with_new_row['month'] = data_with_new_row['month'].apply(lambda x : x.month)
-data_with_new_row['day'] = data_with_new_row['day'].apply(lambda x : x.day)
-data_with_new_row['weekday'] = data_with_new_row['weekday'].apply(lambda x : x.weekday())
-
-#load lgb model
-#i know we use 3 models
-list_model = [lgb.Booster(model_file=f'models/model_{current}.txt') for current in range(3)]
-
-#get list all features from model
-features = list_model[0].feature_name()
-
-#get df last elem
-df_for_predict = data_with_new_row.tail(1).loc[:, features]
-
-predicted_label = [ model.predict(df_for_predict) for model in list_model]
-
-# print (df_for_predict)
-print ( predicted_label)
+    def __generate_action__(self, predicted_value):
+        if(predicted_value > 0.01):
+            return types.enter_long
+        if(predicted_value < -0.01):
+            return types.enter_short
+        if(predicted_value < 0):
+            return types.exit_long
+        if(predicted_value > 0):
+            return types.exit_short
+        return types.__nothing__
