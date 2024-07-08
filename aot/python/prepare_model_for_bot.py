@@ -9,17 +9,20 @@ import my_types as types
 class BaseStrategy:
     """_summary_
     """
-    def __init__(self):
+    def __init__(self, path_where_models):
         """__window__ - i suppose we calculate forward return 21
         __min_period__ -  need for calculate dollar rank. mesure in month
         __T__ - list timeperiods
+        Args:
+            path_where_models (string): path where folder "models" exist
         """
+        self.__path_where_models__ = path_where_models
         self.__window__ = 21
         self.__min_period__ = 1
         self.__T__ = [1, 5, 10, 21, 42, 63]
         self.__data__ = pd.DataFrame()
-        self.__load_trained_subset__()
-        self.__load_prediction_models__()
+        self.__load_trained_subset__(path_where_models)
+        self.__load_prediction_models__(path_where_models)
 
     def get_action(self, open, high, low, close, volume):
         """function that transformate raw data to action 
@@ -125,16 +128,16 @@ class BaseStrategy:
         data['day'] = data['day'].apply(lambda x : x.day)
         data['weekday'] = data['weekday'].apply(lambda x : x.weekday())
 
-    def __load_prediction_models__(self):
+    def __load_prediction_models__(self, path_where_models):
         """suppose we have 3 models in models folder
         """
-        self.__list_model__ = [lgb.Booster(model_file=f'models/model_{current}.txt') for current in range(3)]
+        self.__list_model__ = [lgb.Booster(model_file=f'{path_where_models}/models/model_{current}.txt') for current in range(3)]
         self.__name_features_for_model__ = self.__list_model__[0].feature_name()
 
-    def __load_trained_subset__(self):
+    def __load_trained_subset__(self, path_where_models):
         """load X trained subset
         """
-        results_path = Path('models')
+        results_path = Path(f'{path_where_models}/models')
         with pd.HDFStore(results_path / 'features_df.h5') as store:
             for i, key in enumerate(
                 [k[1:] for k in store.keys() if k[1:].startswith('test_idx')]):

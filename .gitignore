@@ -14,3 +14,4 @@ data/
 results/
 aot/python/__pycache__/
 models/
+example/cpp_with_python/__pycache__/

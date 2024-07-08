@@ -20,6 +20,7 @@
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/om_order.h"
 #include "moodycamel/concurrentqueue.h"
+#include "aot/launcher_predictor.h"
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -382,49 +383,66 @@
  * @param argv
  * @return int
  */
-int main(int argc, char** argv) {
-    hmac_sha256::Keys keys{argv[1], argv[2]};
-    hmac_sha256::Signer signer(keys);
-    auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::DBG);
-    using namespace binance;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
-    using namespace Trading;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
-    Exchange::RequestCancelOrder order_for_cancel;
+// int main(int argc, char** argv) {
+//     hmac_sha256::Keys keys{argv[1], argv[2]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using namespace binance;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     using namespace Trading;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     Exchange::RequestCancelOrder order_for_cancel;
     
-    Exchange::RequestNewOrder request_new_order;
-    request_new_order.ticker   = "BTCUSDT";
-    request_new_order.order_id = 6;
-    request_new_order.side     = Common::Side::BUY;
-    request_new_order.price    = 40000;
-    request_new_order.qty      = 0.001;
+//     Exchange::RequestNewOrder request_new_order;
+//     request_new_order.ticker   = "BTCUSDT";
+//     request_new_order.order_id = 6;
+//     request_new_order.side     = Common::Side::BUY;
+//     request_new_order.price    = 40000;
+//     request_new_order.qty      = 0.001;
 
-    requests_new_order.enqueue(request_new_order);
+//     requests_new_order.enqueue(request_new_order);
 
-    order_for_cancel.ticker   = "BTCUSDT";
-    order_for_cancel.order_id = 6;
+//     order_for_cancel.ticker   = "BTCUSDT";
+//     order_for_cancel.order_id = 6;
 
-    requests_cancel_order.enqueue(order_for_cancel);
-    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-                    &requests_cancel_order, &client_responses);
-    gw.start();
-    while (gw.GetDownTimeInS() < 7) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             gw.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(3s);
-    }
+//     requests_cancel_order.enqueue(order_for_cancel);
+//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+//                     &requests_cancel_order, &client_responses);
+//     gw.start();
+//     while (gw.GetDownTimeInS() < 7) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              gw.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(3s);
+//     }
 
-    Exchange::MEClientResponse response[50];  // Could also be any iterator
+//     Exchange::MEClientResponse response[50];  // Could also be any iterator
 
-    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
-    for (int i = 0; i < count_new_order; i++) {
-        logd("{}", response[i].ToString());
-    }
+//     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+//     for (int i = 0; i < count_new_order; i++) {
+//         logd("{}", response[i].ToString());
+//     }
 
-    return 0;
+//     return 0;
+// }
+//-----------------------------------------------------------------------------------
+/**
+ * @brief testing cpp wrapper for python strategy predict class
+ * 
+ * @param argc 
+ * @param argv 
+ * @return int 
+ */
+int main(int argc, char** argv)
+{
+    fmtlog::setLogLevel(fmtlog::DBG);
+    const auto python_path = argv[1];
+    std::string path_where_models = "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    base_strategy::Strategy predictor(python_path, path_where_models, "strategy.py", "Predictor", "predict");
+    fmtlog::poll();
+    predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
 }
