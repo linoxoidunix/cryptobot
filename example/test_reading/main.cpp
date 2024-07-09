@@ -117,33 +117,33 @@
 //     }
 //     return 0;
 // }
-
+//----------------------------------------------------------------
 /**
  * @brief kline service performance check
  *
  * @return int
  */
-int main() {
-    fmtlog::setLogLevel(fmtlog::DBG);
-    using klsb = binance::KLineStream;
-    binance::Symbol btcusdt("BTC", "USDT");
-    auto chart_interval = binance::m1();
-    OHLCVIStorage storage;
-    OHLCVLFQueue queue;
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
-    KLineService service(&fetcher, &queue);
-    service.start();
-    while (service.GetDownTimeInS() < chart_interval.Seconds()) {
-        OHLCV results[50];  // Could also be any iterator
-        size_t count_klines = queue.try_dequeue_bulk(results, 50);
-        for (int i = 0; i < count_klines; i++) {
-            logd("{} countklines:{}", results[i].ToString(), count_klines);
-        }
-        fmtlog::poll();
-    }
-    return 0;
-}
-
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using klsb = binance::KLineStream;
+//     binance::Symbol btcusdt("BTC", "USDT");
+//     auto chart_interval = binance::m1();
+//     OHLCVIStorage storage;
+//     OHLCVLFQueue queue;
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+//     KLineService service(&fetcher, &queue);
+//     service.start();
+//     while (service.GetDownTimeInS() < chart_interval.Seconds()) {
+//         OHLCV results[50];  // Could also be any iterator
+//         size_t count_klines = queue.try_dequeue_bulk(results, 50);
+//         for (int i = 0; i < count_klines; i++) {
+//             logd("{} countklines:{}", results[i].ToString(), count_klines);
+//         }
+//         fmtlog::poll();
+//     }
+//     return 0;
+// }
+//----------------------------------------------------------------
 // int main()
 // {
 //     try
@@ -446,3 +446,57 @@ int main() {
 //     "strategy.py", "Predictor", "predict"); fmtlog::poll();
 //     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
 // }
+//----------------------------------------------------------------------------------------
+/**
+ * @brief test launch trade engine service with 
+ * 1)KLineService service
+ * 2)GeneratorBidAskService service
+ * 3)OrderGateway service
+ * @param argc
+ * @param argv
+ * @return int
+ */
+int main(int argc, char** argv) {
+    hmac_sha256::Keys keys{argv[2], argv[3]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::INF);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+    OHLCVLFQueue ohlcv_queue;
+    OrderNewLimit new_order(&signer, type);
+    CancelOrder executor_cancel_order(&signer, type);
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+    
+    GeneratorBidAskService generator_bid_ask_service(&event_queue, ticker, &interval,
+                                     TypeExchange::TESTNET);
+    generator_bid_ask_service.Start();
+
+    
+    Trading::OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+                     &requests_cancel_order, &client_responses);
+    gw.start();
+
+    auto chart_interval = binance::m1();
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+    KLineService kline_service(&fetcher, &ohlcv_queue);
+    kline_service.start();
+
+    Trading::TradeEngine trade_engine_service(&event_queue,
+    &requests_new_order, &requests_cancel_order,  &client_responses, &ohlcv_queue, ticker);
+    trade_engine_service.Start();
+
+
+    while (trade_engine_service.GetDownTimeInS() < 120) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             trade_engine_service.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
+    }
+}

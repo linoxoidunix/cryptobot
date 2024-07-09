@@ -81,6 +81,7 @@ class TradeEngine {
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void;
 
+    auto OnNewKLine(OHLCV* new_kline) noexcept -> void;
     /// Function wrappers to dispatch order book updates, trade events and
     /// client responses to the trading algorithm.
     // std::function<void(const Exchange::MEMarketUpdate *market_update,

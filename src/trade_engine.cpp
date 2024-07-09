@@ -57,6 +57,14 @@ auto TradeEngine::Run() noexcept -> void {
             time_manager_.Update();
         }
 
+        OHLCV new_klines[50];  // Could also be any iterator
+        size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
+        for (uint i = 0; i < count_new_klines; i++) [[likely]]{
+            OnNewKLine(&new_klines[i]);
+            time_manager_.Update();
+        }
+
+
         if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
@@ -79,6 +87,13 @@ auto Trading::TradeEngine::OnOrderResponse(
         position_keeper_.AddFill(client_response);
     }
 }
+
+auto Trading::TradeEngine::OnNewKLine(
+    OHLCV* new_kline) noexcept -> void {
+    //launch algorithm prediction, that generate signals 
+        logi("launch algorith prediction for {}", new_kline->ToString());
+}
+
 
 //   /// Process changes to the order book - updates the position keeper,
 //   feature engine and informs the trading algorithm about the update. auto
