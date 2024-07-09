@@ -19,8 +19,8 @@
 #include "aot/third_party/emhash/hash_table7.hpp"
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/om_order.h"
-#include "moodycamel/concurrentqueue.h"
 #include "aot/launcher_predictor.h"
+#include "moodycamel/concurrentqueue.h"
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -118,33 +118,31 @@
 //     return 0;
 // }
 
-// /**
-//  * @brief kline service performance check
-//  *
-//  * @return int
-//  */
-// int main()
-// {
-//     fmtlog::setLogLevel(fmtlog::DBG);
-//     using klsb = binance::KLineStream;
-//     binance::Symbol btcusdt("BTC", "USDT");
-//     auto chart_interval = binance::m1();
-//     OHLCVIStorage storage;
-//     OHLCVLFQueue queue;
-//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
-//     TypeExchange::TESTNET); KLineService service(&fetcher, &queue);
-//     service.start();
-//     while(service.GetDownTimeInS() < 10)
-//     {
-//         OHLCV results[50];  // Could also be any iterator
-//         size_t count_klines = queue.try_dequeue_bulk(results, 50);
-//         for (int i = 0; i < count_klines; i++) {
-//             logd("{} countklines:{}", results[i].ToString(), count_klines);
-//         }
-//         fmtlog::poll();
-//     }
-//     return 0;
-// }
+/**
+ * @brief kline service performance check
+ *
+ * @return int
+ */
+int main() {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using klsb = binance::KLineStream;
+    binance::Symbol btcusdt("BTC", "USDT");
+    auto chart_interval = binance::m1();
+    OHLCVIStorage storage;
+    OHLCVLFQueue queue;
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+    KLineService service(&fetcher, &queue);
+    service.start();
+    while (service.GetDownTimeInS() < chart_interval.Seconds()) {
+        OHLCV results[50];  // Could also be any iterator
+        size_t count_klines = queue.try_dequeue_bulk(results, 50);
+        for (int i = 0; i < count_klines; i++) {
+            logd("{} countklines:{}", results[i].ToString(), count_klines);
+        }
+        fmtlog::poll();
+    }
+    return 0;
+}
 
 // int main()
 // {
@@ -355,7 +353,8 @@
 //     request_new_order.qty      = 0.001;
 
 //     requests_new_order.enqueue(request_new_order);
-//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order, &requests_cancel_order,
+//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+//     &requests_cancel_order,
 //                     &client_responses);
 //     gw.start();
 //     while (gw.GetDownTimeInS() < 7) {
@@ -396,7 +395,7 @@
 //     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
 //     Exchange::ClientResponseLFQueue client_responses;
 //     Exchange::RequestCancelOrder order_for_cancel;
-    
+
 //     Exchange::RequestNewOrder request_new_order;
 //     request_new_order.ticker   = "BTCUSDT";
 //     request_new_order.order_id = 6;
@@ -430,19 +429,20 @@
 //     return 0;
 // }
 //-----------------------------------------------------------------------------------
-/**
- * @brief testing cpp wrapper for python strategy predict class
- * 
- * @param argc 
- * @param argv 
- * @return int 
- */
-int main(int argc, char** argv)
-{
-    fmtlog::setLogLevel(fmtlog::DBG);
-    const auto python_path = argv[1];
-    std::string path_where_models = "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    base_strategy::Strategy predictor(python_path, path_where_models, "strategy.py", "Predictor", "predict");
-    fmtlog::poll();
-    predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-}
+// /**
+//  * @brief testing cpp wrapper for python strategy predict class
+//  *
+//  * @param argc
+//  * @param argv
+//  * @return int
+//  */
+// int main(int argc, char** argv)
+// {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     const auto python_path = argv[1];
+//     std::string path_where_models =
+//     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     base_strategy::Strategy predictor(python_path, path_where_models,
+//     "strategy.py", "Predictor", "predict"); fmtlog::poll();
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+// }

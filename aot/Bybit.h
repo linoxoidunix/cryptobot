@@ -123,61 +123,73 @@ class m1 : public ChartInterval {
   public:
     explicit m1() = default;
     std::string ToString() const override { return "1"; }
+    uint Seconds() const override {return 60;};
 };
 class m3 : public ChartInterval {
   public:
     explicit m3() = default;
     std::string ToString() const override { return "3"; }
+    uint Seconds() const override {return 180;};
 };
 class m5 : public ChartInterval {
   public:
     explicit m5() = default;
     std::string ToString() const override { return "5"; }
+    uint Seconds() const override {return 300;};
 };
 class m15 : public ChartInterval {
   public:
     explicit m15() = default;
     std::string ToString() const override { return "15"; }
+    uint Seconds() const override {return 900;};
 };
 class m60 : public ChartInterval {
   public:
     explicit m60() = default;
     std::string ToString() const override { return "30"; }
+    uint Seconds() const override {return 3600;};
 };
 class m120 : public ChartInterval {
   public:
     explicit m120() = default;
     std::string ToString() const override { return "120"; }
+    uint Seconds() const override {return 7200;};
 };
 class m240 : public ChartInterval {
   public:
     explicit m240() = default;
     std::string ToString() const override { return "240"; }
+    uint Seconds() const override {return 14400;};
 };
 class m360 : public ChartInterval {
   public:
     explicit m360() = default;
     std::string ToString() const override { return "360"; }
+    uint Seconds() const override {return 21600;};
 };
 class m720 : public ChartInterval {
   public:
     explicit m720() = default;
     std::string ToString() const override { return "720"; }
+    uint Seconds() const override {return 43200;};
 };
 class D1 : public ChartInterval {
   public:
     explicit D1() = default;
     std::string ToString() const override { return "D"; }
+    uint Seconds() const override {return 86400;};
 };
 class W1 : public ChartInterval {
   public:
     explicit W1() = default;
     std::string ToString() const override { return "W"; }
+    uint Seconds() const override {return 604800;};
 };
 class M1 : public ChartInterval {
   public:
     explicit M1() = default;
     std::string ToString() const override { return "M"; }
+    uint Seconds() const override {return 2.628e6;};
 };
 
 class KLineStream : public KLineStreamI {

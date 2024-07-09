@@ -10,6 +10,6 @@ KLineService::KLineService(OHLCVGetter* ohlcv_getter,
 auto KLineService::Run() noexcept -> void {
      while (run_) {
         ohlcv_getter_->LaunchOne();
-        //time_manager_.Update();
+        time_manager_.Update();
     }
 }

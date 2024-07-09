@@ -178,6 +178,7 @@ class BookEventGetterI {
 class ChartInterval {
   public:
     virtual std::string ToString() const = 0;
+    virtual uint Seconds() const = 0;
     virtual ~ChartInterval()             = default;
 };
 
