@@ -58,7 +58,7 @@ namespace Trading {
     Common::Side side = Common::Side::INVALID;
     double price = Common::kPRICE_DOUBLE_INVALID;
     double qty = Common::kQTY_DOUBLE_INVALID;
-    OMOrderState order_state = OMOrderState::INVALID;
+    OMOrderState state = OMOrderState::INVALID;
 
     auto ToString() const {
       std::stringstream ss;
@@ -68,7 +68,7 @@ namespace Trading {
          << "side:" << Common::sideToString(side) << " "
          << "price:" << price << " "
          << "qty:" << qty << " "
-         << "state:" << OMOrderStateToString(order_state) << "]";
+         << "state:" << OMOrderStateToString(state) << "]";
 
       return ss.str();
     }
@@ -79,4 +79,5 @@ namespace Trading {
 
   /// Hash map from TickerId -> Side -> OMOrder.
   using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<std::string, OMOrderSideHashMap>;
+  using OMOrders = ankerl::unordered_dense::map<Common::OrderId, Trading::OMOrder>;
 }

@@ -1,13 +1,20 @@
 #include "aot/strategy/order_manager.h"
-
 #include "aot/strategy/trade_engine.h"
 
-auto Trading::OrderManager::NewOrder(OMOrder *order, TickerS ticker,
-                                     PriceD price, Side side,
+auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
                                      QtyD qty) noexcept -> void {
+    auto order = GetOrder(ticker_id, side);
+    auto OrderIsLive = [order](){
+        return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
+    };
+    if(OrderIsLive())
+    {
+        logi("there is live order for ticker:{}. can't create new order", order->ticker);
+        return;
+    }
     const Exchange::RequestNewOrder new_request{
         Exchange::ClientRequestType::NEW,
-        ticker,
+        ticker_id,
         next_order_id_,
         side,
         price,
@@ -15,9 +22,18 @@ auto Trading::OrderManager::NewOrder(OMOrder *order, TickerS ticker,
         0,
         0};
     trade_engine_->SendRequestNewOrder(&new_request);
-    *order = {ticker, next_order_id_,           side, price,
-              qty,    OMOrderState::PENDING_NEW};
+    *order = {ticker_id, next_order_id_,           side, price,
+              qty,       OMOrderState::PENDING_NEW};
     ++next_order_id_;
 }
 
-auto Trading::OrderManager::CancelOrder(OMOrder *order) noexcept -> void {}
+auto Trading::OrderManager::CancelOrder(TickerS ticker_id,
+                                        Side side) noexcept -> void {
+    auto order = GetOrder(ticker_id, side);
+    const Exchange::RequestCancelOrder cancel_request{
+        Exchange::ClientRequestType::CANCEL,
+        order->ticker,
+        order->order_id};
+    trade_engine_->SendRequestCancelOrder(&cancel_request);
+    order->state = OMOrderState::PENDING_CANCEL;
+}

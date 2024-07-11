@@ -12,7 +12,9 @@ bot for algo trading
 
 thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 
-TODO
-
+# TODO
 1. make order manager move_order function
 2. for order manager need consider riskmanager 
+
+# Restrictions
+1. OrderManager impl supports only 1 active order for each side!!!!

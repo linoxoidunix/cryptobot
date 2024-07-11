@@ -17,6 +17,7 @@ aot
 concurrentqueue::concurrentqueue
 Python::Python
 ${Boost_LIBRARIES}
+unordered_dense::unordered_dense
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

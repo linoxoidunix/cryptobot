@@ -76,17 +76,6 @@ class TradeEngine {
     // auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update,
     // MarketOrderBook *book) noexcept -> void;
 
-    /// Process client responses - updates the position keeper and informs the
-    /// trading algorithm about the response.
-    auto OnOrderResponse(
-        const Exchange::MEClientResponse *client_response) noexcept -> void;
-
-    auto OnNewKLine(OHLCV* new_kline) noexcept -> void;
-    /// Function wrappers to dispatch order book updates, trade events and
-    /// client responses to the trading algorithm.
-    // std::function<void(const Exchange::MEMarketUpdate *market_update,
-    // MarketOrderBook *book)> algoOnTradeUpdate_;
-
     /// Deleted default, copy & move constructors and assignment-operators.
     TradeEngine()                                = delete;
 
@@ -109,5 +98,17 @@ class TradeEngine {
     volatile bool run_ = false;
     const Ticker &ticker_;
     PositionKeeper position_keeper_;
+    /**
+    * Process client responses - updates the position keeper and informs the
+    trading algorithm about the response.
+    */
+    auto OnOrderResponse(const Exchange::MEClientResponse *client_response) noexcept -> void;
+    /**
+     * @brief launch strategy for generate trade signals
+     * 
+     * @param new_kline 
+     */
+    auto OnNewKLine(const OHLCV *new_kline) noexcept -> void;
+
 };
 }  // namespace Trading

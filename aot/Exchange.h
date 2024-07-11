@@ -127,7 +127,7 @@ struct OHLCV {
     double low;
     double close;
     double volume;
-    std::string ToString() {
+    std::string ToString() const{
         return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close,
                            volume);
     }

@@ -88,8 +88,7 @@ auto Trading::TradeEngine::OnOrderResponse(
     }
 }
 
-auto Trading::TradeEngine::OnNewKLine(
-    OHLCV* new_kline) noexcept -> void {
+auto Trading::TradeEngine::OnNewKLine(const  OHLCV* new_kline) noexcept -> void {
     //launch algorithm prediction, that generate signals 
         logi("launch algorith prediction for {}", new_kline->ToString());
 }
