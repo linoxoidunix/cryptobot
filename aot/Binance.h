@@ -288,7 +288,7 @@ class OHLCVI : public OHLCVGetter {
     class ParserResponse {
       public:
         explicit ParserResponse() = default;
-        OHLCV Parse(std::string_view response);
+        OHLCVExt Parse(std::string_view response);
     };
 
   public:
@@ -300,7 +300,7 @@ class OHLCVI : public OHLCVGetter {
           type_exchange_(type_exchange){};
     void LaunchOne() override { ioc.run_one(); };
 
-    void Init(OHLCVLFQueue& lf_queue) override {
+    void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&lf_queue](boost::beast::flat_buffer& buffer) {
             auto result = boost::beast::buffers_to_string(buffer.data());

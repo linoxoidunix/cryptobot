@@ -9,6 +9,7 @@
 
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
 
 namespace Common {
 constexpr size_t ME_MAX_TICKERS        = 8;
@@ -111,6 +112,8 @@ inline auto priorityToString(Priority priority) -> std::string {
 
 enum class Side : int8_t { INVALID = 0, BUY = 1, SELL = -1, MAX = 2 };
 
+enum class TradeAction { kEnterLong, kExitLong, kEnterShort, kExitShort, kNope};
+
 inline auto sideToString(Side side) -> std::string {
     switch (side) {
         case Side::BUY:
@@ -186,21 +189,22 @@ struct RiskCfg {
 };
 
 struct TradeEngineCfg {
-    Qty clip_         = 0;
-    double threshold_ = 0;
-    RiskCfg risk_cfg_;
+    QtyD clip         = 0;
+    double threshold = 0;
+    RiskCfg risk_cfg;
 
     auto toString() const {
         std::stringstream ss;
-        ss << "TradeEngineCfg{" << "clip:" << qtyToString(clip_) << " "
-           << "thresh:" << threshold_ << " " << "risk:" << risk_cfg_.toString()
+        ss << "TradeEngineCfg{" << "clip:" << qtyToString(clip) << " "
+           << "thresh:" << threshold << " " << "risk:" << risk_cfg.toString()
            << "}";
 
         return ss.str();
     }
 };
 
-using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
+//using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
+using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg>;
 
 inline uint32_t Digits10(uint64_t v) {
     return 1 + (std::uint32_t)(v >= 10) + (std::uint32_t)(v >= 100) +

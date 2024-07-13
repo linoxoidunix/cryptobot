@@ -9,8 +9,10 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/strategy/base_strategy.h"
 #include "aot/strategy/market_order_book.h"
 // #include "feature_engine.h"
+#include "aot/strategy/order_manager.h"
 #include "aot/strategy/position_keeper.h"
 
 // #include "order_manager.h"
@@ -20,14 +22,17 @@
 // #include "liquidity_taker.h"
 
 namespace Trading {
+    class BaseStrategy;
 class TradeEngine {
   public:
     explicit TradeEngine(
         Exchange::EventLFQueue *market_updates,
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
-        Exchange::ClientResponseLFQueue *response, OHLCVLFQueue *klines,
-        const Ticker &ticker);
+        Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
+        const Ticker &ticker,
+        base_strategy::Strategy* predictor
+        );
 
     ~TradeEngine();
 
@@ -92,23 +97,27 @@ class TradeEngine {
     Exchange::RequestNewLimitOrderLFQueue *request_new_order_  = nullptr;
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
-    OHLCVLFQueue *klines_                                      = nullptr;
-    common::TimeManager time_manager_;
-    Trading::MarketOrderBookDouble order_book_;
-    volatile bool run_ = false;
+    OHLCVILFQueue *klines_                                     = nullptr;
     const Ticker &ticker_;
     PositionKeeper position_keeper_;
+
+    volatile bool run_ = false;
+    TradeEngineCfgHashMap config_;
+    common::TimeManager time_manager_;
+    Trading::MarketOrderBookDouble order_book_;
+    Trading::OrderManager order_manager_;
+    Trading::BaseStrategy strategy_;
     /**
     * Process client responses - updates the position keeper and informs the
     trading algorithm about the response.
     */
-    auto OnOrderResponse(const Exchange::MEClientResponse *client_response) noexcept -> void;
+    auto OnOrderResponse(
+        const Exchange::MEClientResponse *client_response) noexcept -> void;
     /**
      * @brief launch strategy for generate trade signals
-     * 
-     * @param new_kline 
+     *
+     * @param new_kline
      */
-    auto OnNewKLine(const OHLCV *new_kline) noexcept -> void;
-
+    auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
 };
 }  // namespace Trading

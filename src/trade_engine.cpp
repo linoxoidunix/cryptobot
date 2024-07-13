@@ -1,25 +1,27 @@
 #include "aot/strategy/trade_engine.h"
 
+#include "aot/strategy/base_strategy.h"
+
 namespace Trading {
 TradeEngine::TradeEngine(
     Exchange::EventLFQueue* market_updates,
     Exchange::RequestNewLimitOrderLFQueue* request_new_order,
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
-    Exchange::ClientResponseLFQueue* response,
-    OHLCVLFQueue* klines, 
-    const Ticker& ticker)
+    Exchange::ClientResponseLFQueue* response, OHLCVILFQueue* klines,
+    const Ticker& ticker, base_strategy::Strategy* predictor)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
       request_cancel_order_(request_cancel_order),
       response_(response),
       klines_(klines),
+      ticker_(ticker),
       order_book_(ticker),
-      ticker_(ticker) {
+      order_manager_(this),
+      strategy_(predictor, this, &order_manager_, config_) {
+    Common::TradeEngineCfg btcusdt_cfg;
+    btcusdt_cfg.clip   = 0.0001;
+    config_["BTCUSDT"] = btcusdt_cfg;
     order_book_.SetTradeEngine(this);
-    // for (size_t i = 0; i < ticker_order_book_.size(); ++i) {
-    //   ticker_order_book_[i] = new MarketOrderBook(i, &logger_);
-    //   ticker_order_book_[i]->setTradeEngine(this);
-    // }
 };
 
 TradeEngine::~TradeEngine() {
@@ -28,11 +30,11 @@ TradeEngine::~TradeEngine() {
     using namespace std::literals::chrono_literals;
     std::this_thread::sleep_for(1s);
 
-    // for (auto &order_book: ticker_order_book_) {
-    //   delete order_book;
-    //   order_book = nullptr;
-    // }
-    incoming_md_updates_ = nullptr;
+    incoming_md_updates_  = nullptr;
+    request_new_order_    = nullptr;
+    request_cancel_order_ = nullptr;
+    response_             = nullptr;
+    klines_               = nullptr;
 };
 
 /// Write a client request to the lock free queue for the order server to
@@ -43,27 +45,29 @@ TradeEngine::~TradeEngine() {
 auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     while (run_) {
-        Exchange::MEClientResponse results_responses[50];  // Could also be any iterator
-        size_t count_responses = response_->try_dequeue_bulk(results_responses, 50);
-        for (uint i = 0; i < count_responses; i++) [[likely]]{
+        Exchange::MEClientResponse
+            results_responses[50];  // Could also be any iterator
+        size_t count_responses =
+            response_->try_dequeue_bulk(results_responses, 50);
+        for (uint i = 0; i < count_responses; i++) [[likely]] {
             OnOrderResponse(&results_responses[i]);
             time_manager_.Update();
-        } 
+        }
 
-        Exchange::MEMarketUpdateDouble results[50];  // Could also be any iterator
+        Exchange::MEMarketUpdateDouble
+            results[50];  // Could also be any iterator
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
-        for (uint i = 0; i < count; i++) [[likely]]{
+        for (uint i = 0; i < count; i++) [[likely]] {
             order_book_.OnMarketUpdate(&results[i]);
             time_manager_.Update();
         }
 
-        OHLCV new_klines[50];  // Could also be any iterator
+        OHLCVExt new_klines[50];  // Could also be any iterator
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
-        for (uint i = 0; i < count_new_klines; i++) [[likely]]{
+        for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             OnNewKLine(&new_klines[i]);
             time_manager_.Update();
         }
-
 
         if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
@@ -88,11 +92,12 @@ auto Trading::TradeEngine::OnOrderResponse(
     }
 }
 
-auto Trading::TradeEngine::OnNewKLine(const  OHLCV* new_kline) noexcept -> void {
-    //launch algorithm prediction, that generate signals 
-        logi("launch algorith prediction for {}", new_kline->ToString());
+auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
+    -> void {
+    // launch algorithm prediction, that generate signals
+    logi("launch algorithm prediction for {}", new_kline->ToString());
+    strategy_.OnNewKLine(new_kline);
 }
-
 
 //   /// Process changes to the order book - updates the position keeper,
 //   feature engine and informs the trading algorithm about the update. auto

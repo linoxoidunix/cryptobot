@@ -9,9 +9,27 @@
 #include <string_view>
 
 #include "aot/Logger.h"
+#include "aot/common/types.h"
+
+class IStrategy {
+  public:
+    /**
+     * @brief Action can be "enter_long", "enter_short", "exit_short"
+     *
+     */
+    using Action     = std::string;
+    using Confidence = long;
+    struct Result {
+        Action action;
+        Confidence confidence;
+    };
+    virtual Result Predict(double open, double high, double low, double close,
+                           double volume) = 0;
+    virtual ~IStrategy()                  = default;
+};
 
 namespace base_strategy {
-class Strategy {
+class Strategy : public IStrategy {
   public:
     /**
      * @brief Construct a new Launcher Predictor object
@@ -48,17 +66,18 @@ class Strategy {
 
         auto args = PyTuple_New(1);
         InitTuplePosition(args, 0, path_where_models.data());
-        
+
         predictor_instance_ = PyObject_CallObject(class_name_, args);
         Py_XDECREF(args);
         Py_XDECREF(class_name_);
-
     };
-    void Predict(double open, double high, double low, double close,
-                 double volume) {
-        pValue = PyObject_CallMethod(
-            predictor_instance_, method_predictor_.c_str(), "(fffff)",
-            open, high, low, close, volume);
+    IStrategy::Result Predict(double open, double high, double low,
+                              double close, double volume) override {
+        IStrategy::Result result;
+
+        pValue =
+            PyObject_CallMethod(predictor_instance_, method_predictor_.c_str(),
+                                "(fffff)", open, high, low, close, volume);
 
         if (pValue != NULL) {
             PyObject *key, *value;
@@ -70,17 +89,37 @@ class Strategy {
                 long value_local      = PyLong_AS_LONG(value);
                 std::cout << "key = " << key_local << " value = " << value_local
                           << std::endl;
+                result = {key_local, value_local};
                 Py_XDECREF(key_as_str);
+                Py_XDECREF(key);
+                Py_XDECREF(value);
             }
             Py_DECREF(pValue);
         } else {
-            Py_DECREF(predictor_instance_);
             PyErr_Print();
-            fprintf(stderr, "Call failed\n");
-            return;
+            logi("Call failed");
+            return result;
         }
-        Py_DECREF(predictor_instance_);
-    }
+        return result;
+    };
+    class Parser {
+      public:
+        explicit Parser() = default;
+        Common::TradeAction Parse(const IStrategy::Result &result) const {
+            // base on "aot/python/my_types.py"
+            if (result.action == "enter_long")
+                return Common::TradeAction::kEnterLong;
+            if (result.action == "enter_short")
+                return Common::TradeAction::kEnterShort;
+            if (result.action == "exit_long")
+                return Common::TradeAction::kExitLong;
+            if (result.action == "exit_short")
+                return Common::TradeAction::kExitShort;
+            if (result.action == "") return Common::TradeAction::kNope;
+            return Common::TradeAction::kNope;
+        };
+    };
+    ~Strategy() override { Py_DECREF(predictor_instance_); };
 
   private:
     std::string file_predictor_;
@@ -90,27 +129,24 @@ class Strategy {
     PyObject *module_name_;
     PyObject *class_name_;
     PyObject *predictor_instance_;
-    PyObject *method_name_;
-    PyObject *pArgs;
     PyObject *pValue;
-    PyObject *path_where_models_;
     int InitTuplePosition(PyObject *pArgs, int position, double value) {
-        auto pValue = PyFloat_FromDouble(value);
-        if (!pValue) {
+        auto obj_value = PyFloat_FromDouble(value);
+        if (!obj_value) {
             fprintf(stderr, "Cannot convert argument\n");
             return 1;
         }
-        PyTuple_SetItem(pArgs, position, pValue);
+        PyTuple_SetItem(pArgs, position, obj_value);
 
         return 0;
     };
-    int InitTuplePosition(PyObject *pArgs, int position, const char* value) {
-        auto pValue = PyUnicode_FromString(value);
-        if (!pValue) {
+    int InitTuplePosition(PyObject *pArgs, int position, const char *value) {
+        auto obj_value = PyUnicode_FromString(value);
+        if (!obj_value) {
             fprintf(stderr, "Cannot convert argument\n");
             return 1;
         }
-        PyTuple_SetItem(pArgs, position, pValue);
+        PyTuple_SetItem(pArgs, position, obj_value);
 
         return 0;
     }

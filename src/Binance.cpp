@@ -272,37 +272,44 @@ Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
     return output;
 }
 
-OHLCV binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
-    OHLCV output;
+OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
+    OHLCVExt output;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     try {
-        auto error = doc["k"]["o"].get_double_in_string().get(output.open);
+        auto error = doc["k"]["o"].get_double_in_string().get(output.ohlcv.open);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key open in response");
             return output;
         }
-        error = doc["k"]["c"].get_double_in_string().get(output.close);
+        error = doc["k"]["c"].get_double_in_string().get(output.ohlcv.close);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key close in response");
             return output;
         }
-        error = doc["k"]["h"].get_double_in_string().get(output.high);
+        error = doc["k"]["h"].get_double_in_string().get(output.ohlcv.high);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key high in response");
             return output;
         }
-        error = doc["k"]["l"].get_double_in_string().get(output.low);
+        error = doc["k"]["l"].get_double_in_string().get(output.ohlcv.low);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key low in response");
             return output;
         }
-        error = doc["k"]["v"].get_double_in_string().get(output.volume);
+        error = doc["k"]["v"].get_double_in_string().get(output.ohlcv.volume);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key volume in response");
             return output;
         }
+        std::string_view ticker;
+        error = doc["k"]["s"].get_string().get(ticker);
+        if (error != simdjson::SUCCESS) [[unlikely]] {
+            loge("no ticker in response");
+            return output;
+        }
+        output.ticker = ticker;
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
     }

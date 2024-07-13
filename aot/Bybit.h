@@ -209,7 +209,7 @@ class KLineStream : public KLineStreamI {
 class ParserKLineResponse : public ParserKLineResponseI {
   public:
     explicit ParserKLineResponse() = default;
-    OHLCVI Get(std::string_view response_from_exchange) const override {
+    OHLCVExt Get(std::string_view response_from_exchange) const override {
         return {};
     };
 };
@@ -225,7 +225,7 @@ class OHLCVI : public OHLCVGetter {
     };
     void LaunchOne() override { ioc.run_one(); };
 
-    void Init(OHLCVLFQueue& lf_queue) override {
+    void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());

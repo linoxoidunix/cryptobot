@@ -1,7 +1,7 @@
 #include "aot/strategy/kline.h"
 
 KLineService::KLineService(OHLCVGetter* ohlcv_getter,
-                                    OHLCVLFQueue* kline_lfqueue) : 
+                                    OHLCVILFQueue* kline_lfqueue) : 
                                     ohlcv_getter_(ohlcv_getter),
                                     kline_lfqueue_(kline_lfqueue) {
                                         ohlcv_getter_->Init(*kline_lfqueue_);

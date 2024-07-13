@@ -130,8 +130,8 @@
 //     auto chart_interval = binance::m1();
 //     OHLCVIStorage storage;
 //     OHLCVLFQueue queue;
-//     binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
-//     KLineService service(&fetcher, &queue);
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
+//     TypeExchange::TESTNET); KLineService service(&fetcher, &queue);
 //     service.start();
 //     while (service.GetDownTimeInS() < chart_interval.Seconds()) {
 //         OHLCV results[50];  // Could also be any iterator
@@ -443,12 +443,13 @@
 //     std::string path_where_models =
 //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
 //     base_strategy::Strategy predictor(python_path, path_where_models,
-//     "strategy.py", "Predictor", "predict"); fmtlog::poll();
+//     "strategy.py", "Predictor", "predict");
+//     fmtlog::poll();
 //     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
 // }
 //----------------------------------------------------------------------------------------
 /**
- * @brief test launch trade engine service with 
+ * @brief test launch trade engine service with
  * 1)KLineService service
  * 2)GeneratorBidAskService service
  * 3)OrderGateway service
@@ -466,21 +467,21 @@ int main(int argc, char** argv) {
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
     Exchange::ClientResponseLFQueue client_responses;
-    OHLCVLFQueue ohlcv_queue;
+    OHLCVILFQueue ohlcv_queue;
     OrderNewLimit new_order(&signer, type);
     CancelOrder executor_cancel_order(&signer, type);
     DiffDepthStream::ms100 interval;
     TickerInfo info{2, 5};
     Symbol btcusdt("BTC", "USDT");
     Ticker ticker(&btcusdt, info);
-    
-    GeneratorBidAskService generator_bid_ask_service(&event_queue, ticker, &interval,
-                                     TypeExchange::TESTNET);
+
+    GeneratorBidAskService generator_bid_ask_service(
+        &event_queue, ticker, &interval, TypeExchange::TESTNET);
     generator_bid_ask_service.Start();
 
-    
-    Trading::OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-                     &requests_cancel_order, &client_responses);
+    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+                             &requests_new_order, &requests_cancel_order,
+                             &client_responses);
     gw.start();
 
     auto chart_interval = binance::m1();
@@ -488,10 +489,18 @@ int main(int argc, char** argv) {
     KLineService kline_service(&fetcher, &ohlcv_queue);
     kline_service.start();
 
-    Trading::TradeEngine trade_engine_service(&event_queue,
-    &requests_new_order, &requests_cancel_order,  &client_responses, &ohlcv_queue, ticker);
-    trade_engine_service.Start();
 
+    // init python predictor
+    const auto python_path = argv[1];
+    std::string path_where_models =
+        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    base_strategy::Strategy predictor(python_path, path_where_models,
+                                      "strategy.py", "Predictor", "predict");
+
+    Trading::TradeEngine trade_engine_service(
+        &event_queue, &requests_new_order, &requests_cancel_order,
+        &client_responses, &ohlcv_queue, ticker, &predictor);
+    trade_engine_service.Start();
 
     while (trade_engine_service.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",

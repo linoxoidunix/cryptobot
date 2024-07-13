@@ -16,7 +16,7 @@ class OrderNewI;
 class KLineService {
   public:
     explicit KLineService(OHLCVGetter* ohlcv_getter,
-                          OHLCVLFQueue *kline_lfqueue);
+                          OHLCVILFQueue *kline_lfqueue);
 
     ~KLineService() {
         stop();
@@ -50,7 +50,7 @@ class KLineService {
     OHLCVGetter* ohlcv_getter_;
     /// Lock free queue on which we consume client requests from the trade
     /// engine and forward them to the exchange's order server.
-    OHLCVLFQueue *kline_lfqueue_ = nullptr;
+    OHLCVILFQueue *kline_lfqueue_ = nullptr;
     volatile bool run_           = false;
 
   private:

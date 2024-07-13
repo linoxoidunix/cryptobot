@@ -54,9 +54,9 @@ struct Keys {
 };
 class Signer : public SignerI {
   public:
-    explicit Signer(std::string_view secret_key) : secret_key_(secret_key){};
+    explicit Signer(std::string_view secret_key) : secret_key_(secret_key) {};
     explicit Signer(Keys keys)
-        : secret_key_(keys.secret_key), api_key_(keys.api_key){};
+        : secret_key_(keys.secret_key), api_key_(keys.api_key) {};
 
     /**
      * @brief add timestamp and recvWindow to data then signed this data
@@ -127,20 +127,28 @@ struct OHLCV {
     double low;
     double close;
     double volume;
-    std::string ToString() const{
+    std::string ToString() const {
         return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close,
                            volume);
     }
 };
 
-struct OHLCVI {
+/**
+ * @brief OHLCVExt = OHLCV extended
+ *
+ */
+struct OHLCVExt {
     OHLCV ohlcv;
     Interval interval;
     Common::TickerS ticker;
+    std::string ToString() const {
+        return fmt::format("s:{} o:{} h:{} l:{} c:{} v:{}", ticker, ohlcv.open,
+                           ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);
+    }
 };
-using OHLCVLFQueue  = moodycamel::ConcurrentQueue<OHLCV>;
+using OHLCVILFQueue = moodycamel::ConcurrentQueue<OHLCVExt>;
 
-using OHLCVIStorage = std::list<OHLCVI>;
+using OHLCVIStorage = std::list<OHLCVExt>;
 
 /**
  * @brief return OHLCVI struct fron raw data from web socket
@@ -153,9 +161,9 @@ class OHLCVGetter {
      *
      * @param buffer
      */
-    virtual void Init(OHLCVLFQueue &lf_queue) = 0;
-    virtual void LaunchOne()                  = 0;
-    virtual ~OHLCVGetter()                    = default;
+    virtual void Init(OHLCVILFQueue &lf_queue) = 0;
+    virtual void LaunchOne()                   = 0;
+    virtual ~OHLCVGetter()                     = default;
 };
 
 /**
@@ -178,7 +186,7 @@ class BookEventGetterI {
 class ChartInterval {
   public:
     virtual std::string ToString() const = 0;
-    virtual uint Seconds() const = 0;
+    virtual uint Seconds() const         = 0;
     virtual ~ChartInterval()             = default;
 };
 
@@ -222,8 +230,8 @@ class SymbolI {
 class SymbolUpperCase : public SymbolI {
   public:
     explicit SymbolUpperCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()){};
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()){};
+        : first_(first.data()), second_(second.data()) {};
+    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(out);
@@ -239,8 +247,8 @@ class SymbolUpperCase : public SymbolI {
 class SymbolLowerCase : public SymbolI {
   public:
     explicit SymbolLowerCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()){};
-    explicit SymbolLowerCase(std::string_view first) : first_(first.data()){};
+        : first_(first.data()), second_(second.data()) {};
+    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_lower(out);
@@ -257,7 +265,7 @@ struct Ticker {
     const SymbolI *symbol;
     TickerInfo info;
     Ticker(const SymbolI *_symbol, const TickerInfo &_info)
-        : symbol(_symbol), info(_info){};
+        : symbol(_symbol), info(_info) {};
 };
 
 /**
@@ -266,8 +274,8 @@ struct Ticker {
  */
 class ParserKLineResponseI {
   public:
-    virtual OHLCVI Get(std::string_view response_from_exchange) const = 0;
-    virtual ~ParserKLineResponseI()                                   = default;
+    virtual OHLCVExt Get(std::string_view response_from_exchange) const = 0;
+    virtual ~ParserKLineResponseI() = default;
 };
 namespace Exchange {
 class RequestNewOrder;
