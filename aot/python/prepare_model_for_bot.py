@@ -4,7 +4,7 @@ import numpy as np
 from talib import RSI, BBANDS, MACD, ATR, NATR, PPO
 import lightgbm as lgb
 import statistics
-import my_types as types
+import my_types as ksignals
 
 class BaseStrategy:
     """_summary_
@@ -43,8 +43,11 @@ class BaseStrategy:
         new_row.set_index('date', inplace=True)
         data_with_new_row = pd.concat([self.__data__, new_row], ignore_index=False)
         self.__calculate_features__(data_with_new_row, date)
+        print('calculate features is SUCCESS')
         predicted_value = self.__predict__(data_with_new_row.loc[date, self.__name_features_for_model__])
+        print('calculate predicted values is SUCCESS')
         action = self.__generate_action__(predicted_value)
+        print('calculate action is SUCCESS')
         return {action:1}
     
     def __calculate_features__(self, data, date):
@@ -148,12 +151,14 @@ class BaseStrategy:
         return statistics.mean(predicted_value)
 
     def __generate_action__(self, predicted_value):
+        print(f'start calculate action for predicted_value={predicted_value}')
         if(predicted_value > 0.01):
-            return types.enter_long
+            return ksignals.enter_long
         if(predicted_value < -0.01):
-            return types.enter_short
+            print(ksignals.enter_short)
+            return ksignals.enter_short
         if(predicted_value < 0):
-            return types.exit_long
+            return ksignals.exit_long
         if(predicted_value > 0):
-            return types.exit_short
-        return types.__nothing__
+            return ksignals.exit_short
+        return ksignals.nothing

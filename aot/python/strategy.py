@@ -1,5 +1,3 @@
-# import sys,os
-import my_types as types
 import prepare_model_for_bot as my_strategy
 
 # sys.path.append(os.getcwd())

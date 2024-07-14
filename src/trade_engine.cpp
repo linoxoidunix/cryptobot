@@ -78,10 +78,11 @@ auto TradeEngine::Run() noexcept -> void {
 }  // namespace Trading
 
 auto Trading::TradeEngine::OnOrderBookUpdate(
-    std::string ticker, Price price, Side side,
+    std::string ticker, PriceD price, Side side,
     MarketOrderBookDouble* book) noexcept -> void {
     auto bbo = order_book_.getBBO();
     position_keeper_.UpdateBBO(ticker, bbo);
+    strategy_.OnOrderBookUpdate(ticker, price, side, &order_book_);
 }
 
 auto Trading::TradeEngine::OnOrderResponse(

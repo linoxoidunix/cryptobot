@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/message.hpp>
 #include <boost/beast/version.hpp>
@@ -36,18 +37,18 @@ class HttpsExchange : public https::ExchangeI {
      * milliseconds after timestamp the request is valid for. If recvWindow is
      * not sent, it defaults to 5000.
      */
-    explicit HttpsExchange(std::uint64_t recv_window = 5000) {
-        /**
-         * @brief
-          https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-          It is recommended to use a small recvWindow of 5000 or less! The max
-         cannot go beyond 60,000!
-         *
-         */
-        recv_window_ = (recv_window > 60000) ? 60000 : recv_window;
-    };
+    explicit HttpsExchange(std::uint64_t recv_window = 5000)
+        : recv_window_((recv_window > 60000) ? 60000 : recv_window) {
+              /**
+               * @brief
+                https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+                It is recommended to use a small recvWindow of 5000 or less! The
+               max cannot go beyond 60,000!
+               *
+               */
+          };
 
-    virtual ~HttpsExchange() = default;
+    ~HttpsExchange() override = default;
     std::string_view Host() const override {
         return std::string_view("testnet.binance.vision");
     };
@@ -70,16 +71,16 @@ class HttpsExchange : public https::ExchangeI {
      * milliseconds after timestamp the request is valid for. If recvWindow is
      * not sent, it defaults to 5000.
      */
-    explicit HttpsExchange(std::uint64_t recv_window = 5000) {
-        /**
-         * @brief
-          https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-          It is recommended to use a small recvWindow of 5000 or less! The max
-         cannot go beyond 60,000!
-         *
-         */
-        recv_window_ = (recv_window > 60000) ? 60000 : recv_window;
-    };
+    explicit HttpsExchange(std::uint64_t recv_window = 5000)
+        : recv_window_((recv_window > 60000) ? 60000 : recv_window) {
+              /**
+               * @brief
+                https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+                It is recommended to use a small recvWindow of 5000 or less! The
+               max cannot go beyond 60,000!
+               *
+               */
+          };
 
     virtual ~HttpsExchange() = default;
     std::string_view Host() const override {
@@ -127,7 +128,7 @@ enum class Type {
 class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()){};
+        : first_(first.data()), second_(second.data()) {};
     std::string ToString() const override {
         auto out = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_lower(out);
@@ -143,109 +144,107 @@ class s1 : public ChartInterval {
   public:
     explicit s1() = default;
     std::string ToString() const override { return "1s"; };
-    uint Seconds() const override {return 1;};
-
+    uint Seconds() const override { return 1; };
 };
 class m1 : public ChartInterval {
   public:
     explicit m1() = default;
     std::string ToString() const override { return "1m"; };
-    uint Seconds() const override {return 60;};
-
+    uint Seconds() const override { return 60; };
 };
 class m3 : public ChartInterval {
   public:
     explicit m3() = default;
     std::string ToString() const override { return "3m"; };
-    uint Seconds() const override {return 180;};
+    uint Seconds() const override { return 180; };
 };
 class m5 : public ChartInterval {
   public:
     explicit m5() = default;
     std::string ToString() const override { return "5m"; }
-    uint Seconds() const override {return 300;};
+    uint Seconds() const override { return 300; };
 };
 class m15 : public ChartInterval {
   public:
     explicit m15() = default;
     std::string ToString() const override { return "15m"; }
-    uint Seconds() const override {return 900;};
+    uint Seconds() const override { return 900; };
 };
 class m30 : public ChartInterval {
   public:
     explicit m30() = default;
     std::string ToString() const override { return "30m"; }
-    uint Seconds() const override {return 1800;};
+    uint Seconds() const override { return 1800; };
 };
 class h1 : public ChartInterval {
   public:
     explicit h1() = default;
     std::string ToString() const override { return "1h"; }
-    uint Seconds() const override {return 3600;};
+    uint Seconds() const override { return 3600; };
 };
 class h2 : public ChartInterval {
   public:
     explicit h2() = default;
     std::string ToString() const override { return "2h"; }
-    uint Seconds() const override {return 7200;};
+    uint Seconds() const override { return 7200; };
 };
 class h4 : public ChartInterval {
   public:
     explicit h4() = default;
     std::string ToString() const override { return "4h"; }
-    uint Seconds() const override {return 14400;};
+    uint Seconds() const override { return 14400; };
 };
 class h6 : public ChartInterval {
   public:
     explicit h6() = default;
     std::string ToString() const override { return "6h"; }
-    uint Seconds() const override {return 21600;};
+    uint Seconds() const override { return 21600; };
 };
 class h8 : public ChartInterval {
   public:
     explicit h8() = default;
     std::string ToString() const override { return "8h"; }
-    uint Seconds() const override {return 28800;};
+    uint Seconds() const override { return 28800; };
 };
 class h12 : public ChartInterval {
   public:
     explicit h12() = default;
     std::string ToString() const override { return "12h"; }
-    uint Seconds() const override {return 43200;};
+    uint Seconds() const override { return 43200; };
 };
 class d1 : public ChartInterval {
   public:
     explicit d1() = default;
     std::string ToString() const override { return "1d"; }
-    uint Seconds() const override {return 86400;};
+    uint Seconds() const override { return 86400; };
 };
 class d3 : public ChartInterval {
   public:
     explicit d3() = default;
     std::string ToString() const override { return "3d"; }
-    uint Seconds() const override {return 259200;};
+    uint Seconds() const override { return 259200; };
 };
 class w1 : public ChartInterval {
   public:
     explicit w1() = default;
     std::string ToString() const override { return "1w"; }
-    uint Seconds() const override {return 604800;};
+    uint Seconds() const override { return 604800; };
 };
 class M1 : public ChartInterval {
   public:
     explicit M1() = default;
     std::string ToString() const override { return "1M"; }
-    uint Seconds() const override {return 2.628e6;};
+    uint Seconds() const override { return 2.628e6; };
 };
 class KLineStream : public KLineStreamI {
   public:
     explicit KLineStream(const SymbolI* s, const ChartInterval* chart_interval)
-        : symbol_(s), chart_interval_(chart_interval){};
+        : symbol_(s), chart_interval_(chart_interval) {};
     std::string ToString() const override {
         return fmt::format("{0}@kline_{1}", symbol_->ToString(),
                            chart_interval_->ToString());
     };
-    ~KLineStream() = default;
+    ~KLineStream() override = default;
 
   private:
     const SymbolI* symbol_;
@@ -273,7 +272,7 @@ class DiffDepthStream : public DiffDepthStreamI {
     };
 
     explicit DiffDepthStream(const SymbolI* s, const StreamIntervalI* interval)
-        : symbol_(s), interval_(interval){};
+        : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
         return fmt::format("{0}@depth@{1}", symbol_->ToString(),
                            interval_->ToString());
@@ -297,7 +296,7 @@ class OHLCVI : public OHLCVGetter {
         : current_exchange_(exchange_.Get(type_exchange)),
           s_(s),
           chart_interval_(chart_interval),
-          type_exchange_(type_exchange){};
+          type_exchange_(type_exchange) {};
     void LaunchOne() override { ioc.run_one(); };
 
     void Init(OHLCVILFQueue& lf_queue) override {
@@ -341,7 +340,7 @@ class BookEventGetter : public BookEventGetterI {
         : current_exchange_(exchange_.Get(type_exchange)),
           s_(s),
           interval_(interval),
-          type_exchange_(type_exchange){};
+          type_exchange_(type_exchange) {};
     void Get() override {};
     void LaunchOne() override { ioc.run_one(); };
     void Init(Exchange::BookDiffLFQueue& queue) override {
@@ -374,11 +373,27 @@ class BookEventGetter : public BookEventGetterI {
     TypeExchange type_exchange_;
 };
 
-class Args : public std::unordered_map<std::string, std::string> {};
+struct StringEqual {
+    using is_transparent = void;
+
+    bool operator()(std::string_view l, std::string_view r) const {
+        return l.compare(r) == 0;
+    }
+};
+
+struct StringHash {
+    using transparent_key_equal = StringEqual;  // or std::equal_to<>
+
+    std::size_t operator()(const std::string& s) const { return s.size(); }
+
+    std::size_t operator()(const char* s) const { return std::strlen(s); }
+};
+
+class Args : public std::unordered_map<std::string, std::string, StringHash, StringHash::transparent_key_equal> {};
 
 class ArgsQuery : public Args {
   public:
-    explicit ArgsQuery() : Args(){};
+    explicit ArgsQuery() : Args() {};
     /**
      * @brief return query string starts with ?
      *
@@ -386,9 +401,13 @@ class ArgsQuery : public Args {
      */
     virtual std::string QueryString() {
         std::list<std::string> merged;
-        std::for_each(begin(), end(), [&merged](const auto& expr) {
+        std::ranges::for_each(*this, [&merged](const auto& expr) {
             merged.emplace_back(fmt::format("{}={}", expr.first, expr.second));
         });
+        // std::for_each(begin(), end(), [&merged](const auto& expr) {
+        //     merged.emplace_back(fmt::format("{}={}", expr.first,
+        //     expr.second));
+        // });
         auto out = boost::algorithm::join(merged, "&");
         return out;
     };
@@ -403,7 +422,7 @@ namespace detail {
 class FactoryRequest {
   public:
     explicit FactoryRequest(const https::ExchangeI* exchange,
-                            std::string_view end_point, ArgsQuery args,
+                            std::string_view end_point, const ArgsQuery& args,
                             boost::beast::http::verb action, SignerI* signer,
                             bool need_sign = false)
         : exchange_(exchange), args_(args), action_(action), signer_(signer) {
@@ -519,35 +538,39 @@ class OrderNewLimit : public inner::OrderNewI {
         };
         void SetSide(Common::Side side) {
             switch (side) {
-                case Common::Side::BUY:
+                using enum Common::Side;
+                case BUY:
                     storage["side"] = "BUY";
                     break;
-                case Common::Side::SELL:
+                case SELL:
                     storage["side"] = "SELL";
                     break;
+                default:
+                    loge("side is not SELL or BUY");
             }
         };
         void SetType(Type type) {
             switch (type) {
-                case Type::LIMIT:
+                using enum Type;
+                case LIMIT:
                     storage["type"] = "LIMIT";
                     break;
-                case Type::MARKET:
+                case MARKET:
                     storage["type"] = "MARKET";
                     break;
-                case Type::STOP_LOSS:
+                case STOP_LOSS:
                     storage["type"] = "STOP_LOSS";
                     break;
-                case Type::STOP_LOSS_LIMIT:
+                case STOP_LOSS_LIMIT:
                     storage["type"] = "STOP_LOSS_LIMIT";
                     break;
-                case Type::TAKE_PROFIT:
+                case TAKE_PROFIT:
                     storage["type"] = "TAKE_PROFIT";
                     break;
-                case Type::TAKE_PROFIT_LIMIT:
+                case TAKE_PROFIT_LIMIT:
                     storage["type"] = "TAKE_PROFIT_LIMIT";
                     break;
-                case Type::LIMIT_MAKER:
+                case LIMIT_MAKER:
                     storage["type"] = "LIMIT_MAKER";
                     break;
             }
@@ -589,7 +612,7 @@ class OrderNewLimit : public inner::OrderNewI {
 
   public:
     explicit OrderNewLimit(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer){};
+        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(new_order);
@@ -620,6 +643,7 @@ class OrderNewLimit : public inner::OrderNewI {
         ioc.run();
     };
     ~OrderNewLimit() override = default;
+
   private:
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
@@ -643,7 +667,8 @@ class CancelOrder : public inner::CancelOrderI {
             SetSymbol(symbol);
             SetOrderId(order_id);
         };
-        explicit ArgsOrder(Exchange::RequestCancelOrder* request_cancel_order)
+        explicit ArgsOrder(
+            const Exchange::RequestCancelOrder* request_cancel_order)
             : ArgsQuery() {
             SetSymbol(request_cancel_order->ticker);
             SetOrderId(request_cancel_order->order_id);
@@ -666,7 +691,7 @@ class CancelOrder : public inner::CancelOrderI {
 
   public:
     explicit CancelOrder(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer){};
+        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
         ArgsOrder args(request_cancel_order);
@@ -696,7 +721,8 @@ class CancelOrder : public inner::CancelOrderI {
             factory.EndPoint().data(), factory());
         ioc.run();
     };
-    ~CancelOrder() override{};
+    ~CancelOrder() override = default;
+
   private:
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
@@ -739,7 +765,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     };
     explicit BookSnapshot(ArgsOrder&& args, TypeExchange type,
                           Exchange::BookSnapshot* snapshot)
-        : args_(args), snapshot_(snapshot) {
+        : args_(std::move(args)), snapshot_(snapshot) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_main_net_;
@@ -804,7 +830,7 @@ class GeneratorBidAskService {
                                          [this]() { Run(); }) != nullptr,
             "Failed to start MarketData thread.");
     };
-    common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
+    common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
     ~GeneratorBidAskService() {
         stop();
         using namespace std::literals::chrono_literals;
@@ -831,7 +857,6 @@ class GeneratorBidAskService {
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
     Exchange::BookDiffLFQueue book_diff_lfqueue_;
     Exchange::BookSnapshot snapshot_;
-    // const Symbol* symbol_;
     const Ticker& ticker_;
     const DiffDepthStream::StreamIntervalI* interval_;
     uint64_t last_id_diff_book_event;

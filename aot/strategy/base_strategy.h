@@ -78,9 +78,14 @@ class BaseStrategy {
             logi("order_book_ ptr not updated in strategy");
             return;
         }
-        auto buy_price = order_book_->getBBO()->ask_price;
         if (!ticker_cfg_.count(ticker_id)) [[unlikely]] {
             logw("fail buy because tickercfg not contain {}", ticker_id);
+            return;
+        }
+        auto buy_price = order_book_->getBBO()->ask_price;
+        if(buy_price == Common::kPRICE_DOUBLE_INVALID)[[unlikely]]
+        {
+            logw("skip BuySomeAsset. BBO ask_price=INVALID. please wait more time for update BBO");
             return;
         }
         auto qty = ticker_cfg_.at(ticker_id).clip;
@@ -122,9 +127,14 @@ class BaseStrategy {
             logi("order_book_ ptr not updated in strategy");
             return;
         }
-        auto sell_price = order_book_->getBBO()->bid_price;
         if (!ticker_cfg_.count(ticker_id)) [[unlikely]] {
             logw("fail sell because tickercfg not contain {}", ticker_id);
+            return;
+        }
+        auto sell_price = order_book_->getBBO()->bid_price;
+        if(sell_price == Common::kPRICE_DOUBLE_INVALID)
+        {
+            logw("skip SellSomeAsset. BBO bid_price=INVALID. please wait more time for update BBO");
             return;
         }
         auto qty = ticker_cfg_.at(ticker_id).clip;

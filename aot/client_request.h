@@ -85,32 +85,6 @@ class RequestCancelOrder {
     }
 };
 
-// struct MEClientRequest {
-//     ClientRequestType type = ClientRequestType::INVALID;
-
-//     std::string ticker;
-//     Common::OrderId order_id = Common::OrderId_INVALID;
-//     Common::Side side        = Common::Side::INVALID;
-//     double price             = Common::kPRICE_DOUBLE_INVALID;
-//     double qty               = Common::kQTY_DOUBLE_INVALID;
-//     uint8_t price_prec       = 0;
-//     uint8_t qty_prec         = 0;
-
-//     auto toString() const {
-//         std::string price_string =
-//             (price != Common::kPRICE_DOUBLE_INVALID)
-//                 ? fmt::format("{:.{}f}", price, price_prec)
-//                 : "INVALID";
-//         std::string qty_string = (qty != Common::kQTY_DOUBLE_INVALID)
-//                                      ? fmt::format("{:.{}f}", qty, qty_prec)
-//                                      : "INVALID";
-//         return fmt::format(
-//             "MEClientRequest[type:{} ticker:{} side:{} qty:{} price:{}]",
-//             Common::clientRequestTypeToString(type), ticker,
-//             Common::sideToString(side), qty_string, price_string);
-//     }
-// };
-
 //#pragma pack(pop)  // Undo the packed binary structure directive moving forward.
 
 /// Lock free queues of matching engine client order request messages.

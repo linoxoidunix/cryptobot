@@ -177,25 +177,28 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
             doc["clientOrderId"]
                 .get_uint64_in_string();  // TODO check this is uint64
         std::string_view status;
-        auto error_status = doc["status"].get_string().get(status);
-        if (error_status != simdjson::SUCCESS) {
+        if (auto error_status = doc["status"].get_string().get(status);
+            error_status != simdjson::SUCCESS) {
             loge("no key status in response");
             return output;
         }
-        std::unordered_set<std::string_view> success_status{
-            "NEW", "PARTIALLY_FILLED", "FILLED"};
-        if (!success_status.count(status)) return output;
-        std::unordered_set<std::string_view> accepted_status{"NEW"};
-        if (accepted_status.count(status)) {
+
+        if (std::unordered_set<std::string_view> success_status{
+                "NEW", "PARTIALLY_FILLED", "FILLED"};
+            !success_status.contains(status))
+            return output;
+        if (std::unordered_set<std::string_view> accepted_status{"NEW"};
+            accepted_status.contains(status)) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
             auto error  = doc["price"].get_double_in_string().get(output.price);
             if (error != simdjson::SUCCESS) [[unlikely]] {
                 loge("no key price in response");
             }
         }
-        std::unordered_set<std::string_view> filled_status{"PARTIALLY_FILLED",
-                                                           "FILLED"};
-        if (filled_status.count(status)) {
+
+        if (std::unordered_set<std::string_view> filled_status{
+                "PARTIALLY_FILLED", "FILLED"};
+            filled_status.contains(status)) {
             output.type = Exchange::ClientResponseType::FILLED;
             auto error  = doc["cummulativeQuoteQty"].get_double_in_string().get(
                 output.price);
@@ -255,8 +258,7 @@ Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
             loge("no key status in response");
             return output;
         }
-        std::unordered_set<std::string_view> success_status{
-            "CANCELED"};
+        std::unordered_set<std::string_view> success_status{"CANCELED"};
         if (!success_status.count(status)) return output;
         output.type = Exchange::ClientResponseType::CANCELED;
         std::string_view ticker;
@@ -278,7 +280,8 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     try {
-        auto error = doc["k"]["o"].get_double_in_string().get(output.ohlcv.open);
+        auto error =
+            doc["k"]["o"].get_double_in_string().get(output.ohlcv.open);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key open in response");
             return output;

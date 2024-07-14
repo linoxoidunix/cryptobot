@@ -280,6 +280,7 @@
 //     Exchange::RequestNewLimitOrderLFQueue request_new_order;
 //     Exchange::RequestCancelOrderLFQueue request_cancel_order;
 //     Exchange::ClientResponseLFQueue response;
+//     OHLCVILFQueue ohlcv_queue;
 //     DiffDepthStream::ms100 interval;
 //     TickerInfo info{2, 5};
 //     Symbol btcusdt("BTC", "USDT");
@@ -288,7 +289,7 @@
 //                                      TypeExchange::TESTNET);
 //     generator.Start();
 //     Trading::TradeEngine trade_engine_service(&event_queue,
-//     &request_new_order, &request_cancel_order,  &response, ticker);
+//     &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
 //     trade_engine_service.Start();
 //     while (trade_engine_service.GetDownTimeInS() < 120) {
 //         logd("Waiting till no activity, been silent for {} seconds...",
@@ -383,7 +384,7 @@
  * @return int
  */
 // int main(int argc, char** argv) {
-//     hmac_sha256::Keys keys{argv[1], argv[2]};
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
 //     hmac_sha256::Signer signer(keys);
 //     auto type = TypeExchange::TESTNET;
 //     fmtlog::setLogLevel(fmtlog::DBG);

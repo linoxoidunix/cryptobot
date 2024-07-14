@@ -87,17 +87,13 @@ class Strategy : public IStrategy {
                     PyUnicode_AsEncodedString(key, "utf-8", "~E~");
                 const char *key_local = PyBytes_AS_STRING(key_as_str);
                 long value_local      = PyLong_AS_LONG(value);
-                std::cout << "key = " << key_local << " value = " << value_local
-                          << std::endl;
                 result = {key_local, value_local};
                 Py_XDECREF(key_as_str);
-                Py_XDECREF(key);
-                Py_XDECREF(value);
             }
             Py_DECREF(pValue);
         } else {
             PyErr_Print();
-            logi("Call failed");
+            logi("pValue = NULL. Call failed");
             return result;
         }
         return result;
