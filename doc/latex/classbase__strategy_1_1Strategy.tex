@@ -1,0 +1,77 @@
+\hypertarget{classbase__strategy_1_1Strategy}{}\doxysection{base\+\_\+strategy\+::Strategy Class Reference}
+\label{classbase__strategy_1_1Strategy}\index{base\_strategy::Strategy@{base\_strategy::Strategy}}
+
+
+Inheritance diagram for base\+\_\+strategy\+::Strategy\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{classbase__strategy_1_1Strategy__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for base\+\_\+strategy\+::Strategy\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=212pt]{classbase__strategy_1_1Strategy__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classbase__strategy_1_1Strategy_1_1Parser}{Parser}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classbase__strategy_1_1Strategy_aedc3e8746bcc4097401cd1c66ecaa366}{Strategy}} (std\+::string\+\_\+view python\+\_\+path, std\+::string\+\_\+view path\+\_\+where\+\_\+models, std\+::string\+\_\+view file\+\_\+predictor, std\+::string\+\_\+view class\+\_\+predictor, std\+::string\+\_\+view method\+\_\+predictor)
+\begin{DoxyCompactList}\small\item\em Construct a new Launcher \mbox{\hyperlink{classPredictor}{Predictor}} object. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy\+::\+Result}} \mbox{\hyperlink{classbase__strategy_1_1Strategy_a838e53fed82d0722d2b19a866573a66e}{Predict}} (double open, double high, double low, double close, double volume) override
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classbase__strategy_1_1Strategy_aedc3e8746bcc4097401cd1c66ecaa366}\label{classbase__strategy_1_1Strategy_aedc3e8746bcc4097401cd1c66ecaa366}} 
+\index{base\_strategy::Strategy@{base\_strategy::Strategy}!Strategy@{Strategy}}
+\index{Strategy@{Strategy}!base\_strategy::Strategy@{base\_strategy::Strategy}}
+\doxysubsubsection{\texorpdfstring{Strategy()}{Strategy()}}
+{\footnotesize\ttfamily base\+\_\+strategy\+::\+Strategy\+::\+Strategy (\begin{DoxyParamCaption}\item[{std\+::string\+\_\+view}]{python\+\_\+path,  }\item[{std\+::string\+\_\+view}]{path\+\_\+where\+\_\+models,  }\item[{std\+::string\+\_\+view}]{file\+\_\+predictor,  }\item[{std\+::string\+\_\+view}]{class\+\_\+predictor,  }\item[{std\+::string\+\_\+view}]{method\+\_\+predictor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Construct a new Launcher \mbox{\hyperlink{classPredictor}{Predictor}} object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em python\+\_\+path} & PYTHONPATH environment variable, path where need search python modules \\
+\hline
+{\em file\+\_\+predictor} & name file where exist python class predictor \\
+\hline
+{\em class\+\_\+predictor} & name python predictor class that has predict(open, high, low, close, volume) method \\
+\hline
+{\em method\+\_\+predictor} & name python predictor method of predictor python class \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classbase__strategy_1_1Strategy_a838e53fed82d0722d2b19a866573a66e}\label{classbase__strategy_1_1Strategy_a838e53fed82d0722d2b19a866573a66e}} 
+\index{base\_strategy::Strategy@{base\_strategy::Strategy}!Predict@{Predict}}
+\index{Predict@{Predict}!base\_strategy::Strategy@{base\_strategy::Strategy}}
+\doxysubsubsection{\texorpdfstring{Predict()}{Predict()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy\+::\+Result}} base\+\_\+strategy\+::\+Strategy\+::\+Predict (\begin{DoxyParamCaption}\item[{double}]{open,  }\item[{double}]{high,  }\item[{double}]{low,  }\item[{double}]{close,  }\item[{double}]{volume }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classIStrategy}{IStrategy}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/launcher\+\_\+predictor.\+h\end{DoxyCompactItemize}

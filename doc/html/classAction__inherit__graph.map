@@ -1,0 +1,6 @@
+<map id="Action" name="Action">
+<area shape="rect" id="node1" title=" " alt="" coords="127,5,189,32"/>
+<area shape="rect" id="node2" href="$classActionEmpty.html" title=" " alt="" coords="5,80,111,107"/>
+<area shape="rect" id="node3" href="$classBuy.html" title=" " alt="" coords="135,80,181,107"/>
+<area shape="rect" id="node4" href="$classSell.html" title=" " alt="" coords="205,80,252,107"/>
+</map>

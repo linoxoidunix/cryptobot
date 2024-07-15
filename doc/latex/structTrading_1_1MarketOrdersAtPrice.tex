@@ -1,0 +1,78 @@
+\hypertarget{structTrading_1_1MarketOrdersAtPrice}{}\doxysection{Trading\+::Market\+Orders\+At\+Price Struct Reference}
+\label{structTrading_1_1MarketOrdersAtPrice}\index{Trading::MarketOrdersAtPrice@{Trading::MarketOrdersAtPrice}}
+
+
+Hash map from Order\+Id -\/\texorpdfstring{$>$}{>} \mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}}.  
+
+
+
+
+{\ttfamily \#include $<$market\+\_\+order.\+h$>$}
+
+
+
+Collaboration diagram for Trading\+::Market\+Orders\+At\+Price\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{structTrading_1_1MarketOrdersAtPrice__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_ac9dcceaef4bdc83c8b280fd356b4d2b5}\label{structTrading_1_1MarketOrdersAtPrice_ac9dcceaef4bdc83c8b280fd356b4d2b5}} 
+{\bfseries Market\+Orders\+At\+Price} ()=default
+\begin{DoxyCompactList}\small\item\em Only needed for use with Mem\+Pool. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a40a35305496ad5f69a8c6903cbd18f4a}\label{structTrading_1_1MarketOrdersAtPrice_a40a35305496ad5f69a8c6903cbd18f4a}} 
+{\bfseries Market\+Orders\+At\+Price} (Common\+::\+Side side, Common\+::\+Price price, const \mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}} \&first\+\_\+mkt\+\_\+order, \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} $\ast$prev\+\_\+entry, \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} $\ast$next\+\_\+entry)
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a687fe558bdd2cf5bdd9137e4309f6d80}\label{structTrading_1_1MarketOrdersAtPrice_a687fe558bdd2cf5bdd9137e4309f6d80}} 
+auto {\bfseries to\+String} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_ad4f9b33335c0946000c2aa5340d6d553}\label{structTrading_1_1MarketOrdersAtPrice_ad4f9b33335c0946000c2aa5340d6d553}} 
+Common\+::\+Side {\bfseries side\+\_\+} = Common\+::\+Side\+::\+INVALID
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_ae4158a725c5e2af311dd4564e3ef3b5e}\label{structTrading_1_1MarketOrdersAtPrice_ae4158a725c5e2af311dd4564e3ef3b5e}} 
+Common\+::\+Price {\bfseries price\+\_\+} = Common\+::\+Price\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a1155e3c54a710bb6ec226b05017d4fcd}\label{structTrading_1_1MarketOrdersAtPrice_a1155e3c54a710bb6ec226b05017d4fcd}} 
+\mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}} {\bfseries first\+\_\+mkt\+\_\+order\+\_\+}
+\item 
+boost\+::intrusive\+::avl\+\_\+set\+\_\+member\+\_\+hook \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice_a8cfd6d0471dad31d4c81a51744319039}{member\+\_\+hook\+\_\+}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_afa6f93f20846ac05dbd58bf8a4d423cf}\label{structTrading_1_1MarketOrdersAtPrice_afa6f93f20846ac05dbd58bf8a4d423cf}} 
+bool {\bfseries operator$<$} (const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&a, const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&b)
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a885ac44e8669be269878504d7eb8340b}\label{structTrading_1_1MarketOrdersAtPrice_a885ac44e8669be269878504d7eb8340b}} 
+bool {\bfseries operator$>$} (const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&a, const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&b)
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a4991047aeb904b91e41b5c9b81bdb53e}\label{structTrading_1_1MarketOrdersAtPrice_a4991047aeb904b91e41b5c9b81bdb53e}} 
+bool {\bfseries operator==} (const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&a, const \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} \&b)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Hash map from Order\+Id -\/\texorpdfstring{$>$}{>} \mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}}. 
+
+Used by the trade engine to represent a price level in the limit order book. Internally maintains a list of \mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}} objects arranged in FIFO order. 
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structTrading_1_1MarketOrdersAtPrice_a8cfd6d0471dad31d4c81a51744319039}\label{structTrading_1_1MarketOrdersAtPrice_a8cfd6d0471dad31d4c81a51744319039}} 
+\index{Trading::MarketOrdersAtPrice@{Trading::MarketOrdersAtPrice}!member\_hook\_@{member\_hook\_}}
+\index{member\_hook\_@{member\_hook\_}!Trading::MarketOrdersAtPrice@{Trading::MarketOrdersAtPrice}}
+\doxysubsubsection{\texorpdfstring{member\_hook\_}{member\_hook\_}}
+{\footnotesize\ttfamily boost\+::intrusive\+::avl\+\_\+set\+\_\+member\+\_\+hook Trading\+::\+Market\+Orders\+At\+Price\+::member\+\_\+hook\+\_\+}
+
+\mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Market\+Orders\+At\+Price}} also serves as a node in a doubly linked list of price levels arranged in order from most aggressive to least aggressive price. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/market\+\_\+order.\+h\end{DoxyCompactItemize}

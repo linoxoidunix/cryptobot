@@ -1,0 +1,76 @@
+\hypertarget{client__request_8h}{}\doxysection{/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/client\+\_\+request.h File Reference}
+\label{client__request_8h}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_request.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_request.h}}
+
+
+define struct for sending and receiving gateway module  
+
+
+{\ttfamily \#include $<$sstream$>$}\newline
+{\ttfamily \#include \char`\"{}aot/common/types.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}moodycamel/concurrentqueue.\+h\char`\"{}}\newline
+Include dependency graph for client\+\_\+request.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{client__request_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{client__request_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classExchange_1_1Request}{Exchange\+::\+Request}}
+\begin{DoxyCompactList}\small\item\em Client request structure used internally by the matching engine. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange\+::\+Request\+New\+Order}}
+\item 
+class \mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange\+::\+Request\+Cancel\+Order}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{client__request_8h_afdaba697086449aedd6facb0edb90085}\label{client__request_8h_afdaba697086449aedd6facb0edb90085}} 
+using {\bfseries Exchange\+::\+Request\+New\+Limit\+Order\+LFQueue} = moodycamel\+::\+Concurrent\+Queue$<$ Request\+New\+Order $>$
+\begin{DoxyCompactList}\small\item\em Lock free queues of matching engine client order request messages. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{client__request_8h_a325c5950b9fd040e0800a07eee0a5200}\label{client__request_8h_a325c5950b9fd040e0800a07eee0a5200}} 
+using {\bfseries Exchange\+::\+Request\+Cancel\+Order\+LFQueue} = moodycamel\+::\+Concurrent\+Queue$<$ Request\+Cancel\+Order $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}\label{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}} 
+enum class \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{Exchange\+::\+Client\+Request\+Type}} \+: uint8\+\_\+t \{ {\bfseries INVALID} = 0
+, {\bfseries NEW} = 1
+, {\bfseries CANCEL} = 2
+ \}
+\begin{DoxyCompactList}\small\item\em Type of the order request sent by the trading client to the exchange. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{client__request_8h_a16912e808ab8c15546de4282ce932c53}\label{client__request_8h_a16912e808ab8c15546de4282ce932c53}} 
+std\+::string {\bfseries Exchange\+::\+Client\+Request\+Type\+To\+String} (Client\+Request\+Type type)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+define struct for sending and receiving gateway module 
+
+\begin{DoxyAuthor}{Author}
+your name (\href{mailto:you@domain.com}{\texttt{ you@domain.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+0.\+1 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2024-\/06-\/01
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) 2024 
+\end{DoxyCopyright}

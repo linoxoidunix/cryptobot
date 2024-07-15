@@ -1,0 +1,89 @@
+\hypertarget{classbybit_1_1mainnet_1_1HttpsExchange}{}\doxysection{bybit\+::mainnet\+::Https\+Exchange Class Reference}
+\label{classbybit_1_1mainnet_1_1HttpsExchange}\index{bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}}
+
+
+Inheritance diagram for bybit\+::mainnet\+::Https\+Exchange\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=247pt]{classbybit_1_1mainnet_1_1HttpsExchange__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for bybit\+::mainnet\+::Https\+Exchange\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=247pt]{classbybit_1_1mainnet_1_1HttpsExchange__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange_a3dba9517773d0120cda0080c8f2d3a6e}{Https\+Exchange}} (std\+::uint64\+\_\+t recv\+\_\+window=5000)
+\begin{DoxyCompactList}\small\item\em Construct a new \mbox{\hyperlink{classHttps}{Https}} Exchange object. \end{DoxyCompactList}\item 
+std\+::string\+\_\+view \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange_a58f5bb4a7a9993155d3b8985382bb07b}{Host}} () const override
+\item 
+std\+::string\+\_\+view \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange_abb11fc94513cd3faac7d1b08dfc08f3d}{Port}} () const override
+\item 
+std\+::uint64\+\_\+t \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange_ad140fb930fde90839d773988d5bac5aa}{Recv\+Window}} () const override
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classbybit_1_1mainnet_1_1HttpsExchange_a3dba9517773d0120cda0080c8f2d3a6e}\label{classbybit_1_1mainnet_1_1HttpsExchange_a3dba9517773d0120cda0080c8f2d3a6e}} 
+\index{bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}!HttpsExchange@{HttpsExchange}}
+\index{HttpsExchange@{HttpsExchange}!bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{HttpsExchange()}{HttpsExchange()}}
+{\footnotesize\ttfamily bybit\+::mainnet\+::\+Https\+Exchange\+::\+Https\+Exchange (\begin{DoxyParamCaption}\item[{std\+::uint64\+\_\+t}]{recv\+\_\+window = {\ttfamily 5000} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Construct a new \mbox{\hyperlink{classHttps}{Https}} Exchange object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em recv\+\_\+window} & \href{https://binance-docs.github.io/apidocs/spot/en/\#endpoint-security-type}{\texttt{ https\+://binance-\/docs.\+github.\+io/apidocs/spot/en/\#endpoint-\/security-\/type}} An additional parameter, recv\+Window, may be sent to specify the number of milliseconds after timestamp the request is valid for. If recv\+Window is not sent, it defaults to 5000. \\
+\hline
+\end{DoxyParams}
+\href{https://binance-docs.github.io/apidocs/spot/en/\#endpoint-security-type}{\texttt{ https\+://binance-\/docs.\+github.\+io/apidocs/spot/en/\#endpoint-\/security-\/type}} It is recommended to use a small recv\+Window of 5000 or less! The max cannot go beyond 60,000!
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classbybit_1_1mainnet_1_1HttpsExchange_a58f5bb4a7a9993155d3b8985382bb07b}\label{classbybit_1_1mainnet_1_1HttpsExchange_a58f5bb4a7a9993155d3b8985382bb07b}} 
+\index{bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}!Host@{Host}}
+\index{Host@{Host}!bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{Host()}{Host()}}
+{\footnotesize\ttfamily std\+::string\+\_\+view bybit\+::mainnet\+::\+Https\+Exchange\+::\+Host (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+\mbox{\Hypertarget{classbybit_1_1mainnet_1_1HttpsExchange_abb11fc94513cd3faac7d1b08dfc08f3d}\label{classbybit_1_1mainnet_1_1HttpsExchange_abb11fc94513cd3faac7d1b08dfc08f3d}} 
+\index{bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}!Port@{Port}}
+\index{Port@{Port}!bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{Port()}{Port()}}
+{\footnotesize\ttfamily std\+::string\+\_\+view bybit\+::mainnet\+::\+Https\+Exchange\+::\+Port (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+\mbox{\Hypertarget{classbybit_1_1mainnet_1_1HttpsExchange_ad140fb930fde90839d773988d5bac5aa}\label{classbybit_1_1mainnet_1_1HttpsExchange_ad140fb930fde90839d773988d5bac5aa}} 
+\index{bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}!RecvWindow@{RecvWindow}}
+\index{RecvWindow@{RecvWindow}!bybit::mainnet::HttpsExchange@{bybit::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{RecvWindow()}{RecvWindow()}}
+{\footnotesize\ttfamily std\+::uint64\+\_\+t bybit\+::mainnet\+::\+Https\+Exchange\+::\+Recv\+Window (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/Bybit.\+h\end{DoxyCompactItemize}

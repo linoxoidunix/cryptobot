@@ -1,0 +1,36 @@
+\hypertarget{wallet__asset_8h_source}{}\doxysection{wallet\+\_\+asset.\+h}
+\label{wallet__asset_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/wallet\_asset.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/wallet\_asset.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{8 \textcolor{keyword}{using }WalletAsset = ankerl::unordered\_dense::map<Common::TickerS, Common::QtyD>;}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{keyword}{class }\mbox{\hyperlink{classWallet}{Wallet}} : \textcolor{keyword}{public} WalletAsset \{}
+\DoxyCodeLine{11   \textcolor{keyword}{public}:}
+\DoxyCodeLine{12     \textcolor{keyword}{explicit} \mbox{\hyperlink{classWallet}{Wallet}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{13     \textcolor{keywordtype}{void} Update(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}}* response) \{}
+\DoxyCodeLine{14         \textcolor{keywordflow}{if} (response-\/>type == Exchange::ClientResponseType::ACCEPTED) \{}
+\DoxyCodeLine{15             \textcolor{keywordflow}{if} (response-\/>side == Common::Side::BUY) \{}
+\DoxyCodeLine{16                 InitTicker(response-\/>ticker);}
+\DoxyCodeLine{17                 at(response-\/>ticker) += response-\/>exec\_qty;}
+\DoxyCodeLine{18             \}}
+\DoxyCodeLine{19             \textcolor{keywordflow}{if} (response-\/>side == Common::Side::SELL) \{}
+\DoxyCodeLine{20                 InitTicker(response-\/>ticker);}
+\DoxyCodeLine{21                 at(response-\/>ticker) -\/= response-\/>exec\_qty;}
+\DoxyCodeLine{22             \}}
+\DoxyCodeLine{23         \}}
+\DoxyCodeLine{24     \};}
+\DoxyCodeLine{25     Common::QtyD SafetyGetNumberAsset(\textcolor{keyword}{const} Common::TickerS\& ticker) \{}
+\DoxyCodeLine{26         InitTicker(ticker);}
+\DoxyCodeLine{27         \textcolor{keywordflow}{return} at(ticker);}
+\DoxyCodeLine{28     \};}
+\DoxyCodeLine{29 }
+\DoxyCodeLine{30   \textcolor{keyword}{private}:}
+\DoxyCodeLine{31     \textcolor{keywordtype}{void} InitTicker(\textcolor{keyword}{const} Common::TickerS\& ticker\_id) \{}
+\DoxyCodeLine{32         \textcolor{keywordflow}{if} (count(ticker\_id)) [[unlikely]]}
+\DoxyCodeLine{33             insert(\{ticker\_id, 0\});}
+\DoxyCodeLine{34     \}}
+\DoxyCodeLine{35 \};}
+
+\end{DoxyCode}

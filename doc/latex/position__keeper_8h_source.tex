@@ -1,0 +1,173 @@
+\hypertarget{position__keeper_8h_source}{}\doxysection{position\+\_\+keeper.\+h}
+\label{position__keeper_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/position\_keeper.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/position\_keeper.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <unordered\_map>}}
+\DoxyCodeLine{4 }
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/strategy/market\_order.h"{}}}
+\DoxyCodeLine{10 \textcolor{comment}{// \#include "{}market\_order\_book.h"{}}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{keyword}{using namespace }Common;}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{17 \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1PositionInfo}{PositionInfo}} \{}
+\DoxyCodeLine{18     \textcolor{keywordtype}{double} position   = 0;}
+\DoxyCodeLine{19     \textcolor{keywordtype}{double} real\_pnl   = 0;}
+\DoxyCodeLine{20     \textcolor{keywordtype}{double} unreal\_pnl = 0;}
+\DoxyCodeLine{21     \textcolor{keywordtype}{double} total\_pnl  = 0;}
+\DoxyCodeLine{22     std::array<double, sideToIndex(Side::MAX) + 1> open\_vwap;}
+\DoxyCodeLine{23     \textcolor{keywordtype}{double} volume                 = 0;}
+\DoxyCodeLine{24     \textcolor{keyword}{const} \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading::BBODouble}} *bbo = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{27         std::stringstream ss;}
+\DoxyCodeLine{28         ss << \textcolor{stringliteral}{"{}Position\{"{}} << \textcolor{stringliteral}{"{}pos:"{}} << position << \textcolor{stringliteral}{"{} u-\/pnl:"{}} << unreal\_pnl}
+\DoxyCodeLine{29            << \textcolor{stringliteral}{"{} r-\/pnl:"{}} << real\_pnl << \textcolor{stringliteral}{"{} t-\/pnl:"{}} << total\_pnl}
+\DoxyCodeLine{30            << \textcolor{stringliteral}{"{} vol:"{}} << volume << \textcolor{stringliteral}{"{} vwaps:["{}}}
+\DoxyCodeLine{31            << (position}
+\DoxyCodeLine{32                    ? open\_vwap.at(Common::sideToIndex(Common::Side::BUY)) / std::abs(position)}
+\DoxyCodeLine{33                    : 0)}
+\DoxyCodeLine{34            << \textcolor{stringliteral}{"{}X"{}}}
+\DoxyCodeLine{35            << (position ? open\_vwap.at(Common::sideToIndex(Common::Side::SELL)) /}
+\DoxyCodeLine{36                                std::abs(position)}
+\DoxyCodeLine{37                          : 0)}
+\DoxyCodeLine{38            << \textcolor{stringliteral}{"{}] "{}} << (bbo ? bbo-\/>ToString() : \textcolor{stringliteral}{"{}"{}}) << \textcolor{stringliteral}{"{}\}"{}};}
+\DoxyCodeLine{39 }
+\DoxyCodeLine{40         \textcolor{keywordflow}{return} ss.str();}
+\DoxyCodeLine{41     \}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{49     \textcolor{keyword}{auto} \mbox{\hyperlink{structTrading_1_1PositionInfo_ad5e20c88bf2396f68f0b72339b10e90d}{addFill}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{50         \textcolor{keyword}{const} \textcolor{keyword}{auto} old\_position   = position;}
+\DoxyCodeLine{51         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_index     = Common::sideToIndex(client\_response-\/>side);}
+\DoxyCodeLine{52         \textcolor{keyword}{const} \textcolor{keyword}{auto} opp\_side\_index = Common::sideToIndex(}
+\DoxyCodeLine{53             client\_response-\/>side == Side::BUY ? Side::SELL : Side::BUY);}
+\DoxyCodeLine{54         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_value  = Common::sideToValue(client\_response-\/>side);}
+\DoxyCodeLine{55         position              += client\_response-\/>exec\_qty * side\_value;}
+\DoxyCodeLine{56         volume                += client\_response-\/>exec\_qty;}
+\DoxyCodeLine{57 }
+\DoxyCodeLine{58         \textcolor{keywordflow}{if} (old\_position * sideToValue(client\_response-\/>side) >=}
+\DoxyCodeLine{59             0) \{  \textcolor{comment}{// opened / increased position.}}
+\DoxyCodeLine{60             open\_vwap[side\_index] +=}
+\DoxyCodeLine{61                 (client\_response-\/>price * client\_response-\/>exec\_qty);}
+\DoxyCodeLine{62         \} \textcolor{keywordflow}{else} \{  \textcolor{comment}{// decreased position.}}
+\DoxyCodeLine{63             \textcolor{keyword}{const} \textcolor{keyword}{auto} opp\_side\_vwap =}
+\DoxyCodeLine{64                 open\_vwap[opp\_side\_index] / std::abs(old\_position);}
+\DoxyCodeLine{65             open\_vwap[opp\_side\_index] = opp\_side\_vwap * std::abs(position);}
+\DoxyCodeLine{66             real\_pnl +=}
+\DoxyCodeLine{67                 std::min(client\_response-\/>exec\_qty,}
+\DoxyCodeLine{68                          std::abs(old\_position)) *}
+\DoxyCodeLine{69                 (opp\_side\_vwap -\/ client\_response-\/>price) *}
+\DoxyCodeLine{70                 sideToValue(client\_response-\/>side);}
+\DoxyCodeLine{71             \textcolor{keywordflow}{if} (position * old\_position <}
+\DoxyCodeLine{72                 0) \{  \textcolor{comment}{// flipped position to opposite sign.}}
+\DoxyCodeLine{73                 open\_vwap[side\_index] =}
+\DoxyCodeLine{74                     (client\_response-\/>price * std::abs(position));}
+\DoxyCodeLine{75                 open\_vwap[opp\_side\_index] = 0;}
+\DoxyCodeLine{76             \}}
+\DoxyCodeLine{77         \}}
+\DoxyCodeLine{78 }
+\DoxyCodeLine{79         \textcolor{keywordflow}{if} (!position) \{  \textcolor{comment}{// flat}}
+\DoxyCodeLine{80             open\_vwap[sideToIndex(Side::BUY)] =}
+\DoxyCodeLine{81                 open\_vwap[sideToIndex(Common::Side::SELL)] = 0;}
+\DoxyCodeLine{82             unreal\_pnl                                     = 0;}
+\DoxyCodeLine{83         \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{84             \textcolor{keywordflow}{if} (position > 0)}
+\DoxyCodeLine{85                 unreal\_pnl = (client\_response-\/>price -\/}
+\DoxyCodeLine{86                               open\_vwap[sideToIndex(Common::Side::BUY)] /}
+\DoxyCodeLine{87                                   std::abs(position)) *}
+\DoxyCodeLine{88                              std::abs(position);}
+\DoxyCodeLine{89             \textcolor{keywordflow}{else}}
+\DoxyCodeLine{90                 unreal\_pnl =}
+\DoxyCodeLine{91                     (open\_vwap[sideToIndex(Side::SELL)] / std::abs(position) -\/}
+\DoxyCodeLine{92                      client\_response-\/>price) *}
+\DoxyCodeLine{93                     std::abs(position);}
+\DoxyCodeLine{94         \}}
+\DoxyCodeLine{95 }
+\DoxyCodeLine{96         total\_pnl = unreal\_pnl + real\_pnl;}
+\DoxyCodeLine{97 }
+\DoxyCodeLine{98         logi(\textcolor{stringliteral}{"{}\{\} \{\}"{}}, ToString(), client\_response-\/>ToString());}
+\DoxyCodeLine{99     \}}
+\DoxyCodeLine{100 }
+\DoxyCodeLine{103     \textcolor{keyword}{auto} \mbox{\hyperlink{structTrading_1_1PositionInfo_a6ad0af4d61a0750fc8044a8a5dadea9e}{updateBBO}}(\textcolor{keyword}{const} \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading::BBODouble}} *\_bbo) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{104         bbo = \_bbo;}
+\DoxyCodeLine{105 }
+\DoxyCodeLine{106         \textcolor{keywordflow}{if} (position \&\& bbo-\/>bid\_price != Common::kPRICE\_DOUBLE\_INVALID \&\&}
+\DoxyCodeLine{107             bbo-\/>ask\_price != Common::kPRICE\_DOUBLE\_INVALID) \{}
+\DoxyCodeLine{108             \textcolor{keyword}{const} \textcolor{keyword}{auto} mid\_price = (bbo-\/>bid\_price + bbo-\/>ask\_price) * 0.5;}
+\DoxyCodeLine{109             \textcolor{keywordflow}{if} (position > 0)}
+\DoxyCodeLine{110                 unreal\_pnl =}
+\DoxyCodeLine{111                     (mid\_price -\/}
+\DoxyCodeLine{112                      open\_vwap[Common::sideToIndex(Common::Side::BUY)] /}
+\DoxyCodeLine{113                          std::abs(position)) *}
+\DoxyCodeLine{114                     std::abs(position);}
+\DoxyCodeLine{115             \textcolor{keywordflow}{else}}
+\DoxyCodeLine{116                 unreal\_pnl =}
+\DoxyCodeLine{117                     (open\_vwap[Common::sideToIndex(Common::Side::SELL)] /}
+\DoxyCodeLine{118                          std::abs(position) -\/}
+\DoxyCodeLine{119                      mid\_price) *}
+\DoxyCodeLine{120                     std::abs(position);}
+\DoxyCodeLine{121 }
+\DoxyCodeLine{122             \textcolor{keyword}{const} \textcolor{keyword}{auto} old\_total\_pnl = total\_pnl;}
+\DoxyCodeLine{123             total\_pnl                = unreal\_pnl + real\_pnl;}
+\DoxyCodeLine{124 }
+\DoxyCodeLine{125             \textcolor{keywordflow}{if} (total\_pnl != old\_total\_pnl)}
+\DoxyCodeLine{126                 logi(\textcolor{stringliteral}{"{}\{\} \{\}"{}}, ToString(), bbo-\/>ToString());}
+\DoxyCodeLine{127         \}}
+\DoxyCodeLine{128     \}}
+\DoxyCodeLine{129 \};}
+\DoxyCodeLine{130 }
+\DoxyCodeLine{133 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \{}
+\DoxyCodeLine{134   \textcolor{keyword}{public}:}
+\DoxyCodeLine{135     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{136 }
+\DoxyCodeLine{138 }
+\DoxyCodeLine{139     \mbox{\hyperlink{classTrading_1_1PositionKeeper_a18011452c768fb572c442fc14892cd36}{PositionKeeper}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{140 }
+\DoxyCodeLine{141     \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{142 }
+\DoxyCodeLine{143     \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{144 }
+\DoxyCodeLine{145     \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{146 }
+\DoxyCodeLine{147   \textcolor{keyword}{private}:}
+\DoxyCodeLine{148 }
+\DoxyCodeLine{150     \textcolor{comment}{//std::array<PositionInfo, ME\_MAX\_TICKERS> ticker\_position\_;}}
+\DoxyCodeLine{151     std::unordered\_map<std::string, PositionInfo> ticker\_position;}
+\DoxyCodeLine{152   \textcolor{keyword}{public}:}
+\DoxyCodeLine{153     \textcolor{keyword}{auto} AddFill(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{154         ticker\_position[client\_response-\/>ticker].addFill(client\_response);}
+\DoxyCodeLine{155     \};}
+\DoxyCodeLine{156 }
+\DoxyCodeLine{157     \textcolor{keyword}{auto} UpdateBBO(std::string ticker, \textcolor{keyword}{const} \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading::BBODouble}} *bbo) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{158         ticker\_position[ticker].updateBBO(bbo);}
+\DoxyCodeLine{159     \};}
+\DoxyCodeLine{160 }
+\DoxyCodeLine{161     \textcolor{keyword}{auto} getPositionInfo(std::string ticker) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{162         \textcolor{keywordflow}{return} \&(ticker\_position[ticker]);}
+\DoxyCodeLine{163     \};}
+\DoxyCodeLine{164 }
+\DoxyCodeLine{165     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{166         \textcolor{keywordtype}{double} total\_pnl = 0;}
+\DoxyCodeLine{167         \textcolor{keywordtype}{double} total\_vol    = 0;}
+\DoxyCodeLine{168 }
+\DoxyCodeLine{169         std::stringstream ss;}
+\DoxyCodeLine{170         \textcolor{keywordflow}{for}(\textcolor{keyword}{auto}\& it : ticker\_position)}
+\DoxyCodeLine{171         \{}
+\DoxyCodeLine{172             ss << \textcolor{stringliteral}{"{}TickerId:"{}} << it.first << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{173                << it.second.ToString() << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{174                 total\_pnl += it.second.total\_pnl;}
+\DoxyCodeLine{175                 total\_vol += it.second.volume;}
+\DoxyCodeLine{176         \}}
+\DoxyCodeLine{177         ss << \textcolor{stringliteral}{"{}Total PnL:"{}} << total\_pnl << \textcolor{stringliteral}{"{} Vol:"{}} << total\_vol << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{178         \textcolor{keywordflow}{return} ss.str();}
+\DoxyCodeLine{179     \};}
+\DoxyCodeLine{180 \};}
+\DoxyCodeLine{181 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

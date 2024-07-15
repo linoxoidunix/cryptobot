@@ -1,0 +1,58 @@
+\hypertarget{time__utils_8h_source}{}\doxysection{time\+\_\+utils.\+h}
+\label{time__utils_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/time\_utils.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/time\_utils.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <ctime>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{6 }
+\DoxyCodeLine{7 \textcolor{keyword}{namespace }common \{}
+\DoxyCodeLine{8 \textcolor{keyword}{typedef} int64\_t Nanos;}
+\DoxyCodeLine{9 \textcolor{keyword}{typedef} int64\_t Delta;}
+\DoxyCodeLine{10 \textcolor{keyword}{constexpr} Nanos NANOS\_TO\_MICROS  = 1000;}
+\DoxyCodeLine{11 \textcolor{keyword}{constexpr} Nanos MICROS\_TO\_MILLIS = 1000;}
+\DoxyCodeLine{12 \textcolor{keyword}{constexpr} Nanos MILLIS\_TO\_SECS   = 1000;}
+\DoxyCodeLine{13 \textcolor{keyword}{constexpr} Nanos NANOS\_TO\_MILLIS  = NANOS\_TO\_MICROS * MICROS\_TO\_MILLIS;}
+\DoxyCodeLine{14 \textcolor{keyword}{constexpr} Nanos NANOS\_TO\_SECS    = NANOS\_TO\_MILLIS * MILLIS\_TO\_SECS;}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{keyword}{inline} \textcolor{keyword}{auto} getCurrentNanoS() noexcept \{}
+\DoxyCodeLine{17     \textcolor{keywordflow}{return} std::chrono::duration\_cast<std::chrono::nanoseconds>(}
+\DoxyCodeLine{18                std::chrono::system\_clock::now().time\_since\_epoch())}
+\DoxyCodeLine{19         .count();}
+\DoxyCodeLine{20 \}}
+\DoxyCodeLine{21 }
+\DoxyCodeLine{22 \textcolor{keyword}{inline} \textcolor{keyword}{auto}\& getCurrentTimeStr(std::string* time\_str) \{}
+\DoxyCodeLine{23     \textcolor{keyword}{const} \textcolor{keyword}{auto} time =}
+\DoxyCodeLine{24         std::chrono::system\_clock::to\_time\_t(std::chrono::system\_clock::now());}
+\DoxyCodeLine{25     time\_str-\/>assign(ctime(\&time));}
+\DoxyCodeLine{26     \textcolor{keywordflow}{if} (!time\_str-\/>empty()) time\_str-\/>at(time\_str-\/>length() -\/ 1) = \textcolor{charliteral}{'\(\backslash\)0'};}
+\DoxyCodeLine{27     \textcolor{keywordflow}{return} *time\_str;}
+\DoxyCodeLine{28 \};}
+\DoxyCodeLine{29 }
+\DoxyCodeLine{30 \textcolor{keyword}{class }\mbox{\hyperlink{classcommon_1_1TimeManager}{TimeManager}} \{}
+\DoxyCodeLine{31   \textcolor{keyword}{public}:}
+\DoxyCodeLine{32     \textcolor{keyword}{explicit} \mbox{\hyperlink{classcommon_1_1TimeManager}{TimeManager}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{33     \textcolor{keywordtype}{void} Update() \{ last\_ = common::getCurrentNanoS(); \};}
+\DoxyCodeLine{34     common::Delta GetDeltaInNanos()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{35         \textcolor{keywordflow}{return} common::getCurrentNanoS() -\/ last\_;}
+\DoxyCodeLine{36     \};}
+\DoxyCodeLine{37     common::Delta GetDeltaInS()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{38         \textcolor{keywordflow}{return} (common::getCurrentNanoS() -\/ last\_) / NANOS\_TO\_SECS;}
+\DoxyCodeLine{39     \};}
+\DoxyCodeLine{40     common::Delta GetDeltaInMilliS()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{41         \textcolor{keywordflow}{return} (common::getCurrentNanoS() -\/ last\_) / NANOS\_TO\_MILLIS;}
+\DoxyCodeLine{42     \};}
+\DoxyCodeLine{43     common::Delta GetDeltaInMicroS()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{44         \textcolor{keywordflow}{return} (common::getCurrentNanoS() -\/ last\_) / NANOS\_TO\_MICROS;}
+\DoxyCodeLine{45     \};}
+\DoxyCodeLine{46 }
+\DoxyCodeLine{47   \textcolor{keyword}{private}:}
+\DoxyCodeLine{48     common::Nanos start\_ = common::getCurrentNanoS();}
+\DoxyCodeLine{49     common::Nanos last\_  = start\_;}
+\DoxyCodeLine{50 \};}
+\DoxyCodeLine{51 }
+\DoxyCodeLine{52 \}  \textcolor{comment}{// namespace Common}}
+
+\end{DoxyCode}

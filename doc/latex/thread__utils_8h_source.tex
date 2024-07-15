@@ -1,0 +1,43 @@
+\hypertarget{thread__utils_8h_source}{}\doxysection{thread\+\_\+utils.\+h}
+\label{thread__utils_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/thread\_utils.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/thread\_utils.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <atomic>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <unistd.h>}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <sys/syscall.h>}}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{keyword}{namespace }common \{}
+\DoxyCodeLine{12   \textcolor{keyword}{inline} \textcolor{keyword}{auto} setThreadCore(\textcolor{keywordtype}{int} core\_id) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{13     cpu\_set\_t cpuset;}
+\DoxyCodeLine{14 }
+\DoxyCodeLine{15     CPU\_ZERO(\&cpuset);}
+\DoxyCodeLine{16     CPU\_SET(core\_id, \&cpuset);}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{18     \textcolor{keywordflow}{return} (pthread\_setaffinity\_np(pthread\_self(), \textcolor{keyword}{sizeof}(cpu\_set\_t), \&cpuset) == 0);}
+\DoxyCodeLine{19   \}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{23   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T, \textcolor{keyword}{typename}... A>}
+\DoxyCodeLine{24   \textcolor{keyword}{inline} \textcolor{keyword}{auto} createAndStartThread(\textcolor{keywordtype}{int} core\_id, \textcolor{keyword}{const} std::string \&name, T \&\&func, A \&\&... args) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{25     \textcolor{keyword}{auto} t = \textcolor{keyword}{new} std::thread([\&]() \{}
+\DoxyCodeLine{26       \textcolor{keywordflow}{if} (core\_id >= 0 \&\& !setThreadCore(core\_id)) \{}
+\DoxyCodeLine{27         std::cerr << \textcolor{stringliteral}{"{}Failed to set core affinity for "{}} << name << \textcolor{stringliteral}{"{} "{}} << pthread\_self() << \textcolor{stringliteral}{"{} to "{}} << core\_id << std::endl;}
+\DoxyCodeLine{28         exit(EXIT\_FAILURE);}
+\DoxyCodeLine{29       \}}
+\DoxyCodeLine{30       std::cerr << \textcolor{stringliteral}{"{}Set core affinity for "{}} << name << \textcolor{stringliteral}{"{} "{}} << pthread\_self() << \textcolor{stringliteral}{"{} to "{}} << core\_id << std::endl;}
+\DoxyCodeLine{31 }
+\DoxyCodeLine{32       std::forward<T>(func)((std::forward<A>(args))...);}
+\DoxyCodeLine{33     \});}
+\DoxyCodeLine{34 }
+\DoxyCodeLine{35     \textcolor{keyword}{using namespace }std::literals::chrono\_literals;}
+\DoxyCodeLine{36     std::this\_thread::sleep\_for(1s);}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{38     \textcolor{keywordflow}{return} t;}
+\DoxyCodeLine{39   \}}
+\DoxyCodeLine{40 \}}
+
+\end{DoxyCode}

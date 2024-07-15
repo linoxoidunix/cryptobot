@@ -1,0 +1,82 @@
+\hypertarget{classTrading_1_1TradeEngine}{}\doxysection{Trading\+::Trade\+Engine Class Reference}
+\label{classTrading_1_1TradeEngine}\index{Trading::TradeEngine@{Trading::TradeEngine}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a65f6554469262c2c1eeb67ce1e2a2be2}\label{classTrading_1_1TradeEngine_a65f6554469262c2c1eeb67ce1e2a2be2}} 
+{\bfseries Trade\+Engine} (Exchange\+::\+Event\+LFQueue $\ast$market\+\_\+updates, \mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{Exchange\+::\+Request\+New\+Limit\+Order\+LFQueue}} $\ast$request\+\_\+new\+\_\+order, Exchange\+::\+Request\+Cancel\+Order\+LFQueue $\ast$request\+\_\+cancel\+\_\+order, \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange\+::\+Client\+Response\+LFQueue}} $\ast$response, OHLCVILFQueue $\ast$klines, const \mbox{\hyperlink{structTicker}{Ticker}} \&ticker, \mbox{\hyperlink{classbase__strategy_1_1Strategy}{base\+\_\+strategy\+::\+Strategy}} $\ast$predictor)
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a21c14172573ab400878deb23fc8a6fc7}\label{classTrading_1_1TradeEngine_a21c14172573ab400878deb23fc8a6fc7}} 
+auto {\bfseries Start} () -\/$>$ void
+\begin{DoxyCompactList}\small\item\em Start and stop the trade engine main thread. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a7c4701b31d06552c29ab3152a08c6260}\label{classTrading_1_1TradeEngine_a7c4701b31d06552c29ab3152a08c6260}} 
+auto {\bfseries Stop} () -\/$>$ void
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_ab93cf2dba5d735839164dd8cc5b2d02e}\label{classTrading_1_1TradeEngine_ab93cf2dba5d735839164dd8cc5b2d02e}} 
+common\+::\+Delta {\bfseries Get\+Down\+Time\+InS} () const
+\item 
+auto \mbox{\hyperlink{classTrading_1_1TradeEngine_ae82017c6a28c729c79e0b111c666f42b}{Run}} () noexcept -\/$>$ void
+\item 
+auto \mbox{\hyperlink{classTrading_1_1TradeEngine_aebff3c75f07095b1db777cd89d7b1c34}{Send\+Request\+New\+Order}} (const \mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange\+::\+Request\+New\+Order}} $\ast$request\+\_\+new\+\_\+order) noexcept -\/$>$ void
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a7c9ff0f825c3ecae9ec7dbf0f4be86b2}\label{classTrading_1_1TradeEngine_a7c9ff0f825c3ecae9ec7dbf0f4be86b2}} 
+auto {\bfseries Send\+Request\+Cancel\+Order} (const \mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange\+::\+Request\+Cancel\+Order}} $\ast$request\+\_\+cancel\+\_\+order) noexcept -\/$>$ void
+\item 
+auto \mbox{\hyperlink{classTrading_1_1TradeEngine_a57438ff1eca067fd182eb5bf3d1ddf95}{On\+Order\+Book\+Update}} (std\+::string ticker, PriceD price, Side side, \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Market\+Order\+Book\+Double}} $\ast$book) noexcept -\/$>$ void
+\item 
+\mbox{\hyperlink{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}{Trade\+Engine}} ()=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_aacab65213bc9c787a2a82011308073f3}\label{classTrading_1_1TradeEngine_aacab65213bc9c787a2a82011308073f3}} 
+{\bfseries Trade\+Engine} (const \mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a5fa61c74a86397d187c42bba4f7df715}\label{classTrading_1_1TradeEngine_a5fa61c74a86397d187c42bba4f7df715}} 
+{\bfseries Trade\+Engine} (const \mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a213b9c6a77b9f8a6078b21f92a8b7bcc}\label{classTrading_1_1TradeEngine_a213b9c6a77b9f8a6078b21f92a8b7bcc}} 
+\mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_aeb0887e748c70ce90e7640143866fae9}\label{classTrading_1_1TradeEngine_aeb0887e748c70ce90e7640143866fae9}} 
+\mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}\label{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}} 
+\index{Trading::TradeEngine@{Trading::TradeEngine}!TradeEngine@{TradeEngine}}
+\index{TradeEngine@{TradeEngine}!Trading::TradeEngine@{Trading::TradeEngine}}
+\doxysubsubsection{\texorpdfstring{TradeEngine()}{TradeEngine()}}
+{\footnotesize\ttfamily Trading\+::\+Trade\+Engine\+::\+Trade\+Engine (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [delete]}}
+
+
+
+Deleted default, copy \& move constructors and assignment-\/operators. 
+
+Process trade events -\/ updates the feature engine and informs the trading algorithm about the trade event. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTrading_1_1TradeEngine_a57438ff1eca067fd182eb5bf3d1ddf95}\label{classTrading_1_1TradeEngine_a57438ff1eca067fd182eb5bf3d1ddf95}} 
+\index{Trading::TradeEngine@{Trading::TradeEngine}!OnOrderBookUpdate@{OnOrderBookUpdate}}
+\index{OnOrderBookUpdate@{OnOrderBookUpdate}!Trading::TradeEngine@{Trading::TradeEngine}}
+\doxysubsubsection{\texorpdfstring{OnOrderBookUpdate()}{OnOrderBookUpdate()}}
+{\footnotesize\ttfamily auto Trading\+::\+Trade\+Engine\+::\+On\+Order\+Book\+Update (\begin{DoxyParamCaption}\item[{std\+::string}]{ticker,  }\item[{PriceD}]{price,  }\item[{Side}]{side,  }\item[{\mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Market\+Order\+Book\+Double}} $\ast$}]{book }\end{DoxyParamCaption}) -\/$>$ void\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+Process changes to the order book -\/ updates the position keeper, feature engine and informs the trading algorithm about the update. \mbox{\Hypertarget{classTrading_1_1TradeEngine_ae82017c6a28c729c79e0b111c666f42b}\label{classTrading_1_1TradeEngine_ae82017c6a28c729c79e0b111c666f42b}} 
+\index{Trading::TradeEngine@{Trading::TradeEngine}!Run@{Run}}
+\index{Run@{Run}!Trading::TradeEngine@{Trading::TradeEngine}}
+\doxysubsubsection{\texorpdfstring{Run()}{Run()}}
+{\footnotesize\ttfamily auto Trading\+::\+Trade\+Engine\+::\+Run (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) -\/$>$ void\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+Main loop for this thread -\/ processes incoming client responses and market data updates which in turn may generate client requests.
+
+Write a client request to the lock free queue for the order server to consume and send to the exchange. Main loop for this thread -\/ processes incoming client responses and market data updates which in turn may generate client requests. \mbox{\Hypertarget{classTrading_1_1TradeEngine_aebff3c75f07095b1db777cd89d7b1c34}\label{classTrading_1_1TradeEngine_aebff3c75f07095b1db777cd89d7b1c34}} 
+\index{Trading::TradeEngine@{Trading::TradeEngine}!SendRequestNewOrder@{SendRequestNewOrder}}
+\index{SendRequestNewOrder@{SendRequestNewOrder}!Trading::TradeEngine@{Trading::TradeEngine}}
+\doxysubsubsection{\texorpdfstring{SendRequestNewOrder()}{SendRequestNewOrder()}}
+{\footnotesize\ttfamily auto Trading\+::\+Trade\+Engine\+::\+Send\+Request\+New\+Order (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange\+::\+Request\+New\+Order}} $\ast$}]{request\+\_\+new\+\_\+order }\end{DoxyParamCaption}) -\/$>$ void \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Write a client request to the lock free queue for the order server to consume and send to the exchange. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/trade\+\_\+engine.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/trade\+\_\+engine.\+cpp\end{DoxyCompactItemize}

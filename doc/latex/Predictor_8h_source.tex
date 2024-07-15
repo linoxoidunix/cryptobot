@@ -1,0 +1,73 @@
+\hypertarget{Predictor_8h_source}{}\doxysection{Predictor.\+h}
+\label{Predictor_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Predictor.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Predictor.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{3 }
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{6 }
+\DoxyCodeLine{7 \textcolor{keyword}{enum class} Direction \{ LONG, SHORT, NOPE \};}
+\DoxyCodeLine{8 \textcolor{keyword}{class }\mbox{\hyperlink{classAction}{Action}} \{}
+\DoxyCodeLine{9   \textcolor{keyword}{public}:}
+\DoxyCodeLine{10     \textcolor{keyword}{using }Pointer     = std::unique\_ptr<Action>;}
+\DoxyCodeLine{11     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} Do() = 0;}
+\DoxyCodeLine{12 \};}
+\DoxyCodeLine{13 \textcolor{keyword}{using }ActionPtr = std::unique\_ptr<Action>;}
+\DoxyCodeLine{14 }
+\DoxyCodeLine{15 \textcolor{keyword}{class }\mbox{\hyperlink{classBuy}{Buy}} : \textcolor{keyword}{public} \mbox{\hyperlink{classAction}{Action}} \{}
+\DoxyCodeLine{16   \textcolor{keyword}{public}:}
+\DoxyCodeLine{17     \textcolor{keyword}{explicit} \mbox{\hyperlink{classBuy}{Buy}}(Direction side) : side\_(side)\{\};}
+\DoxyCodeLine{18     \textcolor{keywordtype}{void} Do()\textcolor{keyword}{ override }\{ fmt::print(\textcolor{stringliteral}{"{}buy \{\}\(\backslash\)n"{}}, (\textcolor{keywordtype}{int})side\_); \};}
+\DoxyCodeLine{19     \textcolor{keyword}{static} Action::Pointer Ptr(Direction side = Direction::NOPE) \{}
+\DoxyCodeLine{20         \textcolor{keywordflow}{return} std::unique\_ptr<Buy>(\textcolor{keyword}{new} \mbox{\hyperlink{classBuy}{Buy}}(side));}
+\DoxyCodeLine{21     \};}
+\DoxyCodeLine{22 }
+\DoxyCodeLine{23   \textcolor{keyword}{private}:}
+\DoxyCodeLine{24     Direction side\_ = Direction::NOPE;}
+\DoxyCodeLine{25 \};}
+\DoxyCodeLine{26 }
+\DoxyCodeLine{27 \textcolor{keyword}{class }\mbox{\hyperlink{classSell}{Sell}} : \textcolor{keyword}{public} \mbox{\hyperlink{classAction}{Action}} \{}
+\DoxyCodeLine{28   \textcolor{keyword}{public}:}
+\DoxyCodeLine{29     \textcolor{keyword}{explicit} \mbox{\hyperlink{classSell}{Sell}}(Direction side) : side\_(side)\{\};}
+\DoxyCodeLine{30     \textcolor{keywordtype}{void} Do()\textcolor{keyword}{ override }\{ fmt::print(\textcolor{stringliteral}{"{}sell \{\}\(\backslash\)n"{}}, (\textcolor{keywordtype}{int})side\_); \};}
+\DoxyCodeLine{31     \textcolor{keyword}{static} Action::Pointer Ptr(Direction side = Direction::NOPE) \{}
+\DoxyCodeLine{32         \textcolor{keywordflow}{return} std::unique\_ptr<Sell>(\textcolor{keyword}{new} \mbox{\hyperlink{classSell}{Sell}}(side));}
+\DoxyCodeLine{33     \};}
+\DoxyCodeLine{34 }
+\DoxyCodeLine{35   \textcolor{keyword}{private}:}
+\DoxyCodeLine{36     Direction side\_ = Direction::NOPE;}
+\DoxyCodeLine{37 \};}
+\DoxyCodeLine{38 }
+\DoxyCodeLine{39 \textcolor{keyword}{class }\mbox{\hyperlink{classActionEmpty}{ActionEmpty}} : \textcolor{keyword}{public} \mbox{\hyperlink{classAction}{Action}} \{}
+\DoxyCodeLine{40   \textcolor{keyword}{public}:}
+\DoxyCodeLine{41     \textcolor{keyword}{explicit} \mbox{\hyperlink{classActionEmpty}{ActionEmpty}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{42     \textcolor{keywordtype}{void} Do()\textcolor{keyword}{ override }\{ fmt::print(\textcolor{stringliteral}{"{}action nope\(\backslash\)n"{}}); \};}
+\DoxyCodeLine{43     \textcolor{keyword}{static} \textcolor{keyword}{inline} Action::Pointer Ptr() \{}
+\DoxyCodeLine{44         \textcolor{keywordflow}{return} std::unique\_ptr<ActionEmpty>(\textcolor{keyword}{new} \mbox{\hyperlink{classActionEmpty}{ActionEmpty}}());}
+\DoxyCodeLine{45     \};}
+\DoxyCodeLine{46 \};}
+\DoxyCodeLine{47 }
+\DoxyCodeLine{48 \textcolor{keyword}{class }\mbox{\hyperlink{classActionFactory}{ActionFactory}} \{}
+\DoxyCodeLine{49   \textcolor{keyword}{public}:}
+\DoxyCodeLine{50     \textcolor{keyword}{explicit} \mbox{\hyperlink{classActionFactory}{ActionFactory}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{51     Action::Pointer Produce(std::pair<std::string, long>);}
+\DoxyCodeLine{52 \};}
+\DoxyCodeLine{53 }
+\DoxyCodeLine{54 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{55 \textcolor{keyword}{class }PredictorImpl;}
+\DoxyCodeLine{56 \};}
+\DoxyCodeLine{62 \textcolor{keyword}{class }\mbox{\hyperlink{classPredictor}{Predictor}} \{}
+\DoxyCodeLine{63   \textcolor{keyword}{public}:}
+\DoxyCodeLine{70     \textcolor{keyword}{explicit} \mbox{\hyperlink{classPredictor_ac64f4b62f7bdc0d017275d8222ac0c8e}{Predictor}}(uint maximum\_window);}
+\DoxyCodeLine{71     Action::Pointer Predict(\mbox{\hyperlink{structOHLCV}{OHLCV}} data);}
+\DoxyCodeLine{72     \mbox{\hyperlink{classPredictor_ac64f4b62f7bdc0d017275d8222ac0c8e}{Predictor}}(\textcolor{keyword}{const} \mbox{\hyperlink{classPredictor}{Predictor}}\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{73     \mbox{\hyperlink{classPredictor}{Predictor}}\& operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classPredictor}{Predictor}}\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{74     \mbox{\hyperlink{classPredictor}{\string~Predictor}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{75 }
+\DoxyCodeLine{76   \textcolor{keyword}{private}:}
+\DoxyCodeLine{77     std::unique\_ptr<detail::PredictorImpl> impl;}
+\DoxyCodeLine{78 \};}
+
+\end{DoxyCode}

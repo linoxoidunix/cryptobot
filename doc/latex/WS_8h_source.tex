@@ -1,53 +1,39 @@
 \hypertarget{WS_8h_source}{}\doxysection{WS.\+h}
-\label{WS_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/WS.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/WS.h}}
+\label{WS_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/WS.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/WS.h}}
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{1 \textcolor{preprocessor}{\#include <functional>}}
-\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <memory>}}
-\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <string>}}
-\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <string\_view>}}
-\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <unordered\_map>}}
-\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <bybit/WSImpl/WSImpl.h>}}
-\DoxyCodeLine{7 }
-\DoxyCodeLine{8 \textcolor{keyword}{class }\mbox{\hyperlink{classArgs}{Args}} : \textcolor{keyword}{public} std::unordered\_map<std::string, std::string>}
-\DoxyCodeLine{9 \{}
-\DoxyCodeLine{10     \textcolor{keyword}{public}:}
-\DoxyCodeLine{11         \textcolor{keyword}{explicit} \mbox{\hyperlink{classArgs}{Args}}(std::string stream);}
-\DoxyCodeLine{12         std::string\_view Host();}
-\DoxyCodeLine{13     \textcolor{keyword}{private}:}
-\DoxyCodeLine{14         std::string stream\_;}
-\DoxyCodeLine{15 \};}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <boost/beast/core.hpp>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <boost/asio/ssl/context.hpp>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <unordered\_map>}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/Types.h"{}}}
+\DoxyCodeLine{12 }
+\DoxyCodeLine{13 \textcolor{keyword}{namespace }bst = boost::beast;}
+\DoxyCodeLine{14 }
+\DoxyCodeLine{15 \textcolor{keyword}{class }\mbox{\hyperlink{classWSSession}{WSSession}};}
 \DoxyCodeLine{16 }
-\DoxyCodeLine{17 \textcolor{comment}{//class WSSession;}}
-\DoxyCodeLine{18 }
-\DoxyCodeLine{19 \textcolor{keyword}{class }\mbox{\hyperlink{classWS}{WS}}}
-\DoxyCodeLine{20 \{}
-\DoxyCodeLine{21     \textcolor{keyword}{public}:}
-\DoxyCodeLine{22         \textcolor{keyword}{using }OnMessage = std::function<void(std::string)>;}
-\DoxyCodeLine{23         \textcolor{keyword}{using }OnError = std::function<void(std::string)>;}
-\DoxyCodeLine{24         \textcolor{keyword}{using }OnClose = std::function<void(std::string)>;}
-\DoxyCodeLine{25         \textcolor{keyword}{using }Args = std::unordered\_map<std::string, std::string>;}
-\DoxyCodeLine{26         \textcolor{keyword}{explicit} \mbox{\hyperlink{classWS}{WS}}(}
-\DoxyCodeLine{27             boost::asio::io\_context\& ctx}
-\DoxyCodeLine{28                 \textcolor{comment}{// Args args,}}
-\DoxyCodeLine{29                 \textcolor{comment}{// OnMessage msg\_cb,}}
-\DoxyCodeLine{30                 \textcolor{comment}{// OnError error\_cb,}}
-\DoxyCodeLine{31                 \textcolor{comment}{// OnClose close\_cb}}
-\DoxyCodeLine{32                 );}
-\DoxyCodeLine{33         \textcolor{keywordtype}{void} Run(   std::string\_view host,}
-\DoxyCodeLine{34                     std::string\_view port,}
-\DoxyCodeLine{35                     std::string\_view endpoint);}
-\DoxyCodeLine{36         \mbox{\hyperlink{classWS}{WS}}(\textcolor{keyword}{const} \mbox{\hyperlink{classWS}{WS}} \&) = \textcolor{keyword}{delete};}
-\DoxyCodeLine{37         \mbox{\hyperlink{classWS}{WS}}\& operator= (\textcolor{keyword}{const} \mbox{\hyperlink{classWS}{WS}} \&) = \textcolor{keyword}{delete};}
-\DoxyCodeLine{38         \mbox{\hyperlink{classWS}{WS}}(\mbox{\hyperlink{classWS}{WS}} \&\&) \textcolor{keyword}{noexcept} = \textcolor{keywordflow}{default};}
-\DoxyCodeLine{39         \mbox{\hyperlink{classWS}{WS}}\& operator= (\mbox{\hyperlink{classWS}{WS}} \&\&) \textcolor{keyword}{noexcept} = \textcolor{keywordflow}{default};}
-\DoxyCodeLine{40     \textcolor{keyword}{private}:}
-\DoxyCodeLine{41         std::shared\_ptr<WSSession> session\_;}
-\DoxyCodeLine{42         std::unique\_ptr<LoggerI> logger\_;}
-\DoxyCodeLine{43         boost::asio::io\_context\& ioc\_;}
-\DoxyCodeLine{44         ssl::context ctx\_\{ssl::context::tlsv12\_client\};}
-\DoxyCodeLine{45 }
-\DoxyCodeLine{46 }
-\DoxyCodeLine{47 \};}
+\DoxyCodeLine{17 \textcolor{keyword}{class }\mbox{\hyperlink{classWS}{WS}} \{}
+\DoxyCodeLine{18   \textcolor{keyword}{public}:}
+\DoxyCodeLine{19     \textcolor{keyword}{explicit} \mbox{\hyperlink{classWS}{WS}}(boost::asio::io\_context\& ctx, std::string\_view request,}
+\DoxyCodeLine{20                 OnMessage msg\_cb);}
+\DoxyCodeLine{21     \textcolor{keywordtype}{void} Run(std::string\_view host, std::string\_view port,}
+\DoxyCodeLine{22              std::string\_view endpoint);}
+\DoxyCodeLine{23     \mbox{\hyperlink{classWS}{WS}}(\textcolor{keyword}{const} \mbox{\hyperlink{classWS}{WS}}\&)                = \textcolor{keyword}{delete};}
+\DoxyCodeLine{24     \mbox{\hyperlink{classWS}{WS}}\& operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classWS}{WS}}\&)     = \textcolor{keyword}{delete};}
+\DoxyCodeLine{25     \mbox{\hyperlink{classWS}{WS}}(\mbox{\hyperlink{classWS}{WS}}\&\&) \textcolor{keyword}{noexcept}            = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{26     \mbox{\hyperlink{classWS}{WS}}\& operator=(\mbox{\hyperlink{classWS}{WS}}\&\&) \textcolor{keyword}{noexcept} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{27     \mbox{\hyperlink{classWS}{\string~WS}}();}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{29   \textcolor{keyword}{private}:}
+\DoxyCodeLine{30     std::shared\_ptr<WSSession> session\_;}
+\DoxyCodeLine{31     boost::asio::io\_context\& ioc\_;}
+\DoxyCodeLine{32     boost::asio::ssl::context ctx\_\{boost::asio::ssl::context::tlsv12\_client\};}
+\DoxyCodeLine{33 \};}
 
 \end{DoxyCode}

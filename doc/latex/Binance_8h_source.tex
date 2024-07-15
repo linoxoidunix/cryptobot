@@ -1,0 +1,815 @@
+\hypertarget{Binance_8h_source}{}\doxysection{Binance.\+h}
+\label{Binance_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Binance.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Binance.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <algorithm>}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <boost/beast/http.hpp>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <boost/beast/http/message.hpp>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/beast/version.hpp>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <utility>}}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/Https.h"{}}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include "{}aot/WS.h"{}}}
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__request_8h}{aot/client\_request.h}}"{}}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include "{}aot/common/thread\_utils.h"{}}}
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#include "{}aot/common/time\_utils.h"{}}}
+\DoxyCodeLine{18 \textcolor{preprocessor}{\#include "{}aot/market\_data/market\_update.h"{}}}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{20 \textcolor{comment}{// Spot API URL                               Spot Test Network URL}}
+\DoxyCodeLine{21 \textcolor{comment}{// https://api.binance.com/api https://testnet.binance.vision/api}}
+\DoxyCodeLine{22 \textcolor{comment}{// wss://stream.binance.com:9443/ws          wss://testnet.binance.vision/ws}}
+\DoxyCodeLine{23 \textcolor{comment}{// wss://stream.binance.com:9443/stream      wss://testnet.binance.vision/stream}}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25 \textcolor{keyword}{namespace }binance \{}
+\DoxyCodeLine{26 \textcolor{keyword}{enum class} TimeInForce \{ GTC, IOC, FOK \};}
+\DoxyCodeLine{27 }
+\DoxyCodeLine{28 \textcolor{keyword}{namespace }testnet \{}
+\DoxyCodeLine{29 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange}{HttpsExchange}} : \textcolor{keyword}{public} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}} \{}
+\DoxyCodeLine{30   \textcolor{keyword}{public}:}
+\DoxyCodeLine{40     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange_ab2479835b3ed881f64b5dbd900461a5e}{HttpsExchange}}(std::uint64\_t recv\_window = 5000)}
+\DoxyCodeLine{41         : recv\_window\_((recv\_window > 60000) ? 60000 : recv\_window) \{}
+\DoxyCodeLine{49           \};}
+\DoxyCodeLine{50 }
+\DoxyCodeLine{51     \mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange}{\string~HttpsExchange}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{52     std::string\_view Host()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{53         \textcolor{keywordflow}{return} std::string\_view(\textcolor{stringliteral}{"{}testnet.binance.vision"{}});}
+\DoxyCodeLine{54     \};}
+\DoxyCodeLine{55     std::string\_view Port()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}443"{}}; \};}
+\DoxyCodeLine{56     std::uint64\_t RecvWindow()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} recv\_window\_; \};}
+\DoxyCodeLine{57 }
+\DoxyCodeLine{58   \textcolor{keyword}{private}:}
+\DoxyCodeLine{59     std::uint64\_t recv\_window\_;}
+\DoxyCodeLine{60 \};}
+\DoxyCodeLine{61 \};  \textcolor{comment}{// namespace testnet}}
+\DoxyCodeLine{62 \textcolor{keyword}{namespace }mainnet \{}
+\DoxyCodeLine{63 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange}{HttpsExchange}} : \textcolor{keyword}{public} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}} \{}
+\DoxyCodeLine{64   \textcolor{keyword}{public}:}
+\DoxyCodeLine{74     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange_a5af51e430b22e8eeeecff64884b2065d}{HttpsExchange}}(std::uint64\_t recv\_window = 5000)}
+\DoxyCodeLine{75         : recv\_window\_((recv\_window > 60000) ? 60000 : recv\_window) \{}
+\DoxyCodeLine{83           \};}
+\DoxyCodeLine{84 }
+\DoxyCodeLine{85     \textcolor{keyword}{virtual} \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange}{\string~HttpsExchange}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{86     std::string\_view Host()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{87         \textcolor{keywordflow}{return} std::string\_view(\textcolor{stringliteral}{"{}stream.binance.com"{}});}
+\DoxyCodeLine{88     \};}
+\DoxyCodeLine{89     std::string\_view Port()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}9443"{}}; \};}
+\DoxyCodeLine{90     std::uint64\_t RecvWindow()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} recv\_window\_; \};}
+\DoxyCodeLine{91 }
+\DoxyCodeLine{92   \textcolor{keyword}{private}:}
+\DoxyCodeLine{93     std::uint64\_t recv\_window\_;}
+\DoxyCodeLine{94 \};}
+\DoxyCodeLine{95 \};  \textcolor{comment}{// namespace mainnet}}
+\DoxyCodeLine{96 }
+\DoxyCodeLine{97 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}} \{}
+\DoxyCodeLine{98   \textcolor{keyword}{public}:}
+\DoxyCodeLine{99     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{100     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* Get(TypeExchange type\_exchange) \{}
+\DoxyCodeLine{101         \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange;}
+\DoxyCodeLine{102         \textcolor{keywordflow}{switch} (type\_exchange) \{}
+\DoxyCodeLine{103             \textcolor{keywordflow}{case} TypeExchange::MAINNET:}
+\DoxyCodeLine{104                 current\_exchange = \&main\_net\_;}
+\DoxyCodeLine{105                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{106             \textcolor{keywordflow}{case} TypeExchange::TESTNET:}
+\DoxyCodeLine{107             \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{108                 current\_exchange = \&test\_net\_;}
+\DoxyCodeLine{109                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{110         \}}
+\DoxyCodeLine{111         \textcolor{keywordflow}{return} current\_exchange;}
+\DoxyCodeLine{112     \}}
+\DoxyCodeLine{113 }
+\DoxyCodeLine{114   \textcolor{keyword}{private}:}
+\DoxyCodeLine{115     \mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange}{binance::testnet::HttpsExchange}} test\_net\_;}
+\DoxyCodeLine{116     \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange}{binance::mainnet::HttpsExchange}} main\_net\_;}
+\DoxyCodeLine{117 \};}
+\DoxyCodeLine{118 }
+\DoxyCodeLine{119 \textcolor{keyword}{enum class} Type \{}
+\DoxyCodeLine{120     LIMIT,}
+\DoxyCodeLine{121     MARKET,}
+\DoxyCodeLine{122     STOP\_LOSS,}
+\DoxyCodeLine{123     STOP\_LOSS\_LIMIT,}
+\DoxyCodeLine{124     TAKE\_PROFIT,}
+\DoxyCodeLine{125     TAKE\_PROFIT\_LIMIT,}
+\DoxyCodeLine{126     LIMIT\_MAKER}
+\DoxyCodeLine{127 \};}
+\DoxyCodeLine{128 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1Symbol}{Symbol}} : \textcolor{keyword}{public} \mbox{\hyperlink{classSymbolI}{SymbolI}} \{}
+\DoxyCodeLine{129   \textcolor{keyword}{public}:}
+\DoxyCodeLine{130     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1Symbol}{Symbol}}(std::string\_view first, std::string\_view second)}
+\DoxyCodeLine{131         : first\_(first.data()), second\_(second.data()) \{\};}
+\DoxyCodeLine{132     std::string ToString()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{133         \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
+\DoxyCodeLine{134         boost::algorithm::to\_lower(out);}
+\DoxyCodeLine{135         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{136     \};}
+\DoxyCodeLine{137     \mbox{\hyperlink{classbinance_1_1Symbol}{\string~Symbol}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{138 }
+\DoxyCodeLine{139   \textcolor{keyword}{private}:}
+\DoxyCodeLine{140     std::string first\_;}
+\DoxyCodeLine{141     std::string second\_;}
+\DoxyCodeLine{142 \};}
+\DoxyCodeLine{143 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1s1}{s1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{144   \textcolor{keyword}{public}:}
+\DoxyCodeLine{145     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1s1}{s1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{146     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1s"{}}; \};}
+\DoxyCodeLine{147     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 1; \};}
+\DoxyCodeLine{148 \};}
+\DoxyCodeLine{149 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1m1}{m1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{150   \textcolor{keyword}{public}:}
+\DoxyCodeLine{151     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1m1}{m1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{152     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1m"{}}; \};}
+\DoxyCodeLine{153     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 60; \};}
+\DoxyCodeLine{154 \};}
+\DoxyCodeLine{155 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1m3}{m3}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{156   \textcolor{keyword}{public}:}
+\DoxyCodeLine{157     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1m3}{m3}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{158     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}3m"{}}; \};}
+\DoxyCodeLine{159     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 180; \};}
+\DoxyCodeLine{160 \};}
+\DoxyCodeLine{161 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1m5}{m5}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{162   \textcolor{keyword}{public}:}
+\DoxyCodeLine{163     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1m5}{m5}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{164     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}5m"{}}; \}}
+\DoxyCodeLine{165     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 300; \};}
+\DoxyCodeLine{166 \};}
+\DoxyCodeLine{167 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1m15}{m15}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{168   \textcolor{keyword}{public}:}
+\DoxyCodeLine{169     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1m15}{m15}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{170     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}15m"{}}; \}}
+\DoxyCodeLine{171     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 900; \};}
+\DoxyCodeLine{172 \};}
+\DoxyCodeLine{173 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1m30}{m30}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{174   \textcolor{keyword}{public}:}
+\DoxyCodeLine{175     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1m30}{m30}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{176     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}30m"{}}; \}}
+\DoxyCodeLine{177     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 1800; \};}
+\DoxyCodeLine{178 \};}
+\DoxyCodeLine{179 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h1}{h1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{180   \textcolor{keyword}{public}:}
+\DoxyCodeLine{181     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h1}{h1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{182     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1h"{}}; \}}
+\DoxyCodeLine{183     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 3600; \};}
+\DoxyCodeLine{184 \};}
+\DoxyCodeLine{185 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h2}{h2}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{186   \textcolor{keyword}{public}:}
+\DoxyCodeLine{187     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h2}{h2}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{188     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}2h"{}}; \}}
+\DoxyCodeLine{189     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 7200; \};}
+\DoxyCodeLine{190 \};}
+\DoxyCodeLine{191 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h4}{h4}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{192   \textcolor{keyword}{public}:}
+\DoxyCodeLine{193     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h4}{h4}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{194     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}4h"{}}; \}}
+\DoxyCodeLine{195     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 14400; \};}
+\DoxyCodeLine{196 \};}
+\DoxyCodeLine{197 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h6}{h6}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{198   \textcolor{keyword}{public}:}
+\DoxyCodeLine{199     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h6}{h6}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{200     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}6h"{}}; \}}
+\DoxyCodeLine{201     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 21600; \};}
+\DoxyCodeLine{202 \};}
+\DoxyCodeLine{203 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h8}{h8}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{204   \textcolor{keyword}{public}:}
+\DoxyCodeLine{205     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h8}{h8}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{206     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}8h"{}}; \}}
+\DoxyCodeLine{207     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 28800; \};}
+\DoxyCodeLine{208 \};}
+\DoxyCodeLine{209 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1h12}{h12}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{210   \textcolor{keyword}{public}:}
+\DoxyCodeLine{211     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1h12}{h12}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{212     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}12h"{}}; \}}
+\DoxyCodeLine{213     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 43200; \};}
+\DoxyCodeLine{214 \};}
+\DoxyCodeLine{215 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1d1}{d1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{216   \textcolor{keyword}{public}:}
+\DoxyCodeLine{217     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1d1}{d1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{218     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1d"{}}; \}}
+\DoxyCodeLine{219     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 86400; \};}
+\DoxyCodeLine{220 \};}
+\DoxyCodeLine{221 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1d3}{d3}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{222   \textcolor{keyword}{public}:}
+\DoxyCodeLine{223     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1d3}{d3}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{224     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}3d"{}}; \}}
+\DoxyCodeLine{225     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 259200; \};}
+\DoxyCodeLine{226 \};}
+\DoxyCodeLine{227 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1w1}{w1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{228   \textcolor{keyword}{public}:}
+\DoxyCodeLine{229     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1w1}{w1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{230     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1w"{}}; \}}
+\DoxyCodeLine{231     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 604800; \};}
+\DoxyCodeLine{232 \};}
+\DoxyCodeLine{233 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1M1}{M1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{234   \textcolor{keyword}{public}:}
+\DoxyCodeLine{235     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1M1}{M1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{236     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1M"{}}; \}}
+\DoxyCodeLine{237     uint Seconds()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} 2.628e6; \};}
+\DoxyCodeLine{238 \};}
+\DoxyCodeLine{239 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1KLineStream}{KLineStream}} : \textcolor{keyword}{public} \mbox{\hyperlink{classKLineStreamI}{KLineStreamI}} \{}
+\DoxyCodeLine{240   \textcolor{keyword}{public}:}
+\DoxyCodeLine{241     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1KLineStream}{KLineStream}}(\textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* s, \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval)}
+\DoxyCodeLine{242         : symbol\_(s), chart\_interval\_(chart\_interval) \{\};}
+\DoxyCodeLine{243     std::string \mbox{\hyperlink{classbinance_1_1KLineStream_afc9f339745e1af27b6de8920ea20e3c9}{ToString}}()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{244         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}\{0\}@kline\_\{1\}"{}}, symbol\_-\/>ToString(),}
+\DoxyCodeLine{245                            chart\_interval\_-\/>ToString());}
+\DoxyCodeLine{246     \};}
+\DoxyCodeLine{247     \mbox{\hyperlink{classbinance_1_1KLineStream}{\string~KLineStream}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{248 }
+\DoxyCodeLine{249   \textcolor{keyword}{private}:}
+\DoxyCodeLine{250     \textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* symbol\_;}
+\DoxyCodeLine{251     \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval\_;}
+\DoxyCodeLine{252 \};}
+\DoxyCodeLine{253 }
+\DoxyCodeLine{254 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1DiffDepthStream}{DiffDepthStream}} : \textcolor{keyword}{public} \mbox{\hyperlink{classDiffDepthStreamI}{DiffDepthStreamI}} \{}
+\DoxyCodeLine{255   \textcolor{keyword}{public}:}
+\DoxyCodeLine{256     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{StreamIntervalI}} \{}
+\DoxyCodeLine{257       \textcolor{keyword}{public}:}
+\DoxyCodeLine{258         \textcolor{keyword}{virtual} std::string ToString() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{259         \textcolor{keyword}{virtual} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{\string~StreamIntervalI}}()           = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{260     \};}
+\DoxyCodeLine{261     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms1000}{ms1000}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{StreamIntervalI}} \{}
+\DoxyCodeLine{262       \textcolor{keyword}{public}:}
+\DoxyCodeLine{263         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms1000}{ms1000}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{264         std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1000ms"{}}; \};}
+\DoxyCodeLine{265         \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms1000}{\string~ms1000}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{266     \};}
+\DoxyCodeLine{267     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms100}{ms100}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{StreamIntervalI}} \{}
+\DoxyCodeLine{268       \textcolor{keyword}{public}:}
+\DoxyCodeLine{269         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms100}{ms100}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{270         std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}100ms"{}}; \};}
+\DoxyCodeLine{271         \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1ms100}{\string~ms100}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{272     \};}
+\DoxyCodeLine{273 }
+\DoxyCodeLine{274     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1DiffDepthStream}{DiffDepthStream}}(\textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* s, \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{StreamIntervalI}}* interval)}
+\DoxyCodeLine{275         : symbol\_(s), interval\_(interval) \{\};}
+\DoxyCodeLine{276     std::string \mbox{\hyperlink{classbinance_1_1DiffDepthStream_a5ba89aea90749daf825a51df31515d6d}{ToString}}()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{277         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}\{0\}@depth@\{1\}"{}}, symbol\_-\/>ToString(),}
+\DoxyCodeLine{278                            interval\_-\/>ToString());}
+\DoxyCodeLine{279     \};}
+\DoxyCodeLine{280 }
+\DoxyCodeLine{281   \textcolor{keyword}{private}:}
+\DoxyCodeLine{282     \textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* symbol\_;}
+\DoxyCodeLine{283     \textcolor{keyword}{const} StreamIntervalI* interval\_;}
+\DoxyCodeLine{284 \};}
+\DoxyCodeLine{285 }
+\DoxyCodeLine{286 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1OHLCVI}{OHLCVI}} : \textcolor{keyword}{public} \mbox{\hyperlink{classOHLCVGetter}{OHLCVGetter}} \{}
+\DoxyCodeLine{287     \textcolor{keyword}{class }ParserResponse \{}
+\DoxyCodeLine{288       \textcolor{keyword}{public}:}
+\DoxyCodeLine{289         \textcolor{keyword}{explicit} ParserResponse() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{290         \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} Parse(std::string\_view response);}
+\DoxyCodeLine{291     \};}
+\DoxyCodeLine{292 }
+\DoxyCodeLine{293   \textcolor{keyword}{public}:}
+\DoxyCodeLine{294     \mbox{\hyperlink{classbinance_1_1OHLCVI}{OHLCVI}}(\textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1Symbol}{Symbol}}* s, \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval,}
+\DoxyCodeLine{295            TypeExchange type\_exchange)}
+\DoxyCodeLine{296         : current\_exchange\_(exchange\_.Get(type\_exchange)),}
+\DoxyCodeLine{297           s\_(s),}
+\DoxyCodeLine{298           chart\_interval\_(chart\_interval),}
+\DoxyCodeLine{299           type\_exchange\_(type\_exchange) \{\};}
+\DoxyCodeLine{300     \textcolor{keywordtype}{void} LaunchOne()\textcolor{keyword}{ override }\{ ioc.run\_one(); \};}
+\DoxyCodeLine{301 }
+\DoxyCodeLine{302     \textcolor{keywordtype}{void} \mbox{\hyperlink{classbinance_1_1OHLCVI_a5cbdbfa13cfa8178bc978d2c3deec3eb}{Init}}(OHLCVILFQueue\& lf\_queue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{303         std::function<void(boost::beast::flat\_buffer \& buffer)> OnMessageCB;}
+\DoxyCodeLine{304         OnMessageCB = [\&lf\_queue](boost::beast::flat\_buffer\& buffer) \{}
+\DoxyCodeLine{305             \textcolor{keyword}{auto} result = boost::beast::buffers\_to\_string(buffer.data());}
+\DoxyCodeLine{306             ParserResponse parser;}
+\DoxyCodeLine{307             lf\_queue.try\_enqueue(parser.Parse(result));}
+\DoxyCodeLine{308             \textcolor{comment}{// logi("{}\{\}"{}, result);}}
+\DoxyCodeLine{309             \textcolor{comment}{// fmtlog::poll();}}
+\DoxyCodeLine{310         \};}
+\DoxyCodeLine{311 }
+\DoxyCodeLine{312         \textcolor{keyword}{using }kls = \mbox{\hyperlink{classbinance_1_1KLineStream}{KLineStream}};}
+\DoxyCodeLine{313         kls channel(s\_, chart\_interval\_);}
+\DoxyCodeLine{314         std::string empty\_request = \textcolor{stringliteral}{"{}\{\}"{}};}
+\DoxyCodeLine{315         std::make\_shared<WS>(ioc, empty\_request, OnMessageCB)}
+\DoxyCodeLine{316             -\/>Run(current\_exchange\_-\/>Host(), current\_exchange\_-\/>Port(),}
+\DoxyCodeLine{317                   fmt::format(\textcolor{stringliteral}{"{}/ws/\{0\}"{}}, channel.ToString()));}
+\DoxyCodeLine{318     \};}
+\DoxyCodeLine{319 }
+\DoxyCodeLine{320   \textcolor{keyword}{private}:}
+\DoxyCodeLine{321     boost::asio::io\_context ioc;}
+\DoxyCodeLine{322     \mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}} exchange\_;}
+\DoxyCodeLine{323     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{324     \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1Symbol}{Symbol}}* s\_;}
+\DoxyCodeLine{325     \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval\_;}
+\DoxyCodeLine{326     TypeExchange type\_exchange\_;}
+\DoxyCodeLine{327 \};}
+\DoxyCodeLine{328 }
+\DoxyCodeLine{329 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1BookEventGetter}{BookEventGetter}} : \textcolor{keyword}{public} \mbox{\hyperlink{classBookEventGetterI}{BookEventGetterI}} \{}
+\DoxyCodeLine{330     \textcolor{keyword}{class }ParserResponse \{}
+\DoxyCodeLine{331       \textcolor{keyword}{public}:}
+\DoxyCodeLine{332         \textcolor{keyword}{explicit} ParserResponse() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{333         \mbox{\hyperlink{structExchange_1_1BookDiffSnapshot}{Exchange::BookDiffSnapshot}} Parse(std::string\_view response);}
+\DoxyCodeLine{334     \};}
+\DoxyCodeLine{335 }
+\DoxyCodeLine{336   \textcolor{keyword}{public}:}
+\DoxyCodeLine{337     \mbox{\hyperlink{classbinance_1_1BookEventGetter}{BookEventGetter}}(\textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* s,}
+\DoxyCodeLine{338                     \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{DiffDepthStream::StreamIntervalI}}* interval,}
+\DoxyCodeLine{339                     TypeExchange type\_exchange)}
+\DoxyCodeLine{340         : current\_exchange\_(exchange\_.Get(type\_exchange)),}
+\DoxyCodeLine{341           s\_(s),}
+\DoxyCodeLine{342           interval\_(interval),}
+\DoxyCodeLine{343           type\_exchange\_(type\_exchange) \{\};}
+\DoxyCodeLine{344     \textcolor{keywordtype}{void} Get()\textcolor{keyword}{ override }\{\};}
+\DoxyCodeLine{345     \textcolor{keywordtype}{void} LaunchOne()\textcolor{keyword}{ override }\{ ioc.run\_one(); \};}
+\DoxyCodeLine{346     \textcolor{keywordtype}{void} Init(Exchange::BookDiffLFQueue\& queue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{347         std::function<void(boost::beast::flat\_buffer \& buffer)> OnMessageCB;}
+\DoxyCodeLine{348         OnMessageCB = [\&queue](boost::beast::flat\_buffer\& buffer) \{}
+\DoxyCodeLine{349             \textcolor{keyword}{auto} resut = boost::beast::buffers\_to\_string(buffer.data());}
+\DoxyCodeLine{350             \textcolor{comment}{// logi("{}\{\}"{}, resut);}}
+\DoxyCodeLine{351             ParserResponse parser;}
+\DoxyCodeLine{352             \textcolor{keyword}{auto} answer = parser.Parse(resut);}
+\DoxyCodeLine{353             queue.enqueue(answer);}
+\DoxyCodeLine{354         \};}
+\DoxyCodeLine{355 }
+\DoxyCodeLine{356         \textcolor{keyword}{using }dds = \mbox{\hyperlink{classbinance_1_1DiffDepthStream}{DiffDepthStream}};}
+\DoxyCodeLine{357         dds channel(s\_, interval\_);}
+\DoxyCodeLine{358         std::string empty\_request = \textcolor{stringliteral}{"{}\{\}"{}};}
+\DoxyCodeLine{359         std::make\_shared<WS>(ioc, empty\_request, OnMessageCB)}
+\DoxyCodeLine{360             -\/>Run(current\_exchange\_-\/>Host(), current\_exchange\_-\/>Port(),}
+\DoxyCodeLine{361                   fmt::format(\textcolor{stringliteral}{"{}/ws/\{0\}"{}}, channel.ToString()));}
+\DoxyCodeLine{362     \};}
+\DoxyCodeLine{363 }
+\DoxyCodeLine{364     \mbox{\hyperlink{classbinance_1_1BookEventGetter}{\string~BookEventGetter}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{365 }
+\DoxyCodeLine{366   \textcolor{keyword}{private}:}
+\DoxyCodeLine{367     boost::asio::io\_context ioc;}
+\DoxyCodeLine{368     \mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}} exchange\_;}
+\DoxyCodeLine{369     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{370     \textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}}* s\_;}
+\DoxyCodeLine{371     \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{DiffDepthStream::StreamIntervalI}}* interval\_;}
+\DoxyCodeLine{372     \textcolor{keywordtype}{bool} callback\_execute\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{373     TypeExchange type\_exchange\_;}
+\DoxyCodeLine{374 \};}
+\DoxyCodeLine{375 }
+\DoxyCodeLine{376 \textcolor{keyword}{struct }\mbox{\hyperlink{structbinance_1_1StringEqual}{StringEqual}} \{}
+\DoxyCodeLine{377     \textcolor{keyword}{using }is\_transparent = void;}
+\DoxyCodeLine{378 }
+\DoxyCodeLine{379     \textcolor{keywordtype}{bool} operator()(std::string\_view l, std::string\_view r)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{380         \textcolor{keywordflow}{return} l.compare(r) == 0;}
+\DoxyCodeLine{381     \}}
+\DoxyCodeLine{382 \};}
+\DoxyCodeLine{383 }
+\DoxyCodeLine{384 \textcolor{keyword}{struct }\mbox{\hyperlink{structbinance_1_1StringHash}{StringHash}} \{}
+\DoxyCodeLine{385     \textcolor{keyword}{using }\mbox{\hyperlink{structbinance_1_1StringEqual}{transparent\_key\_equal}} = \mbox{\hyperlink{structbinance_1_1StringEqual}{StringEqual}};  \textcolor{comment}{// or std::equal\_to<>}}
+\DoxyCodeLine{386 }
+\DoxyCodeLine{387     std::size\_t operator()(\textcolor{keyword}{const} std::string\& s)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} s.size(); \}}
+\DoxyCodeLine{388 }
+\DoxyCodeLine{389     std::size\_t operator()(\textcolor{keyword}{const} \textcolor{keywordtype}{char}* s)\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} std::strlen(s); \}}
+\DoxyCodeLine{390 \};}
+\DoxyCodeLine{391 }
+\DoxyCodeLine{392 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1Args}{Args}} : \textcolor{keyword}{public} std::unordered\_map<std::string, std::string, StringHash, StringHash::transparent\_key\_equal> \{\};}
+\DoxyCodeLine{393 }
+\DoxyCodeLine{394 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1Args}{Args}} \{}
+\DoxyCodeLine{395   \textcolor{keyword}{public}:}
+\DoxyCodeLine{396     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() : \mbox{\hyperlink{classbinance_1_1Args}{Args}}() \{\};}
+\DoxyCodeLine{402     \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classbinance_1_1ArgsQuery_a9173ce93a51cee341885f592f54cc752}{QueryString}}() \{}
+\DoxyCodeLine{403         std::list<std::string> merged;}
+\DoxyCodeLine{404         std::ranges::for\_each(*\textcolor{keyword}{this}, [\&merged](\textcolor{keyword}{const} \textcolor{keyword}{auto}\& expr) \{}
+\DoxyCodeLine{405             merged.emplace\_back(fmt::format(\textcolor{stringliteral}{"{}\{\}=\{\}"{}}, expr.first, expr.second));}
+\DoxyCodeLine{406         \});}
+\DoxyCodeLine{407         \textcolor{comment}{// std::for\_each(begin(), end(), [\&merged](const auto\& expr) \{}}
+\DoxyCodeLine{408         \textcolor{comment}{//     merged.emplace\_back(fmt::format("{}\{\}=\{\}"{}, expr.first,}}
+\DoxyCodeLine{409         \textcolor{comment}{//     expr.second));}}
+\DoxyCodeLine{410         \textcolor{comment}{// \});}}
+\DoxyCodeLine{411         \textcolor{keyword}{auto} out = boost::algorithm::join(merged, \textcolor{stringliteral}{"{}\&"{}});}
+\DoxyCodeLine{412         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{413     \};}
+\DoxyCodeLine{414     \textcolor{keyword}{virtual} std::string FinalQueryString() \{}
+\DoxyCodeLine{415         \textcolor{keyword}{auto} out = \mbox{\hyperlink{classbinance_1_1ArgsQuery_a9173ce93a51cee341885f592f54cc752}{QueryString}}();}
+\DoxyCodeLine{416         \textcolor{keywordflow}{if} (!out.empty()) out.insert(out.begin(), \textcolor{charliteral}{'?'});}
+\DoxyCodeLine{417         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{418     \};}
+\DoxyCodeLine{419     \textcolor{keyword}{virtual} \string~ArgsQuery() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{420 \};}
+\DoxyCodeLine{421 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{422 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest}{FactoryRequest}} \{}
+\DoxyCodeLine{423   \textcolor{keyword}{public}:}
+\DoxyCodeLine{424     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest}{FactoryRequest}}(\textcolor{keyword}{const} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* exchange,}
+\DoxyCodeLine{425                             std::string\_view end\_point, \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}\& args,}
+\DoxyCodeLine{426                             boost::beast::http::verb action, \mbox{\hyperlink{classSignerI}{SignerI}}* signer,}
+\DoxyCodeLine{427                             \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{false})}
+\DoxyCodeLine{428         : exchange\_(exchange), args\_(args), action\_(action), signer\_(signer) \{}
+\DoxyCodeLine{429         \textcolor{keywordflow}{if} (need\_sign) \{}
+\DoxyCodeLine{430             AddSignParams();}
+\DoxyCodeLine{431             \textcolor{keyword}{auto} request\_args = args\_.\mbox{\hyperlink{classbinance_1_1ArgsQuery_a9173ce93a51cee341885f592f54cc752}{QueryString}}();}
+\DoxyCodeLine{432             \textcolor{keyword}{auto} signature    = signer\_-\/>Sign(request\_args);}
+\DoxyCodeLine{433             AddSignature(signature);}
+\DoxyCodeLine{434         \}}
+\DoxyCodeLine{435         end\_point\_ = end\_point.data() + args\_.FinalQueryString();}
+\DoxyCodeLine{436     \};}
+\DoxyCodeLine{437     boost::beast::http::request<boost::beast::http::string\_body> \mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest_a9e63c08cbd90345dbb465efc101d06fc}{operator()}}() \{}
+\DoxyCodeLine{438         boost::beast::http::request<boost::beast::http::string\_body> req;}
+\DoxyCodeLine{439         req.version(11);}
+\DoxyCodeLine{440         req.method(action\_);}
+\DoxyCodeLine{441         req.target(end\_point\_);}
+\DoxyCodeLine{447         \textcolor{keywordflow}{if} (signer\_) req.insert(\textcolor{stringliteral}{"{}X-\/MBX-\/APIKEY"{}}, signer\_-\/>ApiKey());}
+\DoxyCodeLine{448         req.set(boost::beast::http::field::host, exchange\_-\/>Host().data());}
+\DoxyCodeLine{449         req.set(boost::beast::http::field::user\_agent,}
+\DoxyCodeLine{450                 BOOST\_BEAST\_VERSION\_STRING);}
+\DoxyCodeLine{458         req.set(boost::beast::http::field::content\_type,}
+\DoxyCodeLine{459                 \textcolor{stringliteral}{"{}application/x-\/www-\/form-\/urlencoded"{}});}
+\DoxyCodeLine{460         \textcolor{keywordflow}{return} req;}
+\DoxyCodeLine{461     \};}
+\DoxyCodeLine{462     std::string\_view Host()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} exchange\_-\/>Host(); \};}
+\DoxyCodeLine{463     std::string\_view Port()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} exchange\_-\/>Port(); \};}
+\DoxyCodeLine{464     std::string\_view EndPoint()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} end\_point\_; \}}
+\DoxyCodeLine{465 }
+\DoxyCodeLine{466   \textcolor{keyword}{private}:}
+\DoxyCodeLine{467     \textcolor{keywordtype}{void} AddSignParams() \{}
+\DoxyCodeLine{468         \mbox{\hyperlink{classCurrentTime}{CurrentTime}} time\_service;}
+\DoxyCodeLine{469         args\_[\textcolor{stringliteral}{"{}recvWindow"{}}] = std::to\_string(exchange\_-\/>RecvWindow());}
+\DoxyCodeLine{470         args\_[\textcolor{stringliteral}{"{}timestamp"{}}]  = std::to\_string(time\_service.Time());}
+\DoxyCodeLine{471     \};}
+\DoxyCodeLine{472     \textcolor{keywordtype}{void} AddSignature(std::string\_view signature) \{}
+\DoxyCodeLine{473         args\_[\textcolor{stringliteral}{"{}signature"{}}] = signature.data();}
+\DoxyCodeLine{474     \};}
+\DoxyCodeLine{475 }
+\DoxyCodeLine{476   \textcolor{keyword}{private}:}
+\DoxyCodeLine{477     \textcolor{keyword}{const} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* exchange\_;}
+\DoxyCodeLine{478     std::string end\_point\_;}
+\DoxyCodeLine{479     ArgsQuery args\_;}
+\DoxyCodeLine{480     boost::beast::http::verb action\_;}
+\DoxyCodeLine{481     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_;}
+\DoxyCodeLine{482 \};}
+\DoxyCodeLine{487 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1detail_1_1FormatterQty}{FormatterQty}} \{}
+\DoxyCodeLine{488   \textcolor{keyword}{public}:}
+\DoxyCodeLine{489     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1detail_1_1FormatterQty}{FormatterQty}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{490     \textcolor{keywordtype}{double} Format(std::string\_view symbol, \textcolor{keywordtype}{double} qty) \{ \textcolor{keywordflow}{return} qty; \};}
+\DoxyCodeLine{491 \};}
+\DoxyCodeLine{492 }
+\DoxyCodeLine{493 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1detail_1_1FormatterPrice}{FormatterPrice}} \{}
+\DoxyCodeLine{494   \textcolor{keyword}{public}:}
+\DoxyCodeLine{495     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1detail_1_1FormatterPrice}{FormatterPrice}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{496     \textcolor{keywordtype}{double} Format(std::string\_view symbol, \textcolor{keywordtype}{double} price) \{ \textcolor{keywordflow}{return} price; \};}
+\DoxyCodeLine{497 \};}
+\DoxyCodeLine{498 \};  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{499 }
+\DoxyCodeLine{500 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1OrderNewLimit}{OrderNewLimit}} : \textcolor{keyword}{public} \mbox{\hyperlink{classinner_1_1OrderNewI}{inner::OrderNewI}} \{}
+\DoxyCodeLine{501     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} std::string\_view end\_point = \textcolor{stringliteral}{"{}/api/v3/order"{}};}
+\DoxyCodeLine{502 }
+\DoxyCodeLine{503   \textcolor{keyword}{public}:}
+\DoxyCodeLine{504     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ParserResponse}{ParserResponse}} \{}
+\DoxyCodeLine{505       \textcolor{keyword}{public}:}
+\DoxyCodeLine{506         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ParserResponse}{ParserResponse}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{507         \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} Parse(std::string\_view response);}
+\DoxyCodeLine{508     \};}
+\DoxyCodeLine{509     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}} \{}
+\DoxyCodeLine{510       \textcolor{keyword}{public}:}
+\DoxyCodeLine{511         \textcolor{keyword}{using }SymbolType = std::string\_view;}
+\DoxyCodeLine{512         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, \textcolor{keywordtype}{double} quantity, \textcolor{keywordtype}{double} price,}
+\DoxyCodeLine{513                            TimeInForce time\_in\_force, Common::Side side,}
+\DoxyCodeLine{514                            Type type)}
+\DoxyCodeLine{515             : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{  \textcolor{comment}{// TODO UNUSED. NEED USE ONLY CTOR WITH}}
+\DoxyCodeLine{516                              \textcolor{comment}{// Exchange::RequestNewOrder*}}
+\DoxyCodeLine{517             SetSymbol(symbol);}
+\DoxyCodeLine{518             SetSide(side);}
+\DoxyCodeLine{519             SetType(type);}
+\DoxyCodeLine{520             SetQuantity(quantity);}
+\DoxyCodeLine{521             SetPrice(price);}
+\DoxyCodeLine{522             SetTimeInForce(time\_in\_force);}
+\DoxyCodeLine{523         \};}
+\DoxyCodeLine{524         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange::RequestNewOrder}}* new\_order) : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{}
+\DoxyCodeLine{525             SetSymbol(new\_order-\/>ticker);}
+\DoxyCodeLine{526             SetSide(new\_order-\/>side);}
+\DoxyCodeLine{527             SetType(Type::LIMIT);}
+\DoxyCodeLine{528             SetQuantity(new\_order-\/>qty);}
+\DoxyCodeLine{529             SetPrice(new\_order-\/>price);}
+\DoxyCodeLine{530             SetTimeInForce(TimeInForce::GTC);}
+\DoxyCodeLine{531             SetOrderId(new\_order-\/>order\_id);}
+\DoxyCodeLine{532         \};}
+\DoxyCodeLine{533 }
+\DoxyCodeLine{534       \textcolor{keyword}{private}:}
+\DoxyCodeLine{535         \textcolor{keywordtype}{void} SetSymbol(SymbolType symbol) \{}
+\DoxyCodeLine{536             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
+\DoxyCodeLine{537             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
+\DoxyCodeLine{538         \};}
+\DoxyCodeLine{539         \textcolor{keywordtype}{void} SetSide(Common::Side side) \{}
+\DoxyCodeLine{540             \textcolor{keywordflow}{switch} (side) \{}
+\DoxyCodeLine{541                 \textcolor{keyword}{using }enum Common::Side;}
+\DoxyCodeLine{542                 \textcolor{keywordflow}{case} BUY:}
+\DoxyCodeLine{543                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}BUY"{}};}
+\DoxyCodeLine{544                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{545                 \textcolor{keywordflow}{case} SELL:}
+\DoxyCodeLine{546                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}SELL"{}};}
+\DoxyCodeLine{547                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{548                 \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{549                     loge(\textcolor{stringliteral}{"{}side is not SELL or BUY"{}});}
+\DoxyCodeLine{550             \}}
+\DoxyCodeLine{551         \};}
+\DoxyCodeLine{552         \textcolor{keywordtype}{void} SetType(Type type) \{}
+\DoxyCodeLine{553             \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{554                 \textcolor{keyword}{using }enum Type;}
+\DoxyCodeLine{555                 \textcolor{keywordflow}{case} LIMIT:}
+\DoxyCodeLine{556                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}LIMIT"{}};}
+\DoxyCodeLine{557                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{558                 \textcolor{keywordflow}{case} MARKET:}
+\DoxyCodeLine{559                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}MARKET"{}};}
+\DoxyCodeLine{560                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{561                 \textcolor{keywordflow}{case} STOP\_LOSS:}
+\DoxyCodeLine{562                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}STOP\_LOSS"{}};}
+\DoxyCodeLine{563                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{564                 \textcolor{keywordflow}{case} STOP\_LOSS\_LIMIT:}
+\DoxyCodeLine{565                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}STOP\_LOSS\_LIMIT"{}};}
+\DoxyCodeLine{566                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{567                 \textcolor{keywordflow}{case} TAKE\_PROFIT:}
+\DoxyCodeLine{568                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}TAKE\_PROFIT"{}};}
+\DoxyCodeLine{569                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{570                 \textcolor{keywordflow}{case} TAKE\_PROFIT\_LIMIT:}
+\DoxyCodeLine{571                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}TAKE\_PROFIT\_LIMIT"{}};}
+\DoxyCodeLine{572                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{573                 \textcolor{keywordflow}{case} LIMIT\_MAKER:}
+\DoxyCodeLine{574                     storage[\textcolor{stringliteral}{"{}type"{}}] = \textcolor{stringliteral}{"{}LIMIT\_MAKER"{}};}
+\DoxyCodeLine{575                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{576             \}}
+\DoxyCodeLine{577         \};}
+\DoxyCodeLine{578         \textcolor{keywordtype}{void} SetQuantity(\textcolor{keywordtype}{double} quantity) \{}
+\DoxyCodeLine{579             storage[\textcolor{stringliteral}{"{}quantity"{}}] = std::to\_string(}
+\DoxyCodeLine{580                 formatter\_qty\_.Format(storage[\textcolor{stringliteral}{"{}symbol"{}}], quantity));}
+\DoxyCodeLine{581         \};}
+\DoxyCodeLine{582         \textcolor{keywordtype}{void} SetPrice(\textcolor{keywordtype}{double} price) \{}
+\DoxyCodeLine{583             storage[\textcolor{stringliteral}{"{}price"{}}] = std::to\_string(}
+\DoxyCodeLine{584                 formatter\_price\_.Format(storage[\textcolor{stringliteral}{"{}symbol"{}}], price));}
+\DoxyCodeLine{585         \};}
+\DoxyCodeLine{586         \textcolor{keywordtype}{void} SetTimeInForce(TimeInForce time\_in\_force) \{}
+\DoxyCodeLine{587             \textcolor{keywordflow}{switch} (time\_in\_force) \{}
+\DoxyCodeLine{588                 \textcolor{keywordflow}{case} TimeInForce::FOK:}
+\DoxyCodeLine{589                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}FOK"{}};}
+\DoxyCodeLine{590                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{591                 \textcolor{keywordflow}{case} TimeInForce::GTC:}
+\DoxyCodeLine{592                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}GTC"{}};}
+\DoxyCodeLine{593                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{594                 \textcolor{keywordflow}{case} TimeInForce::IOC:}
+\DoxyCodeLine{595                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}IOC"{}};}
+\DoxyCodeLine{596                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{597                 \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{598                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}FOK"{}};}
+\DoxyCodeLine{599             \}}
+\DoxyCodeLine{600         \};}
+\DoxyCodeLine{601         \textcolor{keywordtype}{void} SetOrderId(Common::OrderId order\_id) \{}
+\DoxyCodeLine{602             \textcolor{keywordflow}{if} (order\_id != Common::OrderId\_INVALID) [[likely]]}
+\DoxyCodeLine{603                 storage[\textcolor{stringliteral}{"{}newClientOrderId"{}}] = Common::orderIdToString(order\_id);}
+\DoxyCodeLine{604         \};}
+\DoxyCodeLine{605 }
+\DoxyCodeLine{606       \textcolor{keyword}{private}:}
+\DoxyCodeLine{607         \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}\& storage = *\textcolor{keyword}{this};}
+\DoxyCodeLine{608 }
+\DoxyCodeLine{609         \mbox{\hyperlink{classbinance_1_1detail_1_1FormatterQty}{detail::FormatterQty}} formatter\_qty\_;}
+\DoxyCodeLine{610         \mbox{\hyperlink{classbinance_1_1detail_1_1FormatterPrice}{detail::FormatterPrice}} formatter\_price\_;}
+\DoxyCodeLine{611     \};}
+\DoxyCodeLine{612 }
+\DoxyCodeLine{613   \textcolor{keyword}{public}:}
+\DoxyCodeLine{614     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1OrderNewLimit}{OrderNewLimit}}(\mbox{\hyperlink{classSignerI}{SignerI}}* signer, TypeExchange type)}
+\DoxyCodeLine{615         : current\_exchange\_(exchange\_.Get(type)), signer\_(signer) \{\};}
+\DoxyCodeLine{616     \textcolor{keywordtype}{void} \mbox{\hyperlink{classbinance_1_1OrderNewLimit_a28df819c9a1c86a03d0dfb8aa0ffa6de}{Exec}}(\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange::RequestNewOrder}}* new\_order,}
+\DoxyCodeLine{617               \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}}* response\_lfqueue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{618         \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}} args(new\_order);}
+\DoxyCodeLine{619 }
+\DoxyCodeLine{620         \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{true};}
+\DoxyCodeLine{621         \mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest}{detail::FactoryRequest}} factory\{current\_exchange\_,}
+\DoxyCodeLine{622                                        OrderNewLimit::end\_point,}
+\DoxyCodeLine{623                                        args,}
+\DoxyCodeLine{624                                        boost::beast::http::verb::post,}
+\DoxyCodeLine{625                                        signer\_,}
+\DoxyCodeLine{626                                        need\_sign\};}
+\DoxyCodeLine{627         boost::asio::io\_context ioc;}
+\DoxyCodeLine{628         OnHttpsResponce cb;}
+\DoxyCodeLine{629         cb = [response\_lfqueue](}
+\DoxyCodeLine{630                  boost::beast::http::response<boost::beast::http::string\_body>\&}
+\DoxyCodeLine{631                      buffer) \{}
+\DoxyCodeLine{632             \textcolor{keyword}{const} \textcolor{keyword}{auto}\& resut = buffer.body();}
+\DoxyCodeLine{633             logi(\textcolor{stringliteral}{"{}\{\}"{}}, resut);}
+\DoxyCodeLine{634             fmtlog::poll();}
+\DoxyCodeLine{635             \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ParserResponse}{ParserResponse}} parser;}
+\DoxyCodeLine{636             \textcolor{keyword}{auto} answer = parser.Parse(resut);}
+\DoxyCodeLine{637             response\_lfqueue-\/>enqueue(answer);}
+\DoxyCodeLine{638             fmtlog::poll();}
+\DoxyCodeLine{639         \};}
+\DoxyCodeLine{640         std::make\_shared<Https>(ioc, cb)-\/>Run(}
+\DoxyCodeLine{641             factory.Host().data(), factory.Port().data(),}
+\DoxyCodeLine{642             factory.EndPoint().data(), factory());}
+\DoxyCodeLine{643         ioc.run();}
+\DoxyCodeLine{644     \};}
+\DoxyCodeLine{645     \mbox{\hyperlink{classbinance_1_1OrderNewLimit}{\string~OrderNewLimit}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{646 }
+\DoxyCodeLine{647   \textcolor{keyword}{private}:}
+\DoxyCodeLine{648     \mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}} exchange\_;}
+\DoxyCodeLine{649     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{650     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_;}
+\DoxyCodeLine{651 \};}
+\DoxyCodeLine{652 }
+\DoxyCodeLine{653 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1CancelOrder}{CancelOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classinner_1_1CancelOrderI}{inner::CancelOrderI}} \{}
+\DoxyCodeLine{654     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} std::string\_view end\_point = \textcolor{stringliteral}{"{}/api/v3/order"{}};}
+\DoxyCodeLine{655 }
+\DoxyCodeLine{656   \textcolor{keyword}{public}:}
+\DoxyCodeLine{657     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ParserResponse}{ParserResponse}} \{}
+\DoxyCodeLine{658       \textcolor{keyword}{public}:}
+\DoxyCodeLine{659         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ParserResponse}{ParserResponse}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{660         \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} Parse(std::string\_view response);}
+\DoxyCodeLine{661     \};}
+\DoxyCodeLine{662     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}} \{}
+\DoxyCodeLine{663       \textcolor{keyword}{public}:}
+\DoxyCodeLine{664         \textcolor{keyword}{using }SymbolType = std::string\_view;}
+\DoxyCodeLine{665         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, Common::OrderId order\_id)}
+\DoxyCodeLine{666             : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{}
+\DoxyCodeLine{667             SetSymbol(symbol);}
+\DoxyCodeLine{668             SetOrderId(order\_id);}
+\DoxyCodeLine{669         \};}
+\DoxyCodeLine{670         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}}(}
+\DoxyCodeLine{671             \textcolor{keyword}{const} \mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange::RequestCancelOrder}}* request\_cancel\_order)}
+\DoxyCodeLine{672             : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{}
+\DoxyCodeLine{673             SetSymbol(request\_cancel\_order-\/>ticker);}
+\DoxyCodeLine{674             SetOrderId(request\_cancel\_order-\/>order\_id);}
+\DoxyCodeLine{675         \};}
+\DoxyCodeLine{676 }
+\DoxyCodeLine{677       \textcolor{keyword}{private}:}
+\DoxyCodeLine{678         \textcolor{keywordtype}{void} SetSymbol(SymbolType symbol) \{}
+\DoxyCodeLine{679             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
+\DoxyCodeLine{680             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
+\DoxyCodeLine{681         \};}
+\DoxyCodeLine{682         \textcolor{keywordtype}{void} SetOrderId(Common::OrderId order\_id) \{}
+\DoxyCodeLine{683             \textcolor{keywordflow}{if} (order\_id != Common::OrderId\_INVALID) [[likely]]}
+\DoxyCodeLine{684                 storage[\textcolor{stringliteral}{"{}origClientOrderId"{}}] =}
+\DoxyCodeLine{685                     Common::orderIdToString(order\_id);}
+\DoxyCodeLine{686         \};}
+\DoxyCodeLine{687 }
+\DoxyCodeLine{688       \textcolor{keyword}{private}:}
+\DoxyCodeLine{689         \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}}\& storage = *\textcolor{keyword}{this};}
+\DoxyCodeLine{690     \};}
+\DoxyCodeLine{691 }
+\DoxyCodeLine{692   \textcolor{keyword}{public}:}
+\DoxyCodeLine{693     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder}{CancelOrder}}(\mbox{\hyperlink{classSignerI}{SignerI}}* signer, TypeExchange type)}
+\DoxyCodeLine{694         : current\_exchange\_(exchange\_.Get(type)), signer\_(signer) \{\};}
+\DoxyCodeLine{695     \textcolor{keywordtype}{void} \mbox{\hyperlink{classbinance_1_1CancelOrder_adc5caf9528e4cdcc2eaa72ce907ef6cd}{Exec}}(\mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange::RequestCancelOrder}}* request\_cancel\_order,}
+\DoxyCodeLine{696               \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}}* response\_lfqueue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{697         \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}} args(request\_cancel\_order);}
+\DoxyCodeLine{698 }
+\DoxyCodeLine{699         \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{true};}
+\DoxyCodeLine{700         \mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest}{detail::FactoryRequest}} factory\{current\_exchange\_,}
+\DoxyCodeLine{701                                        CancelOrder::end\_point,}
+\DoxyCodeLine{702                                        args,}
+\DoxyCodeLine{703                                        boost::beast::http::verb::delete\_,}
+\DoxyCodeLine{704                                        signer\_,}
+\DoxyCodeLine{705                                        need\_sign\};}
+\DoxyCodeLine{706         boost::asio::io\_context ioc;}
+\DoxyCodeLine{707         OnHttpsResponce cb;}
+\DoxyCodeLine{708         cb = [response\_lfqueue](}
+\DoxyCodeLine{709                  boost::beast::http::response<boost::beast::http::string\_body>\&}
+\DoxyCodeLine{710                      buffer) \{}
+\DoxyCodeLine{711             \textcolor{keyword}{const} \textcolor{keyword}{auto}\& resut = buffer.body();}
+\DoxyCodeLine{712             logi(\textcolor{stringliteral}{"{}\{\}"{}}, resut);}
+\DoxyCodeLine{713             fmtlog::poll();}
+\DoxyCodeLine{714             \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ParserResponse}{ParserResponse}} parser;}
+\DoxyCodeLine{715             \textcolor{keyword}{auto} answer = parser.Parse(resut);}
+\DoxyCodeLine{716             response\_lfqueue-\/>enqueue(answer);}
+\DoxyCodeLine{717             fmtlog::poll();}
+\DoxyCodeLine{718         \};}
+\DoxyCodeLine{719         std::make\_shared<Https>(ioc, cb)-\/>Run(}
+\DoxyCodeLine{720             factory.Host().data(), factory.Port().data(),}
+\DoxyCodeLine{721             factory.EndPoint().data(), factory());}
+\DoxyCodeLine{722         ioc.run();}
+\DoxyCodeLine{723     \};}
+\DoxyCodeLine{724     \mbox{\hyperlink{classbinance_1_1CancelOrder}{\string~CancelOrder}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{725 }
+\DoxyCodeLine{726   \textcolor{keyword}{private}:}
+\DoxyCodeLine{727     \mbox{\hyperlink{classbinance_1_1ExchangeChooser}{ExchangeChooser}} exchange\_;}
+\DoxyCodeLine{728     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{729     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_;}
+\DoxyCodeLine{730 \};}
+\DoxyCodeLine{731 }
+\DoxyCodeLine{732 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1BookSnapshot}{BookSnapshot}} : \textcolor{keyword}{public} \mbox{\hyperlink{classinner_1_1BookSnapshotI}{inner::BookSnapshotI}} \{}
+\DoxyCodeLine{733     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} std::string\_view end\_point = \textcolor{stringliteral}{"{}/api/v3/depth"{}};}
+\DoxyCodeLine{734     \textcolor{keyword}{class }ParserResponse \{}
+\DoxyCodeLine{735       \textcolor{keyword}{public}:}
+\DoxyCodeLine{736         \textcolor{keyword}{explicit} ParserResponse() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{737         \mbox{\hyperlink{structExchange_1_1BookSnapshot}{Exchange::BookSnapshot}} Parse(std::string\_view response);}
+\DoxyCodeLine{738     \};}
+\DoxyCodeLine{739 }
+\DoxyCodeLine{740   \textcolor{keyword}{public}:}
+\DoxyCodeLine{741     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1BookSnapshot_1_1ArgsOrder}{ArgsOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}} \{}
+\DoxyCodeLine{742       \textcolor{keyword}{public}:}
+\DoxyCodeLine{743         \textcolor{keyword}{using }SymbolType = std::string\_view;}
+\DoxyCodeLine{744         \textcolor{keyword}{using }Limit      = uint16\_t;}
+\DoxyCodeLine{745         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1BookSnapshot_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, Limit limit) : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{}
+\DoxyCodeLine{746             SetSymbol(symbol);}
+\DoxyCodeLine{747             \mbox{\hyperlink{classbinance_1_1BookSnapshot_1_1ArgsOrder_abd59f130825b58fad5d00a5a597b775e}{SetLimit}}(limit);}
+\DoxyCodeLine{748         \};}
+\DoxyCodeLine{749         \textcolor{keywordtype}{void} SetSymbol(SymbolType symbol) \{}
+\DoxyCodeLine{750             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
+\DoxyCodeLine{751             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
+\DoxyCodeLine{752         \};}
+\DoxyCodeLine{753         \textcolor{keywordtype}{void} \mbox{\hyperlink{classbinance_1_1BookSnapshot_1_1ArgsOrder_abd59f130825b58fad5d00a5a597b775e}{SetLimit}}(Limit limit) \{}
+\DoxyCodeLine{758             limit            = (limit > 5000) ? 5000 : limit;}
+\DoxyCodeLine{759 }
+\DoxyCodeLine{760             storage[\textcolor{stringliteral}{"{}limit"{}}] = std::to\_string(limit);}
+\DoxyCodeLine{761         \};}
+\DoxyCodeLine{762 }
+\DoxyCodeLine{763       \textcolor{keyword}{private}:}
+\DoxyCodeLine{764         \mbox{\hyperlink{classbinance_1_1BookSnapshot_1_1ArgsOrder}{ArgsOrder}}\& storage = *\textcolor{keyword}{this};}
+\DoxyCodeLine{765     \};}
+\DoxyCodeLine{766     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1BookSnapshot}{BookSnapshot}}(ArgsOrder\&\& args, TypeExchange type,}
+\DoxyCodeLine{767                           \mbox{\hyperlink{structExchange_1_1BookSnapshot}{Exchange::BookSnapshot}}* snapshot)}
+\DoxyCodeLine{768         : args\_(std::move(args)), snapshot\_(snapshot) \{}
+\DoxyCodeLine{769         \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{770             \textcolor{keywordflow}{case} TypeExchange::MAINNET:}
+\DoxyCodeLine{771                 current\_exchange\_ = \&binance\_main\_net\_;}
+\DoxyCodeLine{772                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{773             \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{774                 current\_exchange\_ = \&binance\_test\_net\_;}
+\DoxyCodeLine{775                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{776         \}}
+\DoxyCodeLine{777     \};}
+\DoxyCodeLine{778     \textcolor{keywordtype}{void} Exec()\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{779         \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{false};}
+\DoxyCodeLine{780         detail::FactoryRequest factory\{current\_exchange\_,}
+\DoxyCodeLine{781                                        BookSnapshot::end\_point,}
+\DoxyCodeLine{782                                        args\_,}
+\DoxyCodeLine{783                                        boost::beast::http::verb::get,}
+\DoxyCodeLine{784                                        signer\_,}
+\DoxyCodeLine{785                                        need\_sign\};}
+\DoxyCodeLine{786         boost::asio::io\_context ioc;}
+\DoxyCodeLine{787         OnHttpsResponce cb;}
+\DoxyCodeLine{788         cb = [\textcolor{keyword}{this}](}
+\DoxyCodeLine{789                  boost::beast::http::response<boost::beast::http::string\_body>\&}
+\DoxyCodeLine{790                      buffer) \{}
+\DoxyCodeLine{791             \textcolor{keyword}{const} \textcolor{keyword}{auto}\& resut = buffer.body();}
+\DoxyCodeLine{792             \textcolor{comment}{// logi("{}\{\}"{}, resut);}}
+\DoxyCodeLine{793             ParserResponse parser;}
+\DoxyCodeLine{794             \textcolor{keyword}{auto} answer   = parser.Parse(resut);}
+\DoxyCodeLine{795             answer.ticker = args\_[\textcolor{stringliteral}{"{}symbol"{}}];}
+\DoxyCodeLine{796             *snapshot\_    = answer;}
+\DoxyCodeLine{797             fmtlog::poll();}
+\DoxyCodeLine{798         \};}
+\DoxyCodeLine{799         std::make\_shared<Https>(ioc, cb)-\/>Run(}
+\DoxyCodeLine{800             factory.Host().data(), factory.Port().data(),}
+\DoxyCodeLine{801             factory.EndPoint().data(), factory());}
+\DoxyCodeLine{802         ioc.run();}
+\DoxyCodeLine{803     \};}
+\DoxyCodeLine{804 }
+\DoxyCodeLine{805   \textcolor{keyword}{private}:}
+\DoxyCodeLine{806     ArgsOrder args\_;}
+\DoxyCodeLine{807     \mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange}{binance::testnet::HttpsExchange}} binance\_test\_net\_;}
+\DoxyCodeLine{808     \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange}{binance::mainnet::HttpsExchange}} binance\_main\_net\_;}
+\DoxyCodeLine{809 }
+\DoxyCodeLine{810     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{811     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{812     \mbox{\hyperlink{structExchange_1_1BookSnapshot}{Exchange::BookSnapshot}}* snapshot\_;}
+\DoxyCodeLine{813 \};}
+\DoxyCodeLine{814 }
+\DoxyCodeLine{821 \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}} \{}
+\DoxyCodeLine{822   \textcolor{keyword}{public}:}
+\DoxyCodeLine{823     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}(}
+\DoxyCodeLine{824         Exchange::EventLFQueue* event\_lfqueue, \textcolor{keyword}{const} \mbox{\hyperlink{structTicker}{Ticker}}\& ticker,}
+\DoxyCodeLine{825         \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{DiffDepthStream::StreamIntervalI}}* interval, TypeExchange type);}
+\DoxyCodeLine{826     \textcolor{keyword}{auto} Start() \{}
+\DoxyCodeLine{827         run\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{828         ASSERT(}
+\DoxyCodeLine{829             common::createAndStartThread(-\/1, \textcolor{stringliteral}{"{}Trading/GeneratorBidAskService"{}},}
+\DoxyCodeLine{830                                          [\textcolor{keyword}{this}]() \{ Run(); \}) != \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{831             \textcolor{stringliteral}{"{}Failed to start MarketData thread."{}});}
+\DoxyCodeLine{832     \};}
+\DoxyCodeLine{833     common::Delta GetDownTimeInS()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} time\_manager\_.GetDeltaInS(); \}}
+\DoxyCodeLine{834     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{\string~GeneratorBidAskService}}() \{}
+\DoxyCodeLine{835         stop();}
+\DoxyCodeLine{836         \textcolor{keyword}{using namespace }std::literals::chrono\_literals;}
+\DoxyCodeLine{837         std::this\_thread::sleep\_for(2s);}
+\DoxyCodeLine{838     \}}
+\DoxyCodeLine{839     \textcolor{keyword}{auto} stop() -\/> \textcolor{keywordtype}{void} \{ run\_ = \textcolor{keyword}{false}; \}}
+\DoxyCodeLine{840 }
+\DoxyCodeLine{841     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}()                                          = \textcolor{keyword}{delete};}
+\DoxyCodeLine{842 }
+\DoxyCodeLine{843     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}(\textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{844 }
+\DoxyCodeLine{845     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}(\textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{846 }
+\DoxyCodeLine{847     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\& operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{848 }
+\DoxyCodeLine{849     \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\& operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1GeneratorBidAskService}{GeneratorBidAskService}}\&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{850 }
+\DoxyCodeLine{851   \textcolor{keyword}{private}:}
+\DoxyCodeLine{852     \textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} run\_                     = \textcolor{keyword}{false};}
+\DoxyCodeLine{853 }
+\DoxyCodeLine{854     Exchange::EventLFQueue* event\_lfqueue\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{855     \mbox{\hyperlink{classcommon_1_1TimeManager}{common::TimeManager}} time\_manager\_;}
+\DoxyCodeLine{856     \textcolor{keywordtype}{size\_t} next\_inc\_seq\_num\_                             = 0;}
+\DoxyCodeLine{857     std::unique\_ptr<BookEventGetterI> book\_event\_getter\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{858     Exchange::BookDiffLFQueue book\_diff\_lfqueue\_;}
+\DoxyCodeLine{859     \mbox{\hyperlink{structExchange_1_1BookSnapshot}{Exchange::BookSnapshot}} snapshot\_;}
+\DoxyCodeLine{860     \textcolor{keyword}{const} \mbox{\hyperlink{structTicker}{Ticker}}\& ticker\_;}
+\DoxyCodeLine{861     \textcolor{keyword}{const} \mbox{\hyperlink{classbinance_1_1DiffDepthStream_1_1StreamIntervalI}{DiffDepthStream::StreamIntervalI}}* interval\_;}
+\DoxyCodeLine{862     uint64\_t last\_id\_diff\_book\_event;}
+\DoxyCodeLine{863     TypeExchange type\_exchange\_;}
+\DoxyCodeLine{864 }
+\DoxyCodeLine{865     \mbox{\hyperlink{classbinance_1_1testnet_1_1HttpsExchange}{binance::testnet::HttpsExchange}} binance\_test\_net\_;}
+\DoxyCodeLine{866     \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange}{binance::mainnet::HttpsExchange}} binance\_main\_net\_;}
+\DoxyCodeLine{867     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{868 }
+\DoxyCodeLine{869   \textcolor{keyword}{private}:}
+\DoxyCodeLine{873     \textcolor{keyword}{auto} Run() \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{874 \};}
+\DoxyCodeLine{875 \};  \textcolor{comment}{// namespace binance}}
+
+\end{DoxyCode}

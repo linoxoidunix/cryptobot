@@ -1,0 +1,163 @@
+\hypertarget{HttpsImpl_8h_source}{}\doxysection{Https\+Impl.\+h}
+\label{HttpsImpl_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/impl/HttpsImpl.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/impl/HttpsImpl.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#include <boost/asio/strand.hpp>}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <boost/beast/core.hpp>}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <boost/beast/http.hpp>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <boost/beast/ssl.hpp>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/beast/version.hpp>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <cstdlib>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/Types.h"{}}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }beast = boost::beast;          \textcolor{comment}{// from <boost/beast.hpp>}}
+\DoxyCodeLine{15 \textcolor{keyword}{namespace }http  = beast::http;           \textcolor{comment}{// from <boost/beast/http.hpp>}}
+\DoxyCodeLine{16 \textcolor{keyword}{namespace }net   = boost::asio;           \textcolor{comment}{// from <boost/asio.hpp>}}
+\DoxyCodeLine{17 \textcolor{keyword}{namespace }ssl   = boost::asio::ssl;      \textcolor{comment}{// from <boost/asio/ssl.hpp>}}
+\DoxyCodeLine{18 \textcolor{keyword}{using }tcp       = boost::asio::ip::tcp;  \textcolor{comment}{// from <boost/asio/ip/tcp.hpp>}}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{20 \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{21 }
+\DoxyCodeLine{22 \textcolor{comment}{// Report a failure}}
+\DoxyCodeLine{23 \textcolor{keywordtype}{void} fail(beast::error\_code ec, \textcolor{keywordtype}{char} \textcolor{keyword}{const}* what) \{}
+\DoxyCodeLine{24     std::cerr << what << \textcolor{stringliteral}{"{}: "{}} << ec.message() << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{25 \}}
+\DoxyCodeLine{26 }
+\DoxyCodeLine{27 \textcolor{comment}{// Performs an HTTP GET and prints the response}}
+\DoxyCodeLine{28 \textcolor{keyword}{class }\mbox{\hyperlink{classHttpsSession}{HttpsSession}} : \textcolor{keyword}{public} std::enable\_shared\_from\_this<HttpsSession> \{}
+\DoxyCodeLine{29     tcp::resolver resolver\_;}
+\DoxyCodeLine{30     beast::ssl\_stream<beast::tcp\_stream> stream\_;}
+\DoxyCodeLine{31     http::request<http::string\_body> req\_;}
+\DoxyCodeLine{32     beast::flat\_buffer buffer\_; \textcolor{comment}{// (Must persist between reads)}}
+\DoxyCodeLine{33     http::response<http::string\_body> res\_;}
+\DoxyCodeLine{34     OnHttpsResponce cb\_;}
+\DoxyCodeLine{35     boost::asio::io\_context\& ioc\_;}
+\DoxyCodeLine{36 }
+\DoxyCodeLine{37   \textcolor{keyword}{public}:}
+\DoxyCodeLine{38     \textcolor{keyword}{explicit} \mbox{\hyperlink{classHttpsSession}{HttpsSession}}(boost::asio::io\_context\& ioc,}
+\DoxyCodeLine{39                           ssl::context\& ctx, OnHttpsResponce cb)}
+\DoxyCodeLine{40         : resolver\_(net::make\_strand(ioc)),}
+\DoxyCodeLine{41           stream\_(net::make\_strand(ioc), ctx),}
+\DoxyCodeLine{42           ioc\_(ioc),}
+\DoxyCodeLine{43           cb\_(cb) \{}
+\DoxyCodeLine{44     \}}
+\DoxyCodeLine{45 }
+\DoxyCodeLine{46     \textcolor{comment}{// Start the asynchronous operation}}
+\DoxyCodeLine{55 \textcolor{comment}{}    \textcolor{keywordtype}{void} \mbox{\hyperlink{classHttpsSession_ac584471fdc0c8bdccf0c328ed1289736}{Run}}(\textcolor{keywordtype}{char} \textcolor{keyword}{const}* host, \textcolor{keywordtype}{char} \textcolor{keyword}{const}* port, \textcolor{keywordtype}{char} \textcolor{keyword}{const}* target,}
+\DoxyCodeLine{56              http::request<http::string\_body>\&\& req) \{}
+\DoxyCodeLine{57         \textcolor{comment}{// Set SNI Hostname (many hosts need this to handshake successfully)}}
+\DoxyCodeLine{58         \textcolor{keywordflow}{if} (!SSL\_set\_tlsext\_host\_name(stream\_.native\_handle(), host)) \{}
+\DoxyCodeLine{59             beast::error\_code ec\{\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(::ERR\_get\_error()),}
+\DoxyCodeLine{60                                  net::error::get\_ssl\_category()\};}
+\DoxyCodeLine{61             std::cerr << ec.message() << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{62             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{63         \}}
+\DoxyCodeLine{64 }
+\DoxyCodeLine{65         \textcolor{comment}{// Set up an HTTP GET request message}}
+\DoxyCodeLine{66         req\_ = req;}
+\DoxyCodeLine{67         \textcolor{comment}{// Look up the domain name}}
+\DoxyCodeLine{68         resolver\_.async\_resolve(}
+\DoxyCodeLine{69             host, port,}
+\DoxyCodeLine{70             beast::bind\_front\_handler(\&HttpsSession::on\_resolve,}
+\DoxyCodeLine{71                                       shared\_from\_this()));}
+\DoxyCodeLine{72     \}}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{74     \textcolor{keywordtype}{void} on\_resolve(beast::error\_code ec, tcp::resolver::results\_type results) \{}
+\DoxyCodeLine{75         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}resolve"{}});}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{77         \textcolor{comment}{// Set a timeout on the operation}}
+\DoxyCodeLine{78         beast::get\_lowest\_layer(stream\_).expires\_after(}
+\DoxyCodeLine{79             std::chrono::seconds(30));}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81         \textcolor{comment}{// Make the connection on the IP address we get from a lookup}}
+\DoxyCodeLine{82         beast::get\_lowest\_layer(stream\_).async\_connect(}
+\DoxyCodeLine{83             results, beast::bind\_front\_handler(\&HttpsSession::on\_connect,}
+\DoxyCodeLine{84                                                shared\_from\_this()));}
+\DoxyCodeLine{85     \}}
+\DoxyCodeLine{86 }
+\DoxyCodeLine{87     \textcolor{keywordtype}{void} on\_connect(beast::error\_code ec,}
+\DoxyCodeLine{88                     tcp::resolver::results\_type::endpoint\_type) \{}
+\DoxyCodeLine{89         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}connect"{}});}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91         \textcolor{comment}{// Perform the SSL handshake}}
+\DoxyCodeLine{92         stream\_.async\_handshake(}
+\DoxyCodeLine{93             ssl::stream\_base::client,}
+\DoxyCodeLine{94             beast::bind\_front\_handler(\&HttpsSession::on\_handshake,}
+\DoxyCodeLine{95                                       shared\_from\_this()));}
+\DoxyCodeLine{96     \}}
+\DoxyCodeLine{97 }
+\DoxyCodeLine{98     \textcolor{keywordtype}{void} on\_handshake(beast::error\_code ec) \{}
+\DoxyCodeLine{99         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}handshake"{}});}
+\DoxyCodeLine{100 }
+\DoxyCodeLine{101         \textcolor{comment}{// Set a timeout on the operation}}
+\DoxyCodeLine{102         beast::get\_lowest\_layer(stream\_).expires\_after(}
+\DoxyCodeLine{103             std::chrono::seconds(30));}
+\DoxyCodeLine{104 }
+\DoxyCodeLine{105         \textcolor{comment}{// Send the HTTP request to the remote host}}
+\DoxyCodeLine{106         http::async\_write(stream\_, req\_,}
+\DoxyCodeLine{107                           beast::bind\_front\_handler(\&HttpsSession::on\_write,}
+\DoxyCodeLine{108                                                     shared\_from\_this()));}
+\DoxyCodeLine{109     \}}
+\DoxyCodeLine{110 }
+\DoxyCodeLine{111     \textcolor{keywordtype}{void} on\_write(beast::error\_code ec, std::size\_t bytes\_transferred) \{}
+\DoxyCodeLine{112         boost::ignore\_unused(bytes\_transferred);}
+\DoxyCodeLine{113 }
+\DoxyCodeLine{114         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}write"{}});}
+\DoxyCodeLine{115 }
+\DoxyCodeLine{116         \textcolor{comment}{// Receive the HTTP response}}
+\DoxyCodeLine{117         http::async\_read(stream\_, buffer\_, res\_,}
+\DoxyCodeLine{118                          beast::bind\_front\_handler(\&HttpsSession::on\_read,}
+\DoxyCodeLine{119                                                    shared\_from\_this()));}
+\DoxyCodeLine{120     \}}
+\DoxyCodeLine{121 }
+\DoxyCodeLine{122     \textcolor{keywordtype}{void} on\_read(beast::error\_code ec, std::size\_t bytes\_transferred) \{}
+\DoxyCodeLine{123         boost::ignore\_unused(bytes\_transferred);}
+\DoxyCodeLine{124 }
+\DoxyCodeLine{125         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}read"{}});}
+\DoxyCodeLine{126 }
+\DoxyCodeLine{127         \textcolor{comment}{// Write the message to standard out}}
+\DoxyCodeLine{128         \textcolor{comment}{//std::cout << res\_ << std::endl;}}
+\DoxyCodeLine{129         cb\_(res\_);}
+\DoxyCodeLine{130         \textcolor{comment}{// Set a timeout on the operation}}
+\DoxyCodeLine{131         beast::get\_lowest\_layer(stream\_).expires\_after(}
+\DoxyCodeLine{132             std::chrono::seconds(30));}
+\DoxyCodeLine{133         \textcolor{comment}{// Gracefully close the stream}}
+\DoxyCodeLine{134         beast::get\_lowest\_layer(stream\_).socket().cancel(ec);}
+\DoxyCodeLine{135         \textcolor{keywordflow}{if} (ec == net::error::eof) \{}
+\DoxyCodeLine{136             \textcolor{comment}{// Rationale:}}
+\DoxyCodeLine{137             \textcolor{comment}{// http://stackoverflow.com/questions/25587403/boost-\/asio-\/ssl-\/async-\/shutdown-\/always-\/finishes-\/with-\/an-\/error}}
+\DoxyCodeLine{138             ec = \{\};}
+\DoxyCodeLine{139         \}}
+\DoxyCodeLine{140         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}cansel"{}});}
+\DoxyCodeLine{141         beast::get\_lowest\_layer(stream\_).socket().close(ec);}
+\DoxyCodeLine{142         \textcolor{keywordflow}{if} (ec == net::error::eof) \{}
+\DoxyCodeLine{143             \textcolor{comment}{// Rationale:}}
+\DoxyCodeLine{144             \textcolor{comment}{// http://stackoverflow.com/questions/25587403/boost-\/asio-\/ssl-\/async-\/shutdown-\/always-\/finishes-\/with-\/an-\/error}}
+\DoxyCodeLine{145             ec = \{\};}
+\DoxyCodeLine{146         \}}
+\DoxyCodeLine{147         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}cansel"{}});}
+\DoxyCodeLine{148         \textcolor{comment}{// stream\_.async\_shutdown(beast::bind\_front\_handler(}}
+\DoxyCodeLine{149         \textcolor{comment}{//     \&HttpsSession::on\_shutdown, shared\_from\_this()));}}
+\DoxyCodeLine{150     \}}
+\DoxyCodeLine{151 }
+\DoxyCodeLine{152     \textcolor{keywordtype}{void} on\_shutdown(beast::error\_code ec) \{}
+\DoxyCodeLine{153         beast::get\_lowest\_layer(stream\_).socket().close(ec);}
+\DoxyCodeLine{154 }
+\DoxyCodeLine{155         \textcolor{keywordflow}{if} (ec == net::error::eof) \{}
+\DoxyCodeLine{156             \textcolor{comment}{// Rationale:}}
+\DoxyCodeLine{157             \textcolor{comment}{// http://stackoverflow.com/questions/25587403/boost-\/asio-\/ssl-\/async-\/shutdown-\/always-\/finishes-\/with-\/an-\/error}}
+\DoxyCodeLine{158             ec = \{\};}
+\DoxyCodeLine{159         \}}
+\DoxyCodeLine{160         \textcolor{keywordflow}{if} (ec) \textcolor{keywordflow}{return} fail(ec, \textcolor{stringliteral}{"{}shutdown"{}});}
+\DoxyCodeLine{161         \textcolor{comment}{// If we get here then the connection is closed gracefully}}
+\DoxyCodeLine{162         \textcolor{comment}{//beast::get\_lowest\_layer(stream\_).socket().close(ec);}}
+\DoxyCodeLine{163 }
+\DoxyCodeLine{164     \}}
+\DoxyCodeLine{165 \};}
+
+\end{DoxyCode}

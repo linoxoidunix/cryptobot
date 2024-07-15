@@ -1,0 +1,86 @@
+\hypertarget{client__response_8h}{}\doxysection{/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/client\+\_\+response.h File Reference}
+\label{client__response_8h}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_response.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_response.h}}
+
+
+responce from exchange to for gateway module  
+
+
+{\ttfamily \#include $<$sstream$>$}\newline
+{\ttfamily \#include \char`\"{}aot/common/types.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}moodycamel/concurrentqueue.\+h\char`\"{}}\newline
+Include dependency graph for client\+\_\+response.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{client__response_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{client__response_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}}
+\begin{DoxyCompactList}\small\item\em Client response structure used internally by the matching engine. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+using \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange\+::\+Client\+Response\+LFQueue}} = moodycamel\+::\+Concurrent\+Queue$<$ MEClient\+Response $>$
+\begin{DoxyCompactList}\small\item\em Client response structure published over the network by the order server. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}\label{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}} 
+enum class \mbox{\hyperlink{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}{Exchange\+::\+Client\+Response\+Type}} \+: uint8\+\_\+t \{ \newline
+{\bfseries INVALID} = 0
+, {\bfseries ACCEPTED} = 1
+, {\bfseries CANCELED} = 2
+, {\bfseries FILLED} = 3
+, \newline
+{\bfseries CANCEL\+\_\+\+REJECTED} = 4
+ \}
+\begin{DoxyCompactList}\small\item\em Type of the order response sent by the exchange to the trading client. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{client__response_8h_a8630e82f07dd0b727b25583f3b3dfa15}\label{client__response_8h_a8630e82f07dd0b727b25583f3b3dfa15}} 
+std\+::string {\bfseries Exchange\+::\+Client\+Response\+Type\+To\+String} (Client\+Response\+Type type)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+responce from exchange to for gateway module 
+
+\begin{DoxyAuthor}{Author}
+your name (\href{mailto:you@domain.com}{\texttt{ you@domain.\+com}}) 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+0.\+1 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2024-\/06-\/01
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) 2024 
+\end{DoxyCopyright}
+
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}\label{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}} 
+\index{client\_response.h@{client\_response.h}!ClientResponseLFQueue@{ClientResponseLFQueue}}
+\index{ClientResponseLFQueue@{ClientResponseLFQueue}!client\_response.h@{client\_response.h}}
+\doxysubsubsection{\texorpdfstring{ClientResponseLFQueue}{ClientResponseLFQueue}}
+{\footnotesize\ttfamily using \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange\+::\+Client\+Response\+LFQueue}} = typedef moodycamel\+::\+Concurrent\+Queue$<$MEClient\+Response$>$}
+
+
+
+Client response structure published over the network by the order server. 
+
+Lock free queues of matching engine client order response messages. 

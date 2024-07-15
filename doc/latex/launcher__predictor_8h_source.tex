@@ -1,0 +1,141 @@
+\hypertarget{launcher__predictor_8h_source}{}\doxysection{launcher\+\_\+predictor.\+h}
+\label{launcher__predictor_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/launcher\_predictor.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/launcher\_predictor.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#define PY\_SSIZE\_T\_CLEAN}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <Python.h>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <stdlib.h>}}
+\DoxyCodeLine{5 }
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <boost/filesystem/path.hpp>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <cstdio>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{class }\mbox{\hyperlink{classIStrategy}{IStrategy}} \{}
+\DoxyCodeLine{15   \textcolor{keyword}{public}:}
+\DoxyCodeLine{20     \textcolor{keyword}{using }\mbox{\hyperlink{classAction}{Action}}     = std::string;}
+\DoxyCodeLine{21     \textcolor{keyword}{using }Confidence = long;}
+\DoxyCodeLine{22     \textcolor{keyword}{struct }\mbox{\hyperlink{structIStrategy_1_1Result}{Result}} \{}
+\DoxyCodeLine{23         \mbox{\hyperlink{classAction}{Action}} action;}
+\DoxyCodeLine{24         Confidence confidence;}
+\DoxyCodeLine{25     \};}
+\DoxyCodeLine{26     \textcolor{keyword}{virtual} \mbox{\hyperlink{structIStrategy_1_1Result}{Result}} Predict(\textcolor{keywordtype}{double} open, \textcolor{keywordtype}{double} high, \textcolor{keywordtype}{double} low, \textcolor{keywordtype}{double} close,}
+\DoxyCodeLine{27                            \textcolor{keywordtype}{double} volume) = 0;}
+\DoxyCodeLine{28     \textcolor{keyword}{virtual} \mbox{\hyperlink{classIStrategy}{\string~IStrategy}}()                  = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{29 \};}
+\DoxyCodeLine{30 }
+\DoxyCodeLine{31 \textcolor{keyword}{namespace }base\_strategy \{}
+\DoxyCodeLine{32 \textcolor{keyword}{class }\mbox{\hyperlink{classbase__strategy_1_1Strategy}{Strategy}} : \textcolor{keyword}{public} \mbox{\hyperlink{classIStrategy}{IStrategy}} \{}
+\DoxyCodeLine{33   \textcolor{keyword}{public}:}
+\DoxyCodeLine{45     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbase__strategy_1_1Strategy_aedc3e8746bcc4097401cd1c66ecaa366}{Strategy}}(std::string\_view python\_path,}
+\DoxyCodeLine{46                       std::string\_view path\_where\_models,}
+\DoxyCodeLine{47                       std::string\_view file\_predictor,}
+\DoxyCodeLine{48                       std::string\_view class\_predictor,}
+\DoxyCodeLine{49                       std::string\_view method\_predictor)}
+\DoxyCodeLine{50         : file\_predictor\_(file\_predictor.data()),}
+\DoxyCodeLine{51           class\_predictor\_(class\_predictor.data()),}
+\DoxyCodeLine{52           method\_predictor\_(method\_predictor.data()) \{}
+\DoxyCodeLine{53         std::string kPythonPath = python\_path.data();}
+\DoxyCodeLine{54         setenv(\textcolor{stringliteral}{"{}PYTHONPATH"{}}, kPythonPath.c\_str(), 1);}
+\DoxyCodeLine{55         Py\_Initialize();}
+\DoxyCodeLine{56         \textcolor{keywordtype}{size\_t} lastindex                 = file\_predictor\_.find\_last\_of(\textcolor{stringliteral}{"{}."{}});}
+\DoxyCodeLine{57         \textcolor{keyword}{auto} file\_name\_without\_extension = file\_predictor\_.substr(0, lastindex);}
+\DoxyCodeLine{58         file\_name\_ =}
+\DoxyCodeLine{59             PyUnicode\_DecodeFSDefault(file\_name\_without\_extension.c\_str());}
+\DoxyCodeLine{60         module\_name\_ =}
+\DoxyCodeLine{61             PyImport\_Import(file\_name\_);  \textcolor{comment}{// get filename without extension}}
+\DoxyCodeLine{62         Py\_DECREF(file\_name\_);}
+\DoxyCodeLine{63         class\_name\_ =}
+\DoxyCodeLine{64             PyObject\_GetAttrString(module\_name\_, class\_predictor\_.c\_str());}
+\DoxyCodeLine{65         Py\_DECREF(module\_name\_);}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{67         \textcolor{keyword}{auto} args = PyTuple\_New(1);}
+\DoxyCodeLine{68         InitTuplePosition(args, 0, path\_where\_models.data());}
+\DoxyCodeLine{69 }
+\DoxyCodeLine{70         predictor\_instance\_ = PyObject\_CallObject(class\_name\_, args);}
+\DoxyCodeLine{71         Py\_XDECREF(args);}
+\DoxyCodeLine{72         Py\_XDECREF(class\_name\_);}
+\DoxyCodeLine{73     \};}
+\DoxyCodeLine{74     \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy::Result}} Predict(\textcolor{keywordtype}{double} open, \textcolor{keywordtype}{double} high, \textcolor{keywordtype}{double} low,}
+\DoxyCodeLine{75                               \textcolor{keywordtype}{double} close, \textcolor{keywordtype}{double} volume)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{76         \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy::Result}} result;}
+\DoxyCodeLine{77 }
+\DoxyCodeLine{78         pValue =}
+\DoxyCodeLine{79             PyObject\_CallMethod(predictor\_instance\_, method\_predictor\_.c\_str(),}
+\DoxyCodeLine{80                                 \textcolor{stringliteral}{"{}(fffff)"{}}, open, high, low, close, volume);}
+\DoxyCodeLine{81 }
+\DoxyCodeLine{82         \textcolor{keywordflow}{if} (pValue != NULL) \{}
+\DoxyCodeLine{83             PyObject *key, *value;}
+\DoxyCodeLine{84             Py\_ssize\_t pos = 0;}
+\DoxyCodeLine{85             \textcolor{keywordflow}{while} (PyDict\_Next(pValue, \&pos, \&key, \&value)) \{}
+\DoxyCodeLine{86                 PyObject *key\_as\_str =}
+\DoxyCodeLine{87                     PyUnicode\_AsEncodedString(key, \textcolor{stringliteral}{"{}utf-\/8"{}}, \textcolor{stringliteral}{"{}\string~E\string~"{}});}
+\DoxyCodeLine{88                 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *key\_local = PyBytes\_AS\_STRING(key\_as\_str);}
+\DoxyCodeLine{89                 \textcolor{keywordtype}{long} value\_local      = PyLong\_AS\_LONG(value);}
+\DoxyCodeLine{90                 result = \{key\_local, value\_local\};}
+\DoxyCodeLine{91                 Py\_XDECREF(key\_as\_str);}
+\DoxyCodeLine{92             \}}
+\DoxyCodeLine{93             Py\_DECREF(pValue);}
+\DoxyCodeLine{94         \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{95             PyErr\_Print();}
+\DoxyCodeLine{96             logi(\textcolor{stringliteral}{"{}pValue = NULL. Call failed"{}});}
+\DoxyCodeLine{97             \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{98         \}}
+\DoxyCodeLine{99         \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{100     \};}
+\DoxyCodeLine{101     \textcolor{keyword}{class }\mbox{\hyperlink{classbase__strategy_1_1Strategy_1_1Parser}{Parser}} \{}
+\DoxyCodeLine{102       \textcolor{keyword}{public}:}
+\DoxyCodeLine{103         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbase__strategy_1_1Strategy_1_1Parser}{Parser}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{104         Common::TradeAction Parse(\textcolor{keyword}{const} \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy::Result}} \&result)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{105             \textcolor{comment}{// base on "{}aot/python/my\_types.py"{}}}
+\DoxyCodeLine{106             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}enter\_long"{}})}
+\DoxyCodeLine{107                 \textcolor{keywordflow}{return} Common::TradeAction::kEnterLong;}
+\DoxyCodeLine{108             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}enter\_short"{}})}
+\DoxyCodeLine{109                 \textcolor{keywordflow}{return} Common::TradeAction::kEnterShort;}
+\DoxyCodeLine{110             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}exit\_long"{}})}
+\DoxyCodeLine{111                 \textcolor{keywordflow}{return} Common::TradeAction::kExitLong;}
+\DoxyCodeLine{112             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}exit\_short"{}})}
+\DoxyCodeLine{113                 \textcolor{keywordflow}{return} Common::TradeAction::kExitShort;}
+\DoxyCodeLine{114             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}"{}}) \textcolor{keywordflow}{return} Common::TradeAction::kNope;}
+\DoxyCodeLine{115             \textcolor{keywordflow}{return} Common::TradeAction::kNope;}
+\DoxyCodeLine{116         \};}
+\DoxyCodeLine{117     \};}
+\DoxyCodeLine{118     \mbox{\hyperlink{classbase__strategy_1_1Strategy}{\string~Strategy}}()\textcolor{keyword}{ override }\{ Py\_DECREF(predictor\_instance\_); \};}
+\DoxyCodeLine{119 }
+\DoxyCodeLine{120   \textcolor{keyword}{private}:}
+\DoxyCodeLine{121     std::string file\_predictor\_;}
+\DoxyCodeLine{122     std::string class\_predictor\_;}
+\DoxyCodeLine{123     std::string method\_predictor\_;}
+\DoxyCodeLine{124     PyObject *file\_name\_;}
+\DoxyCodeLine{125     PyObject *module\_name\_;}
+\DoxyCodeLine{126     PyObject *class\_name\_;}
+\DoxyCodeLine{127     PyObject *predictor\_instance\_;}
+\DoxyCodeLine{128     PyObject *pValue;}
+\DoxyCodeLine{129     \textcolor{keywordtype}{int} InitTuplePosition(PyObject *pArgs, \textcolor{keywordtype}{int} position, \textcolor{keywordtype}{double} value) \{}
+\DoxyCodeLine{130         \textcolor{keyword}{auto} obj\_value = PyFloat\_FromDouble(value);}
+\DoxyCodeLine{131         \textcolor{keywordflow}{if} (!obj\_value) \{}
+\DoxyCodeLine{132             fprintf(stderr, \textcolor{stringliteral}{"{}Cannot convert argument\(\backslash\)n"{}});}
+\DoxyCodeLine{133             \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{134         \}}
+\DoxyCodeLine{135         PyTuple\_SetItem(pArgs, position, obj\_value);}
+\DoxyCodeLine{136 }
+\DoxyCodeLine{137         \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{138     \};}
+\DoxyCodeLine{139     \textcolor{keywordtype}{int} InitTuplePosition(PyObject *pArgs, \textcolor{keywordtype}{int} position, \textcolor{keyword}{const} \textcolor{keywordtype}{char} *value) \{}
+\DoxyCodeLine{140         \textcolor{keyword}{auto} obj\_value = PyUnicode\_FromString(value);}
+\DoxyCodeLine{141         \textcolor{keywordflow}{if} (!obj\_value) \{}
+\DoxyCodeLine{142             fprintf(stderr, \textcolor{stringliteral}{"{}Cannot convert argument\(\backslash\)n"{}});}
+\DoxyCodeLine{143             \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{144         \}}
+\DoxyCodeLine{145         PyTuple\_SetItem(pArgs, position, obj\_value);}
+\DoxyCodeLine{146 }
+\DoxyCodeLine{147         \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{148     \}}
+\DoxyCodeLine{149 \};}
+\DoxyCodeLine{150 \}  \textcolor{comment}{// namespace base\_strategy}}
+
+\end{DoxyCode}

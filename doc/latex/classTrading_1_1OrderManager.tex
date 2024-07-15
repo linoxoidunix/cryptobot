@@ -1,0 +1,85 @@
+\hypertarget{classTrading_1_1OrderManager}{}\doxysection{Trading\+::Order\+Manager Class Reference}
+\label{classTrading_1_1OrderManager}\index{Trading::OrderManager@{Trading::OrderManager}}
+
+
+{\ttfamily \#include $<$order\+\_\+manager.\+h$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_a8737d9c5afed289237acf52aab7f41ba}\label{classTrading_1_1OrderManager_a8737d9c5afed289237acf52aab7f41ba}} 
+{\bfseries Order\+Manager} (\mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} $\ast$trade\+\_\+engine)
+\item 
+auto \mbox{\hyperlink{classTrading_1_1OrderManager_ad5b4cf5655980070d109620d612c0237}{On\+Order\+Response}} (const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$client\+\_\+response) noexcept -\/$>$ void
+\item 
+auto \mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{New\+Order}} (TickerS ticker\+\_\+id, PriceD price, Side side, QtyD qty) noexcept -\/$>$ void
+\begin{DoxyCompactList}\small\item\em Send a new order with specified attribute, and update the \mbox{\hyperlink{structTrading_1_1OMOrder}{OMOrder}} object passed here. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classTrading_1_1OrderManager_a4af2c0457482f6c074c095220ec49fd6}{Cancel\+Order}} (TickerS ticker\+\_\+id, Side side) noexcept -\/$>$ void
+\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}\label{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}} 
+{\bfseries Order\+Manager} ()=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_a0269f99565d33dba4a3bf6fb4b45b0ef}\label{classTrading_1_1OrderManager_a0269f99565d33dba4a3bf6fb4b45b0ef}} 
+{\bfseries Order\+Manager} (const \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_ae8ddcfe2b77c6bed6f46356b33fbe513}\label{classTrading_1_1OrderManager_ae8ddcfe2b77c6bed6f46356b33fbe513}} 
+{\bfseries Order\+Manager} (const \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_ac63b4365127b12c54244c73dd6963f33}\label{classTrading_1_1OrderManager_ac63b4365127b12c54244c73dd6963f33}} 
+\mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1OrderManager_a256eb656feb865c4afbaa24a6ac9c2ce}\label{classTrading_1_1OrderManager_a256eb656feb865c4afbaa24a6ac9c2ce}} 
+\mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Manages orders for a trading algorithm, hides the complexity of order management to simplify trading strategies. This \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} impl supports only 1 active(\+OMOrder\+State\+::\+LIVE) order for each TickerS !!!! 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTrading_1_1OrderManager_a4af2c0457482f6c074c095220ec49fd6}\label{classTrading_1_1OrderManager_a4af2c0457482f6c074c095220ec49fd6}} 
+\index{Trading::OrderManager@{Trading::OrderManager}!CancelOrder@{CancelOrder}}
+\index{CancelOrder@{CancelOrder}!Trading::OrderManager@{Trading::OrderManager}}
+\doxysubsubsection{\texorpdfstring{CancelOrder()}{CancelOrder()}}
+{\footnotesize\ttfamily auto Trading\+::\+Order\+Manager\+::\+Cancel\+Order (\begin{DoxyParamCaption}\item[{TickerS}]{ticker\+\_\+id,  }\item[{Side}]{side }\end{DoxyParamCaption}) -\/$>$ void\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em ticker\+\_\+id} & \\
+\hline
+{\em side} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}\label{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}} 
+\index{Trading::OrderManager@{Trading::OrderManager}!NewOrder@{NewOrder}}
+\index{NewOrder@{NewOrder}!Trading::OrderManager@{Trading::OrderManager}}
+\doxysubsubsection{\texorpdfstring{NewOrder()}{NewOrder()}}
+{\footnotesize\ttfamily auto Trading\+::\+Order\+Manager\+::\+New\+Order (\begin{DoxyParamCaption}\item[{TickerS}]{ticker\+\_\+id,  }\item[{PriceD}]{price,  }\item[{Side}]{side,  }\item[{QtyD}]{qty }\end{DoxyParamCaption}) -\/$>$ void\hspace{0.3cm}{\ttfamily [noexcept]}}
+
+
+
+Send a new order with specified attribute, and update the \mbox{\hyperlink{structTrading_1_1OMOrder}{OMOrder}} object passed here. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ticker\+\_\+id} & ticker as string. For example BTCUSDT \\
+\hline
+{\em price} & \\
+\hline
+{\em side} & \\
+\hline
+{\em qty} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classTrading_1_1OrderManager_ad5b4cf5655980070d109620d612c0237}\label{classTrading_1_1OrderManager_ad5b4cf5655980070d109620d612c0237}} 
+\index{Trading::OrderManager@{Trading::OrderManager}!OnOrderResponse@{OnOrderResponse}}
+\index{OnOrderResponse@{OnOrderResponse}!Trading::OrderManager@{Trading::OrderManager}}
+\doxysubsubsection{\texorpdfstring{OnOrderResponse()}{OnOrderResponse()}}
+{\footnotesize\ttfamily auto Trading\+::\+Order\+Manager\+::\+On\+Order\+Response (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$}]{client\+\_\+response }\end{DoxyParamCaption}) -\/$>$ void \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Process an order update from a client response and update the state of the orders being managed. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/order\+\_\+manager.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/order\+\_\+manager.\+cpp\end{DoxyCompactItemize}

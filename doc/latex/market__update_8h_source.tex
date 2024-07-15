@@ -1,0 +1,190 @@
+\hypertarget{market__update_8h_source}{}\doxysection{market\+\_\+update.\+h}
+\label{market__update_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/market\_data/market\_update.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/market\_data/market\_update.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <limits>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <list>}}
+\DoxyCodeLine{5 }
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}moodycamel/concurrentqueue.h"{}}}
+\DoxyCodeLine{9 \textcolor{keyword}{namespace }Exchange \{}
+\DoxyCodeLine{10 \textcolor{keyword}{enum class} MarketUpdateType : uint8\_t \{}
+\DoxyCodeLine{11     CLEAR   = 0,  \textcolor{comment}{// if this event occured then neen clear order book}}
+\DoxyCodeLine{12     DEFAULT = 1}
+\DoxyCodeLine{13 \};}
+\DoxyCodeLine{14 }
+\DoxyCodeLine{15 \textcolor{keyword}{inline} std::string marketUpdateTypeToString(MarketUpdateType type) \{}
+\DoxyCodeLine{16     \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{17         \textcolor{keywordflow}{case} MarketUpdateType::CLEAR:}
+\DoxyCodeLine{18             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}CLEAR"{}};}
+\DoxyCodeLine{19         \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{20             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}DEFAULT"{}};}
+\DoxyCodeLine{21     \}}
+\DoxyCodeLine{22     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{23 \};}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25 \textcolor{keyword}{struct }MEMarketUpdateDouble;}
+\DoxyCodeLine{26 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}} \{}
+\DoxyCodeLine{27     MarketUpdateType type      = MarketUpdateType::DEFAULT;}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{29     Common::OrderId order\_id   = Common::OrderId\_INVALID;}
+\DoxyCodeLine{30     \textcolor{comment}{//Common::TickerId ticker\_id = Common::TickerId\_INVALID;}}
+\DoxyCodeLine{31     std::string ticker;}
+\DoxyCodeLine{32     Common::Side side          = Common::Side::INVALID;}
+\DoxyCodeLine{33     Common::Price price        = Common::Price\_INVALID;}
+\DoxyCodeLine{34     Common::Qty qty            = Common::Qty\_INVALID;}
+\DoxyCodeLine{35 }
+\DoxyCodeLine{36     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{37         \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{38             \textcolor{stringliteral}{"{}MEMarketUpdate[ticker:\{\} oid:\{\} side:\{\} qty:\{\} price:\{\}]"{}},}
+\DoxyCodeLine{39             ticker,}
+\DoxyCodeLine{40             Common::orderIdToString(order\_id), sideToString(side),}
+\DoxyCodeLine{41             Common::qtyToString(qty), Common::priceToString(price));}
+\DoxyCodeLine{42     \};}
+\DoxyCodeLine{43     \textcolor{keyword}{explicit} \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}}*, uint precission\_price,}
+\DoxyCodeLine{44                             uint precission\_qty);}
+\DoxyCodeLine{45     \textcolor{keyword}{explicit} \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{46 \};}
+\DoxyCodeLine{47 }
+\DoxyCodeLine{48 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} \{}
+\DoxyCodeLine{49     MarketUpdateType type      = MarketUpdateType::DEFAULT;}
+\DoxyCodeLine{50 }
+\DoxyCodeLine{51     \textcolor{comment}{//Common::TickerId ticker\_id = Common::TickerId\_INVALID;}}
+\DoxyCodeLine{52     std::string ticker;}
+\DoxyCodeLine{53     Common::Side side          = Common::Side::INVALID;}
+\DoxyCodeLine{54     \textcolor{keywordtype}{double} price               = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{55     \textcolor{keywordtype}{double} qty                 = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{56 }
+\DoxyCodeLine{57     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{58         \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{59             \textcolor{stringliteral}{"{}MEMarketUpdateDouble[ticker:\{\} type:\{\} side:\{\} qty:\{\} price:\{\}]"{}},}
+\DoxyCodeLine{60             ticker, marketUpdateTypeToString(type),}
+\DoxyCodeLine{61             sideToString(side), qty, price);}
+\DoxyCodeLine{62     \};}
+\DoxyCodeLine{63     \textcolor{keyword}{explicit} \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}}*, uint precission\_price,}
+\DoxyCodeLine{64                                   uint precission\_qty);}
+\DoxyCodeLine{65     \textcolor{keyword}{explicit} \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{66 \};}
+\DoxyCodeLine{67 }
+\DoxyCodeLine{68 \textcolor{keyword}{using }EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdateDouble>;}
+\DoxyCodeLine{69 }
+\DoxyCodeLine{70 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1BookSnapshotElem}{BookSnapshotElem}} \{}
+\DoxyCodeLine{71     \textcolor{keywordtype}{double} price = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{72     \textcolor{keywordtype}{double} qty   = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{73     \mbox{\hyperlink{structExchange_1_1BookSnapshotElem}{BookSnapshotElem}}(\textcolor{keywordtype}{double} \_price, \textcolor{keywordtype}{double} \_qty) : price(\_price), qty(\_qty)\{\};}
+\DoxyCodeLine{74     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{75         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}BookSnapshotElem[price:\{\} qty:\{\}]"{}}, price, qty);}
+\DoxyCodeLine{76     \};}
+\DoxyCodeLine{77 \};}
+\DoxyCodeLine{78 }
+\DoxyCodeLine{79 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1BookSnapshot}{BookSnapshot}} \{}
+\DoxyCodeLine{80     std::string ticker;}
+\DoxyCodeLine{81     std::list<BookSnapshotElem> bids;}
+\DoxyCodeLine{82     std::list<BookSnapshotElem> asks;}
+\DoxyCodeLine{83     uint64\_t lastUpdateId = std::numeric\_limits<uint64\_t>::max();}
+\DoxyCodeLine{84     \textcolor{keywordtype}{void} AddToQueue(EventLFQueue\& queue) \{}
+\DoxyCodeLine{85         std::vector<MEMarketUpdateDouble> bulk;}
+\DoxyCodeLine{86         bulk.resize(bids.size());}
+\DoxyCodeLine{87         \textcolor{keywordtype}{int} i = 0;}
+\DoxyCodeLine{88         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& bid : bids) \{}
+\DoxyCodeLine{89             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
+\DoxyCodeLine{90             \textcolor{keyword}{event}.ticker = ticker;}
+\DoxyCodeLine{91             \textcolor{keyword}{event}.side  = Common::Side::SELL;}
+\DoxyCodeLine{92             \textcolor{keyword}{event}.price = bid.price;}
+\DoxyCodeLine{93             \textcolor{keyword}{event}.qty   = bid.qty;}
+\DoxyCodeLine{94             bulk[i] = event;}
+\DoxyCodeLine{95             i++;}
+\DoxyCodeLine{96         \}}
+\DoxyCodeLine{97         \textcolor{keywordtype}{bool} status = \textcolor{keyword}{false};}
+\DoxyCodeLine{98         \textcolor{keywordflow}{while}(!status) status = queue.try\_enqueue\_bulk(\&bulk[0], bids.size());}
+\DoxyCodeLine{99         }
+\DoxyCodeLine{100         bulk.resize(asks.size());}
+\DoxyCodeLine{101         i = 0;}
+\DoxyCodeLine{102         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& ask : asks) \{}
+\DoxyCodeLine{103             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
+\DoxyCodeLine{104             \textcolor{keyword}{event}.ticker = ticker;}
+\DoxyCodeLine{105             \textcolor{keyword}{event}.side  = Common::Side::BUY;}
+\DoxyCodeLine{106             \textcolor{keyword}{event}.price = ask.price;}
+\DoxyCodeLine{107             \textcolor{keyword}{event}.qty   = ask.qty;}
+\DoxyCodeLine{108             bulk[i] = event;}
+\DoxyCodeLine{109             i++;}
+\DoxyCodeLine{110         \}}
+\DoxyCodeLine{111         status = \textcolor{keyword}{false};}
+\DoxyCodeLine{112         \textcolor{keywordflow}{while}(!status) status = queue.try\_enqueue\_bulk(\&bulk[0], asks.size());}
+\DoxyCodeLine{113     \}}
+\DoxyCodeLine{114     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{115         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}BookSnapshot[lastUpdateId:\{\}]"{}}, lastUpdateId);}
+\DoxyCodeLine{116     \};}
+\DoxyCodeLine{117 \};}
+\DoxyCodeLine{118 }
+\DoxyCodeLine{119 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1BookDiffSnapshot}{BookDiffSnapshot}} \{}
+\DoxyCodeLine{120     std::list<BookSnapshotElem> bids;}
+\DoxyCodeLine{121     std::list<BookSnapshotElem> asks;}
+\DoxyCodeLine{122     uint64\_t first\_id = std::numeric\_limits<uint64\_t>::max();}
+\DoxyCodeLine{123     uint64\_t last\_id  = std::numeric\_limits<uint64\_t>::max();}
+\DoxyCodeLine{124     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{125         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}BookDiffSnapshot[first\_id:\{\} last\_id:\{\}]"{}}, first\_id,}
+\DoxyCodeLine{126                            last\_id);}
+\DoxyCodeLine{127     \};}
+\DoxyCodeLine{128     \textcolor{keywordtype}{void} AddToQueue(EventLFQueue\& queue) \{}
+\DoxyCodeLine{129         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& bid : bids) \{}
+\DoxyCodeLine{130             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
+\DoxyCodeLine{131             \textcolor{keyword}{event}.side  = Common::Side::SELL;}
+\DoxyCodeLine{132             \textcolor{keyword}{event}.price = bid.price;}
+\DoxyCodeLine{133             \textcolor{keyword}{event}.qty   = bid.qty;}
+\DoxyCodeLine{134             queue.enqueue(event);}
+\DoxyCodeLine{135         \}}
+\DoxyCodeLine{136         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& ask : asks) \{}
+\DoxyCodeLine{137             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
+\DoxyCodeLine{138             \textcolor{keyword}{event}.side  = Common::Side::BUY;}
+\DoxyCodeLine{139             \textcolor{keyword}{event}.price = ask.price;}
+\DoxyCodeLine{140             \textcolor{keyword}{event}.qty   = ask.qty;}
+\DoxyCodeLine{141             queue.enqueue(event);}
+\DoxyCodeLine{142         \}}
+\DoxyCodeLine{143     \}}
+\DoxyCodeLine{144 \};}
+\DoxyCodeLine{145 }
+\DoxyCodeLine{146 \textcolor{keyword}{using }BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;}
+\DoxyCodeLine{147 }
+\DoxyCodeLine{148 \};  \textcolor{comment}{// namespace Exchange}}
+\DoxyCodeLine{149 }
+\DoxyCodeLine{150 \textcolor{comment}{// template <> struct fmt::formatter<Exchange::BookSnapshotElem>:}}
+\DoxyCodeLine{151 \textcolor{comment}{// formatter<std::string> \{}}
+\DoxyCodeLine{152 \textcolor{comment}{//   // parse is inherited from formatter<string\_view>.}}
+\DoxyCodeLine{153 }
+\DoxyCodeLine{154 \textcolor{comment}{//   auto format(const Exchange::BookSnapshotElem\& c, format\_context\& ctx)}}
+\DoxyCodeLine{155 \textcolor{comment}{//   const;}}
+\DoxyCodeLine{156 \textcolor{comment}{// \};}}
+\DoxyCodeLine{157 }
+\DoxyCodeLine{158 \textcolor{keyword}{template} <>}
+\DoxyCodeLine{159 \textcolor{keyword}{class }fmt::formatter<Exchange::BookSnapshotElem> \{}
+\DoxyCodeLine{160   \textcolor{keyword}{public}:}
+\DoxyCodeLine{161     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} parse(format\_parse\_context\& ctx) \{ \textcolor{keywordflow}{return} ctx.begin(); \}}
+\DoxyCodeLine{162     \textcolor{keyword}{template} <\textcolor{keyword}{typename} Context>}
+\DoxyCodeLine{163     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} format(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1BookSnapshotElem}{Exchange::BookSnapshotElem}}\& foo,}
+\DoxyCodeLine{164                           Context\& ctx)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{165         \textcolor{keywordflow}{return} fmt::format\_to(ctx.out(), \textcolor{stringliteral}{"{}BookSnapshotElem[price:\{\} qty:\{\}]"{}},}
+\DoxyCodeLine{166                               foo.price, foo.qty);}
+\DoxyCodeLine{167     \}}
+\DoxyCodeLine{168 \};}
+\DoxyCodeLine{169 }
+\DoxyCodeLine{170 \textcolor{keyword}{template} <>}
+\DoxyCodeLine{171 \textcolor{keyword}{class }fmt::formatter<Exchange::BookSnapshot> \{}
+\DoxyCodeLine{172   \textcolor{keyword}{public}:}
+\DoxyCodeLine{173     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} parse(format\_parse\_context\& ctx) \{ \textcolor{keywordflow}{return} ctx.begin(); \}}
+\DoxyCodeLine{174     \textcolor{keyword}{template} <\textcolor{keyword}{typename} Context>}
+\DoxyCodeLine{175     \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} format(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1BookSnapshot}{Exchange::BookSnapshot}}\& foo,}
+\DoxyCodeLine{176                           Context\& ctx)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{177         \textcolor{keywordflow}{return} fmt::format\_to(ctx.out(),}
+\DoxyCodeLine{178                               \textcolor{stringliteral}{"{}BookSnapshot[lastUpdateId:\{\} bids\_length:\{\} "{}}}
+\DoxyCodeLine{179                               \textcolor{stringliteral}{"{}asks\_length:\{\} bids:\{\} asks:\{\}]"{}},}
+\DoxyCodeLine{180                               foo.lastUpdateId, foo.bids.size(),}
+\DoxyCodeLine{181                               foo.asks.size(), fmt::join(foo.bids, \textcolor{stringliteral}{"{};"{}}),}
+\DoxyCodeLine{182                               fmt::join(foo.asks, \textcolor{stringliteral}{"{};"{}}));}
+\DoxyCodeLine{183     \}}
+\DoxyCodeLine{184 \};}
+
+\end{DoxyCode}

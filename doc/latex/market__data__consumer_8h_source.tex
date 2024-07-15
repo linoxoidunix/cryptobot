@@ -1,0 +1,78 @@
+\hypertarget{market__data__consumer_8h_source}{}\doxysection{market\+\_\+data\+\_\+consumer.\+h}
+\label{market__data__consumer_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/market\_data\_consumer.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/market\_data\_consumer.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{comment}{// \#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{comment}{// \#include <functional>}}
+\DoxyCodeLine{4 \textcolor{comment}{// \#include <map>}}
+\DoxyCodeLine{5 }
+\DoxyCodeLine{6 \textcolor{comment}{// \#include "{}aot/common/thread\_utils.h"{}}}
+\DoxyCodeLine{7 \textcolor{comment}{// \#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{8 \textcolor{comment}{// \#include "{}moodycamel/concurrentqueue.h"{}}}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{comment}{// \#include "{}exchange/market\_data/market\_update.h"{}}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{comment}{// namespace Trading \{}}
+\DoxyCodeLine{13 \textcolor{comment}{//   class MarketDataConsumer \{}}
+\DoxyCodeLine{14 \textcolor{comment}{//   public:}}
+\DoxyCodeLine{15 \textcolor{comment}{//     MarketDataConsumer(Common::ClientId client\_id, Exchange::MEMarketUpdateLFQueue *market\_updates, const std::string \&iface,}}
+\DoxyCodeLine{16 \textcolor{comment}{//                        const std::string \&snapshot\_ip, int snapshot\_port,}}
+\DoxyCodeLine{17 \textcolor{comment}{//                        const std::string \&incremental\_ip, int incremental\_port);}}
+\DoxyCodeLine{18 }
+\DoxyCodeLine{19 \textcolor{comment}{//     \string~MarketDataConsumer() \{}}
+\DoxyCodeLine{20 \textcolor{comment}{//       stop();}}
+\DoxyCodeLine{21 }
+\DoxyCodeLine{22 \textcolor{comment}{//       using namespace std::literals::chrono\_literals;}}
+\DoxyCodeLine{23 \textcolor{comment}{//       std::this\_thread::sleep\_for(5s);}}
+\DoxyCodeLine{24 \textcolor{comment}{//     \}}}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26 \textcolor{comment}{//     auto start() \{}}
+\DoxyCodeLine{27 \textcolor{comment}{//       run\_ = true;}}
+\DoxyCodeLine{28 \textcolor{comment}{//       ASSERT(Common::createAndStartThread(-\/1, "{}Trading/MarketDataConsumer"{}, [this]() \{ run(); \}) != nullptr, "{}Failed to start MarketData thread."{});}}
+\DoxyCodeLine{29 \textcolor{comment}{//     \}}}
+\DoxyCodeLine{30 }
+\DoxyCodeLine{31 \textcolor{comment}{//     auto stop() -\/> void \{}}
+\DoxyCodeLine{32 \textcolor{comment}{//       run\_ = false;}}
+\DoxyCodeLine{33 \textcolor{comment}{//     \}}}
+\DoxyCodeLine{34 }
+\DoxyCodeLine{35 \textcolor{comment}{//     // Deleted default, copy \& move constructors and assignment-\/operators.}}
+\DoxyCodeLine{36 \textcolor{comment}{//     MarketDataConsumer() = delete;}}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{38 \textcolor{comment}{//     MarketDataConsumer(const MarketDataConsumer \&) = delete;}}
+\DoxyCodeLine{39 }
+\DoxyCodeLine{40 \textcolor{comment}{//     MarketDataConsumer(const MarketDataConsumer \&\&) = delete;}}
+\DoxyCodeLine{41 }
+\DoxyCodeLine{42 \textcolor{comment}{//     MarketDataConsumer \&operator=(const MarketDataConsumer \&) = delete;}}
+\DoxyCodeLine{43 }
+\DoxyCodeLine{44 \textcolor{comment}{//     MarketDataConsumer \&operator=(const MarketDataConsumer \&\&) = delete;}}
+\DoxyCodeLine{45 }
+\DoxyCodeLine{46 \textcolor{comment}{//   private:}}
+\DoxyCodeLine{47 \textcolor{comment}{//     size\_t next\_exp\_inc\_seq\_num\_ = 1;}}
+\DoxyCodeLine{48 \textcolor{comment}{//     Exchange::MEMarketUpdateLFQueue *incoming\_md\_updates\_ = nullptr;}}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{50 \textcolor{comment}{//     volatile bool run\_ = false;}}
+\DoxyCodeLine{51 }
+\DoxyCodeLine{52 \textcolor{comment}{//     std::string time\_str\_;}}
+\DoxyCodeLine{53 \textcolor{comment}{//     Logger logger\_;}}
+\DoxyCodeLine{54 \textcolor{comment}{//     Common::McastSocket incremental\_mcast\_socket\_, snapshot\_mcast\_socket\_;}}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56 \textcolor{comment}{//     bool in\_recovery\_ = false;}}
+\DoxyCodeLine{57 \textcolor{comment}{//     const std::string iface\_, snapshot\_ip\_;}}
+\DoxyCodeLine{58 \textcolor{comment}{//     const int snapshot\_port\_;}}
+\DoxyCodeLine{59 \textcolor{comment}{//     typedef std::map<size\_t, Exchange::MEMarketUpdate> QueuedMarketUpdates;}}
+\DoxyCodeLine{60 \textcolor{comment}{//     QueuedMarketUpdates snapshot\_queued\_msgs\_, incremental\_queued\_msgs\_;}}
+\DoxyCodeLine{61 }
+\DoxyCodeLine{62 \textcolor{comment}{//   private:}}
+\DoxyCodeLine{63 \textcolor{comment}{//     auto run() noexcept -\/> void;}}
+\DoxyCodeLine{64 }
+\DoxyCodeLine{65 \textcolor{comment}{//     auto recvCallback(McastSocket *socket) noexcept -\/> void;}}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{67 \textcolor{comment}{//     auto queueMessage(bool is\_snapshot, const Exchange::MDPMarketUpdate *request);}}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69 \textcolor{comment}{//     auto startSnapshotSync() -\/> void;}}
+\DoxyCodeLine{70 \textcolor{comment}{//     auto checkSnapshotSync() -\/> void;}}
+\DoxyCodeLine{71 \textcolor{comment}{//   \};}}
+\DoxyCodeLine{72 \textcolor{comment}{// \}}}
+
+\end{DoxyCode}

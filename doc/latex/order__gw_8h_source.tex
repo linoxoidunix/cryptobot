@@ -1,0 +1,73 @@
+\hypertarget{order__gw_8h_source}{}\doxysection{order\+\_\+gw.\+h}
+\label{order__gw_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/order\_gw/order\_gw.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/order\_gw/order\_gw.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{4 }
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__request_8h}{aot/client\_request.h}}"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/common/thread\_utils.h"{}}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/common/time\_utils.h"{}}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{keyword}{namespace }inner \{}
+\DoxyCodeLine{12 \textcolor{keyword}{class }OrderNewI;}
+\DoxyCodeLine{13 \textcolor{keyword}{class }CancelOrderI;}
+\DoxyCodeLine{14 \};}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{17 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \{}
+\DoxyCodeLine{18   \textcolor{keyword}{public}:}
+\DoxyCodeLine{19     \mbox{\hyperlink{classTrading_1_1OrderGateway_a5058dac1eb5d418348ca281778f65691}{OrderGateway}}(\mbox{\hyperlink{classinner_1_1OrderNewI}{inner::OrderNewI}} *executor\_new\_orders,}
+\DoxyCodeLine{20                  \mbox{\hyperlink{classinner_1_1CancelOrderI}{inner::CancelOrderI}} *executor\_canceled\_orders,}
+\DoxyCodeLine{21                  \mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{Exchange::RequestNewLimitOrderLFQueue}} *requests\_new\_order,}
+\DoxyCodeLine{22                  Exchange::RequestCancelOrderLFQueue *requests\_cancel\_order,}
+\DoxyCodeLine{23                  \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *client\_responses);}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{25     \mbox{\hyperlink{classTrading_1_1OrderGateway}{\string~OrderGateway}}() \{}
+\DoxyCodeLine{26         stop();}
+\DoxyCodeLine{27 }
+\DoxyCodeLine{28         \textcolor{keyword}{using namespace }std::literals::chrono\_literals;}
+\DoxyCodeLine{29         std::this\_thread::sleep\_for(1s);}
+\DoxyCodeLine{30     \}}
+\DoxyCodeLine{31 }
+\DoxyCodeLine{33     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1OrderGateway_a312c0194f94eb2a1dcbff91c9ca234f3}{start}}() \{}
+\DoxyCodeLine{34         run\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{35         ASSERT(common::createAndStartThread(-\/1, \textcolor{stringliteral}{"{}Trading/OrderGateway"{}},}
+\DoxyCodeLine{36                                             [\textcolor{keyword}{this}]() \{ Run(); \}) != \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{37                \textcolor{stringliteral}{"{}Failed to start OrderGateway thread."{}});}
+\DoxyCodeLine{38     \}}
+\DoxyCodeLine{39     common::Delta GetDownTimeInS() \{ \textcolor{keywordflow}{return} time\_manager\_.GetDeltaInS(); \}}
+\DoxyCodeLine{40     \textcolor{keyword}{auto} stop() -\/> \textcolor{keywordtype}{void} \{ run\_ = \textcolor{keyword}{false}; \}}
+\DoxyCodeLine{41 }
+\DoxyCodeLine{43     \mbox{\hyperlink{classTrading_1_1OrderGateway_a5058dac1eb5d418348ca281778f65691}{OrderGateway}}()                                 = \textcolor{keyword}{delete};}
+\DoxyCodeLine{44 }
+\DoxyCodeLine{45     \mbox{\hyperlink{classTrading_1_1OrderGateway_a5058dac1eb5d418348ca281778f65691}{OrderGateway}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{46 }
+\DoxyCodeLine{47     \mbox{\hyperlink{classTrading_1_1OrderGateway_a5058dac1eb5d418348ca281778f65691}{OrderGateway}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{49     \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{50 }
+\DoxyCodeLine{51     \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderGateway}{OrderGateway}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{52 }
+\DoxyCodeLine{53   \textcolor{keyword}{private}:}
+\DoxyCodeLine{54     \mbox{\hyperlink{classinner_1_1OrderNewI}{inner::OrderNewI}} *executor\_new\_orders\_;}
+\DoxyCodeLine{55     \mbox{\hyperlink{classinner_1_1CancelOrderI}{inner::CancelOrderI}} *executor\_canceled\_orders\_;}
+\DoxyCodeLine{56 }
+\DoxyCodeLine{59     \mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{Exchange::RequestNewLimitOrderLFQueue}} *requests\_new\_order\_  = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{60     Exchange::RequestCancelOrderLFQueue *requests\_cancel\_order\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{61     \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *incoming\_responses\_        = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{62 }
+\DoxyCodeLine{63     \textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} run\_                                          = \textcolor{keyword}{false};}
+\DoxyCodeLine{64 }
+\DoxyCodeLine{65   \textcolor{keyword}{private}:}
+\DoxyCodeLine{68     \textcolor{keyword}{auto} Run() noexcept -\/> \textcolor{keywordtype}{void};}
+\DoxyCodeLine{69     common::TimeManager time\_manager\_;}
+\DoxyCodeLine{70 }
+\DoxyCodeLine{74     auto RecvCallback() noexcept -\/> \textcolor{keywordtype}{void} \{\};}
+\DoxyCodeLine{75 \};}
+\DoxyCodeLine{76 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

@@ -1,0 +1,7 @@
+<map id="SymbolI" name="SymbolI">
+<area shape="rect" id="node1" title="Symbol e.g BTCUSDT. May be on different exchane that symbol may be have different separate symbol." alt="" coords="286,5,361,32"/>
+<area shape="rect" id="node2" href="$classSymbolLowerCase.html" title=" " alt="" coords="5,80,148,107"/>
+<area shape="rect" id="node3" href="$classSymbolUpperCase.html" title=" " alt="" coords="172,80,315,107"/>
+<area shape="rect" id="node4" href="$classbinance_1_1Symbol.html" title=" " alt="" coords="339,80,470,107"/>
+<area shape="rect" id="node5" href="$classbybit_1_1Symbol.html" title=" " alt="" coords="494,80,606,107"/>
+</map>

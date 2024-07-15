@@ -1,0 +1,279 @@
+\hypertarget{types_8h_source}{}\doxysection{types.\+h}
+\label{types_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/types.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/types.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <array>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <cmath>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <cstdint>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <limits>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <sstream>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/third\_party/emhash/hash\_table7.hpp"{}}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }Common \{}
+\DoxyCodeLine{15 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_TICKERS        = 8;}
+\DoxyCodeLine{16 }
+\DoxyCodeLine{17 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_CLIENT\_UPDATES = 256 * 1024;}
+\DoxyCodeLine{18 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_MARKET\_UPDATES = 256 * 1024;}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{20 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_NUM\_CLIENTS    = 256;}
+\DoxyCodeLine{21 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_ORDER\_IDS      = 1024 * 1024;}
+\DoxyCodeLine{22 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_ORDERS\_AT\_PRICE =}
+\DoxyCodeLine{23     5000 * 2;  \textcolor{comment}{// for binance max depth for bid is 5000.//for binance max depth}}
+\DoxyCodeLine{24                \textcolor{comment}{// for ask is 5000.}}
+\DoxyCodeLine{25 }
+\DoxyCodeLine{26 \textcolor{keyword}{typedef} uint64\_t OrderId;}
+\DoxyCodeLine{27 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} OrderId\_INVALID       = std::numeric\_limits<OrderId>::max();}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{33 \textcolor{keyword}{using }PriceD                         = double;}
+\DoxyCodeLine{38 \textcolor{keyword}{using }QtyD                           = double;}
+\DoxyCodeLine{43 \textcolor{keyword}{using }TickerS = std::string;}
+\DoxyCodeLine{44 }
+\DoxyCodeLine{45 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} kPRICE\_DOUBLE\_INVALID = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{46 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} kQTY\_DOUBLE\_INVALID   = std::numeric\_limits<double>::max();}
+\DoxyCodeLine{47 }
+\DoxyCodeLine{48 \textcolor{keyword}{inline} \textcolor{keyword}{auto} orderIdToString(OrderId order\_id) -\/> std::string \{}
+\DoxyCodeLine{49     \textcolor{keywordflow}{if} (UNLIKELY(order\_id == OrderId\_INVALID)) \{}
+\DoxyCodeLine{50         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{51     \}}
+\DoxyCodeLine{52 }
+\DoxyCodeLine{53     \textcolor{keywordflow}{return} std::to\_string(order\_id);}
+\DoxyCodeLine{54 \}}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56 \textcolor{keyword}{typedef} uint32\_t TickerId;}
+\DoxyCodeLine{57 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} TickerId\_INVALID = std::numeric\_limits<TickerId>::max();}
+\DoxyCodeLine{58 }
+\DoxyCodeLine{59 \textcolor{keyword}{inline} \textcolor{keyword}{auto} tickerIdToString(TickerId ticker\_id) -\/> std::string \{}
+\DoxyCodeLine{60     \textcolor{keywordflow}{if} (UNLIKELY(ticker\_id == TickerId\_INVALID)) \{}
+\DoxyCodeLine{61         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{62     \}}
+\DoxyCodeLine{63 }
+\DoxyCodeLine{64     \textcolor{keywordflow}{return} std::to\_string(ticker\_id);}
+\DoxyCodeLine{65 \}}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{67 \textcolor{keyword}{typedef} std::string TickerString;}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69 \textcolor{keyword}{typedef} uint32\_t ClientId;}
+\DoxyCodeLine{70 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} ClientId\_INVALID = std::numeric\_limits<ClientId>::max();}
+\DoxyCodeLine{71 }
+\DoxyCodeLine{72 \textcolor{keyword}{inline} \textcolor{keyword}{auto} clientIdToString(ClientId client\_id) -\/> std::string \{}
+\DoxyCodeLine{73     \textcolor{keywordflow}{if} (UNLIKELY(client\_id == ClientId\_INVALID)) \{}
+\DoxyCodeLine{74         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{75     \}}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{77     \textcolor{keywordflow}{return} std::to\_string(client\_id);}
+\DoxyCodeLine{78 \}}
+\DoxyCodeLine{79 }
+\DoxyCodeLine{80 \textcolor{keyword}{using }Price                  = uint64\_t;}
+\DoxyCodeLine{81 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} Price\_INVALID = std::numeric\_limits<Price>::max();}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{83 \textcolor{keyword}{inline} \textcolor{keyword}{auto} priceToString(Price price) -\/> std::string \{}
+\DoxyCodeLine{84     \textcolor{keywordflow}{if} (UNLIKELY(price == Price\_INVALID)) \{}
+\DoxyCodeLine{85         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{86     \}}
+\DoxyCodeLine{87 }
+\DoxyCodeLine{88     \textcolor{keywordflow}{return} std::to\_string(price);}
+\DoxyCodeLine{89 \}}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91 \textcolor{keyword}{using }Qty                  = uint64\_t;}
+\DoxyCodeLine{92 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} Qty\_INVALID = std::numeric\_limits<Qty>::max();}
+\DoxyCodeLine{93 }
+\DoxyCodeLine{94 \textcolor{keyword}{inline} \textcolor{keyword}{auto} qtyToString(Qty qty) -\/> std::string \{}
+\DoxyCodeLine{95     \textcolor{keywordflow}{if} (UNLIKELY(qty == Qty\_INVALID)) \{}
+\DoxyCodeLine{96         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{97     \}}
+\DoxyCodeLine{98 }
+\DoxyCodeLine{99     \textcolor{keywordflow}{return} std::to\_string(qty);}
+\DoxyCodeLine{100 \}}
+\DoxyCodeLine{101 }
+\DoxyCodeLine{102 \textcolor{keyword}{using }Priority                  = uint64\_t;}
+\DoxyCodeLine{103 \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} Priority\_INVALID = std::numeric\_limits<Priority>::max();}
+\DoxyCodeLine{104 }
+\DoxyCodeLine{105 \textcolor{keyword}{inline} \textcolor{keyword}{auto} priorityToString(Priority priority) -\/> std::string \{}
+\DoxyCodeLine{106     \textcolor{keywordflow}{if} (UNLIKELY(priority == Priority\_INVALID)) \{}
+\DoxyCodeLine{107         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{108     \}}
+\DoxyCodeLine{109 }
+\DoxyCodeLine{110     \textcolor{keywordflow}{return} std::to\_string(priority);}
+\DoxyCodeLine{111 \}}
+\DoxyCodeLine{112 }
+\DoxyCodeLine{113 \textcolor{keyword}{enum class} Side : int8\_t \{ INVALID = 0, BUY = 1, SELL = -\/1, MAX = 2 \};}
+\DoxyCodeLine{114 }
+\DoxyCodeLine{115 \textcolor{keyword}{enum class} TradeAction \{ kEnterLong, kExitLong, kEnterShort, kExitShort, kNope\};}
+\DoxyCodeLine{116 }
+\DoxyCodeLine{117 \textcolor{keyword}{inline} \textcolor{keyword}{auto} sideToString(Side side) -\/> std::string \{}
+\DoxyCodeLine{118     \textcolor{keywordflow}{switch} (side) \{}
+\DoxyCodeLine{119         \textcolor{keywordflow}{case} Side::BUY:}
+\DoxyCodeLine{120             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}BUY"{}};}
+\DoxyCodeLine{121         \textcolor{keywordflow}{case} Side::SELL:}
+\DoxyCodeLine{122             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}SELL"{}};}
+\DoxyCodeLine{123         \textcolor{keywordflow}{case} Side::INVALID:}
+\DoxyCodeLine{124             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{125         \textcolor{keywordflow}{case} Side::MAX:}
+\DoxyCodeLine{126             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}MAX"{}};}
+\DoxyCodeLine{127     \}}
+\DoxyCodeLine{128 }
+\DoxyCodeLine{129     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{130 \}}
+\DoxyCodeLine{131 }
+\DoxyCodeLine{132 \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} sideToIndex(Side side) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{133     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(side) + 1;}
+\DoxyCodeLine{134 \}}
+\DoxyCodeLine{135 }
+\DoxyCodeLine{136 \textcolor{keyword}{inline} \textcolor{keyword}{constexpr} \textcolor{keyword}{auto} sideToValue(Side side) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{137     \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(side);}
+\DoxyCodeLine{138 \}}
+\DoxyCodeLine{139 }
+\DoxyCodeLine{140 \textcolor{keyword}{enum class} AlgoType : int8\_t \{}
+\DoxyCodeLine{141     INVALID = 0,}
+\DoxyCodeLine{142     RANDOM  = 1,}
+\DoxyCodeLine{143     MAKER   = 2,}
+\DoxyCodeLine{144     TAKER   = 3,}
+\DoxyCodeLine{145     MAX     = 4}
+\DoxyCodeLine{146 \};}
+\DoxyCodeLine{147 }
+\DoxyCodeLine{148 \textcolor{keyword}{inline} \textcolor{keyword}{auto} algoTypeToString(AlgoType type) -\/> std::string \{}
+\DoxyCodeLine{149     \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{150         \textcolor{keywordflow}{case} AlgoType::RANDOM:}
+\DoxyCodeLine{151             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}RANDOM"{}};}
+\DoxyCodeLine{152         \textcolor{keywordflow}{case} AlgoType::MAKER:}
+\DoxyCodeLine{153             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}MAKER"{}};}
+\DoxyCodeLine{154         \textcolor{keywordflow}{case} AlgoType::TAKER:}
+\DoxyCodeLine{155             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}TAKER"{}};}
+\DoxyCodeLine{156         \textcolor{keywordflow}{case} AlgoType::INVALID:}
+\DoxyCodeLine{157             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{158         \textcolor{keywordflow}{case} AlgoType::MAX:}
+\DoxyCodeLine{159             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}MAX"{}};}
+\DoxyCodeLine{160     \}}
+\DoxyCodeLine{161 }
+\DoxyCodeLine{162     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{163 \}}
+\DoxyCodeLine{164 }
+\DoxyCodeLine{165 \textcolor{keyword}{inline} \textcolor{keyword}{auto} stringToAlgoType(\textcolor{keyword}{const} std::string \&str) -\/> AlgoType \{}
+\DoxyCodeLine{166     \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(AlgoType::INVALID);}
+\DoxyCodeLine{167          i <= static\_cast<int>(AlgoType::MAX); ++i) \{}
+\DoxyCodeLine{168         \textcolor{keyword}{const} \textcolor{keyword}{auto} algo\_type = \textcolor{keyword}{static\_cast<}AlgoType\textcolor{keyword}{>}(i);}
+\DoxyCodeLine{169         \textcolor{keywordflow}{if} (algoTypeToString(algo\_type) == str) \textcolor{keywordflow}{return} algo\_type;}
+\DoxyCodeLine{170     \}}
+\DoxyCodeLine{171 }
+\DoxyCodeLine{172     \textcolor{keywordflow}{return} AlgoType::INVALID;}
+\DoxyCodeLine{173 \}}
+\DoxyCodeLine{174 }
+\DoxyCodeLine{175 \textcolor{keyword}{struct }\mbox{\hyperlink{structCommon_1_1RiskCfg}{RiskCfg}} \{}
+\DoxyCodeLine{176     Qty max\_order\_size\_ = 0;}
+\DoxyCodeLine{177     Qty max\_position\_   = 0;}
+\DoxyCodeLine{178     \textcolor{keywordtype}{double} max\_loss\_    = 0;}
+\DoxyCodeLine{179 }
+\DoxyCodeLine{180     \textcolor{keyword}{auto} toString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{181         std::stringstream ss;}
+\DoxyCodeLine{182 }
+\DoxyCodeLine{183         ss << \textcolor{stringliteral}{"{}RiskCfg\{"{}} << \textcolor{stringliteral}{"{}max-\/order-\/size:"{}} << qtyToString(max\_order\_size\_)}
+\DoxyCodeLine{184            << \textcolor{stringliteral}{"{} "{}} << \textcolor{stringliteral}{"{}max-\/position:"{}} << qtyToString(max\_position\_) << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{185            << \textcolor{stringliteral}{"{}max-\/loss:"{}} << max\_loss\_ << \textcolor{stringliteral}{"{}\}"{}};}
+\DoxyCodeLine{186 }
+\DoxyCodeLine{187         \textcolor{keywordflow}{return} ss.str();}
+\DoxyCodeLine{188     \}}
+\DoxyCodeLine{189 \};}
+\DoxyCodeLine{190 }
+\DoxyCodeLine{191 \textcolor{keyword}{struct }\mbox{\hyperlink{structCommon_1_1TradeEngineCfg}{TradeEngineCfg}} \{}
+\DoxyCodeLine{192     QtyD clip         = 0;}
+\DoxyCodeLine{193     \textcolor{keywordtype}{double} threshold = 0;}
+\DoxyCodeLine{194     \mbox{\hyperlink{structCommon_1_1RiskCfg}{RiskCfg}} risk\_cfg;}
+\DoxyCodeLine{195 }
+\DoxyCodeLine{196     \textcolor{keyword}{auto} toString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{197         std::stringstream ss;}
+\DoxyCodeLine{198         ss << \textcolor{stringliteral}{"{}TradeEngineCfg\{"{}} << \textcolor{stringliteral}{"{}clip:"{}} << qtyToString(clip) << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{199            << \textcolor{stringliteral}{"{}thresh:"{}} << threshold << \textcolor{stringliteral}{"{} "{}} << \textcolor{stringliteral}{"{}risk:"{}} << risk\_cfg.toString()}
+\DoxyCodeLine{200            << \textcolor{stringliteral}{"{}\}"{}};}
+\DoxyCodeLine{201 }
+\DoxyCodeLine{202         \textcolor{keywordflow}{return} ss.str();}
+\DoxyCodeLine{203     \}}
+\DoxyCodeLine{204 \};}
+\DoxyCodeLine{205 }
+\DoxyCodeLine{206 \textcolor{comment}{//using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME\_MAX\_TICKERS>;}}
+\DoxyCodeLine{207 \textcolor{keyword}{using }TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg>;}
+\DoxyCodeLine{208 }
+\DoxyCodeLine{209 \textcolor{keyword}{inline} uint32\_t Digits10(uint64\_t v) \{}
+\DoxyCodeLine{210     \textcolor{keywordflow}{return} 1 + (std::uint32\_t)(v >= 10) + (std::uint32\_t)(v >= 100) +}
+\DoxyCodeLine{211            (std::uint32\_t)(v >= 1000) + (std::uint32\_t)(v >= 10000) +}
+\DoxyCodeLine{212            (std::uint32\_t)(v >= 100000) + (std::uint32\_t)(v >= 1000000) +}
+\DoxyCodeLine{213            (std::uint32\_t)(v >= 10000000) + (std::uint32\_t)(v >= 100000000) +}
+\DoxyCodeLine{214            (std::uint32\_t)(v >= 1000000000) +}
+\DoxyCodeLine{215            (std::uint32\_t)(v >= 10000000000ull) +}
+\DoxyCodeLine{216            (std::uint32\_t)(v >= 100000000000ull) +}
+\DoxyCodeLine{217            (std::uint32\_t)(v >= 1000000000000ull) +}
+\DoxyCodeLine{218            (std::uint32\_t)(v >= 10000000000000ull) +}
+\DoxyCodeLine{219            (std::uint32\_t)(v >= 100000000000000ull) +}
+\DoxyCodeLine{220            (std::uint32\_t)(v >= 1000000000000000ull) +}
+\DoxyCodeLine{221            (std::uint32\_t)(v >= 10000000000000000ull) +}
+\DoxyCodeLine{222            (std::uint32\_t)(v >= 100000000000000000ull) +}
+\DoxyCodeLine{223            (std::uint32\_t)(v >= 1000000000000000000ull) +}
+\DoxyCodeLine{224            (std::uint32\_t)(v >= 10000000000000000000ull);}
+\DoxyCodeLine{225 \};}
+\DoxyCodeLine{226 }
+\DoxyCodeLine{227 \textcolor{keyword}{inline} uint32\_t LeengthFractionalPart(\textcolor{keywordtype}{double} v) \{}
+\DoxyCodeLine{228     \textcolor{keyword}{auto} v0  = v * 1;}
+\DoxyCodeLine{229     \textcolor{keyword}{auto} v1  = v * 10;}
+\DoxyCodeLine{230     \textcolor{keyword}{auto} v2  = v * 100;}
+\DoxyCodeLine{231     \textcolor{keyword}{auto} v3  = v * 1000;}
+\DoxyCodeLine{232     \textcolor{keyword}{auto} v4  = v * 10000;}
+\DoxyCodeLine{233     \textcolor{keyword}{auto} v5  = v * 100000;}
+\DoxyCodeLine{234     \textcolor{keyword}{auto} v6  = v * 1000000;}
+\DoxyCodeLine{235     \textcolor{keyword}{auto} v7  = v * 10000000;}
+\DoxyCodeLine{236     \textcolor{keyword}{auto} v8  = v * 100000000;}
+\DoxyCodeLine{237     \textcolor{keyword}{auto} v9  = v * 1000000000;}
+\DoxyCodeLine{238     \textcolor{keyword}{auto} v10 = v * 10000000000;}
+\DoxyCodeLine{239     \textcolor{keywordtype}{double} part;}
+\DoxyCodeLine{240     \textcolor{keyword}{auto} xx0 = (std::modf(v, \&part) == 0);}
+\DoxyCodeLine{241     \textcolor{keywordflow}{if} (xx0) [[likely]]}
+\DoxyCodeLine{242         \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{243     \textcolor{keyword}{auto} xx1 = (std::modf(v * 10, \&part) == 0);}
+\DoxyCodeLine{244     \textcolor{keywordflow}{if} (xx1) [[likely]]}
+\DoxyCodeLine{245         \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{246     \textcolor{keyword}{auto} xx2 = (std::modf(v * 100, \&part) == 0);}
+\DoxyCodeLine{247     \textcolor{keywordflow}{if} (xx2) [[likely]]}
+\DoxyCodeLine{248         \textcolor{keywordflow}{return} 2;}
+\DoxyCodeLine{249     \textcolor{keyword}{auto} xx3 = (std::modf(v * 1000, \&part) == 0);}
+\DoxyCodeLine{250     \textcolor{keywordflow}{if} (xx3) \textcolor{keywordflow}{return} 3;}
+\DoxyCodeLine{251     \textcolor{keyword}{auto} xx4 = (std::modf(v * 10000, \&part) == 0);}
+\DoxyCodeLine{252     \textcolor{keywordflow}{if} (xx4) \textcolor{keywordflow}{return} 4;}
+\DoxyCodeLine{253     \textcolor{keyword}{auto} xx5 = (std::modf(v * 100000, \&part) == 0);}
+\DoxyCodeLine{254     \textcolor{keywordflow}{if} (xx5) \textcolor{keywordflow}{return} 5;}
+\DoxyCodeLine{255     \textcolor{keyword}{auto} xx6 = (std::modf(v * 1000000, \&part) == 0);}
+\DoxyCodeLine{256     \textcolor{keywordflow}{if} (xx6) \textcolor{keywordflow}{return} 6;}
+\DoxyCodeLine{257     \textcolor{keyword}{auto} xx7 = (std::modf(v * 10000000, \&part) == 0);}
+\DoxyCodeLine{258     \textcolor{keywordflow}{if} (xx7) \textcolor{keywordflow}{return} 7;}
+\DoxyCodeLine{259     \textcolor{keyword}{auto} xx8 = (std::modf(v * 100000000, \&part) == 0);}
+\DoxyCodeLine{260     \textcolor{keywordflow}{if} (xx8) \textcolor{keywordflow}{return} 8;}
+\DoxyCodeLine{261     \textcolor{keyword}{auto} xx9 = (std::modf(v * 1000000000, \&part) == 0);}
+\DoxyCodeLine{262     \textcolor{keywordflow}{if} (xx9) \textcolor{keywordflow}{return} 9;}
+\DoxyCodeLine{263     \textcolor{keyword}{auto} xx10 = (std::modf(v * 10000000000, \&part) == 0);}
+\DoxyCodeLine{264     \textcolor{keywordflow}{if} (xx10) \textcolor{keywordflow}{return} 10;}
+\DoxyCodeLine{265     \textcolor{keyword}{auto} xx11 = (std::modf(v * 100000000000, \&part) == 0);}
+\DoxyCodeLine{266     \textcolor{keywordflow}{if} (xx11) \textcolor{keywordflow}{return} 11;}
+\DoxyCodeLine{267     \textcolor{keyword}{auto} xx12 = (std::modf(v * 1000000000000, \&part) == 0);}
+\DoxyCodeLine{268     \textcolor{keywordflow}{if} (xx12) \textcolor{keywordflow}{return} 12;}
+\DoxyCodeLine{269     \textcolor{keyword}{auto} xx13 = (std::modf(v * 10000000000000, \&part) == 0);}
+\DoxyCodeLine{270     \textcolor{keywordflow}{if} (xx13) \textcolor{keywordflow}{return} 13;}
+\DoxyCodeLine{271     \textcolor{keyword}{auto} xx14 = (std::modf(v * 100000000000000, \&part) == 0);}
+\DoxyCodeLine{272     \textcolor{keywordflow}{if} (xx14) \textcolor{keywordflow}{return} 14;}
+\DoxyCodeLine{273     \textcolor{keyword}{auto} xx15 = (std::modf(v * 1000000000000000, \&part) == 0);}
+\DoxyCodeLine{274     \textcolor{keywordflow}{if} (xx15) \textcolor{keywordflow}{return} 15;}
+\DoxyCodeLine{275     \textcolor{keyword}{auto} xx16 = (std::modf(v * 10000000000000000, \&part) == 0);}
+\DoxyCodeLine{276     \textcolor{keywordflow}{if} (xx16) \textcolor{keywordflow}{return} 16;}
+\DoxyCodeLine{277     \textcolor{keyword}{auto} xx17 = (std::modf(v * 100000000000000000, \&part) == 0);}
+\DoxyCodeLine{278     \textcolor{keywordflow}{if} (xx17) \textcolor{keywordflow}{return} 17;}
+\DoxyCodeLine{279     \textcolor{keyword}{auto} xx18 = (std::modf(v * 1000000000000000000, \&part) == 0);}
+\DoxyCodeLine{280     \textcolor{keywordflow}{if} (xx18) \textcolor{keywordflow}{return} 18;}
+\DoxyCodeLine{281     ASSERT(\textcolor{keyword}{false}, \textcolor{stringliteral}{"{}presiccion error"{}});}
+\DoxyCodeLine{282     loge(\textcolor{stringliteral}{"{}presiccion error"{}});}
+\DoxyCodeLine{283     \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{284 \};}
+\DoxyCodeLine{285 \}  \textcolor{comment}{// namespace Common}}
+
+\end{DoxyCode}

@@ -1,0 +1,7 @@
+<map id="https::ExchangeI" name="https::ExchangeI">
+<area shape="rect" id="node1" title=" " alt="" coords="5,81,136,108"/>
+<area shape="rect" id="node2" href="$classbinance_1_1mainnet_1_1HttpsExchange.html" title=" " alt="" coords="184,5,425,32"/>
+<area shape="rect" id="node3" href="$classbinance_1_1testnet_1_1HttpsExchange.html" title=" " alt="" coords="188,56,421,83"/>
+<area shape="rect" id="node4" href="$classbybit_1_1mainnet_1_1HttpsExchange.html" title=" " alt="" coords="193,107,416,133"/>
+<area shape="rect" id="node5" href="$classbybit_1_1testnet_1_1HttpsExchange.html" title=" " alt="" coords="197,157,412,184"/>
+</map>

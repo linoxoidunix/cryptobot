@@ -1,0 +1,5 @@
+<map id="Ticker" name="Ticker">
+<area shape="rect" id="node1" title=" " alt="" coords="64,95,125,121"/>
+<area shape="rect" id="node2" href="$classSymbolI.html" title="Symbol e.g BTCUSDT. May be on different exchane that symbol may be have different separate symbol." alt="" coords="5,5,80,32"/>
+<area shape="rect" id="node3" href="$structTickerInfo.html" title=" " alt="" coords="105,5,191,32"/>
+</map>

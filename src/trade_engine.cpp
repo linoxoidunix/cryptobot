@@ -90,6 +90,7 @@ auto Trading::TradeEngine::OnOrderResponse(
     if (client_response->type == Exchange::ClientResponseType::FILLED)
         [[unlikely]] {
         position_keeper_.AddFill(client_response);
+        strategy_.OnOrderResponse(client_response);
     }
 }
 

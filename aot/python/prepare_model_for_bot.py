@@ -155,7 +155,6 @@ class BaseStrategy:
         if(predicted_value > 0.01):
             return ksignals.enter_long
         if(predicted_value < -0.01):
-            print(ksignals.enter_short)
             return ksignals.enter_short
         if(predicted_value < 0):
             return ksignals.exit_long

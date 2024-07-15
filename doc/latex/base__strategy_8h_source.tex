@@ -1,0 +1,148 @@
+\hypertarget{base__strategy_8h_source}{}\doxysection{base\+\_\+strategy.\+h}
+\label{base__strategy_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/base\_strategy.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/base\_strategy.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}aot/strategy/market\_order\_book.h"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/strategy/order\_manager.h"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/wallet\_asset.h"{}}}
+\DoxyCodeLine{9 }
+\DoxyCodeLine{10 \textcolor{keyword}{namespace }base\_strategy \{}
+\DoxyCodeLine{11 \textcolor{keyword}{class }Strategy;}
+\DoxyCodeLine{12 \};}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{15 \textcolor{keyword}{class }TradeEngine;}
+\DoxyCodeLine{16 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \{}
+\DoxyCodeLine{17   \textcolor{keyword}{public}:}
+\DoxyCodeLine{18     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}{BaseStrategy}}(\mbox{\hyperlink{classbase__strategy_1_1Strategy}{base\_strategy::Strategy}} *strategy,}
+\DoxyCodeLine{19                           \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine,}
+\DoxyCodeLine{20                           \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} *order\_manager,}
+\DoxyCodeLine{21                           \textcolor{keyword}{const} TradeEngineCfgHashMap \&ticker\_cfg);}
+\DoxyCodeLine{22 }
+\DoxyCodeLine{27     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1BaseStrategy_a1983e2d468f1fbd77f63ba009979ab96}{OnOrderBookUpdate}}(\textcolor{keyword}{const} TickerS \&ticker\_id, PriceD price, Side side,}
+\DoxyCodeLine{28                            \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Trading::MarketOrderBookDouble}} *order\_book) \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{29         -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{30         \textcolor{keywordflow}{if} (!order\_book\_) [[unlikely]]}
+\DoxyCodeLine{31             order\_book\_ = order\_book;}
+\DoxyCodeLine{32     \}}
+\DoxyCodeLine{33 }
+\DoxyCodeLine{37     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1BaseStrategy_aebf8fdea52e42b5a601b5ee43d7d616a}{OnOrderResponse}}(}
+\DoxyCodeLine{38         \textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{39         order\_manager\_-\/>\mbox{\hyperlink{classTrading_1_1OrderManager_ad5b4cf5655980070d109620d612c0237}{OnOrderResponse}}(client\_response);}
+\DoxyCodeLine{40         wallet\_.Update(client\_response);}
+\DoxyCodeLine{41     \}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{47     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1BaseStrategy_aa9ed343e4cddca9f2ea6677e401b9132}{OnNewKLine}}(\textcolor{keyword}{const} \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} *new\_kline) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{50     \mbox{\hyperlink{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}{BaseStrategy}}()                                 = \textcolor{keyword}{delete};}
+\DoxyCodeLine{51 }
+\DoxyCodeLine{52     \mbox{\hyperlink{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}{BaseStrategy}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{53 }
+\DoxyCodeLine{54     \mbox{\hyperlink{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}{BaseStrategy}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56     \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{57 }
+\DoxyCodeLine{58     \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1BaseStrategy}{BaseStrategy}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{59 }
+\DoxyCodeLine{60   \textcolor{keyword}{private}:}
+\DoxyCodeLine{61     \mbox{\hyperlink{classbase__strategy_1_1Strategy}{base\_strategy::Strategy}} *strategy\_;}
+\DoxyCodeLine{62     \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine\_;}
+\DoxyCodeLine{63     \mbox{\hyperlink{classTrading_1_1OrderManager}{Trading::OrderManager}} *order\_manager\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{64     \textcolor{keyword}{const} TradeEngineCfgHashMap \&ticker\_cfg\_;}
+\DoxyCodeLine{65     \mbox{\hyperlink{classWallet}{Wallet}} wallet\_;}
+\DoxyCodeLine{66     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Trading::MarketOrderBookDouble}} *order\_book\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{67     std::vector<std::function<void(\textcolor{keyword}{const} TickerS \&ticker)>> actions\_;}
+\DoxyCodeLine{76     \textcolor{keyword}{auto} BuySomeAsset(\textcolor{keyword}{const} TickerS \&ticker\_id) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{77         \textcolor{keywordflow}{if} (!order\_book\_) [[unlikely]] \{}
+\DoxyCodeLine{78             logi(\textcolor{stringliteral}{"{}order\_book\_ ptr not updated in strategy"{}});}
+\DoxyCodeLine{79             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{80         \}}
+\DoxyCodeLine{81         \textcolor{keywordflow}{if} (!ticker\_cfg\_.count(ticker\_id)) [[unlikely]] \{}
+\DoxyCodeLine{82             logw(\textcolor{stringliteral}{"{}fail buy because tickercfg not contain \{\}"{}}, ticker\_id);}
+\DoxyCodeLine{83             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{84         \}}
+\DoxyCodeLine{85         \textcolor{keyword}{auto} buy\_price = order\_book\_-\/>getBBO()-\/>ask\_price;}
+\DoxyCodeLine{86         \textcolor{keywordflow}{if}(buy\_price == Common::kPRICE\_DOUBLE\_INVALID)[[unlikely]]}
+\DoxyCodeLine{87         \{}
+\DoxyCodeLine{88             logw(\textcolor{stringliteral}{"{}skip BuySomeAsset. BBO ask\_price=INVALID. please wait more time for update BBO"{}});}
+\DoxyCodeLine{89             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{90         \}}
+\DoxyCodeLine{91         \textcolor{keyword}{auto} qty = ticker\_cfg\_.at(ticker\_id).clip;}
+\DoxyCodeLine{92         logi(\textcolor{stringliteral}{"{}launch long buy action for ticker:\{\} price:\{\} qty:\{\}"{}}, ticker\_id,}
+\DoxyCodeLine{93              buy\_price, qty);}
+\DoxyCodeLine{94         order\_manager\_-\/>\mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{NewOrder}}(ticker\_id, buy\_price, Side::BUY, qty);}
+\DoxyCodeLine{95     \}}
+\DoxyCodeLine{103     \textcolor{keyword}{auto} SellAllAsset(\textcolor{keyword}{const} TickerS \&ticker\_id) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{104         logi(\textcolor{stringliteral}{"{}launch long sell action for ticker:\{\}"{}}, ticker\_id);}
+\DoxyCodeLine{105         \textcolor{keywordflow}{if} (!order\_book\_) [[unlikely]] \{}
+\DoxyCodeLine{106             logi(\textcolor{stringliteral}{"{}order\_book\_ ptr not updated in strategy"{}});}
+\DoxyCodeLine{107             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{108         \}}
+\DoxyCodeLine{109         \textcolor{keywordflow}{if} (\textcolor{keyword}{auto} number\_asset = wallet\_.SafetyGetNumberAsset(ticker\_id);}
+\DoxyCodeLine{110             number\_asset > 0) \{}
+\DoxyCodeLine{111             \textcolor{keyword}{auto} price = order\_book\_-\/>getBBO()-\/>bid\_price;}
+\DoxyCodeLine{112             order\_manager\_-\/>\mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{NewOrder}}(ticker\_id, price, Side::SELL,}
+\DoxyCodeLine{113                                      number\_asset);}
+\DoxyCodeLine{114         \} \textcolor{keywordflow}{else}}
+\DoxyCodeLine{115             logw(\textcolor{stringliteral}{"{}fail because number\_asset=\{\} <= 0"{}}, number\_asset);}
+\DoxyCodeLine{116     \};}
+\DoxyCodeLine{125     \textcolor{keyword}{auto} SellSomeAsset(\textcolor{keyword}{const} TickerS \&ticker\_id) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{126         \textcolor{keywordflow}{if} (!order\_book\_) [[unlikely]] \{}
+\DoxyCodeLine{127             logi(\textcolor{stringliteral}{"{}order\_book\_ ptr not updated in strategy"{}});}
+\DoxyCodeLine{128             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{129         \}}
+\DoxyCodeLine{130         \textcolor{keywordflow}{if} (!ticker\_cfg\_.count(ticker\_id)) [[unlikely]] \{}
+\DoxyCodeLine{131             logw(\textcolor{stringliteral}{"{}fail sell because tickercfg not contain \{\}"{}}, ticker\_id);}
+\DoxyCodeLine{132             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{133         \}}
+\DoxyCodeLine{134         \textcolor{keyword}{auto} sell\_price = order\_book\_-\/>getBBO()-\/>bid\_price;}
+\DoxyCodeLine{135         \textcolor{keywordflow}{if}(sell\_price == Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{136         \{}
+\DoxyCodeLine{137             logw(\textcolor{stringliteral}{"{}skip SellSomeAsset. BBO bid\_price=INVALID. please wait more time for update BBO"{}});}
+\DoxyCodeLine{138             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{139         \}}
+\DoxyCodeLine{140         \textcolor{keyword}{auto} qty = ticker\_cfg\_.at(ticker\_id).clip;}
+\DoxyCodeLine{141         logi(\textcolor{stringliteral}{"{}launch short sell action for ticker:\{\} price:\{\} qty:\{\}"{}},}
+\DoxyCodeLine{142              ticker\_id, sell\_price, qty);}
+\DoxyCodeLine{143         order\_manager\_-\/>\mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{NewOrder}}(ticker\_id, sell\_price, Side::SELL, qty);}
+\DoxyCodeLine{144     \};}
+\DoxyCodeLine{152     \textcolor{keyword}{auto} BuyAllAsset(\textcolor{keyword}{const} TickerS \&ticker\_id) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{153         logi(\textcolor{stringliteral}{"{}launch short buy action for ticker:\{\}"{}}, ticker\_id);}
+\DoxyCodeLine{154         \textcolor{keywordflow}{if} (!order\_book\_) [[unlikely]] \{}
+\DoxyCodeLine{155             logi(\textcolor{stringliteral}{"{}order\_book\_ ptr not updated in strategy"{}});}
+\DoxyCodeLine{156             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{157         \}}
+\DoxyCodeLine{158         \textcolor{keywordflow}{if} (\textcolor{keyword}{auto} number\_asset = wallet\_.SafetyGetNumberAsset(ticker\_id);}
+\DoxyCodeLine{159             number\_asset < 0) \{}
+\DoxyCodeLine{160             \textcolor{keyword}{auto} buy\_price = order\_book\_-\/>getBBO()-\/>ask\_price;}
+\DoxyCodeLine{161             order\_manager\_-\/>\mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{NewOrder}}(ticker\_id, buy\_price, Side::BUY,}
+\DoxyCodeLine{162                                      number\_asset);}
+\DoxyCodeLine{163         \} \textcolor{keywordflow}{else}}
+\DoxyCodeLine{164             logw(\textcolor{stringliteral}{"{}fail because number\_asset=\{\} >= 0"{}}, number\_asset);}
+\DoxyCodeLine{165     \};}
+\DoxyCodeLine{170     \textcolor{keywordtype}{void} InitActions() \{}
+\DoxyCodeLine{171         actions\_.resize((\textcolor{keywordtype}{int})TradeAction::kNope + 1);}
+\DoxyCodeLine{172         actions\_[(int)TradeAction::kEnterLong] = [\textcolor{keyword}{this}](\textcolor{keyword}{const} TickerS \&ticker) \{}
+\DoxyCodeLine{173             BuySomeAsset(ticker);}
+\DoxyCodeLine{174         \};}
+\DoxyCodeLine{175         actions\_[(int)TradeAction::kEnterShort] = [\textcolor{keyword}{this}](\textcolor{keyword}{const} TickerS \&ticker) \{}
+\DoxyCodeLine{176             SellSomeAsset(ticker);}
+\DoxyCodeLine{177         \};}
+\DoxyCodeLine{178         actions\_[(int)TradeAction::kExitLong] = [\textcolor{keyword}{this}](\textcolor{keyword}{const} TickerS \&ticker) \{}
+\DoxyCodeLine{179             SellAllAsset(ticker);}
+\DoxyCodeLine{180         \};}
+\DoxyCodeLine{181         actions\_[(int)TradeAction::kExitShort] = [\textcolor{keyword}{this}](\textcolor{keyword}{const} TickerS \&ticker) \{}
+\DoxyCodeLine{182             BuyAllAsset(ticker);}
+\DoxyCodeLine{183         \};}
+\DoxyCodeLine{184         actions\_[(int)TradeAction::kNope] = [\textcolor{keyword}{this}](\textcolor{keyword}{const} TickerS \&ticker) \{}
+\DoxyCodeLine{185         \};}
+\DoxyCodeLine{186     \};}
+\DoxyCodeLine{187 \};}
+\DoxyCodeLine{188 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

@@ -1,0 +1,79 @@
+\hypertarget{order__manager_8h_source}{}\doxysection{order\+\_\+manager.\+h}
+\label{order__manager_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/order\_manager.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/order\_manager.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}aot/strategy/om\_order.h"{}}}
+\DoxyCodeLine{7 \textcolor{comment}{// \#include "{}risk\_manager.h"{}}}
+\DoxyCodeLine{8 }
+\DoxyCodeLine{9 \textcolor{keyword}{using namespace }Common;}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{12 \textcolor{keyword}{class }TradeEngine;}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{19 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \{}
+\DoxyCodeLine{20   \textcolor{keyword}{public}:}
+\DoxyCodeLine{21     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}{OrderManager}}(}
+\DoxyCodeLine{22         \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine \textcolor{comment}{/*, RiskManager\& risk\_manager*/})}
+\DoxyCodeLine{23         : trade\_engine\_(trade\_engine) \textcolor{comment}{/*, risk\_manager\_(risk\_manager),*/} \{\}}
+\DoxyCodeLine{24 }
+\DoxyCodeLine{27     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1OrderManager_ad5b4cf5655980070d109620d612c0237}{OnOrderResponse}}(}
+\DoxyCodeLine{28         \textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{29         logd(\textcolor{stringliteral}{"{}\{\}"{}}, client\_response-\/>ToString());}
+\DoxyCodeLine{30         \textcolor{keyword}{auto} order = \&(ticker\_side\_order\_.at(client\_response-\/>ticker)}
+\DoxyCodeLine{31                            .at(sideToIndex(client\_response-\/>side)));}
+\DoxyCodeLine{32         \textcolor{keywordflow}{switch} (client\_response-\/>type) \{}
+\DoxyCodeLine{33             \textcolor{keywordflow}{case} Exchange::ClientResponseType::ACCEPTED: \{}
+\DoxyCodeLine{34                 order-\/>state = OMOrderState::LIVE;}
+\DoxyCodeLine{35             \} \textcolor{keywordflow}{break};}
+\DoxyCodeLine{36             \textcolor{keywordflow}{case} Exchange::ClientResponseType::CANCELED: \{}
+\DoxyCodeLine{37                 order-\/>state = OMOrderState::DEAD;}
+\DoxyCodeLine{38             \} \textcolor{keywordflow}{break};}
+\DoxyCodeLine{39             \textcolor{keywordflow}{case} Exchange::ClientResponseType::FILLED: \{}
+\DoxyCodeLine{40                 \textcolor{comment}{// if client\_response-\/>leaves\_qty != 0 order still live}}
+\DoxyCodeLine{41                 order-\/>qty = client\_response-\/>leaves\_qty;}
+\DoxyCodeLine{42                 \textcolor{keywordflow}{if} (order-\/>qty == 0) order-\/>state = OMOrderState::DEAD;}
+\DoxyCodeLine{43             \} \textcolor{keywordflow}{break};}
+\DoxyCodeLine{44             \textcolor{keywordflow}{case} Exchange::ClientResponseType::CANCEL\_REJECTED:}
+\DoxyCodeLine{45             \textcolor{keywordflow}{case} Exchange::ClientResponseType::INVALID: \{}
+\DoxyCodeLine{46             \} \textcolor{keywordflow}{break};}
+\DoxyCodeLine{47         \}}
+\DoxyCodeLine{48     \}}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{59     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1OrderManager_ad78a2ab641d7094acf5da007e78e6f07}{NewOrder}}(TickerS ticker\_id, PriceD price, Side side,}
+\DoxyCodeLine{60                   QtyD qty) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{61 }
+\DoxyCodeLine{68     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1OrderManager_a4af2c0457482f6c074c095220ec49fd6}{CancelOrder}}(TickerS ticker\_id, Side side) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{69 }
+\DoxyCodeLine{71     \mbox{\hyperlink{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}{OrderManager}}()                                 = \textcolor{keyword}{delete};}
+\DoxyCodeLine{72 }
+\DoxyCodeLine{73     \mbox{\hyperlink{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}{OrderManager}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{74 }
+\DoxyCodeLine{75     \mbox{\hyperlink{classTrading_1_1OrderManager_ac443d39e2b426cd83867a70781f8d541}{OrderManager}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{77     \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{78 }
+\DoxyCodeLine{79     \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1OrderManager}{OrderManager}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81   \textcolor{keyword}{private}:}
+\DoxyCodeLine{83     \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{84 }
+\DoxyCodeLine{86     \textcolor{comment}{// const RiskManager\& risk\_manager\_;}}
+\DoxyCodeLine{87 }
+\DoxyCodeLine{89     OMOrderTickerSideHashMap ticker\_side\_order\_;}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{92     Common::OrderId next\_order\_id\_ = 1;}
+\DoxyCodeLine{93 }
+\DoxyCodeLine{94     \mbox{\hyperlink{structTrading_1_1OMOrder}{Trading::OMOrder}} *GetOrder(TickerS ticker\_id, Side side) \{}
+\DoxyCodeLine{95         \textcolor{keywordflow}{if} (!ticker\_side\_order\_.count(ticker\_id)) [[unlikely]]}
+\DoxyCodeLine{96             ticker\_side\_order\_.insert(\{ticker\_id, \{\}\});}
+\DoxyCodeLine{97         \textcolor{keywordflow}{return} \&(ticker\_side\_order\_.at(ticker\_id).at(sideToIndex(side)));}
+\DoxyCodeLine{98     \};}
+\DoxyCodeLine{99 \};}
+\DoxyCodeLine{100 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

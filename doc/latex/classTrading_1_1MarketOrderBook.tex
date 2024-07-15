@@ -1,0 +1,43 @@
+\hypertarget{classTrading_1_1MarketOrderBook}{}\doxysection{Trading\+::Market\+Order\+Book Class Reference}
+\label{classTrading_1_1MarketOrderBook}\index{Trading::MarketOrderBook@{Trading::MarketOrderBook}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a426848b11f1a45b42b4678dc4ee64f5d}\label{classTrading_1_1MarketOrderBook_a426848b11f1a45b42b4678dc4ee64f5d}} 
+auto {\bfseries on\+Market\+Update} (const \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{Exchange\+::\+MEMarket\+Update}} $\ast$market\+\_\+update) noexcept -\/$>$ void
+\begin{DoxyCompactList}\small\item\em Process market data update and update the limit order book. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classTrading_1_1MarketOrderBook_adfbf38c4585e21617079629d1f3549a2}{update\+BBO}} (bool update\+\_\+bid, bool update\+\_\+ask) noexcept
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a975199175bc3eca5e889b3aec9d57f82}\label{classTrading_1_1MarketOrderBook_a975199175bc3eca5e889b3aec9d57f82}} 
+auto {\bfseries get\+BBO} () const noexcept -\/$>$ const \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} $\ast$
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a47dcd2953745765eda5a335bc0cd730e}\label{classTrading_1_1MarketOrderBook_a47dcd2953745765eda5a335bc0cd730e}} 
+auto {\bfseries to\+String} (bool detailed, bool validity\+\_\+check) const -\/$>$ std\+::string
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_acb247bf6433072c1304ed54f77a9c4f5}\label{classTrading_1_1MarketOrderBook_acb247bf6433072c1304ed54f77a9c4f5}} 
+{\bfseries Market\+Order\+Book} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&)=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a12cbdcd5b1e614ff8fb62d87e3b92f90}\label{classTrading_1_1MarketOrderBook_a12cbdcd5b1e614ff8fb62d87e3b92f90}} 
+{\bfseries Market\+Order\+Book} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a5dc07446d7a94fc65da99bbf563714c5}\label{classTrading_1_1MarketOrderBook_a5dc07446d7a94fc65da99bbf563714c5}} 
+\mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_a87f872c3b4e9b28d21e77542e8493bc3}\label{classTrading_1_1MarketOrderBook_a87f872c3b4e9b28d21e77542e8493bc3}} 
+\mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBook_adfbf38c4585e21617079629d1f3549a2}\label{classTrading_1_1MarketOrderBook_adfbf38c4585e21617079629d1f3549a2}} 
+\index{Trading::MarketOrderBook@{Trading::MarketOrderBook}!updateBBO@{updateBBO}}
+\index{updateBBO@{updateBBO}!Trading::MarketOrderBook@{Trading::MarketOrderBook}}
+\doxysubsubsection{\texorpdfstring{updateBBO()}{updateBBO()}}
+{\footnotesize\ttfamily auto Trading\+::\+Market\+Order\+Book\+::update\+BBO (\begin{DoxyParamCaption}\item[{bool}]{update\+\_\+bid,  }\item[{bool}]{update\+\_\+ask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Update the \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} abstraction, the two boolean parameters represent if the buy or the sekk (or both) sides or both need to be updated. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/market\+\_\+order\+\_\+book.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/market\+\_\+order\+\_\+book.\+cpp\end{DoxyCompactItemize}

@@ -1,0 +1,88 @@
+\hypertarget{client__response_8h_source}{}\doxysection{client\+\_\+response.\+h}
+\label{client__response_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_response.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_response.h}}
+\mbox{\hyperlink{client__response_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 }
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include <sstream>}}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#include "{}moodycamel/concurrentqueue.h"{}}}
+\DoxyCodeLine{18 }
+\DoxyCodeLine{19 \textcolor{keyword}{namespace }Exchange \{}
+\DoxyCodeLine{21 \textcolor{keyword}{enum class} \mbox{\hyperlink{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}{ClientResponseType}} : uint8\_t \{}
+\DoxyCodeLine{22     INVALID         = 0,}
+\DoxyCodeLine{23     ACCEPTED        = 1,}
+\DoxyCodeLine{24     CANCELED        = 2,}
+\DoxyCodeLine{25     FILLED          = 3,}
+\DoxyCodeLine{26     CANCEL\_REJECTED = 4}
+\DoxyCodeLine{27 \};}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{29 \textcolor{keyword}{inline} std::string ClientResponseTypeToString(ClientResponseType type) \{}
+\DoxyCodeLine{30     \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{31         \textcolor{keywordflow}{case} ClientResponseType::ACCEPTED:}
+\DoxyCodeLine{32             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}ACCEPTED"{}};}
+\DoxyCodeLine{33         \textcolor{keywordflow}{case} ClientResponseType::CANCELED:}
+\DoxyCodeLine{34             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}CANCELED"{}};}
+\DoxyCodeLine{35         \textcolor{keywordflow}{case} ClientResponseType::FILLED:}
+\DoxyCodeLine{36             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}FILLED"{}};}
+\DoxyCodeLine{37         \textcolor{keywordflow}{case} ClientResponseType::CANCEL\_REJECTED:}
+\DoxyCodeLine{38             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}CANCEL\_REJECTED"{}};}
+\DoxyCodeLine{39         \textcolor{keywordflow}{case} ClientResponseType::INVALID:}
+\DoxyCodeLine{40             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{41     \}}
+\DoxyCodeLine{42     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{43 \}}
+\DoxyCodeLine{44 }
+\DoxyCodeLine{47 \textcolor{preprocessor}{\#pragma pack(push, 1)}}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{50 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1MEClientResponse}{MEClientResponse}} \{}
+\DoxyCodeLine{55     \textcolor{keyword}{using }\mbox{\hyperlink{structExchange_1_1MEClientResponse_a074854ea725c88909e12c5dbec4ca7bf}{PriceQty}}          = std::pair<double, double>;}
+\DoxyCodeLine{56     \mbox{\hyperlink{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}{ClientResponseType}} type = ClientResponseType::INVALID;}
+\DoxyCodeLine{57     std::string ticker;}
+\DoxyCodeLine{58     Common::OrderId order\_id = Common::OrderId\_INVALID;}
+\DoxyCodeLine{59     Common::Side side        = Common::Side::INVALID;}
+\DoxyCodeLine{60     \textcolor{keywordtype}{double} price             = Common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{61     \textcolor{keywordtype}{double} exec\_qty          = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{62     \textcolor{keywordtype}{double} leaves\_qty        = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{63 }
+\DoxyCodeLine{64     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{65         \textcolor{keyword}{auto} PrintAsCancelled = [\textcolor{keyword}{this}]()}
+\DoxyCodeLine{66         \{}
+\DoxyCodeLine{67             \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{68                         \textcolor{stringliteral}{"{}MEClientResponse[type:\{\} ticker:\{\} order\_id:\{\}]"{}},}
+\DoxyCodeLine{69                         ClientResponseTypeToString(type), ticker,}
+\DoxyCodeLine{70                         Common::orderIdToString(order\_id));}
+\DoxyCodeLine{71         \};}
+\DoxyCodeLine{72         \textcolor{keywordflow}{if}(type == ClientResponseType::CANCELED)}
+\DoxyCodeLine{73             \textcolor{keywordflow}{return} PrintAsCancelled();}
+\DoxyCodeLine{74         std::string price\_string =}
+\DoxyCodeLine{75             (price != Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{76                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, price)}
+\DoxyCodeLine{77                 : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{78         std::string exec\_qty\_string =}
+\DoxyCodeLine{79             (exec\_qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{80                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, exec\_qty)}
+\DoxyCodeLine{81                 : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{83         std::string leaves\_qty\_string =}
+\DoxyCodeLine{84             (leaves\_qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{85                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, leaves\_qty)}
+\DoxyCodeLine{86                 : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{87         \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{88             \textcolor{stringliteral}{"{}MEClientResponse[type:\{\} ticker:\{\} order\_id:\{\} side:\{\} "{}}}
+\DoxyCodeLine{89             \textcolor{stringliteral}{"{}exec\_qty:\{\} "{}}}
+\DoxyCodeLine{90             \textcolor{stringliteral}{"{}leaves\_qty:\{\} price:\{\}]"{}},}
+\DoxyCodeLine{91             ClientResponseTypeToString(type), ticker,}
+\DoxyCodeLine{92             Common::orderIdToString(order\_id), sideToString(side), exec\_qty\_string,}
+\DoxyCodeLine{93             leaves\_qty\_string, price\_string);}
+\DoxyCodeLine{94     \}}
+\DoxyCodeLine{95 \};}
+\DoxyCodeLine{96 }
+\DoxyCodeLine{98 \textcolor{preprocessor}{\#pragma pack(pop)  }\textcolor{comment}{// Undo the packed binary structure directive moving forward.}}
+\DoxyCodeLine{99 }
+\DoxyCodeLine{101 \textcolor{keyword}{using }\mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{ClientResponseLFQueue}} = moodycamel::ConcurrentQueue<MEClientResponse>;}
+\DoxyCodeLine{102 \}  \textcolor{comment}{// namespace Exchange}}
+
+\end{DoxyCode}

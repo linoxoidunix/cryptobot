@@ -1,3 +1,62 @@
 \label{index_md__home_linoxoidunix_Programming_cplusplus_cryptobot_README}%
 \Hypertarget{index_md__home_linoxoidunix_Programming_cplusplus_cryptobot_README}%
-bot for algo trading 
+bot for algo trading\hypertarget{index_autotoc_md1}{}\doxysection{Features}\label{index_autotoc_md1}
+
+\begin{DoxyEnumerate}
+\item Post order for Binance and Bybit
+\item Capture {\bfseries{raw}} exchange market order book update events for Binance
+\item Capture {\bfseries{raw}} Klines for Binance and Bybit ~\newline
+
+\item Capture {\bfseries{raw}} order book snapshot for Binance
+\item Order book sync snap and diff for binance
+\item Get bbo using order book for binance
+\item Order gateway \mbox{[}PARTITIAL DEBUG for BINANCE\mbox{]}
+\end{DoxyEnumerate}
+
+thanks to \href{https://martin.ankerl.com/2022/08/27/hashmap-bench-01/}{\texttt{ https\+://martin.\+ankerl.\+com/2022/08/27/hashmap-\/bench-\/01/}}\hypertarget{index_autotoc_md2}{}\doxysection{TODO}\label{index_autotoc_md2}
+
+\begin{DoxyEnumerate}
+\item make order manager move\+\_\+order function
+\item for order manager need consider riskmanager
+\end{DoxyEnumerate}\hypertarget{index_autotoc_md3}{}\doxysection{Definitions}\label{index_autotoc_md3}
+
+\begin{DoxyEnumerate}
+\item Service -\/ entity that runs in a separate thread
+\begin{DoxyItemize}
+\item Generator\+Bid\+Ask\+Service -\/ a service that generate new bid and new ask events in lock-\/free queue
+\item \mbox{\hyperlink{classKLineService}{KLine\+Service}} -\/ a service that generate new klines in lock-\/free queue
+\item Order\+Gateway -\/ a service that sends buy and sell orders to the exchange. It also processes messages from the exchange about the status of execution of these orders
+\item Trade\+Engine -\/ a service that processes incoming client responses and market data updates(klines or bid/ask events) which in turn may generate client requests.
+\end{DoxyItemize}
+\item \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Trading\+::\+Base\+Strategy}} is entity that generates enter\+\_\+long, enter\+\_\+short, exit\+\_\+long, exit\+\_\+short signal on new klines from exchange.
+\item \mbox{\hyperlink{classTrading_1_1OrderManager}{Trading\+::\+Order\+Manager}} have 2 public methods New\+Order and Cancel\+Order and On\+Order\+Response callback which must be called when a new \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$ event arrives from the exchange
+\item Market\+Order\+Book is entity that maintains the local order book based on bid and ask events received from the exchange
+\end{DoxyEnumerate}\hypertarget{index_autotoc_md4}{}\doxysection{Restrictions}\label{index_autotoc_md4}
+
+\begin{DoxyItemize}
+\item C++20
+\item Boost 1.\+65.\+0
+\item CMake 3.\+29
+\end{DoxyItemize}
+
+Order\+Manager impl supports only 1 active order for each side!!!!
+\begin{DoxyEnumerate}
+\item Order\+Book\+:
+\begin{DoxyItemize}
+\item uses boost\+::intrusive\+::avltree to sort prices into levels in ascending or descending order
+\item at each price level has a pointer to the structure, which stores the price, side, amount of asset at this level. At each price level there is no ordered list of orders depending on their priority
+\end{DoxyItemize}
+\end{DoxyEnumerate}\hypertarget{index_autotoc_md5}{}\doxysection{Third party library}\label{index_autotoc_md5}
+
+\begin{DoxyEnumerate}
+\item \href{https://github.com/cameron314/concurrentqueue}{\texttt{ https\+://github.\+com/cameron314/concurrentqueue}}
+\item \href{https://github.com/fmtlib/fmt}{\texttt{ https\+://github.\+com/fmtlib/fmt}}
+\item \href{https://github.com/MengRao/fmtlog}{\texttt{ https\+://github.\+com/\+Meng\+Rao/fmtlog}}
+\item \href{https://github.com/ktprime/emhash}{\texttt{ https\+://github.\+com/ktprime/emhash}}
+\item \href{https://github.com/simdjson/simdjson}{\texttt{ https\+://github.\+com/simdjson/simdjson}}
+\item \href{https://github.com/nlohmann/json}{\texttt{ https\+://github.\+com/nlohmann/json}}
+\item \href{https://github.com/boostorg/boost}{\texttt{ https\+://github.\+com/boostorg/boost}}
+\item \href{https://github.com/openssl/openssl}{\texttt{ https\+://github.\+com/openssl/openssl}}
+\item Extending Python with C or C++
+\item \href{https://github.com/google/benchmark}{\texttt{ https\+://github.\+com/google/benchmark}} 
+\end{DoxyEnumerate}

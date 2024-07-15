@@ -1,0 +1,27 @@
+\hypertarget{macros_8h_source}{}\doxysection{macros.\+h}
+\label{macros_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/macros.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/macros.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <cstring>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{5 }
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#define LIKELY(x) \_\_builtin\_expect(!!(x), 1)}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#define UNLIKELY(x) \_\_builtin\_expect(!!(x), 0)}}
+\DoxyCodeLine{8 }
+\DoxyCodeLine{9 \textcolor{keyword}{inline} \textcolor{keyword}{auto} ASSERT(\textcolor{keywordtype}{bool} cond, \textcolor{keyword}{const} std::string \&msg) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{10   \textcolor{keywordflow}{if} (UNLIKELY(!cond)) \{}
+\DoxyCodeLine{11     std::cerr << \textcolor{stringliteral}{"{}ASSERT : "{}} << msg << std::endl;}
+\DoxyCodeLine{12 }
+\DoxyCodeLine{13     exit(EXIT\_FAILURE);}
+\DoxyCodeLine{14   \}}
+\DoxyCodeLine{15 \}}
+\DoxyCodeLine{16 }
+\DoxyCodeLine{17 \textcolor{keyword}{inline} \textcolor{keyword}{auto} FATAL(\textcolor{keyword}{const} std::string \&msg) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{18   std::cerr << \textcolor{stringliteral}{"{}FATAL : "{}} << msg << std::endl;}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{20   exit(EXIT\_FAILURE);}
+\DoxyCodeLine{21 \}}
+
+\end{DoxyCode}

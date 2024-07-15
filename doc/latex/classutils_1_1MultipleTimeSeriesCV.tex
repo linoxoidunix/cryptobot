@@ -1,0 +1,46 @@
+\hypertarget{classutils_1_1MultipleTimeSeriesCV}{}\doxysection{utils.\+Multiple\+Time\+Series\+CV Class Reference}
+\label{classutils_1_1MultipleTimeSeriesCV}\index{utils.MultipleTimeSeriesCV@{utils.MultipleTimeSeriesCV}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_aafd7ac4233277f84ba814ad8f0e56381}\label{classutils_1_1MultipleTimeSeriesCV_aafd7ac4233277f84ba814ad8f0e56381}} 
+def {\bfseries \+\_\+\+\_\+init\+\_\+\+\_\+} (self, n\+\_\+splits=3, train\+\_\+period\+\_\+length=126, test\+\_\+period\+\_\+length=21, lookahead=None, date\+\_\+idx=\textquotesingle{}date\textquotesingle{}, shuffle=False)
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_a7d1f7e8f5281e8a28d22e6ff3eb17cd5}\label{classutils_1_1MultipleTimeSeriesCV_a7d1f7e8f5281e8a28d22e6ff3eb17cd5}} 
+def {\bfseries split} (self, X, y=None, groups=None)
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_a8f258b37399ceebbfcd96385e576630d}\label{classutils_1_1MultipleTimeSeriesCV_a8f258b37399ceebbfcd96385e576630d}} 
+def {\bfseries get\+\_\+n\+\_\+splits} (self, X, y, groups=None)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_a15ca0539695c2999fb4a307a312f01ed}\label{classutils_1_1MultipleTimeSeriesCV_a15ca0539695c2999fb4a307a312f01ed}} 
+{\bfseries n\+\_\+splits}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_ad093bd61ad929a71fd127f2e48341723}\label{classutils_1_1MultipleTimeSeriesCV_ad093bd61ad929a71fd127f2e48341723}} 
+{\bfseries lookahead}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_ae60d558a011c3ad094874e40a8b2cf3f}\label{classutils_1_1MultipleTimeSeriesCV_ae60d558a011c3ad094874e40a8b2cf3f}} 
+{\bfseries test\+\_\+length}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_aecd34c82aa2cfa2f1c4cd8a89a7e6c3c}\label{classutils_1_1MultipleTimeSeriesCV_aecd34c82aa2cfa2f1c4cd8a89a7e6c3c}} 
+{\bfseries train\+\_\+length}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_a8cdfc9467ca009edfcf20a2b00be2b32}\label{classutils_1_1MultipleTimeSeriesCV_a8cdfc9467ca009edfcf20a2b00be2b32}} 
+{\bfseries shuffle}
+\item 
+\mbox{\Hypertarget{classutils_1_1MultipleTimeSeriesCV_accfdfb4e705cd361317125c5647f1caf}\label{classutils_1_1MultipleTimeSeriesCV_accfdfb4e705cd361317125c5647f1caf}} 
+{\bfseries date\+\_\+idx}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Generates tuples of train_idx, test_idx pairs
+Assumes the MultiIndex contains levels 'symbol' and 'date'
+purges overlapping outcomes\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/python/utils.\+py\end{DoxyCompactItemize}

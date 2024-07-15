@@ -1,0 +1,41 @@
+\hypertarget{classTrading_1_1PositionKeeper}{}\doxysection{Trading\+::Position\+Keeper Class Reference}
+\label{classTrading_1_1PositionKeeper}\index{Trading::PositionKeeper@{Trading::PositionKeeper}}
+
+
+{\ttfamily \#include $<$position\+\_\+keeper.\+h$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_a18011452c768fb572c442fc14892cd36}\label{classTrading_1_1PositionKeeper_a18011452c768fb572c442fc14892cd36}} 
+{\bfseries Position\+Keeper} (const \mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \&)=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_a90e2baffee95ece92dc4a7093f130fd1}\label{classTrading_1_1PositionKeeper_a90e2baffee95ece92dc4a7093f130fd1}} 
+{\bfseries Position\+Keeper} (const \mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_ac6de968a909c3ae355c209f2f4c51398}\label{classTrading_1_1PositionKeeper_ac6de968a909c3ae355c209f2f4c51398}} 
+\mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_a5f80e0b69e55f76f3838aa3868261a46}\label{classTrading_1_1PositionKeeper_a5f80e0b69e55f76f3838aa3868261a46}} 
+\mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1PositionKeeper}{Position\+Keeper}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_add154c6bb6c246d86b801d0b1e77bcaf}\label{classTrading_1_1PositionKeeper_add154c6bb6c246d86b801d0b1e77bcaf}} 
+auto {\bfseries Add\+Fill} (const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$client\+\_\+response) noexcept
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_a323b78eb7978dd1a1b290ef4024c6542}\label{classTrading_1_1PositionKeeper_a323b78eb7978dd1a1b290ef4024c6542}} 
+auto {\bfseries Update\+BBO} (std\+::string ticker, const \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading\+::\+BBODouble}} $\ast$bbo) noexcept
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_a8d4e6128baf7cd864609c44dbf7c7e61}\label{classTrading_1_1PositionKeeper_a8d4e6128baf7cd864609c44dbf7c7e61}} 
+auto {\bfseries get\+Position\+Info} (std\+::string ticker) noexcept
+\item 
+\mbox{\Hypertarget{classTrading_1_1PositionKeeper_ac3454a7b9a5f058f0c93edd344cbdaab}\label{classTrading_1_1PositionKeeper_ac3454a7b9a5f058f0c93edd344cbdaab}} 
+auto {\bfseries To\+String} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Top level position keeper class to compute position, pnl and volume for all trading instruments. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/position\+\_\+keeper.\+h\end{DoxyCompactItemize}

@@ -1,0 +1,110 @@
+\hypertarget{trade__engine_8h_source}{}\doxysection{trade\+\_\+engine.\+h}
+\label{trade__engine_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/trade\_engine.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/trade\_engine.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{4 }
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__request_8h}{aot/client\_request.h}}"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/common/thread\_utils.h"{}}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include "{}aot/common/time\_utils.h"{}}}
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/market\_data/market\_update.h"{}}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/strategy/base\_strategy.h"{}}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include "{}aot/strategy/market\_order\_book.h"{}}}
+\DoxyCodeLine{14 \textcolor{comment}{// \#include "{}feature\_engine.h"{}}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include "{}aot/strategy/order\_manager.h"{}}}
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include "{}aot/strategy/position\_keeper.h"{}}}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{18 \textcolor{comment}{// \#include "{}order\_manager.h"{}}}
+\DoxyCodeLine{19 \textcolor{comment}{// \#include "{}risk\_manager.h"{}}}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21 \textcolor{comment}{// \#include "{}market\_maker.h"{}}}
+\DoxyCodeLine{22 \textcolor{comment}{// \#include "{}liquidity\_taker.h"{}}}
+\DoxyCodeLine{23 }
+\DoxyCodeLine{24 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{25     \textcolor{keyword}{class }BaseStrategy;}
+\DoxyCodeLine{26 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \{}
+\DoxyCodeLine{27   \textcolor{keyword}{public}:}
+\DoxyCodeLine{28     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}{TradeEngine}}(}
+\DoxyCodeLine{29         Exchange::EventLFQueue *market\_updates,}
+\DoxyCodeLine{30         \mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{Exchange::RequestNewLimitOrderLFQueue}} *request\_new\_order,}
+\DoxyCodeLine{31         Exchange::RequestCancelOrderLFQueue *request\_cancel\_order,}
+\DoxyCodeLine{32         \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *response, OHLCVILFQueue *klines,}
+\DoxyCodeLine{33         \textcolor{keyword}{const} \mbox{\hyperlink{structTicker}{Ticker}} \&ticker,}
+\DoxyCodeLine{34         \mbox{\hyperlink{classbase__strategy_1_1Strategy}{base\_strategy::Strategy}}* predictor}
+\DoxyCodeLine{35         );}
+\DoxyCodeLine{36 }
+\DoxyCodeLine{37     \mbox{\hyperlink{classTrading_1_1TradeEngine}{\string~TradeEngine}}();}
+\DoxyCodeLine{38 }
+\DoxyCodeLine{40     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1TradeEngine_a21c14172573ab400878deb23fc8a6fc7}{Start}}() -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{41         run\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{42         ASSERT(common::createAndStartThread(-\/1, \textcolor{stringliteral}{"{}Trading/TradeEngine"{}},}
+\DoxyCodeLine{43                                             [\textcolor{keyword}{this}] \{ \mbox{\hyperlink{classTrading_1_1TradeEngine_ae82017c6a28c729c79e0b111c666f42b}{Run}}(); \}) != \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{44                \textcolor{stringliteral}{"{}Failed to start TradeEngine thread."{}});}
+\DoxyCodeLine{45     \};}
+\DoxyCodeLine{46 }
+\DoxyCodeLine{47     \textcolor{keyword}{auto} Stop() -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{48         \textcolor{keywordflow}{while} (incoming\_md\_updates\_-\/>size\_approx()) \{}
+\DoxyCodeLine{49             logi(\textcolor{stringliteral}{"{}Sleeping till all updates are consumed md-\/size:\%\(\backslash\)n"{}},}
+\DoxyCodeLine{50                  incoming\_md\_updates\_-\/>size\_approx());}
+\DoxyCodeLine{51             \textcolor{keyword}{using namespace }std::literals::chrono\_literals;}
+\DoxyCodeLine{52             std::this\_thread::sleep\_for(10ms);}
+\DoxyCodeLine{53         \}}
+\DoxyCodeLine{54         run\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{55     \}}
+\DoxyCodeLine{56 }
+\DoxyCodeLine{57     common::Delta GetDownTimeInS()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} time\_manager\_.GetDeltaInS(); \}}
+\DoxyCodeLine{58 }
+\DoxyCodeLine{61     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1TradeEngine_ae82017c6a28c729c79e0b111c666f42b}{Run}}() noexcept -\/> \textcolor{keywordtype}{void};}
+\DoxyCodeLine{62 }
+\DoxyCodeLine{65     auto \mbox{\hyperlink{classTrading_1_1TradeEngine_aebff3c75f07095b1db777cd89d7b1c34}{SendRequestNewOrder}}(}
+\DoxyCodeLine{66         const Exchange::RequestNewOrder *request\_new\_order) noexcept -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{67         request\_new\_order\_-\/>enqueue(*request\_new\_order);}
+\DoxyCodeLine{68     \}}
+\DoxyCodeLine{69     \textcolor{keyword}{auto} SendRequestCancelOrder(\textcolor{keyword}{const} \mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange::RequestCancelOrder}}}
+\DoxyCodeLine{70                                     *request\_cancel\_order) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{71         request\_cancel\_order\_-\/>enqueue(*request\_cancel\_order);}
+\DoxyCodeLine{72     \}}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{76     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1TradeEngine_a57438ff1eca067fd182eb5bf3d1ddf95}{OnOrderBookUpdate}}(std::string ticker, PriceD price, Side side,}
+\DoxyCodeLine{77                            MarketOrderBookDouble *book) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{78 }
+\DoxyCodeLine{81     \textcolor{comment}{// auto onTradeUpdate(const Exchange::MEMarketUpdate *market\_update,}}
+\DoxyCodeLine{82     \textcolor{comment}{// MarketOrderBook *book) noexcept -\/> void;}}
+\DoxyCodeLine{83 }
+\DoxyCodeLine{85     \mbox{\hyperlink{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}{TradeEngine}}()                                = \textcolor{keyword}{delete};}
+\DoxyCodeLine{86 }
+\DoxyCodeLine{87     \mbox{\hyperlink{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}{TradeEngine}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{88 }
+\DoxyCodeLine{89     \mbox{\hyperlink{classTrading_1_1TradeEngine_a1fc757f6baaad240943ec96457c3542f}{TradeEngine}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{90 }
+\DoxyCodeLine{91     \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{92 }
+\DoxyCodeLine{93     \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{94 }
+\DoxyCodeLine{95   \textcolor{keyword}{private}:}
+\DoxyCodeLine{96     Exchange::EventLFQueue *incoming\_md\_updates\_               = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{97     \mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{Exchange::RequestNewLimitOrderLFQueue}} *request\_new\_order\_  = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{98     Exchange::RequestCancelOrderLFQueue *request\_cancel\_order\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{99     \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *response\_                 = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{100     OHLCVILFQueue *klines\_                                     = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{101     \textcolor{keyword}{const} \mbox{\hyperlink{structTicker}{Ticker}} \&ticker\_;}
+\DoxyCodeLine{102     \mbox{\hyperlink{classTrading_1_1PositionKeeper}{PositionKeeper}} position\_keeper\_;}
+\DoxyCodeLine{103 }
+\DoxyCodeLine{104     \textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} run\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{105     TradeEngineCfgHashMap config\_;}
+\DoxyCodeLine{106     \mbox{\hyperlink{classcommon_1_1TimeManager}{common::TimeManager}} time\_manager\_;}
+\DoxyCodeLine{107     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Trading::MarketOrderBookDouble}} order\_book\_;}
+\DoxyCodeLine{108     \mbox{\hyperlink{classTrading_1_1OrderManager}{Trading::OrderManager}} order\_manager\_;}
+\DoxyCodeLine{109     \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Trading::BaseStrategy}} strategy\_;}
+\DoxyCodeLine{114     \textcolor{keyword}{auto} OnOrderResponse(}
+\DoxyCodeLine{115         \textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{121     \textcolor{keyword}{auto} OnNewKLine(\textcolor{keyword}{const} \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} *new\_kline) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{122 \};}
+\DoxyCodeLine{123 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

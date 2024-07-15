@@ -1,0 +1,40 @@
+\hypertarget{Https_8h_source}{}\doxysection{Https.\+h}
+\label{Https_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Https.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Https.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include "{}aot/Types.h"{}}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <boost/beast/core.hpp>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/beast/http.hpp>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <boost/asio/ssl/context.hpp>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <memory>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include <unordered\_map>}}
+\DoxyCodeLine{12 }
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }bst = boost::beast;}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{keyword}{class }\mbox{\hyperlink{classHttpsSession}{HttpsSession}};}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{18 \textcolor{keyword}{class }\mbox{\hyperlink{classHttps}{Https}} \{}
+\DoxyCodeLine{19   \textcolor{keyword}{public}:}
+\DoxyCodeLine{20     \textcolor{keyword}{explicit} \mbox{\hyperlink{classHttps}{Https}}(boost::asio::io\_context\& ctx,}
+\DoxyCodeLine{21                 OnHttpsResponce msg\_cb);}
+\DoxyCodeLine{22     \textcolor{keywordtype}{void} Run(std::string\_view host, std::string\_view port,}
+\DoxyCodeLine{23              std::string\_view endpoint, boost::beast::http::request<boost::beast::http::string\_body>\&\& req);}
+\DoxyCodeLine{24     \mbox{\hyperlink{classHttps}{Https}}(\textcolor{keyword}{const} \mbox{\hyperlink{classHttps}{Https}}\&)                = \textcolor{keyword}{delete};}
+\DoxyCodeLine{25     \mbox{\hyperlink{classHttps}{Https}}\& operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classHttps}{Https}}\&)     = \textcolor{keyword}{delete};}
+\DoxyCodeLine{26     \mbox{\hyperlink{classHttps}{Https}}(\mbox{\hyperlink{classHttps}{Https}}\&\&) \textcolor{keyword}{noexcept}            = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{27     \mbox{\hyperlink{classHttps}{Https}}\& operator=(\mbox{\hyperlink{classHttps}{Https}}\&\&) \textcolor{keyword}{noexcept} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{28     \mbox{\hyperlink{classHttps}{\string~Https}}();}
+\DoxyCodeLine{29 }
+\DoxyCodeLine{30   \textcolor{keyword}{private}:}
+\DoxyCodeLine{31     std::shared\_ptr<HttpsSession> session\_;}
+\DoxyCodeLine{32     \textcolor{comment}{//boost::asio::io\_context\& ioc\_;}}
+\DoxyCodeLine{33     boost::asio::ssl::context ctx\_\{boost::asio::ssl::context::tlsv12\_client\};}
+\DoxyCodeLine{34 \};}
+
+\end{DoxyCode}

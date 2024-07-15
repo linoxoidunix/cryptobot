@@ -1,0 +1,61 @@
+\hypertarget{kline_8h_source}{}\doxysection{kline.\+h}
+\label{kline_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/kline.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/kline.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{4 }
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__request_8h}{aot/client\_request.h}}"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/common/thread\_utils.h"{}}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include "{}aot/common/time\_utils.h"{}}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{keyword}{namespace }inner \{}
+\DoxyCodeLine{13 \textcolor{keyword}{class }OrderNewI;}
+\DoxyCodeLine{14 \};}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{keyword}{class }\mbox{\hyperlink{classKLineService}{KLineService}} \{}
+\DoxyCodeLine{17   \textcolor{keyword}{public}:}
+\DoxyCodeLine{18     \textcolor{keyword}{explicit} \mbox{\hyperlink{classKLineService_a1400d34e9d864f7d31a1c397194ef2de}{KLineService}}(\mbox{\hyperlink{classOHLCVGetter}{OHLCVGetter}}* ohlcv\_getter,}
+\DoxyCodeLine{19                           OHLCVILFQueue *kline\_lfqueue);}
+\DoxyCodeLine{20 }
+\DoxyCodeLine{21     \mbox{\hyperlink{classKLineService}{\string~KLineService}}() \{}
+\DoxyCodeLine{22         stop();}
+\DoxyCodeLine{23 }
+\DoxyCodeLine{24         \textcolor{keyword}{using namespace }std::literals::chrono\_literals;}
+\DoxyCodeLine{25         std::this\_thread::sleep\_for(1s);}
+\DoxyCodeLine{26     \}}
+\DoxyCodeLine{27 }
+\DoxyCodeLine{29     \textcolor{keyword}{auto} \mbox{\hyperlink{classKLineService_adbb56c03594b25239b87bb89eeeccfb7}{start}}() \{}
+\DoxyCodeLine{30         run\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{31         ASSERT(common::createAndStartThread(-\/1, \textcolor{stringliteral}{"{}Trading/KLineService"{}},}
+\DoxyCodeLine{32                                             [\textcolor{keyword}{this}]() \{ Run(); \}) != \textcolor{keyword}{nullptr},}
+\DoxyCodeLine{33                \textcolor{stringliteral}{"{}Failed to start KLineService thread."{}});}
+\DoxyCodeLine{34     \}}
+\DoxyCodeLine{35     common::Delta GetDownTimeInS() \{ \textcolor{keywordflow}{return} time\_manager\_.GetDeltaInS(); \}}
+\DoxyCodeLine{36     \textcolor{keyword}{auto} stop() -\/> \textcolor{keywordtype}{void} \{ run\_ = \textcolor{keyword}{false}; \}}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{39     \mbox{\hyperlink{classKLineService_a1400d34e9d864f7d31a1c397194ef2de}{KLineService}}()                                 = \textcolor{keyword}{delete};}
+\DoxyCodeLine{40 }
+\DoxyCodeLine{41     \mbox{\hyperlink{classKLineService_a1400d34e9d864f7d31a1c397194ef2de}{KLineService}}(\textcolor{keyword}{const} \mbox{\hyperlink{classKLineService}{KLineService}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43     \mbox{\hyperlink{classKLineService_a1400d34e9d864f7d31a1c397194ef2de}{KLineService}}(\textcolor{keyword}{const} \mbox{\hyperlink{classKLineService}{KLineService}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{44 }
+\DoxyCodeLine{45     \mbox{\hyperlink{classKLineService}{KLineService}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classKLineService}{KLineService}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{46 }
+\DoxyCodeLine{47     \mbox{\hyperlink{classKLineService}{KLineService}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classKLineService}{KLineService}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{48 }
+\DoxyCodeLine{49   \textcolor{keyword}{private}:}
+\DoxyCodeLine{50     \mbox{\hyperlink{classOHLCVGetter}{OHLCVGetter}}* ohlcv\_getter\_;}
+\DoxyCodeLine{53     OHLCVILFQueue *kline\_lfqueue\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{54     \textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} run\_           = \textcolor{keyword}{false};}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56   \textcolor{keyword}{private}:}
+\DoxyCodeLine{59     \textcolor{keyword}{auto} Run() noexcept -\/> \textcolor{keywordtype}{void};}
+\DoxyCodeLine{60     common::TimeManager time\_manager\_;}
+\DoxyCodeLine{61 \};}
+
+\end{DoxyCode}

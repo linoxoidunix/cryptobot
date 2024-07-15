@@ -1,0 +1,77 @@
+\hypertarget{classhmac__sha256_1_1Signer}{}\doxysection{hmac\+\_\+sha256\+::Signer Class Reference}
+\label{classhmac__sha256_1_1Signer}\index{hmac\_sha256::Signer@{hmac\_sha256::Signer}}
+
+
+Inheritance diagram for hmac\+\_\+sha256\+::Signer\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=201pt]{classhmac__sha256_1_1Signer__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for hmac\+\_\+sha256\+::Signer\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=201pt]{classhmac__sha256_1_1Signer__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classhmac__sha256_1_1Signer_a7b8af9c4e2421cf7bdeda71aba9fe723}\label{classhmac__sha256_1_1Signer_a7b8af9c4e2421cf7bdeda71aba9fe723}} 
+{\bfseries Signer} (std\+::string\+\_\+view secret\+\_\+key)
+\item 
+\mbox{\Hypertarget{classhmac__sha256_1_1Signer_a78c01795877d59bfdb2071a01f27ee20}\label{classhmac__sha256_1_1Signer_a78c01795877d59bfdb2071a01f27ee20}} 
+{\bfseries Signer} (\mbox{\hyperlink{structhmac__sha256_1_1Keys}{Keys}} keys)
+\item 
+std\+::string \mbox{\hyperlink{classhmac__sha256_1_1Signer_a6e68e7635130df976310b276608d4c02}{Sign}} (std\+::string\+\_\+view data) override
+\begin{DoxyCompactList}\small\item\em add timestamp and recv\+Window to data then signed this data \end{DoxyCompactList}\item 
+std\+::string \mbox{\hyperlink{classhmac__sha256_1_1Signer_a362eba0a079fd5742be3e0c333899191}{Api\+Key}} () override
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classhmac__sha256_1_1Signer_a362eba0a079fd5742be3e0c333899191}\label{classhmac__sha256_1_1Signer_a362eba0a079fd5742be3e0c333899191}} 
+\index{hmac\_sha256::Signer@{hmac\_sha256::Signer}!ApiKey@{ApiKey}}
+\index{ApiKey@{ApiKey}!hmac\_sha256::Signer@{hmac\_sha256::Signer}}
+\doxysubsubsection{\texorpdfstring{ApiKey()}{ApiKey()}}
+{\footnotesize\ttfamily std\+::string hmac\+\_\+sha256\+::\+Signer\+::\+Api\+Key (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classSignerI}{SignerI}}.
+
+\mbox{\Hypertarget{classhmac__sha256_1_1Signer_a6e68e7635130df976310b276608d4c02}\label{classhmac__sha256_1_1Signer_a6e68e7635130df976310b276608d4c02}} 
+\index{hmac\_sha256::Signer@{hmac\_sha256::Signer}!Sign@{Sign}}
+\index{Sign@{Sign}!hmac\_sha256::Signer@{hmac\_sha256::Signer}}
+\doxysubsubsection{\texorpdfstring{Sign()}{Sign()}}
+{\footnotesize\ttfamily std\+::string hmac\+\_\+sha256\+::\+Signer\+::\+Sign (\begin{DoxyParamCaption}\item[{std\+::string\+\_\+view}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+add timestamp and recv\+Window to data then signed this data 
+
+
+\begin{DoxyParams}{Parameters}
+{\em api\+\_\+key} & Get grom exchange \\
+\hline
+{\em data} & class sign this data \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+std\+::string 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classSignerI}{SignerI}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/Exchange.\+h\end{DoxyCompactItemize}

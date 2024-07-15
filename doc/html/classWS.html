@@ -64,33 +64,17 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="classWS-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">WS Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
-Public Types</h2></td></tr>
-<tr class="memitem:ad6c7d3426a452278086773d7ebbda78e"><td class="memItemLeft" align="right" valign="top"><a id="ad6c7d3426a452278086773d7ebbda78e" name="ad6c7d3426a452278086773d7ebbda78e"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>OnMessage</b> = std::function&lt; void(std::string)&gt;</td></tr>
-<tr class="separator:ad6c7d3426a452278086773d7ebbda78e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28b0061cfea842c424bdbc858da420c7"><td class="memItemLeft" align="right" valign="top"><a id="a28b0061cfea842c424bdbc858da420c7" name="a28b0061cfea842c424bdbc858da420c7"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>OnError</b> = std::function&lt; void(std::string)&gt;</td></tr>
-<tr class="separator:a28b0061cfea842c424bdbc858da420c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7e2938805ddb9ff9e2e7995d967276d5"><td class="memItemLeft" align="right" valign="top"><a id="a7e2938805ddb9ff9e2e7995d967276d5" name="a7e2938805ddb9ff9e2e7995d967276d5"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>OnClose</b> = std::function&lt; void(std::string)&gt;</td></tr>
-<tr class="separator:a7e2938805ddb9ff9e2e7995d967276d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae9a44dba65f19c4ab3ae3a373b7023b6"><td class="memItemLeft" align="right" valign="top"><a id="ae9a44dba65f19c4ab3ae3a373b7023b6" name="ae9a44dba65f19c4ab3ae3a373b7023b6"></a>
-using&#160;</td><td class="memItemRight" valign="bottom"><b>Args</b> = std::unordered_map&lt; std::string, std::string &gt;</td></tr>
-<tr class="separator:ae9a44dba65f19c4ab3ae3a373b7023b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ae5c25279b8516dc7c739a86f5926dc54"><td class="memItemLeft" align="right" valign="top"><a id="ae5c25279b8516dc7c739a86f5926dc54" name="ae5c25279b8516dc7c739a86f5926dc54"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>WS</b> (boost::asio::io_context &amp;ctx)</td></tr>
-<tr class="separator:ae5c25279b8516dc7c739a86f5926dc54"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afc0d6077fe184a2666866be1d2f7eda2"><td class="memItemLeft" align="right" valign="top"><a id="afc0d6077fe184a2666866be1d2f7eda2" name="afc0d6077fe184a2666866be1d2f7eda2"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>WS</b> (boost::asio::io_context &amp;ctx, std::string_view request, OnMessage msg_cb)</td></tr>
+<tr class="separator:afc0d6077fe184a2666866be1d2f7eda2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af5aa808f6afa8a8f45fafce77642dbc0"><td class="memItemLeft" align="right" valign="top"><a id="af5aa808f6afa8a8f45fafce77642dbc0" name="af5aa808f6afa8a8f45fafce77642dbc0"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>Run</b> (std::string_view host, std::string_view port, std::string_view endpoint)</td></tr>
 <tr class="separator:af5aa808f6afa8a8f45fafce77642dbc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -108,7 +92,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>Run</b> (std::string_
 <tr class="separator:ae16d4d0e3713005582e2abad28d1f39c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/<a class="el" href="WS_8h_source.html">WS.h</a></li>
+<li>/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/<a class="el" href="WS_8h_source.html">WS.h</a></li>
 <li>/home/linoxoidunix/Programming/cplusplus/cryptobot/src/WS.cpp</li>
 </ul>
 </div><!-- contents -->

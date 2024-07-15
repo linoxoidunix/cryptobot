@@ -1,0 +1,73 @@
+\hypertarget{classHttpsSession}{}\doxysection{Https\+Session Class Reference}
+\label{classHttpsSession}\index{HttpsSession@{HttpsSession}}
+
+
+Inheritance diagram for Https\+Session\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=235pt]{classHttpsSession__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Https\+Session\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=235pt]{classHttpsSession__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classHttpsSession_acce98804089bcc73cf37fd6266de77ee}\label{classHttpsSession_acce98804089bcc73cf37fd6266de77ee}} 
+{\bfseries Https\+Session} (boost\+::asio\+::io\+\_\+context \&ioc, ssl\+::context \&ctx, On\+Https\+Responce cb)
+\item 
+void \mbox{\hyperlink{classHttpsSession_ac584471fdc0c8bdccf0c328ed1289736}{Run}} (char const $\ast$host, char const $\ast$port, char const $\ast$target, http\+::request$<$ http\+::string\+\_\+body $>$ \&\&req)
+\item 
+\mbox{\Hypertarget{classHttpsSession_adff5c99bf14155970c4e959ede48db14}\label{classHttpsSession_adff5c99bf14155970c4e959ede48db14}} 
+void {\bfseries on\+\_\+resolve} (beast\+::error\+\_\+code ec, tcp\+::resolver\+::results\+\_\+type results)
+\item 
+\mbox{\Hypertarget{classHttpsSession_a80f5514d9095837fea7c94184bb67aeb}\label{classHttpsSession_a80f5514d9095837fea7c94184bb67aeb}} 
+void {\bfseries on\+\_\+connect} (beast\+::error\+\_\+code ec, tcp\+::resolver\+::results\+\_\+type\+::endpoint\+\_\+type)
+\item 
+\mbox{\Hypertarget{classHttpsSession_a849183015cd78527cf608ddb2ab7b42d}\label{classHttpsSession_a849183015cd78527cf608ddb2ab7b42d}} 
+void {\bfseries on\+\_\+handshake} (beast\+::error\+\_\+code ec)
+\item 
+\mbox{\Hypertarget{classHttpsSession_abc252fd5d5c57154e752411edbe480f6}\label{classHttpsSession_abc252fd5d5c57154e752411edbe480f6}} 
+void {\bfseries on\+\_\+write} (beast\+::error\+\_\+code ec, std\+::size\+\_\+t bytes\+\_\+transferred)
+\item 
+\mbox{\Hypertarget{classHttpsSession_a6cb85e977797c3a6cc110f261a4acd14}\label{classHttpsSession_a6cb85e977797c3a6cc110f261a4acd14}} 
+void {\bfseries on\+\_\+read} (beast\+::error\+\_\+code ec, std\+::size\+\_\+t bytes\+\_\+transferred)
+\item 
+\mbox{\Hypertarget{classHttpsSession_acd78929e97191357980dc55cdcf31f3c}\label{classHttpsSession_acd78929e97191357980dc55cdcf31f3c}} 
+void {\bfseries on\+\_\+shutdown} (beast\+::error\+\_\+code ec)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classHttpsSession_ac584471fdc0c8bdccf0c328ed1289736}\label{classHttpsSession_ac584471fdc0c8bdccf0c328ed1289736}} 
+\index{HttpsSession@{HttpsSession}!Run@{Run}}
+\index{Run@{Run}!HttpsSession@{HttpsSession}}
+\doxysubsubsection{\texorpdfstring{Run()}{Run()}}
+{\footnotesize\ttfamily void Https\+Session\+::\+Run (\begin{DoxyParamCaption}\item[{char const $\ast$}]{host,  }\item[{char const $\ast$}]{port,  }\item[{char const $\ast$}]{target,  }\item[{http\+::request$<$ http\+::string\+\_\+body $>$ \&\&}]{req }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+\begin{DoxyParams}{Parameters}
+{\em host} & \\
+\hline
+{\em port} & \\
+\hline
+{\em target} & \\
+\hline
+{\em req} & user must fill request \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/impl/Https\+Impl.\+h\end{DoxyCompactItemize}

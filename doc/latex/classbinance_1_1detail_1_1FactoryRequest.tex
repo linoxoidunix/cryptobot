@@ -1,0 +1,35 @@
+\hypertarget{classbinance_1_1detail_1_1FactoryRequest}{}\doxysection{binance\+::detail\+::Factory\+Request Class Reference}
+\label{classbinance_1_1detail_1_1FactoryRequest}\index{binance::detail::FactoryRequest@{binance::detail::FactoryRequest}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classbinance_1_1detail_1_1FactoryRequest_a08bff6751fadf78d58104f59b03a20b1}\label{classbinance_1_1detail_1_1FactoryRequest_a08bff6751fadf78d58104f59b03a20b1}} 
+{\bfseries Factory\+Request} (const \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}} $\ast$exchange, std\+::string\+\_\+view end\+\_\+point, const \mbox{\hyperlink{classbinance_1_1ArgsQuery}{Args\+Query}} \&args, boost\+::beast\+::http\+::verb action, \mbox{\hyperlink{classSignerI}{SignerI}} $\ast$signer, bool need\+\_\+sign=false)
+\item 
+boost\+::beast\+::http\+::request$<$ boost\+::beast\+::http\+::string\+\_\+body $>$ \mbox{\hyperlink{classbinance_1_1detail_1_1FactoryRequest_a9e63c08cbd90345dbb465efc101d06fc}{operator()}} ()
+\item 
+\mbox{\Hypertarget{classbinance_1_1detail_1_1FactoryRequest_a750e1c81cab6bad8312d45693ad7c044}\label{classbinance_1_1detail_1_1FactoryRequest_a750e1c81cab6bad8312d45693ad7c044}} 
+std\+::string\+\_\+view {\bfseries Host} () const
+\item 
+\mbox{\Hypertarget{classbinance_1_1detail_1_1FactoryRequest_a82f22d95a00681734c365cb4d0dd009c}\label{classbinance_1_1detail_1_1FactoryRequest_a82f22d95a00681734c365cb4d0dd009c}} 
+std\+::string\+\_\+view {\bfseries Port} () const
+\item 
+\mbox{\Hypertarget{classbinance_1_1detail_1_1FactoryRequest_a2b78043fa1864718ef6352ad27ea57ad}\label{classbinance_1_1detail_1_1FactoryRequest_a2b78043fa1864718ef6352ad27ea57ad}} 
+std\+::string\+\_\+view {\bfseries End\+Point} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classbinance_1_1detail_1_1FactoryRequest_a9e63c08cbd90345dbb465efc101d06fc}\label{classbinance_1_1detail_1_1FactoryRequest_a9e63c08cbd90345dbb465efc101d06fc}} 
+\index{binance::detail::FactoryRequest@{binance::detail::FactoryRequest}!operator()@{operator()}}
+\index{operator()@{operator()}!binance::detail::FactoryRequest@{binance::detail::FactoryRequest}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily boost\+::beast\+::http\+::request$<$ boost\+::beast\+::http\+::string\+\_\+body $>$ binance\+::detail\+::\+Factory\+Request\+::operator() (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+API-\/keys are passed into the REST API via the X-\/\+MBX-\/\+APIKEY header.
+
+For POST, PUT, and DELETE endpoints, the parameters may be sent as a query string or in the request body with content type application/x-\/www-\/form-\/urlencoded. You may mix parameters between both the query string and request body if you wish to do so.
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/Binance.\+h\end{DoxyCompactItemize}

@@ -1,0 +1,46 @@
+\hypertarget{classTrading_1_1MarketOrderBookDouble}{}\doxysection{Trading\+::Market\+Order\+Book\+Double Class Reference}
+\label{classTrading_1_1MarketOrderBookDouble}\index{Trading::MarketOrderBookDouble@{Trading::MarketOrderBookDouble}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a75b6f756a0e83a289d65780945267522}\label{classTrading_1_1MarketOrderBookDouble_a75b6f756a0e83a289d65780945267522}} 
+{\bfseries Market\+Order\+Book\+Double} (const \mbox{\hyperlink{structTicker}{Ticker}} \&ticker)
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a5dba7205599de678de1992df1d837255}\label{classTrading_1_1MarketOrderBookDouble_a5dba7205599de678de1992df1d837255}} 
+auto {\bfseries On\+Market\+Update} (const \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{Exchange\+::\+MEMarket\+Update\+Double}} $\ast$market\+\_\+update) noexcept -\/$>$ void
+\begin{DoxyCompactList}\small\item\em Process market data update and update the limit order book. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a946bf5ff195687ddc8e095aa1d2c8f5f}\label{classTrading_1_1MarketOrderBookDouble_a946bf5ff195687ddc8e095aa1d2c8f5f}} 
+auto {\bfseries Set\+Trade\+Engine} (\mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} $\ast$trade\+\_\+engine)
+\item 
+auto \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble_aabec1bd1a718c58d5f4ea755c5228cce}{update\+BBO}} (bool update\+\_\+bid, bool update\+\_\+ask) noexcept
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a9653c95ee16b9b8ed5a000d7ad33e2bd}\label{classTrading_1_1MarketOrderBookDouble_a9653c95ee16b9b8ed5a000d7ad33e2bd}} 
+auto {\bfseries get\+BBO} () noexcept -\/$>$ const \mbox{\hyperlink{structTrading_1_1BBODouble}{BBODouble}} $\ast$
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a057a28a5e66ff05d062653cc9b60cb4f}\label{classTrading_1_1MarketOrderBookDouble_a057a28a5e66ff05d062653cc9b60cb4f}} 
+{\bfseries Market\+Order\+Book\+Double} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&)=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_aeb0b0ee4b854d473b23fc7b4965fc77f}\label{classTrading_1_1MarketOrderBookDouble_aeb0b0ee4b854d473b23fc7b4965fc77f}} 
+{\bfseries Market\+Order\+Book\+Double} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_a665c444addb459416c00f35a31d18c6d}\label{classTrading_1_1MarketOrderBookDouble_a665c444addb459416c00f35a31d18c6d}} 
+\mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Market\+Order\+Book\+Double}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_ac5d5bcf3f95ac52e5def3c0699784aed}\label{classTrading_1_1MarketOrderBookDouble_ac5d5bcf3f95ac52e5def3c0699784aed}} 
+\mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Market\+Order\+Book\+Double}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{Market\+Order\+Book}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTrading_1_1MarketOrderBookDouble_aabec1bd1a718c58d5f4ea755c5228cce}\label{classTrading_1_1MarketOrderBookDouble_aabec1bd1a718c58d5f4ea755c5228cce}} 
+\index{Trading::MarketOrderBookDouble@{Trading::MarketOrderBookDouble}!updateBBO@{updateBBO}}
+\index{updateBBO@{updateBBO}!Trading::MarketOrderBookDouble@{Trading::MarketOrderBookDouble}}
+\doxysubsubsection{\texorpdfstring{updateBBO()}{updateBBO()}}
+{\footnotesize\ttfamily auto Trading\+::\+Market\+Order\+Book\+Double\+::update\+BBO (\begin{DoxyParamCaption}\item[{bool}]{update\+\_\+bid,  }\item[{bool}]{update\+\_\+ask }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Update the \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} abstraction, the two boolean parameters represent if the buy or the sekk (or both) sides or both need to be updated. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/market\+\_\+order\+\_\+book.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/market\+\_\+order\+\_\+book.\+cpp\end{DoxyCompactItemize}

@@ -1,0 +1,85 @@
+\hypertarget{structTrading_1_1PositionInfo}{}\doxysection{Trading\+::Position\+Info Struct Reference}
+\label{structTrading_1_1PositionInfo}\index{Trading::PositionInfo@{Trading::PositionInfo}}
+
+
+{\ttfamily \#include $<$position\+\_\+keeper.\+h$>$}
+
+
+
+Collaboration diagram for Trading\+::Position\+Info\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=196pt]{structTrading_1_1PositionInfo__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a47a4059999cf38514b6469d049449382}\label{structTrading_1_1PositionInfo_a47a4059999cf38514b6469d049449382}} 
+auto {\bfseries To\+String} () const
+\item 
+auto \mbox{\hyperlink{structTrading_1_1PositionInfo_ad5e20c88bf2396f68f0b72339b10e90d}{add\+Fill}} (const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$client\+\_\+response) noexcept
+\begin{DoxyCompactList}\small\item\em add only filled order. it is regulate from trade\+\_\+engine.\+cpp Process an execution and update the position, pnl and volume. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{structTrading_1_1PositionInfo_a6ad0af4d61a0750fc8044a8a5dadea9e}{update\+BBO}} (const \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading\+::\+BBODouble}} $\ast$\+\_\+bbo) noexcept
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a7e5ac1e599e9cd71520aacb61f71ed07}\label{structTrading_1_1PositionInfo_a7e5ac1e599e9cd71520aacb61f71ed07}} 
+double {\bfseries position} = 0
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a75389af290e8cd9316eae57b5f932627}\label{structTrading_1_1PositionInfo_a75389af290e8cd9316eae57b5f932627}} 
+double {\bfseries real\+\_\+pnl} = 0
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a76420df0f8f5850e123f980faa9e1f13}\label{structTrading_1_1PositionInfo_a76420df0f8f5850e123f980faa9e1f13}} 
+double {\bfseries unreal\+\_\+pnl} = 0
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a725472ba05129c6e61db9f13d516ba68}\label{structTrading_1_1PositionInfo_a725472ba05129c6e61db9f13d516ba68}} 
+double {\bfseries total\+\_\+pnl} = 0
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_aa8aa5467bd44948347efb5834d7380fe}\label{structTrading_1_1PositionInfo_aa8aa5467bd44948347efb5834d7380fe}} 
+std\+::array$<$ double, side\+To\+Index(Side\+::\+MAX)+1 $>$ {\bfseries open\+\_\+vwap}
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a3076a70b2a8f71ada36548f01ba8a1ff}\label{structTrading_1_1PositionInfo_a3076a70b2a8f71ada36548f01ba8a1ff}} 
+double {\bfseries volume} = 0
+\item 
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a19ae399a106c033aaad9ff6c88ad96bd}\label{structTrading_1_1PositionInfo_a19ae399a106c033aaad9ff6c88ad96bd}} 
+const \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading\+::\+BBODouble}} $\ast$ {\bfseries bbo} = nullptr
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{structTrading_1_1PositionInfo}{Position\+Info}} tracks the position, pnl (realized and unrealized) and volume for a single trading instrument. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_ad5e20c88bf2396f68f0b72339b10e90d}\label{structTrading_1_1PositionInfo_ad5e20c88bf2396f68f0b72339b10e90d}} 
+\index{Trading::PositionInfo@{Trading::PositionInfo}!addFill@{addFill}}
+\index{addFill@{addFill}!Trading::PositionInfo@{Trading::PositionInfo}}
+\doxysubsubsection{\texorpdfstring{addFill()}{addFill()}}
+{\footnotesize\ttfamily auto Trading\+::\+Position\+Info\+::add\+Fill (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$}]{client\+\_\+response }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+add only filled order. it is regulate from trade\+\_\+engine.\+cpp Process an execution and update the position, pnl and volume. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em client\+\_\+response} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+auto 
+\end{DoxyReturn}
+\mbox{\Hypertarget{structTrading_1_1PositionInfo_a6ad0af4d61a0750fc8044a8a5dadea9e}\label{structTrading_1_1PositionInfo_a6ad0af4d61a0750fc8044a8a5dadea9e}} 
+\index{Trading::PositionInfo@{Trading::PositionInfo}!updateBBO@{updateBBO}}
+\index{updateBBO@{updateBBO}!Trading::PositionInfo@{Trading::PositionInfo}}
+\doxysubsubsection{\texorpdfstring{updateBBO()}{updateBBO()}}
+{\footnotesize\ttfamily auto Trading\+::\+Position\+Info\+::update\+BBO (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading\+::\+BBODouble}} $\ast$}]{\+\_\+bbo }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Process a change in top-\/of-\/book prices (\mbox{\hyperlink{structTrading_1_1BBO}{BBO}}), and update unrealized pnl if there is an open position. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/position\+\_\+keeper.\+h\end{DoxyCompactItemize}

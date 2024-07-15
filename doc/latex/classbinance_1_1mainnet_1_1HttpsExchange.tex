@@ -1,0 +1,89 @@
+\hypertarget{classbinance_1_1mainnet_1_1HttpsExchange}{}\doxysection{binance\+::mainnet\+::Https\+Exchange Class Reference}
+\label{classbinance_1_1mainnet_1_1HttpsExchange}\index{binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}}
+
+
+Inheritance diagram for binance\+::mainnet\+::Https\+Exchange\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=261pt]{classbinance_1_1mainnet_1_1HttpsExchange__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for binance\+::mainnet\+::Https\+Exchange\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=261pt]{classbinance_1_1mainnet_1_1HttpsExchange__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange_a5af51e430b22e8eeeecff64884b2065d}{Https\+Exchange}} (std\+::uint64\+\_\+t recv\+\_\+window=5000)
+\begin{DoxyCompactList}\small\item\em Construct a new \mbox{\hyperlink{classHttps}{Https}} Exchange object. \end{DoxyCompactList}\item 
+std\+::string\+\_\+view \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange_a7faf2672bd0539fa18f01620e6c6162b}{Host}} () const override
+\item 
+std\+::string\+\_\+view \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange_ac09470215f9c74ed14fd4802b45478f0}{Port}} () const override
+\item 
+std\+::uint64\+\_\+t \mbox{\hyperlink{classbinance_1_1mainnet_1_1HttpsExchange_a13f9ea7f95f9df1f6a784aa0d135cc5f}{Recv\+Window}} () const override
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classbinance_1_1mainnet_1_1HttpsExchange_a5af51e430b22e8eeeecff64884b2065d}\label{classbinance_1_1mainnet_1_1HttpsExchange_a5af51e430b22e8eeeecff64884b2065d}} 
+\index{binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}!HttpsExchange@{HttpsExchange}}
+\index{HttpsExchange@{HttpsExchange}!binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{HttpsExchange()}{HttpsExchange()}}
+{\footnotesize\ttfamily binance\+::mainnet\+::\+Https\+Exchange\+::\+Https\+Exchange (\begin{DoxyParamCaption}\item[{std\+::uint64\+\_\+t}]{recv\+\_\+window = {\ttfamily 5000} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Construct a new \mbox{\hyperlink{classHttps}{Https}} Exchange object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em recv\+\_\+window} & \href{https://binance-docs.github.io/apidocs/spot/en/\#endpoint-security-type}{\texttt{ https\+://binance-\/docs.\+github.\+io/apidocs/spot/en/\#endpoint-\/security-\/type}} An additional parameter, recv\+Window, may be sent to specify the number of milliseconds after timestamp the request is valid for. If recv\+Window is not sent, it defaults to 5000. \\
+\hline
+\end{DoxyParams}
+\href{https://binance-docs.github.io/apidocs/spot/en/\#endpoint-security-type}{\texttt{ https\+://binance-\/docs.\+github.\+io/apidocs/spot/en/\#endpoint-\/security-\/type}} It is recommended to use a small recv\+Window of 5000 or less! The max cannot go beyond 60,000!
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classbinance_1_1mainnet_1_1HttpsExchange_a7faf2672bd0539fa18f01620e6c6162b}\label{classbinance_1_1mainnet_1_1HttpsExchange_a7faf2672bd0539fa18f01620e6c6162b}} 
+\index{binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}!Host@{Host}}
+\index{Host@{Host}!binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{Host()}{Host()}}
+{\footnotesize\ttfamily std\+::string\+\_\+view binance\+::mainnet\+::\+Https\+Exchange\+::\+Host (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+\mbox{\Hypertarget{classbinance_1_1mainnet_1_1HttpsExchange_ac09470215f9c74ed14fd4802b45478f0}\label{classbinance_1_1mainnet_1_1HttpsExchange_ac09470215f9c74ed14fd4802b45478f0}} 
+\index{binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}!Port@{Port}}
+\index{Port@{Port}!binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{Port()}{Port()}}
+{\footnotesize\ttfamily std\+::string\+\_\+view binance\+::mainnet\+::\+Https\+Exchange\+::\+Port (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+\mbox{\Hypertarget{classbinance_1_1mainnet_1_1HttpsExchange_a13f9ea7f95f9df1f6a784aa0d135cc5f}\label{classbinance_1_1mainnet_1_1HttpsExchange_a13f9ea7f95f9df1f6a784aa0d135cc5f}} 
+\index{binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}!RecvWindow@{RecvWindow}}
+\index{RecvWindow@{RecvWindow}!binance::mainnet::HttpsExchange@{binance::mainnet::HttpsExchange}}
+\doxysubsubsection{\texorpdfstring{RecvWindow()}{RecvWindow()}}
+{\footnotesize\ttfamily std\+::uint64\+\_\+t binance\+::mainnet\+::\+Https\+Exchange\+::\+Recv\+Window (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Implements \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/Binance.\+h\end{DoxyCompactItemize}

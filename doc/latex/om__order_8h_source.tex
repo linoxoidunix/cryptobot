@@ -1,0 +1,65 @@
+\hypertarget{om__order_8h_source}{}\doxysection{om\+\_\+order.\+h}
+\label{om__order_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/om\_order.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/om\_order.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <array>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <sstream>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}ankerl/unordered\_dense.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{7 }
+\DoxyCodeLine{8 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{10   \textcolor{keyword}{enum class} OMOrderState : int8\_t \{}
+\DoxyCodeLine{15     INVALID = 0,}
+\DoxyCodeLine{20     PENDING\_NEW = 1,}
+\DoxyCodeLine{25     LIVE = 2,}
+\DoxyCodeLine{30     PENDING\_CANCEL = 3,}
+\DoxyCodeLine{35     DEAD = 4}
+\DoxyCodeLine{36   \};}
+\DoxyCodeLine{37 }
+\DoxyCodeLine{38   \textcolor{keyword}{inline} \textcolor{keyword}{auto} OMOrderStateToString(OMOrderState side) -\/> std::string \{}
+\DoxyCodeLine{39     \textcolor{keywordflow}{switch} (side) \{}
+\DoxyCodeLine{40       \textcolor{keywordflow}{case} OMOrderState::PENDING\_NEW:}
+\DoxyCodeLine{41         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}PENDING\_NEW"{}};}
+\DoxyCodeLine{42       \textcolor{keywordflow}{case} OMOrderState::LIVE:}
+\DoxyCodeLine{43         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}LIVE"{}};}
+\DoxyCodeLine{44       \textcolor{keywordflow}{case} OMOrderState::PENDING\_CANCEL:}
+\DoxyCodeLine{45         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}PENDING\_CANCEL"{}};}
+\DoxyCodeLine{46       \textcolor{keywordflow}{case} OMOrderState::DEAD:}
+\DoxyCodeLine{47         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}DEAD"{}};}
+\DoxyCodeLine{48       \textcolor{keywordflow}{case} OMOrderState::INVALID:}
+\DoxyCodeLine{49         \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{50     \}}
+\DoxyCodeLine{51     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{52   \}}
+\DoxyCodeLine{53 }
+\DoxyCodeLine{55   \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1OMOrder}{OMOrder}} \{}
+\DoxyCodeLine{56     std::string ticker;}
+\DoxyCodeLine{57     Common::OrderId order\_id = Common::OrderId\_INVALID;}
+\DoxyCodeLine{58     Common::Side side = Common::Side::INVALID;}
+\DoxyCodeLine{59     \textcolor{keywordtype}{double} price = Common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{60     \textcolor{keywordtype}{double} qty = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{61     OMOrderState state = OMOrderState::INVALID;}
+\DoxyCodeLine{62 }
+\DoxyCodeLine{63     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{64       std::stringstream ss;}
+\DoxyCodeLine{65       ss << \textcolor{stringliteral}{"{}OMOrder"{}} << \textcolor{stringliteral}{"{}["{}}}
+\DoxyCodeLine{66          << \textcolor{stringliteral}{"{}tid:"{}} << ticker << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{67          << \textcolor{stringliteral}{"{}oid:"{}} << Common::orderIdToString(order\_id) << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{68          << \textcolor{stringliteral}{"{}side:"{}} << Common::sideToString(side) << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{69          << \textcolor{stringliteral}{"{}price:"{}} << price << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{70          << \textcolor{stringliteral}{"{}qty:"{}} << qty << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{71          << \textcolor{stringliteral}{"{}state:"{}} << OMOrderStateToString(state) << \textcolor{stringliteral}{"{}]"{}};}
+\DoxyCodeLine{72 }
+\DoxyCodeLine{73       \textcolor{keywordflow}{return} ss.str();}
+\DoxyCodeLine{74     \}}
+\DoxyCodeLine{75   \};}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{78   \textcolor{keyword}{using }OMOrderSideHashMap = std::array<\mbox{\hyperlink{structTrading_1_1OMOrder}{Trading::OMOrder}}, sideToIndex(Common::Side::MAX) + 1>;}
+\DoxyCodeLine{79 }
+\DoxyCodeLine{81   \textcolor{keyword}{using }OMOrderTickerSideHashMap = ankerl::unordered\_dense::map<std::string, OMOrderSideHashMap>;}
+\DoxyCodeLine{82   \textcolor{keyword}{using }OMOrders = ankerl::unordered\_dense::map<Common::OrderId, Trading::OMOrder>;}
+\DoxyCodeLine{83 \}}
+
+\end{DoxyCode}

@@ -1,0 +1,39 @@
+\hypertarget{classbybit_1_1detail_1_1FactoryRequest}{}\doxysection{bybit\+::detail\+::Factory\+Request Class Reference}
+\label{classbybit_1_1detail_1_1FactoryRequest}\index{bybit::detail::FactoryRequest@{bybit::detail::FactoryRequest}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classbybit_1_1detail_1_1FactoryRequest_adaaf05e0e2f464a64a68a7e67e28aab3}\label{classbybit_1_1detail_1_1FactoryRequest_adaaf05e0e2f464a64a68a7e67e28aab3}} 
+{\bfseries Factory\+Request} (const \mbox{\hyperlink{classhttps_1_1ExchangeI}{https\+::\+ExchangeI}} $\ast$exchange, std\+::string\+\_\+view end\+\_\+point, \mbox{\hyperlink{classbybit_1_1ArgsBody}{Args\+Body}} args, boost\+::beast\+::http\+::verb action, \mbox{\hyperlink{classSignerI}{SignerI}} $\ast$signer, bool need\+\_\+sign=false)
+\item 
+boost\+::beast\+::http\+::request$<$ boost\+::beast\+::http\+::string\+\_\+body $>$ \mbox{\hyperlink{classbybit_1_1detail_1_1FactoryRequest_a384173c4eb72ebe03364ec050f52b49e}{operator()}} ()
+\item 
+\mbox{\Hypertarget{classbybit_1_1detail_1_1FactoryRequest_a0ae7a49992627df5bf161391f6857e32}\label{classbybit_1_1detail_1_1FactoryRequest_a0ae7a49992627df5bf161391f6857e32}} 
+std\+::string\+\_\+view {\bfseries Host} () const
+\item 
+\mbox{\Hypertarget{classbybit_1_1detail_1_1FactoryRequest_aedc331c4a1850750c9c708ed7e0a80a1}\label{classbybit_1_1detail_1_1FactoryRequest_aedc331c4a1850750c9c708ed7e0a80a1}} 
+std\+::string\+\_\+view {\bfseries Port} () const
+\item 
+\mbox{\Hypertarget{classbybit_1_1detail_1_1FactoryRequest_a0efc3cbd872c68568697c90d6c452a8a}\label{classbybit_1_1detail_1_1FactoryRequest_a0efc3cbd872c68568697c90d6c452a8a}} 
+std\+::string\+\_\+view {\bfseries End\+Point} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classbybit_1_1detail_1_1FactoryRequest_a384173c4eb72ebe03364ec050f52b49e}\label{classbybit_1_1detail_1_1FactoryRequest_a384173c4eb72ebe03364ec050f52b49e}} 
+\index{bybit::detail::FactoryRequest@{bybit::detail::FactoryRequest}!operator()@{operator()}}
+\index{operator()@{operator()}!bybit::detail::FactoryRequest@{bybit::detail::FactoryRequest}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily boost\+::beast\+::http\+::request$<$ boost\+::beast\+::http\+::string\+\_\+body $>$ bybit\+::detail\+::\+Factory\+Request\+::operator() (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\href{https://bybit-exchange.github.io/docs/v5/guide\#parameters-for-authenticated-endpoints}{\texttt{ https\+://bybit-\/exchange.\+github.\+io/docs/v5/guide\#parameters-\/for-\/authenticated-\/endpoints}} Basic steps\+: 1) timestamp + API key + (recv\+\_\+window) + (query\+String $\vert$ json\+Body\+String)
+
+2) Use the HMAC\+\_\+\+SHA256 or RSA\+\_\+\+SHA256 algorithm to sign the string in step 1, and convert it to a hex string (HMAC\+\_\+\+SHA256) / base64 (RSA\+\_\+\+SHA256) to obtain the sign parameter.
+
+API-\/keys are passed into the REST API via the X-\/\+MBX-\/\+APIKEY header.
+
+For POST, PUT, and DELETE endpoints, the parameters may be sent as a query string or in the request body with content type application/x-\/www-\/form-\/urlencoded. You may mix parameters between both the query string and request body if you wish to do so.
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/Bybit.\+h\end{DoxyCompactItemize}

@@ -1,0 +1,54 @@
+\hypertarget{structTrading_1_1MarketOrder}{}\doxysection{Trading\+::Market\+Order Struct Reference}
+\label{structTrading_1_1MarketOrder}\index{Trading::MarketOrder@{Trading::MarketOrder}}
+
+
+{\ttfamily \#include $<$market\+\_\+order.\+h$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}{Market\+Order}} ()=default
+\begin{DoxyCompactList}\small\item\em Only needed for use with Mem\+Pool. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_a55bb7753e07706a21d16916b0654482f}\label{structTrading_1_1MarketOrder_a55bb7753e07706a21d16916b0654482f}} 
+{\bfseries Market\+Order} (Common\+::\+Order\+Id order\+\_\+id, Common\+::\+Side side, Common\+::\+Price price, Common\+::\+Qty qty) noexcept
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_a65eb2ce3defdb417619a450cd8bdfee9}\label{structTrading_1_1MarketOrder_a65eb2ce3defdb417619a450cd8bdfee9}} 
+auto {\bfseries to\+String} () const -\/$>$ std\+::string
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_af32187608cd3179e4768ef70f3da5f1c}\label{structTrading_1_1MarketOrder_af32187608cd3179e4768ef70f3da5f1c}} 
+Common\+::\+Order\+Id {\bfseries order\+\_\+id\+\_\+} = Common\+::\+Order\+Id\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_aa9f9fa92c57f4221c6922969962b0e4e}\label{structTrading_1_1MarketOrder_aa9f9fa92c57f4221c6922969962b0e4e}} 
+Common\+::\+Side {\bfseries side\+\_\+} = Common\+::\+Side\+::\+INVALID
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_aa3ae733e274536b599ea4e9c77f6ebb9}\label{structTrading_1_1MarketOrder_aa3ae733e274536b599ea4e9c77f6ebb9}} 
+Common\+::\+Price {\bfseries price\+\_\+} = Common\+::\+Price\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_a7b4e036cd9d631c077f1b971e840fdfe}\label{structTrading_1_1MarketOrder_a7b4e036cd9d631c077f1b971e840fdfe}} 
+Common\+::\+Qty {\bfseries qty\+\_\+} = Common\+::\+Qty\+\_\+\+INVALID
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Used by the trade engine to represent a single order in the limit order book. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}\label{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}} 
+\index{Trading::MarketOrder@{Trading::MarketOrder}!MarketOrder@{MarketOrder}}
+\index{MarketOrder@{MarketOrder}!Trading::MarketOrder@{Trading::MarketOrder}}
+\doxysubsubsection{\texorpdfstring{MarketOrder()}{MarketOrder()}}
+{\footnotesize\ttfamily Trading\+::\+Market\+Order\+::\+Market\+Order (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [default]}}
+
+
+
+Only needed for use with Mem\+Pool. 
+
+\mbox{\hyperlink{structTrading_1_1MarketOrder}{Market\+Order}} also serves as a node in a doubly linked list of all orders at price level arranged in FIFO order. 
+
+The documentation for this struct was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/market\+\_\+order.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/market\+\_\+order.\+cpp\end{DoxyCompactItemize}

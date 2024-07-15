@@ -34,7 +34,7 @@ class BaseStrategy {
     /**
      * Process client responses for the strategy's orders.
      */
-    auto OnOrderUpdate(
+    auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void {
         order_manager_->OnOrderResponse(client_response);
         wallet_.Update(client_response);

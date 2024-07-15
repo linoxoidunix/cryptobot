@@ -1,0 +1,57 @@
+\hypertarget{structExchange_1_1MEClientResponse}{}\doxysection{Exchange\+::MEClient\+Response Struct Reference}
+\label{structExchange_1_1MEClientResponse}\index{Exchange::MEClientResponse@{Exchange::MEClientResponse}}
+
+
+Client response structure used internally by the matching engine.  
+
+
+
+
+{\ttfamily \#include $<$client\+\_\+response.\+h$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a074854ea725c88909e12c5dbec4ca7bf}\label{structExchange_1_1MEClientResponse_a074854ea725c88909e12c5dbec4ca7bf}} 
+using {\bfseries Price\+Qty} = std\+::pair$<$ double, double $>$
+\begin{DoxyCompactList}\small\item\em Price\+Qty first -\/ price, second -\/ qty. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a6221eca0f979dcd9b964033e094dd111}\label{structExchange_1_1MEClientResponse_a6221eca0f979dcd9b964033e094dd111}} 
+auto {\bfseries To\+String} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a5378c02668d18a35d9aeb5b4683650d0}\label{structExchange_1_1MEClientResponse_a5378c02668d18a35d9aeb5b4683650d0}} 
+\mbox{\hyperlink{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}{Client\+Response\+Type}} {\bfseries type} = Client\+Response\+Type\+::\+INVALID
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_ac184bbceb3ceb09c7b870da780767108}\label{structExchange_1_1MEClientResponse_ac184bbceb3ceb09c7b870da780767108}} 
+std\+::string {\bfseries ticker}
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_aec71de2ea0698f2047518fee50194dbf}\label{structExchange_1_1MEClientResponse_aec71de2ea0698f2047518fee50194dbf}} 
+Common\+::\+Order\+Id {\bfseries order\+\_\+id} = Common\+::\+Order\+Id\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a6e59b3aabeea8bb57a10e3bb1018ff7e}\label{structExchange_1_1MEClientResponse_a6e59b3aabeea8bb57a10e3bb1018ff7e}} 
+Common\+::\+Side {\bfseries side} = Common\+::\+Side\+::\+INVALID
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a954d8c37401a563579318d3deaae48e7}\label{structExchange_1_1MEClientResponse_a954d8c37401a563579318d3deaae48e7}} 
+double {\bfseries price} = Common\+::k\+PRICE\+\_\+\+DOUBLE\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a25362e4ee2da08e07e74cdf6e94da875}\label{structExchange_1_1MEClientResponse_a25362e4ee2da08e07e74cdf6e94da875}} 
+double {\bfseries exec\+\_\+qty} = Common\+::k\+QTY\+\_\+\+DOUBLE\+\_\+\+INVALID
+\item 
+\mbox{\Hypertarget{structExchange_1_1MEClientResponse_a2f8aa8c2a7c2a79b8feb675719a11aba}\label{structExchange_1_1MEClientResponse_a2f8aa8c2a7c2a79b8feb675719a11aba}} 
+double {\bfseries leaves\+\_\+qty} = Common\+::k\+QTY\+\_\+\+DOUBLE\+\_\+\+INVALID
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Client response structure used internally by the matching engine. 
+
+These structures go over the wire / network, so the binary structures are packed to remove system dependent extra padding. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/\mbox{\hyperlink{client__response_8h}{client\+\_\+response.\+h}}\end{DoxyCompactItemize}

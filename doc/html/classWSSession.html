@@ -90,9 +90,9 @@ Collaboration diagram for WSSession:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aaffb41413a847c830899621457cf94d6"><td class="memItemLeft" align="right" valign="top"><a id="aaffb41413a847c830899621457cf94d6" name="aaffb41413a847c830899621457cf94d6"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>WSSession</b> (net::io_context &amp;ioc, ssl::context &amp;ctx, <a class="el" href="classLoggerI.html">LoggerI</a> *logger)</td></tr>
-<tr class="separator:aaffb41413a847c830899621457cf94d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a515389be608e42e182c4ad20717b58f6"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classWSSession.html#a515389be608e42e182c4ad20717b58f6">WSSession</a> (net::io_context &amp;ioc, ssl::context &amp;ctx, std::string_view request_json, OnMessage om_msg_cb)</td></tr>
+<tr class="memdesc:a515389be608e42e182c4ad20717b58f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a new <a class="el" href="classWSSession.html">WSSession</a> object.  <a href="classWSSession.html#a515389be608e42e182c4ad20717b58f6">More...</a><br /></td></tr>
+<tr class="separator:a515389be608e42e182c4ad20717b58f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a899e91dc9eddc4e458dc625dee58b096"><td class="memItemLeft" align="right" valign="top"><a id="a899e91dc9eddc4e458dc625dee58b096" name="a899e91dc9eddc4e458dc625dee58b096"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (char const *host, char const *port, char const *end_point)</td></tr>
 <tr class="separator:a899e91dc9eddc4e458dc625dee58b096"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -108,12 +108,75 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>on_ssl_handshake</b> 
 <tr class="memitem:a1396fef77db260c34df9c674beaf511f"><td class="memItemLeft" align="right" valign="top"><a id="a1396fef77db260c34df9c674beaf511f" name="a1396fef77db260c34df9c674beaf511f"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>on_handshake</b> (beast::error_code ec)</td></tr>
 <tr class="separator:a1396fef77db260c34df9c674beaf511f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af07e1702e52c4653c6b5f2bd0cb217f2"><td class="memItemLeft" align="right" valign="top"><a id="af07e1702e52c4653c6b5f2bd0cb217f2" name="af07e1702e52c4653c6b5f2bd0cb217f2"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>on_write</b> (beast::error_code ec, std::size_t bytes_transferred)</td></tr>
+<tr class="separator:af07e1702e52c4653c6b5f2bd0cb217f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a44ade1899976679aa758c3a6dbbe5b54"><td class="memItemLeft" align="right" valign="top"><a id="a44ade1899976679aa758c3a6dbbe5b54" name="a44ade1899976679aa758c3a6dbbe5b54"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>on_read</b> (beast::error_code ec, std::size_t bytes_transferred)</td></tr>
 <tr class="separator:a44ade1899976679aa758c3a6dbbe5b54"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="a515389be608e42e182c4ad20717b58f6" name="a515389be608e42e182c4ad20717b58f6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a515389be608e42e182c4ad20717b58f6">&#9670;&nbsp;</a></span>WSSession()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">WSSession::WSSession </td>
+          <td>(</td>
+          <td class="paramtype">net::io_context &amp;&#160;</td>
+          <td class="paramname"><em>ioc</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ssl::context &amp;&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>request_json</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">OnMessage&#160;</td>
+          <td class="paramname"><em>om_msg_cb</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Construct a new <a class="el" href="classWSSession.html">WSSession</a> object. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ioc</td><td></td></tr>
+    <tr><td class="paramname">ctx</td><td></td></tr>
+    <tr><td class="paramname">logger</td><td></td></tr>
+    <tr><td class="paramname">request_json</td><td>if no need request than request_json={} </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/WSImpl/<a class="el" href="WSImpl_8h_source.html">WSImpl.h</a></li>
+<li>/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/impl/<a class="el" href="WSImpl_8h_source.html">WSImpl.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

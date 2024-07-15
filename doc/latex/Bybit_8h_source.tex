@@ -1,0 +1,465 @@
+\hypertarget{Bybit_8h_source}{}\doxysection{Bybit.\+h}
+\label{Bybit_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Bybit.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Bybit.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <openssl/hmac.h>}}
+\DoxyCodeLine{3 }
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <boost/beast/http.hpp>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/beast/http/message.hpp>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <boost/beast/version.hpp>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{10 \textcolor{preprocessor}{\#include <utility>}}
+\DoxyCodeLine{11 }
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include "{}aot/Https.h"{}}}
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include "{}aot/WS.h"{}}}
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__request_8h}{aot/client\_request.h}}"{}}}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{18 \textcolor{keyword}{namespace }bybit \{}
+\DoxyCodeLine{19 \textcolor{keyword}{enum class} Type \{ LIMIT, MARKET \};}
+\DoxyCodeLine{20 \textcolor{keyword}{enum class} TimeInForce \{ GTC, IOC, FOK, POST\_ONLY \};}
+\DoxyCodeLine{21 }
+\DoxyCodeLine{22 \textcolor{keyword}{namespace }testnet \{}
+\DoxyCodeLine{23 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1testnet_1_1HttpsExchange}{HttpsExchange}} : \textcolor{keyword}{public} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}} \{}
+\DoxyCodeLine{24   \textcolor{keyword}{public}:}
+\DoxyCodeLine{34     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1testnet_1_1HttpsExchange_ab4813d1eb96f46b6e5bd8523266e5bb8}{HttpsExchange}}(std::uint64\_t recv\_window = 5000)}
+\DoxyCodeLine{35         : recv\_window\_(recv\_window) \{}
+\DoxyCodeLine{36         recv\_window\_ = (recv\_window > 5000) ? 5000 : recv\_window;}
+\DoxyCodeLine{37     \};}
+\DoxyCodeLine{38 }
+\DoxyCodeLine{39     \mbox{\hyperlink{classbybit_1_1testnet_1_1HttpsExchange}{\string~HttpsExchange}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{40     std::string\_view Host()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{41         \textcolor{keywordflow}{return} std::string\_view(\textcolor{stringliteral}{"{}api-\/testnet.bybit.com"{}});}
+\DoxyCodeLine{42     \};}
+\DoxyCodeLine{43     std::string\_view Port()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}443"{}}; \};}
+\DoxyCodeLine{44     std::uint64\_t RecvWindow()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} recv\_window\_; \};}
+\DoxyCodeLine{45 }
+\DoxyCodeLine{46   \textcolor{keyword}{private}:}
+\DoxyCodeLine{47     std::uint64\_t recv\_window\_;}
+\DoxyCodeLine{48 \};}
+\DoxyCodeLine{49 \};  \textcolor{comment}{// namespace testnet}}
+\DoxyCodeLine{50 }
+\DoxyCodeLine{51 \textcolor{keyword}{namespace }mainnet \{}
+\DoxyCodeLine{52 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange}{HttpsExchange}} : \textcolor{keyword}{public} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}} \{}
+\DoxyCodeLine{53   \textcolor{keyword}{public}:}
+\DoxyCodeLine{63     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange_a3dba9517773d0120cda0080c8f2d3a6e}{HttpsExchange}}(std::uint64\_t recv\_window = 5000) \{}
+\DoxyCodeLine{71         recv\_window\_ = (recv\_window > 5000) ? 5000 : recv\_window;}
+\DoxyCodeLine{72     \};}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{74     \textcolor{keyword}{virtual} \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange}{\string~HttpsExchange}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{75     std::string\_view Host()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{76         \textcolor{keywordflow}{return} std::string\_view(\textcolor{stringliteral}{"{}api.bybit.com"{}});}
+\DoxyCodeLine{77     \};}
+\DoxyCodeLine{78     std::string\_view Port()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}443"{}}; \};}
+\DoxyCodeLine{79     std::uint64\_t RecvWindow()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} recv\_window\_; \};}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81   \textcolor{keyword}{private}:}
+\DoxyCodeLine{82     std::uint64\_t recv\_window\_;}
+\DoxyCodeLine{83 \};}
+\DoxyCodeLine{84 \};  \textcolor{comment}{// namespace mainnet}}
+\DoxyCodeLine{85 }
+\DoxyCodeLine{86 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1ExchangeChooser}{ExchangeChooser}} \{}
+\DoxyCodeLine{87   \textcolor{keyword}{public}:}
+\DoxyCodeLine{88     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1ExchangeChooser}{ExchangeChooser}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{89     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* Get(TypeExchange type\_exchange) \{}
+\DoxyCodeLine{90         \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange;}
+\DoxyCodeLine{91         \textcolor{keywordflow}{switch} (type\_exchange) \{}
+\DoxyCodeLine{92             \textcolor{keywordflow}{case} TypeExchange::MAINNET:}
+\DoxyCodeLine{93                 current\_exchange = \&main\_net\_;}
+\DoxyCodeLine{94                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{95             \textcolor{keywordflow}{case} TypeExchange::TESTNET:}
+\DoxyCodeLine{96             \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{97                 current\_exchange = \&test\_net\_;}
+\DoxyCodeLine{98                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{99         \}}
+\DoxyCodeLine{100         \textcolor{keywordflow}{return} current\_exchange;}
+\DoxyCodeLine{101     \}}
+\DoxyCodeLine{102 }
+\DoxyCodeLine{103   \textcolor{keyword}{private}:}
+\DoxyCodeLine{104     \mbox{\hyperlink{classbybit_1_1testnet_1_1HttpsExchange}{bybit::testnet::HttpsExchange}} test\_net\_;}
+\DoxyCodeLine{105     \mbox{\hyperlink{classbybit_1_1mainnet_1_1HttpsExchange}{bybit::mainnet::HttpsExchange}} main\_net\_;}
+\DoxyCodeLine{106 \};}
+\DoxyCodeLine{107 }
+\DoxyCodeLine{108 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}} : \textcolor{keyword}{public} \mbox{\hyperlink{classSymbolI}{SymbolI}} \{}
+\DoxyCodeLine{109   \textcolor{keyword}{public}:}
+\DoxyCodeLine{110     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}}(std::string\_view first, std::string\_view second)}
+\DoxyCodeLine{111         : first\_(first.data()), second\_(second.data())\{\};}
+\DoxyCodeLine{112     std::string ToString()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{113         \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
+\DoxyCodeLine{114         boost::algorithm::to\_upper(out);}
+\DoxyCodeLine{115         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{116     \}}
+\DoxyCodeLine{117 }
+\DoxyCodeLine{118   \textcolor{keyword}{private}:}
+\DoxyCodeLine{119     std::string first\_;}
+\DoxyCodeLine{120     std::string second\_;}
+\DoxyCodeLine{121 \};}
+\DoxyCodeLine{122 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m1}{m1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{123   \textcolor{keyword}{public}:}
+\DoxyCodeLine{124     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m1}{m1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{125     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}1"{}}; \}}
+\DoxyCodeLine{126     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 60;\};}
+\DoxyCodeLine{127 \};}
+\DoxyCodeLine{128 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m3}{m3}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{129   \textcolor{keyword}{public}:}
+\DoxyCodeLine{130     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m3}{m3}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{131     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}3"{}}; \}}
+\DoxyCodeLine{132     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 180;\};}
+\DoxyCodeLine{133 \};}
+\DoxyCodeLine{134 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m5}{m5}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{135   \textcolor{keyword}{public}:}
+\DoxyCodeLine{136     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m5}{m5}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{137     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}5"{}}; \}}
+\DoxyCodeLine{138     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 300;\};}
+\DoxyCodeLine{139 \};}
+\DoxyCodeLine{140 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m15}{m15}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{141   \textcolor{keyword}{public}:}
+\DoxyCodeLine{142     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m15}{m15}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{143     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}15"{}}; \}}
+\DoxyCodeLine{144     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 900;\};}
+\DoxyCodeLine{145 \};}
+\DoxyCodeLine{146 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m60}{m60}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{147   \textcolor{keyword}{public}:}
+\DoxyCodeLine{148     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m60}{m60}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{149     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}30"{}}; \}}
+\DoxyCodeLine{150     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 3600;\};}
+\DoxyCodeLine{151 \};}
+\DoxyCodeLine{152 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m120}{m120}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{153   \textcolor{keyword}{public}:}
+\DoxyCodeLine{154     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m120}{m120}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{155     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}120"{}}; \}}
+\DoxyCodeLine{156     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 7200;\};}
+\DoxyCodeLine{157 \};}
+\DoxyCodeLine{158 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m240}{m240}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{159   \textcolor{keyword}{public}:}
+\DoxyCodeLine{160     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m240}{m240}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{161     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}240"{}}; \}}
+\DoxyCodeLine{162     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 14400;\};}
+\DoxyCodeLine{163 \};}
+\DoxyCodeLine{164 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m360}{m360}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{165   \textcolor{keyword}{public}:}
+\DoxyCodeLine{166     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m360}{m360}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{167     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}360"{}}; \}}
+\DoxyCodeLine{168     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 21600;\};}
+\DoxyCodeLine{169 \};}
+\DoxyCodeLine{170 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1m720}{m720}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{171   \textcolor{keyword}{public}:}
+\DoxyCodeLine{172     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1m720}{m720}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{173     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}720"{}}; \}}
+\DoxyCodeLine{174     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 43200;\};}
+\DoxyCodeLine{175 \};}
+\DoxyCodeLine{176 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1D1}{D1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{177   \textcolor{keyword}{public}:}
+\DoxyCodeLine{178     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1D1}{D1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{179     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}D"{}}; \}}
+\DoxyCodeLine{180     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 86400;\};}
+\DoxyCodeLine{181 \};}
+\DoxyCodeLine{182 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1W1}{W1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{183   \textcolor{keyword}{public}:}
+\DoxyCodeLine{184     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1W1}{W1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{185     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}W"{}}; \}}
+\DoxyCodeLine{186     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 604800;\};}
+\DoxyCodeLine{187 \};}
+\DoxyCodeLine{188 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1M1}{M1}} : \textcolor{keyword}{public} \mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{189   \textcolor{keyword}{public}:}
+\DoxyCodeLine{190     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1M1}{M1}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{191     std::string ToString()\textcolor{keyword}{ const override }\{ \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}M"{}}; \}}
+\DoxyCodeLine{192     uint Seconds()\textcolor{keyword}{ const override }\{\textcolor{keywordflow}{return} 2.628e6;\};}
+\DoxyCodeLine{193 \};}
+\DoxyCodeLine{194 }
+\DoxyCodeLine{195 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1KLineStream}{KLineStream}} : \textcolor{keyword}{public} \mbox{\hyperlink{classKLineStreamI}{KLineStreamI}} \{}
+\DoxyCodeLine{196   \textcolor{keyword}{public}:}
+\DoxyCodeLine{197     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1KLineStream}{KLineStream}}(\textcolor{keyword}{const} \mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}}* s, \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval)}
+\DoxyCodeLine{198         : symbol\_(s), chart\_interval\_(chart\_interval)\{\};}
+\DoxyCodeLine{199     std::string \mbox{\hyperlink{classbybit_1_1KLineStream_a3fb8306c5c2eaa14c850118929be91f2}{ToString}}()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{200         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}kline.\{0\}.\{1\}"{}}, chart\_interval\_-\/>ToString(),}
+\DoxyCodeLine{201                            symbol\_-\/>ToString());}
+\DoxyCodeLine{202     \};}
+\DoxyCodeLine{203 }
+\DoxyCodeLine{204   \textcolor{keyword}{private}:}
+\DoxyCodeLine{205     \textcolor{keyword}{const} \mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}}* symbol\_;}
+\DoxyCodeLine{206     \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval\_;}
+\DoxyCodeLine{207 \};}
+\DoxyCodeLine{208 }
+\DoxyCodeLine{209 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1ParserKLineResponse}{ParserKLineResponse}} : \textcolor{keyword}{public} \mbox{\hyperlink{classParserKLineResponseI}{ParserKLineResponseI}} \{}
+\DoxyCodeLine{210   \textcolor{keyword}{public}:}
+\DoxyCodeLine{211     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1ParserKLineResponse}{ParserKLineResponse}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{212     \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} Get(std::string\_view response\_from\_exchange)\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{213         \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{214     \};}
+\DoxyCodeLine{215 \};}
+\DoxyCodeLine{216 }
+\DoxyCodeLine{217 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1OHLCVI}{OHLCVI}} : \textcolor{keyword}{public} \mbox{\hyperlink{classOHLCVGetter}{OHLCVGetter}} \{}
+\DoxyCodeLine{218   \textcolor{keyword}{public}:}
+\DoxyCodeLine{219     \mbox{\hyperlink{classbybit_1_1OHLCVI}{OHLCVI}}(\textcolor{keyword}{const} \mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}}* s, \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval,}
+\DoxyCodeLine{220            TypeExchange type\_exchange)}
+\DoxyCodeLine{221         : s\_(s),}
+\DoxyCodeLine{222           chart\_interval\_(chart\_interval),}
+\DoxyCodeLine{223           type\_exchange\_(type\_exchange) \{}
+\DoxyCodeLine{224         current\_exchange\_ = exchange\_.Get(type\_exchange);}
+\DoxyCodeLine{225     \};}
+\DoxyCodeLine{226     \textcolor{keywordtype}{void} LaunchOne()\textcolor{keyword}{ override }\{ ioc.run\_one(); \};}
+\DoxyCodeLine{227 }
+\DoxyCodeLine{228     \textcolor{keywordtype}{void} \mbox{\hyperlink{classbybit_1_1OHLCVI_a9add3e8c579fb0cdb51ffa42bfae5973}{Init}}(OHLCVILFQueue\& lf\_queue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{229         std::function<void(boost::beast::flat\_buffer \& buffer)> OnMessageCB;}
+\DoxyCodeLine{230         OnMessageCB = [](boost::beast::flat\_buffer\& buffer) \{}
+\DoxyCodeLine{231             \textcolor{keyword}{auto} resut = boost::beast::buffers\_to\_string(buffer.data());}
+\DoxyCodeLine{232             logi(\textcolor{stringliteral}{"{}\{\}"{}}, resut);}
+\DoxyCodeLine{233             fmtlog::poll();}
+\DoxyCodeLine{234         \};}
+\DoxyCodeLine{235 }
+\DoxyCodeLine{236         \textcolor{keyword}{using }kls = \mbox{\hyperlink{classbybit_1_1KLineStream}{KLineStream}};}
+\DoxyCodeLine{237         kls channel(s\_, chart\_interval\_);}
+\DoxyCodeLine{238         \textcolor{keyword}{auto} request\_without\_bracket = fmt::format(}
+\DoxyCodeLine{239             \textcolor{stringliteral}{"{}\(\backslash\)"{}req\_id\(\backslash\)"{}: \(\backslash\)"{}test\(\backslash\)"{},\(\backslash\)"{}op\(\backslash\)"{}: \(\backslash\)"{}subscribe\(\backslash\)"{}, \(\backslash\)"{}args\(\backslash\)"{}: [\(\backslash\)"{}\{\}\(\backslash\)"{}]"{}},}
+\DoxyCodeLine{240             channel.ToString());}
+\DoxyCodeLine{241         std::string request = \textcolor{stringliteral}{"{}\{"{}} + request\_without\_bracket + \textcolor{stringliteral}{"{}\}"{}};}
+\DoxyCodeLine{242         std::make\_shared<WS>(ioc, request, OnMessageCB)}
+\DoxyCodeLine{243             -\/>Run(\textcolor{stringliteral}{"{}stream-\/testnet.bybit.com"{}}, \textcolor{stringliteral}{"{}443"{}}, \textcolor{stringliteral}{"{}/v5/public/spot"{}});}
+\DoxyCodeLine{244         ioc.run();}
+\DoxyCodeLine{245     \};}
+\DoxyCodeLine{246 }
+\DoxyCodeLine{247   \textcolor{keyword}{private}:}
+\DoxyCodeLine{248     boost::asio::io\_context ioc;}
+\DoxyCodeLine{249     \mbox{\hyperlink{classbybit_1_1ExchangeChooser}{ExchangeChooser}} exchange\_;}
+\DoxyCodeLine{250     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{251     \textcolor{keyword}{const} \mbox{\hyperlink{classbybit_1_1Symbol}{Symbol}}* s\_;}
+\DoxyCodeLine{252     \textcolor{keyword}{const} \mbox{\hyperlink{classChartInterval}{ChartInterval}}* chart\_interval\_;}
+\DoxyCodeLine{253     TypeExchange type\_exchange\_;}
+\DoxyCodeLine{254 \};}
+\DoxyCodeLine{255 }
+\DoxyCodeLine{256 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1Args}{Args}} : \textcolor{keyword}{public} std::unordered\_map<std::string, std::string> \{\};}
+\DoxyCodeLine{257 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbybit_1_1Args}{Args}} \{}
+\DoxyCodeLine{258   \textcolor{keyword}{public}:}
+\DoxyCodeLine{259     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}}() : \mbox{\hyperlink{classbybit_1_1Args}{Args}}()\{\};}
+\DoxyCodeLine{265     \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classbybit_1_1ArgsBody_a65fd7be2a95793f4eb9b550d027a4bcf}{Body}}();}
+\DoxyCodeLine{266 }
+\DoxyCodeLine{267     \textcolor{keyword}{virtual} std::string FinalQueryString() \{ \textcolor{keywordflow}{return} \{\}; \};}
+\DoxyCodeLine{268     \textcolor{keyword}{virtual} \mbox{\hyperlink{classbybit_1_1ArgsBody}{\string~ArgsBody}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{269 \};}
+\DoxyCodeLine{270 }
+\DoxyCodeLine{271 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{272 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1detail_1_1FactoryRequest}{FactoryRequest}} \{}
+\DoxyCodeLine{273   \textcolor{keyword}{public}:}
+\DoxyCodeLine{274     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1detail_1_1FactoryRequest}{FactoryRequest}}(\textcolor{keyword}{const} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* exchange,}
+\DoxyCodeLine{275                             std::string\_view end\_point, \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}} args,}
+\DoxyCodeLine{276                             boost::beast::http::verb action, \mbox{\hyperlink{classSignerI}{SignerI}}* signer,}
+\DoxyCodeLine{277                             \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{false})}
+\DoxyCodeLine{278         : exchange\_(exchange),}
+\DoxyCodeLine{279           end\_point\_(end\_point.data()),}
+\DoxyCodeLine{280           args\_(args),}
+\DoxyCodeLine{281           action\_(action),}
+\DoxyCodeLine{282           signer\_(signer),}
+\DoxyCodeLine{283           need\_sign\_(need\_sign)\{\};}
+\DoxyCodeLine{284     boost::beast::http::request<boost::beast::http::string\_body> \mbox{\hyperlink{classbybit_1_1detail_1_1FactoryRequest_a384173c4eb72ebe03364ec050f52b49e}{operator()}}() \{}
+\DoxyCodeLine{285         boost::beast::http::request<boost::beast::http::string\_body> req;}
+\DoxyCodeLine{286         \textcolor{keywordflow}{if} (need\_sign\_) \{}
+\DoxyCodeLine{287             \textcolor{keyword}{auto} current\_time      = AddSignParams(req);}
+\DoxyCodeLine{296             \textcolor{keyword}{auto} request\_body\_args = fmt::format(}
+\DoxyCodeLine{297                 \textcolor{stringliteral}{"{}\{\}\{\}\{\}\{\}"{}}, current\_time, signer\_-\/>ApiKey(),}
+\DoxyCodeLine{298                 std::to\_string(exchange\_-\/>RecvWindow()), args\_.\mbox{\hyperlink{classbybit_1_1ArgsBody_a65fd7be2a95793f4eb9b550d027a4bcf}{Body}}());}
+\DoxyCodeLine{305             \textcolor{keyword}{auto} signature = signer\_-\/>Sign(request\_body\_args);}
+\DoxyCodeLine{306 }
+\DoxyCodeLine{307             AddSignature(signature, req);}
+\DoxyCodeLine{308         \}}
+\DoxyCodeLine{309         req.version(11);}
+\DoxyCodeLine{310         req.method(action\_);}
+\DoxyCodeLine{311         req.target(end\_point\_);}
+\DoxyCodeLine{317         req.insert(\textcolor{stringliteral}{"{}X-\/BAPI-\/API-\/KEY"{}}, signer\_-\/>ApiKey());}
+\DoxyCodeLine{318         req.set(boost::beast::http::field::host, exchange\_-\/>Host().data());}
+\DoxyCodeLine{319         req.set(boost::beast::http::field::user\_agent,}
+\DoxyCodeLine{320                 BOOST\_BEAST\_VERSION\_STRING);}
+\DoxyCodeLine{328         req.set(boost::beast::http::field::content\_type, \textcolor{stringliteral}{"{}application/json"{}});}
+\DoxyCodeLine{329         req.body() = args\_.\mbox{\hyperlink{classbybit_1_1ArgsBody_a65fd7be2a95793f4eb9b550d027a4bcf}{Body}}();}
+\DoxyCodeLine{330         req.prepare\_payload();}
+\DoxyCodeLine{331         std::cout << req << \textcolor{stringliteral}{"{}\(\backslash\)n"{}};}
+\DoxyCodeLine{332         \textcolor{keywordflow}{return} req;}
+\DoxyCodeLine{333     \};}
+\DoxyCodeLine{334 }
+\DoxyCodeLine{335     std::string\_view Host()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} exchange\_-\/>Host(); \};}
+\DoxyCodeLine{336     std::string\_view Port()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} exchange\_-\/>Port(); \};}
+\DoxyCodeLine{337     std::string\_view EndPoint()\textcolor{keyword}{ const }\{ \textcolor{keywordflow}{return} end\_point\_; \}}
+\DoxyCodeLine{338 }
+\DoxyCodeLine{339   \textcolor{keyword}{private}:}
+\DoxyCodeLine{346     std::string AddSignParams(}
+\DoxyCodeLine{347         boost::beast::http::request<boost::beast::http::string\_body>\& req)\textcolor{keyword}{}}
+\DoxyCodeLine{348 \textcolor{keyword}{        const }\{}
+\DoxyCodeLine{349         \mbox{\hyperlink{classCurrentTime}{CurrentTime}} time\_service;}
+\DoxyCodeLine{350         \textcolor{keyword}{auto} time = std::to\_string(time\_service.Time());}
+\DoxyCodeLine{351         req.insert(\textcolor{stringliteral}{"{}X-\/BAPI-\/TIMESTAMP"{}}, time);}
+\DoxyCodeLine{352         req.insert(\textcolor{stringliteral}{"{}X-\/BAPI-\/RECV-\/WINDOW"{}},}
+\DoxyCodeLine{353                    std::to\_string(exchange\_-\/>RecvWindow()));}
+\DoxyCodeLine{354         \textcolor{keywordflow}{return} time;}
+\DoxyCodeLine{355     \};}
+\DoxyCodeLine{365     \textcolor{keywordtype}{void} AddSignature(}
+\DoxyCodeLine{366         std::string\_view signature,}
+\DoxyCodeLine{367         boost::beast::http::request<boost::beast::http::string\_body>\& req)\textcolor{keyword}{}}
+\DoxyCodeLine{368 \textcolor{keyword}{        const }\{}
+\DoxyCodeLine{369         req.insert(\textcolor{stringliteral}{"{}X-\/BAPI-\/SIGN"{}}, signature.data());}
+\DoxyCodeLine{370         req.insert(\textcolor{stringliteral}{"{}X-\/BAPI-\/SIGN-\/TYPE"{}}, \textcolor{stringliteral}{"{}2"{}});}
+\DoxyCodeLine{371     \};}
+\DoxyCodeLine{372 }
+\DoxyCodeLine{373   \textcolor{keyword}{private}:}
+\DoxyCodeLine{374     \textcolor{keyword}{const} \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* exchange\_;}
+\DoxyCodeLine{375     std::string end\_point\_;}
+\DoxyCodeLine{376     ArgsBody args\_;}
+\DoxyCodeLine{377     boost::beast::http::verb action\_;}
+\DoxyCodeLine{378     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_;}
+\DoxyCodeLine{379     \textcolor{keywordtype}{bool} need\_sign\_;}
+\DoxyCodeLine{380 \};}
+\DoxyCodeLine{381 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1detail_1_1FormatterQty}{FormatterQty}} \{}
+\DoxyCodeLine{382   \textcolor{keyword}{public}:}
+\DoxyCodeLine{383     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1detail_1_1FormatterQty}{FormatterQty}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{384     \textcolor{keywordtype}{double} Format(std::string\_view symbol, \textcolor{keywordtype}{double} qty) \{ \textcolor{keywordflow}{return} qty; \};}
+\DoxyCodeLine{385 \};}
+\DoxyCodeLine{386 }
+\DoxyCodeLine{387 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1detail_1_1FormatterPrice}{FormatterPrice}} \{}
+\DoxyCodeLine{388   \textcolor{keyword}{public}:}
+\DoxyCodeLine{389     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1detail_1_1FormatterPrice}{FormatterPrice}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{390     \textcolor{keywordtype}{double} Format(std::string\_view symbol, \textcolor{keywordtype}{double} price) \{ \textcolor{keywordflow}{return} price; \};}
+\DoxyCodeLine{391 \};}
+\DoxyCodeLine{392 \};  \textcolor{comment}{// namespace detail}}
+\DoxyCodeLine{393 \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1OrderNewLimit}{OrderNewLimit}} : \textcolor{keyword}{public} \mbox{\hyperlink{classinner_1_1OrderNewI}{inner::OrderNewI}} \{}
+\DoxyCodeLine{394     \textcolor{keyword}{static} \textcolor{keyword}{constexpr} std::string\_view end\_point = \textcolor{stringliteral}{"{}/v5/order/create"{}};}
+\DoxyCodeLine{395 }
+\DoxyCodeLine{396   \textcolor{keyword}{public}:}
+\DoxyCodeLine{397     \textcolor{keyword}{class }\mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}} \{}
+\DoxyCodeLine{398       \textcolor{keyword}{public}:}
+\DoxyCodeLine{399         \textcolor{keyword}{using }SymbolType = std::string\_view;}
+\DoxyCodeLine{400         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, \textcolor{keywordtype}{double} quantity, \textcolor{keywordtype}{double} price,}
+\DoxyCodeLine{401                            TimeInForce time\_in\_force, Common::Side side,}
+\DoxyCodeLine{402                            Type type)}
+\DoxyCodeLine{403             : \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}}() \{}
+\DoxyCodeLine{404             storage[\textcolor{stringliteral}{"{}category"{}}] = \textcolor{stringliteral}{"{}spot"{}};}
+\DoxyCodeLine{405             SetSymbol(symbol);}
+\DoxyCodeLine{406             SetSide(side);}
+\DoxyCodeLine{407             SetType(type);}
+\DoxyCodeLine{408             SetQuantity(quantity);}
+\DoxyCodeLine{409             SetPrice(price);}
+\DoxyCodeLine{410             SetTimeInForce(time\_in\_force);}
+\DoxyCodeLine{411         \};}
+\DoxyCodeLine{412         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange::RequestNewOrder}}* new\_order) : \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}}() \{}
+\DoxyCodeLine{413             storage[\textcolor{stringliteral}{"{}category"{}}] = \textcolor{stringliteral}{"{}spot"{}};}
+\DoxyCodeLine{414             SetSymbol(new\_order-\/>ticker);}
+\DoxyCodeLine{415             SetSide(new\_order-\/>side);}
+\DoxyCodeLine{416             SetType(Type::LIMIT);}
+\DoxyCodeLine{417             SetQuantity(new\_order-\/>qty);}
+\DoxyCodeLine{418             SetPrice(new\_order-\/>price);}
+\DoxyCodeLine{419             SetTimeInForce(TimeInForce::IOC);}
+\DoxyCodeLine{420         \};}
+\DoxyCodeLine{421 }
+\DoxyCodeLine{422       \textcolor{keyword}{private}:}
+\DoxyCodeLine{423         \textcolor{keywordtype}{void} SetSymbol(SymbolType symbol) \{}
+\DoxyCodeLine{424             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
+\DoxyCodeLine{425             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
+\DoxyCodeLine{426         \};}
+\DoxyCodeLine{427         \textcolor{keywordtype}{void} SetSide(Common::Side side) \{}
+\DoxyCodeLine{428             \textcolor{keywordflow}{switch} (side) \{}
+\DoxyCodeLine{429                 \textcolor{keywordflow}{case} Common::Side::BUY:}
+\DoxyCodeLine{430                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}Buy"{}};}
+\DoxyCodeLine{431                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{432                 \textcolor{keywordflow}{case} Common::Side::SELL:}
+\DoxyCodeLine{433                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}Sell"{}};}
+\DoxyCodeLine{434                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{435             \}}
+\DoxyCodeLine{436         \};}
+\DoxyCodeLine{437         \textcolor{keywordtype}{void} SetType(Type type) \{}
+\DoxyCodeLine{438             \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{439                 \textcolor{keywordflow}{case} Type::LIMIT:}
+\DoxyCodeLine{440                     storage[\textcolor{stringliteral}{"{}orderType"{}}] = \textcolor{stringliteral}{"{}Limit"{}};}
+\DoxyCodeLine{441                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{442                 \textcolor{keywordflow}{case} Type::MARKET:}
+\DoxyCodeLine{443                     storage[\textcolor{stringliteral}{"{}orderType"{}}] = \textcolor{stringliteral}{"{}Market"{}};}
+\DoxyCodeLine{444                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{445                 \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{446                     storage[\textcolor{stringliteral}{"{}orderType"{}}] = \textcolor{stringliteral}{"{}Limit"{}};}
+\DoxyCodeLine{447             \}}
+\DoxyCodeLine{448         \};}
+\DoxyCodeLine{449         \textcolor{keywordtype}{void} SetQuantity(\textcolor{keywordtype}{double} quantity) \{}
+\DoxyCodeLine{450             storage[\textcolor{stringliteral}{"{}qty"{}}] = fmt::format(}
+\DoxyCodeLine{451                 \textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, formatter\_qty\_.Format(storage[\textcolor{stringliteral}{"{}symbol"{}}], quantity),}
+\DoxyCodeLine{452                 3);}
+\DoxyCodeLine{453         \};}
+\DoxyCodeLine{454         \textcolor{keywordtype}{void} SetPrice(\textcolor{keywordtype}{double} price) \{}
+\DoxyCodeLine{455             storage[\textcolor{stringliteral}{"{}price"{}}] = fmt::format(}
+\DoxyCodeLine{456                 \textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, formatter\_price\_.Format(storage[\textcolor{stringliteral}{"{}symbol"{}}], price),}
+\DoxyCodeLine{457                 0);}
+\DoxyCodeLine{458         \};}
+\DoxyCodeLine{459         \textcolor{keywordtype}{void} SetTimeInForce(TimeInForce time\_in\_force) \{}
+\DoxyCodeLine{460             \textcolor{keywordflow}{switch} (time\_in\_force) \{}
+\DoxyCodeLine{461                 \textcolor{keywordflow}{case} TimeInForce::FOK:}
+\DoxyCodeLine{462                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}FOK"{}};}
+\DoxyCodeLine{463                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{464                 \textcolor{keywordflow}{case} TimeInForce::GTC:}
+\DoxyCodeLine{465                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}GTC"{}};}
+\DoxyCodeLine{466                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{467                 \textcolor{keywordflow}{case} TimeInForce::IOC:}
+\DoxyCodeLine{468                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}IOC"{}};}
+\DoxyCodeLine{469                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{470                 \textcolor{keywordflow}{case} TimeInForce::POST\_ONLY:}
+\DoxyCodeLine{471                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}PostOnly"{}};}
+\DoxyCodeLine{472                     \textcolor{keywordflow}{break};}
+\DoxyCodeLine{473                 \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{474                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}PostOnly"{}};}
+\DoxyCodeLine{475             \}}
+\DoxyCodeLine{476         \};}
+\DoxyCodeLine{477 }
+\DoxyCodeLine{478       \textcolor{keyword}{private}:}
+\DoxyCodeLine{479         \mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}\& storage = *\textcolor{keyword}{this};}
+\DoxyCodeLine{480 }
+\DoxyCodeLine{481         [[no\_unique\_address]] \mbox{\hyperlink{classbybit_1_1detail_1_1FormatterQty}{detail::FormatterQty}} formatter\_qty\_;}
+\DoxyCodeLine{482         [[no\_unique\_address]] \mbox{\hyperlink{classbybit_1_1detail_1_1FormatterPrice}{detail::FormatterPrice}} formatter\_price\_;}
+\DoxyCodeLine{483     \};}
+\DoxyCodeLine{484 }
+\DoxyCodeLine{485   \textcolor{keyword}{public}:}
+\DoxyCodeLine{486     \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1OrderNewLimit}{OrderNewLimit}}(\mbox{\hyperlink{classSignerI}{SignerI}}* signer, TypeExchange type)}
+\DoxyCodeLine{487         : signer\_(signer) \{}
+\DoxyCodeLine{488         \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{489             \textcolor{keywordflow}{case} TypeExchange::MAINNET:}
+\DoxyCodeLine{490                 current\_exchange\_ = \&testnet\_exchange;}
+\DoxyCodeLine{491                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{492             \textcolor{keywordflow}{case} TypeExchange::TESTNET:}
+\DoxyCodeLine{493                 current\_exchange\_ = \&testnet\_exchange;}
+\DoxyCodeLine{494                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{495             \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{496                 current\_exchange\_ = \&testnet\_exchange;}
+\DoxyCodeLine{497                 \textcolor{keywordflow}{break};}
+\DoxyCodeLine{498         \}}
+\DoxyCodeLine{499     \};}
+\DoxyCodeLine{500     \textcolor{keywordtype}{void} \mbox{\hyperlink{classbybit_1_1OrderNewLimit_a23f6bbf3c07b594c7c7edc05c5729b6d}{Exec}}(\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange::RequestNewOrder}}* new\_order,}
+\DoxyCodeLine{501               \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}}* response\_lfqueue)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{502         \mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}} args(new\_order);}
+\DoxyCodeLine{503         \textcolor{keywordtype}{bool} need\_sign = \textcolor{keyword}{true};}
+\DoxyCodeLine{504         \mbox{\hyperlink{classbybit_1_1detail_1_1FactoryRequest}{detail::FactoryRequest}} factory\{current\_exchange\_,}
+\DoxyCodeLine{505                                        OrderNewLimit::end\_point,}
+\DoxyCodeLine{506                                        args,}
+\DoxyCodeLine{507                                        boost::beast::http::verb::post,}
+\DoxyCodeLine{508                                        signer\_,}
+\DoxyCodeLine{509                                        need\_sign\};}
+\DoxyCodeLine{510         boost::asio::io\_context ioc;}
+\DoxyCodeLine{511         OnHttpsResponce cb;}
+\DoxyCodeLine{512         cb = [response\_lfqueue](}
+\DoxyCodeLine{513                  boost::beast::http::response<boost::beast::http::string\_body>\&}
+\DoxyCodeLine{514                      buffer) \{}
+\DoxyCodeLine{515             \textcolor{keyword}{const} \textcolor{keyword}{auto}\& resut = buffer.body();}
+\DoxyCodeLine{516             logi(\textcolor{stringliteral}{"{}\{\}"{}}, resut);}
+\DoxyCodeLine{517             fmtlog::poll();}
+\DoxyCodeLine{518         \};}
+\DoxyCodeLine{519         std::make\_shared<Https>(ioc, cb)-\/>Run(}
+\DoxyCodeLine{520             factory.Host().data(), factory.Port().data(),}
+\DoxyCodeLine{521             factory.EndPoint().data(), factory());}
+\DoxyCodeLine{522         ioc.run();}
+\DoxyCodeLine{523     \};}
+\DoxyCodeLine{524 }
+\DoxyCodeLine{525   \textcolor{keyword}{private}:}
+\DoxyCodeLine{526     \mbox{\hyperlink{classbybit_1_1testnet_1_1HttpsExchange}{testnet::HttpsExchange}} testnet\_exchange;}
+\DoxyCodeLine{527     \mbox{\hyperlink{classhttps_1_1ExchangeI}{https::ExchangeI}}* current\_exchange\_;}
+\DoxyCodeLine{528     \mbox{\hyperlink{classSignerI}{SignerI}}* signer\_;}
+\DoxyCodeLine{529 \};}
+\DoxyCodeLine{530 \};  \textcolor{comment}{// namespace bybit}}
+
+\end{DoxyCode}

@@ -1,0 +1,127 @@
+\hypertarget{PredictorImpl_8h_source}{}\doxysection{Predictor\+Impl.\+h}
+\label{PredictorImpl_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/impl/PredictorImpl.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/impl/PredictorImpl.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#define PY\_SSIZE\_T\_CLEAN}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <Python.h>}}
+\DoxyCodeLine{4 }
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{7 \textcolor{keyword}{namespace }detail \{}
+\DoxyCodeLine{8 std::string python\_path                = PYTHON\_PATH;}
+\DoxyCodeLine{9 std::string\_view MODULE\_PREDICTOR\_NAME = \textcolor{stringliteral}{"{}machine\_learning"{}};}
+\DoxyCodeLine{10 std::string\_view CLASS\_PREDICTOR\_NAME  = \textcolor{stringliteral}{"{}Predictor"{}};}
+\DoxyCodeLine{11 std::string\_view METHOD\_PREDICTOR\_NAME = \textcolor{stringliteral}{"{}predict"{}};}
+\DoxyCodeLine{12 }
+\DoxyCodeLine{13 \textcolor{keyword}{class }\mbox{\hyperlink{classdetail_1_1PredictorImpl}{PredictorImpl}} \{}
+\DoxyCodeLine{14   \textcolor{keyword}{public}:}
+\DoxyCodeLine{15     \textcolor{keyword}{explicit} \mbox{\hyperlink{classdetail_1_1PredictorImpl}{PredictorImpl}}(uint window\_size) : window\_size\_(window\_size) \{}
+\DoxyCodeLine{16         setenv(\textcolor{stringliteral}{"{}PYTHONPATH"{}}, python\_path.c\_str(), 1);}
+\DoxyCodeLine{17     \};}
+\DoxyCodeLine{22     \textcolor{keywordtype}{int} \mbox{\hyperlink{classdetail_1_1PredictorImpl_aadd02dfbbf674a8cf7662b1500b1d0ce}{Init}}() \{}
+\DoxyCodeLine{23         Py\_Initialize();}
+\DoxyCodeLine{24         module\_name\_ = PyUnicode\_DecodeFSDefault(MODULE\_PREDICTOR\_NAME.data());}
+\DoxyCodeLine{25         module\_      = PyImport\_Import(module\_name\_);}
+\DoxyCodeLine{26         Py\_XDECREF(module\_name\_);}
+\DoxyCodeLine{27         \textcolor{keywordflow}{if} (module\_ == \textcolor{keyword}{nullptr}) \{}
+\DoxyCodeLine{28             PyErr\_Print();}
+\DoxyCodeLine{29             std::cerr << \textcolor{stringliteral}{"{}Fails to import the module.\(\backslash\)n"{}};}
+\DoxyCodeLine{30             \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{31         \}}
+\DoxyCodeLine{32         \textcolor{comment}{// dict is a borrowed reference.}}
+\DoxyCodeLine{33         module\_dict\_ = PyModule\_GetDict(module\_);}
+\DoxyCodeLine{34         \textcolor{keywordflow}{if} (module\_dict\_ == \textcolor{keyword}{nullptr}) \{}
+\DoxyCodeLine{35             PyErr\_Print();}
+\DoxyCodeLine{36             std::cerr << \textcolor{stringliteral}{"{}Fails to get the dictionary.\(\backslash\)n"{}};}
+\DoxyCodeLine{37             \textcolor{keywordflow}{return} 2;}
+\DoxyCodeLine{38         \}}
+\DoxyCodeLine{39         Py\_XDECREF(module\_);}
+\DoxyCodeLine{40         \textcolor{comment}{// Builds the name of a callable class}}
+\DoxyCodeLine{41         predictor\_class\_ =}
+\DoxyCodeLine{42             PyDict\_GetItemString(module\_dict\_, CLASS\_PREDICTOR\_NAME.data());}
+\DoxyCodeLine{43         \textcolor{keywordflow}{if} (predictor\_class\_ == \textcolor{keyword}{nullptr}) \{}
+\DoxyCodeLine{44             PyErr\_Print();}
+\DoxyCodeLine{45             std::cerr << \textcolor{stringliteral}{"{}Fails to get the Python class.\(\backslash\)n"{}};}
+\DoxyCodeLine{46             \textcolor{keywordflow}{return} 3;}
+\DoxyCodeLine{47         \}}
+\DoxyCodeLine{48         Py\_XDECREF(module\_dict\_);}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{50         \textcolor{comment}{// Creates an instance of the class}}
+\DoxyCodeLine{51         \textcolor{keywordflow}{if} (PyCallable\_Check(predictor\_class\_)) \{}
+\DoxyCodeLine{52             predictor\_ = PyObject\_CallObject(predictor\_class\_, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{53             Py\_XDECREF(predictor\_class\_);}
+\DoxyCodeLine{54         \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{55             std::cout << \textcolor{stringliteral}{"{}Cannot instantiate the Python class"{}} << std::endl;}
+\DoxyCodeLine{56             Py\_XDECREF(predictor\_class\_);}
+\DoxyCodeLine{57             \textcolor{keywordflow}{return} 4;}
+\DoxyCodeLine{58         \}}
+\DoxyCodeLine{59         \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{60     \}}
+\DoxyCodeLine{61     std::pair<std::string, long> Predict(\textcolor{keywordtype}{double} open, \textcolor{keywordtype}{double} high, \textcolor{keywordtype}{double} low,}
+\DoxyCodeLine{62                                          \textcolor{keywordtype}{double} close, \textcolor{keywordtype}{double} volume) \{}
+\DoxyCodeLine{63         \textcolor{keyword}{auto} pArgs = PyTuple\_New(5);}
+\DoxyCodeLine{64         \textcolor{keywordflow}{if} (InitTuplePosition(pArgs, 0, open) ||}
+\DoxyCodeLine{65             InitTuplePosition(pArgs, 1, high) ||}
+\DoxyCodeLine{66             InitTuplePosition(pArgs, 2, low) ||}
+\DoxyCodeLine{67             InitTuplePosition(pArgs, 3, close) ||}
+\DoxyCodeLine{68             InitTuplePosition(pArgs, 4, volume)) \{}
+\DoxyCodeLine{69             Py\_DECREF(pArgs);}
+\DoxyCodeLine{70             fprintf(stderr, \textcolor{stringliteral}{"{}Cannot convert argument\(\backslash\)n"{}});}
+\DoxyCodeLine{71             \textcolor{keywordflow}{return} \{\};}
+\DoxyCodeLine{72         \}}
+\DoxyCodeLine{73         PyObject *value =}
+\DoxyCodeLine{74             PyObject\_CallMethod(predictor\_, METHOD\_PREDICTOR\_NAME.data(),}
+\DoxyCodeLine{75                                 \textcolor{stringliteral}{"{}(ddddd)"{}}, open, high, low, close, volume);}
+\DoxyCodeLine{76         Py\_DECREF(pArgs);}
+\DoxyCodeLine{77         PyObject *key1, *value1;}
+\DoxyCodeLine{78         Py\_ssize\_t pos1 = 0;}
+\DoxyCodeLine{79         std::string key\_out;}
+\DoxyCodeLine{80         \textcolor{keywordtype}{long} value\_out;}
+\DoxyCodeLine{81         \textcolor{keyword}{auto} sdfsdf = PyDict\_Size(value);}
+\DoxyCodeLine{82         \textcolor{keywordflow}{if} (value != NULL \&\& PyDict\_CheckExact(value)) \{}
+\DoxyCodeLine{83             PyObject *key2, *value2;}
+\DoxyCodeLine{84             Py\_ssize\_t pos2 = 0;}
+\DoxyCodeLine{85             \textcolor{keywordflow}{while} (PyDict\_Next(value, \&pos2, \&key2, \&value2)) \{}
+\DoxyCodeLine{86                 PyObject *key\_as\_str =}
+\DoxyCodeLine{87                     PyUnicode\_AsEncodedString(key2, \textcolor{stringliteral}{"{}utf-\/8"{}}, \textcolor{stringliteral}{"{}\string~E\string~"{}});}
+\DoxyCodeLine{88                 \textcolor{keyword}{const} \textcolor{keywordtype}{char} *key\_local = PyBytes\_AS\_STRING(key\_as\_str);}
+\DoxyCodeLine{89                 \textcolor{keywordtype}{long} value\_local      = PyLong\_AS\_LONG(value2);}
+\DoxyCodeLine{90                 \textcolor{comment}{//std::cout << "{}key = "{} << key\_local << "{} value = "{} << value\_local}}
+\DoxyCodeLine{91                 \textcolor{comment}{//          << std::endl;}}
+\DoxyCodeLine{92                 key\_out   = std::string(key\_local);}
+\DoxyCodeLine{93                 value\_out = value\_local;}
+\DoxyCodeLine{94                 Py\_XDECREF(key\_as\_str);}
+\DoxyCodeLine{95             \}}
+\DoxyCodeLine{96             Py\_DECREF(value);}
+\DoxyCodeLine{97         \}}
+\DoxyCodeLine{98         \textcolor{keywordflow}{return} std::make\_pair(key\_out, value\_out);}
+\DoxyCodeLine{99     \}}
+\DoxyCodeLine{100     \string~PredictorImpl() \{}
+\DoxyCodeLine{101         Py\_XDECREF(module\_name\_);}
+\DoxyCodeLine{102         Py\_XDECREF(module\_);}
+\DoxyCodeLine{103         Py\_XDECREF(module\_dict\_);}
+\DoxyCodeLine{104         Py\_XDECREF(predictor\_class\_);}
+\DoxyCodeLine{105         Py\_Finalize();}
+\DoxyCodeLine{106     \};}
+\DoxyCodeLine{107 }
+\DoxyCodeLine{108   \textcolor{keyword}{private}:}
+\DoxyCodeLine{109     uint window\_size\_;}
+\DoxyCodeLine{110     PyObject *module\_name\_, *module\_, *module\_dict\_, *predictor\_class\_;}
+\DoxyCodeLine{115     PyObject *predictor\_;}
+\DoxyCodeLine{116 }
+\DoxyCodeLine{117   \textcolor{keyword}{private}:}
+\DoxyCodeLine{118     \textcolor{keywordtype}{int} InitTuplePosition(PyObject *pArgs, \textcolor{keywordtype}{int} position, \textcolor{keywordtype}{double} value) \{}
+\DoxyCodeLine{119         \textcolor{keyword}{auto} pValue = PyFloat\_FromDouble(value);}
+\DoxyCodeLine{120         \textcolor{keywordflow}{if} (!pValue) \{}
+\DoxyCodeLine{121             fprintf(stderr, \textcolor{stringliteral}{"{}Cannot convert argument\(\backslash\)n"{}});}
+\DoxyCodeLine{122             \textcolor{keywordflow}{return} 1;}
+\DoxyCodeLine{123         \}}
+\DoxyCodeLine{124         PyTuple\_SetItem(pArgs, position, pValue);}
+\DoxyCodeLine{125 }
+\DoxyCodeLine{126         \textcolor{keywordflow}{return} 0;}
+\DoxyCodeLine{127     \}}
+\DoxyCodeLine{128 \};}
+\DoxyCodeLine{129 \};  \textcolor{comment}{// namespace detail}}
+
+\end{DoxyCode}

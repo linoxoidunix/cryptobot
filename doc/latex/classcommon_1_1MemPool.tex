@@ -1,0 +1,40 @@
+\hypertarget{classcommon_1_1MemPool}{}\doxysection{common\+::Mem\+Pool\texorpdfstring{$<$}{<} T \texorpdfstring{$>$}{>} Class Template Reference}
+\label{classcommon_1_1MemPool}\index{common::MemPool$<$ T $>$@{common::MemPool$<$ T $>$}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a20e4dea2f460c671ebbd0fb97ae60bad}\label{classcommon_1_1MemPool_a20e4dea2f460c671ebbd0fb97ae60bad}} 
+{\bfseries Mem\+Pool} (std\+::size\+\_\+t num\+\_\+elems)
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a80ff98a1191fc755bc66444020b39e88}\label{classcommon_1_1MemPool_a80ff98a1191fc755bc66444020b39e88}} 
+{\footnotesize template$<$typename... Args$>$ }\\T $\ast$ {\bfseries allocate} (Args... args) noexcept
+\begin{DoxyCompactList}\small\item\em Allocate a new object of type T, use placement new to initialize the object, mark the block as in-\/use and return the object. \end{DoxyCompactList}\item 
+auto \mbox{\hyperlink{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}{deallocate}} (const T $\ast$elem) noexcept
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a69079ca0047e733a59dedd9a3dab24d4}\label{classcommon_1_1MemPool_a69079ca0047e733a59dedd9a3dab24d4}} 
+{\bfseries Mem\+Pool} (const \mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \&)=delete
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a6cfd0eedc2c441c7f0d144065d0345cc}\label{classcommon_1_1MemPool_a6cfd0eedc2c441c7f0d144065d0345cc}} 
+{\bfseries Mem\+Pool} (const \mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a11b6d4b7c5c47a5fb9bca579bcea14bb}\label{classcommon_1_1MemPool_a11b6d4b7c5c47a5fb9bca579bcea14bb}} 
+\mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \& {\bfseries operator=} (const \mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \&)=delete
+\item 
+\mbox{\Hypertarget{classcommon_1_1MemPool_a9ac9402de5cb1a77f0ff95d6e179bba4}\label{classcommon_1_1MemPool_a9ac9402de5cb1a77f0ff95d6e179bba4}} 
+\mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \& {\bfseries operator=} (const \mbox{\hyperlink{classcommon_1_1MemPool}{Mem\+Pool}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}\label{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}} 
+\index{common::MemPool$<$ T $>$@{common::MemPool$<$ T $>$}!deallocate@{deallocate}}
+\index{deallocate@{deallocate}!common::MemPool$<$ T $>$@{common::MemPool$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{deallocate()}{deallocate()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+auto \mbox{\hyperlink{classcommon_1_1MemPool}{common\+::\+Mem\+Pool}}$<$ T $>$\+::deallocate (\begin{DoxyParamCaption}\item[{const T $\ast$}]{elem }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Return the object back to the pool by marking the block as free again. Destructor is not called for the object. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/common/mem\+\_\+pool.\+h\end{DoxyCompactItemize}

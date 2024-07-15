@@ -1,0 +1,202 @@
+\hypertarget{market__order__book_8h_source}{}\doxysection{market\+\_\+order\+\_\+book.\+h}
+\label{market__order__book_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/market\_order\_book.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/strategy/market\_order\_book.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <vector>}}
+\DoxyCodeLine{3 }
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include "{}aot/Exchange.h"{}}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include "{}aot/common/mem\_pool.h"{}}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/market\_data/market\_update.h"{}}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/strategy/market\_order.h"{}}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{keyword}{namespace }Trading \{}
+\DoxyCodeLine{12 \textcolor{keyword}{class }TradeEngine;}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} final \{}
+\DoxyCodeLine{15   \textcolor{keyword}{public}:}
+\DoxyCodeLine{16     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}}();}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{18     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{\string~MarketOrderBook}}();}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{21     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1MarketOrderBook_a426848b11f1a45b42b4678dc4ee64f5d}{onMarketUpdate}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{Exchange::MEMarketUpdate}} *market\_update) \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{22         -\/> void;}
+\DoxyCodeLine{23 }
+\DoxyCodeLine{24     \textcolor{comment}{//  auto setTradeEngine(TradeEngine *trade\_engine) \{}}
+\DoxyCodeLine{25     \textcolor{comment}{//    trade\_engine\_ = trade\_engine;}}
+\DoxyCodeLine{26     \textcolor{comment}{//  \}}}
+\DoxyCodeLine{27 }
+\DoxyCodeLine{30     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1MarketOrderBook_adfbf38c4585e21617079629d1f3549a2}{updateBBO}}(\textcolor{keywordtype}{bool} update\_bid, \textcolor{keywordtype}{bool} update\_ask) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{31         \textcolor{keywordflow}{if} (update\_bid) \{}
+\DoxyCodeLine{32             \textcolor{keywordflow}{if} (bids\_at\_price\_map\_.size()) \{}
+\DoxyCodeLine{33                 bbo\_.bid\_price =}
+\DoxyCodeLine{34                     bids\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.price\_;}
+\DoxyCodeLine{35                 bbo\_.bid\_qty =}
+\DoxyCodeLine{36                     bids\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.qty\_;}
+\DoxyCodeLine{37             \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{38                 bbo\_.bid\_price = Common::Price\_INVALID;}
+\DoxyCodeLine{39                 bbo\_.bid\_qty   = Common::Qty\_INVALID;}
+\DoxyCodeLine{40             \}}
+\DoxyCodeLine{41         \}}
+\DoxyCodeLine{42 }
+\DoxyCodeLine{43         \textcolor{keywordflow}{if} (update\_ask) \{}
+\DoxyCodeLine{44             \textcolor{keywordflow}{if} (asks\_at\_price\_map\_.size()) \{}
+\DoxyCodeLine{45                 bbo\_.ask\_price =}
+\DoxyCodeLine{46                     asks\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.price\_;}
+\DoxyCodeLine{47                 bbo\_.ask\_qty =}
+\DoxyCodeLine{48                     asks\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.qty\_;}
+\DoxyCodeLine{49             \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{50                 bbo\_.ask\_price = Common::Price\_INVALID;}
+\DoxyCodeLine{51                 bbo\_.ask\_qty   = Common::Qty\_INVALID;}
+\DoxyCodeLine{52             \}}
+\DoxyCodeLine{53         \}}
+\DoxyCodeLine{54     \}}
+\DoxyCodeLine{55 }
+\DoxyCodeLine{56     \textcolor{keyword}{auto} getBBO() const noexcept -\/> const \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} * \{ \textcolor{keywordflow}{return} \&bbo\_; \}}
+\DoxyCodeLine{57 }
+\DoxyCodeLine{58     \textcolor{keyword}{auto} toString(\textcolor{keywordtype}{bool} detailed, \textcolor{keywordtype}{bool} validity\_check) \textcolor{keyword}{const} -\/> std::string;}
+\DoxyCodeLine{59 }
+\DoxyCodeLine{61     \textcolor{comment}{// MarketOrderBook() = delete;}}
+\DoxyCodeLine{62 }
+\DoxyCodeLine{63     \mbox{\hyperlink{classTrading_1_1MarketOrderBook_acb247bf6433072c1304ed54f77a9c4f5}{MarketOrderBook}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{64 }
+\DoxyCodeLine{65     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{67     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{68 }
+\DoxyCodeLine{69     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{70 }
+\DoxyCodeLine{71   \textcolor{keyword}{private}:}
+\DoxyCodeLine{72     \textcolor{comment}{// const Common::TickerId ticker\_id\_;}}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{76 }
+\DoxyCodeLine{78     \textcolor{comment}{// OrderHashMap oid\_to\_order\_;}}
+\DoxyCodeLine{79 }
+\DoxyCodeLine{81     \mbox{\hyperlink{classcommon_1_1MemPool}{common::MemPool<Trading::MarketOrdersAtPrice>}} orders\_at\_price\_pool\_;}
+\DoxyCodeLine{82 }
+\DoxyCodeLine{86     OrdersAtPriceHashMap price\_orders\_at\_price\_;}
+\DoxyCodeLine{87     BidsatPriceMap bids\_at\_price\_map\_;}
+\DoxyCodeLine{88     AsksatPriceMap asks\_at\_price\_map\_;}
+\DoxyCodeLine{90     \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} bbo\_;}
+\DoxyCodeLine{91 }
+\DoxyCodeLine{92   \textcolor{keyword}{private}:}
+\DoxyCodeLine{93     \textcolor{comment}{// auto priceToIndex(Common::Price price) const noexcept \{}}
+\DoxyCodeLine{94     \textcolor{comment}{//     return (price \% Common::ME\_MAX\_PRICE\_LEVELS);}}
+\DoxyCodeLine{95     \textcolor{comment}{// \}}}
+\DoxyCodeLine{96 }
+\DoxyCodeLine{99     \textcolor{keyword}{auto} getOrdersAtPrice(Common::Price price) \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{100         -\/> \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Trading::MarketOrdersAtPrice}} * \{}
+\DoxyCodeLine{101         \textcolor{keywordflow}{return} price\_orders\_at\_price\_.at(price);}
+\DoxyCodeLine{102     \}}
+\DoxyCodeLine{103 }
+\DoxyCodeLine{106     \textcolor{keyword}{auto} addOrdersAtPrice(\mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}} *new\_orders\_at\_price) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{107         price\_orders\_at\_price\_.emplace\_unique(new\_orders\_at\_price-\/>price\_,}
+\DoxyCodeLine{108                                               new\_orders\_at\_price);}
+\DoxyCodeLine{109 }
+\DoxyCodeLine{110         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == Common::Side::BUY)}
+\DoxyCodeLine{111             asks\_at\_price\_map\_.insert\_unique(*new\_orders\_at\_price);}
+\DoxyCodeLine{112         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == Common::Side::SELL)}
+\DoxyCodeLine{113             bids\_at\_price\_map\_.insert\_unique(*new\_orders\_at\_price);}
+\DoxyCodeLine{114     \}}
+\DoxyCodeLine{115 }
+\DoxyCodeLine{118     \textcolor{keyword}{auto} removeOrdersAtPrice(Common::Side side, Common::Price price) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{119         \textcolor{keyword}{auto} order\_at\_price = price\_orders\_at\_price\_.at(price);}
+\DoxyCodeLine{120         \textcolor{keywordflow}{if} (!order\_at\_price) \{}
+\DoxyCodeLine{121             \textcolor{comment}{// https://github.com/binance/binance-\/spot-\/api-\/docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-\/socket-\/streams.md\#how-\/to-\/manage-\/a-\/local-\/order-\/book-\/correctly}}
+\DoxyCodeLine{122             \textcolor{comment}{// How to manage a local order book correctly}}
+\DoxyCodeLine{123             \textcolor{comment}{// 9.Receiving an event that removes a price level that is not in}}
+\DoxyCodeLine{124             \textcolor{comment}{// your local order book can happen and is normal.}}
+\DoxyCodeLine{125             loge(\textcolor{stringliteral}{"{}order\_book not contain such price"{}});}
+\DoxyCodeLine{126             \textcolor{keywordflow}{return};}
+\DoxyCodeLine{127         \}}
+\DoxyCodeLine{128         \textcolor{keywordflow}{if} (side == Common::Side::BUY)}
+\DoxyCodeLine{129             asks\_at\_price\_map\_.erase(*order\_at\_price);}
+\DoxyCodeLine{130         \textcolor{keywordflow}{if} (side == Common::Side::SELL)}
+\DoxyCodeLine{131             bids\_at\_price\_map\_.erase(*order\_at\_price);}
+\DoxyCodeLine{132 }
+\DoxyCodeLine{133         price\_orders\_at\_price\_.at(price) = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{134         price\_orders\_at\_price\_.erase(price);}
+\DoxyCodeLine{135 }
+\DoxyCodeLine{136         orders\_at\_price\_pool\_.\mbox{\hyperlink{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}{deallocate}}(order\_at\_price);}
+\DoxyCodeLine{137     \}}
+\DoxyCodeLine{138 }
+\DoxyCodeLine{141     \textcolor{keyword}{auto} addOrder(MarketOrder *order) \textcolor{keyword}{noexcept} -\/> \textcolor{keywordtype}{void} \{}
+\DoxyCodeLine{142         \textcolor{keyword}{const} \textcolor{keyword}{auto} orders\_at\_price = getOrdersAtPrice(order-\/>price\_);}
+\DoxyCodeLine{143 }
+\DoxyCodeLine{144         \textcolor{keywordflow}{if} (!orders\_at\_price) \{}
+\DoxyCodeLine{145             \textcolor{keyword}{auto} new\_orders\_at\_price = orders\_at\_price\_pool\_.\mbox{\hyperlink{classcommon_1_1MemPool_a80ff98a1191fc755bc66444020b39e88}{allocate}}(}
+\DoxyCodeLine{146                 order-\/>side\_, order-\/>price\_, *order, \textcolor{keyword}{nullptr}, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{147             addOrdersAtPrice(new\_orders\_at\_price);}
+\DoxyCodeLine{148         \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{149             orders\_at\_price-\/>first\_mkt\_order\_.order\_id\_ = order-\/>order\_id\_;}
+\DoxyCodeLine{150             \textcolor{keywordflow}{if} (orders\_at\_price-\/>first\_mkt\_order\_.side\_ != order-\/>side\_)}
+\DoxyCodeLine{151                 [[unlikely]]}
+\DoxyCodeLine{152                 ASSERT(\textcolor{keyword}{true},}
+\DoxyCodeLine{153                        \textcolor{stringliteral}{"{}try change asks\_at\_price\_map\_ or bids\_at\_price\_map\_"{}});}
+\DoxyCodeLine{154             orders\_at\_price-\/>first\_mkt\_order\_.price\_ = order-\/>price\_;}
+\DoxyCodeLine{155             orders\_at\_price-\/>first\_mkt\_order\_.qty\_   = order-\/>qty\_;}
+\DoxyCodeLine{156         \}}
+\DoxyCodeLine{157     \}}
+\DoxyCodeLine{158 }
+\DoxyCodeLine{159     \textcolor{keywordtype}{void} ClearOrderBook() \{}
+\DoxyCodeLine{160         bids\_at\_price\_map\_.clear();}
+\DoxyCodeLine{161         asks\_at\_price\_map\_.clear();}
+\DoxyCodeLine{162         \textcolor{keywordflow}{for}(\textcolor{keyword}{const} \textcolor{keyword}{auto}\& order\_at\_price : price\_orders\_at\_price\_)}
+\DoxyCodeLine{163             orders\_at\_price\_pool\_.\mbox{\hyperlink{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}{deallocate}}(order\_at\_price.second);}
+\DoxyCodeLine{164         price\_orders\_at\_price\_.clear();}
+\DoxyCodeLine{165     \}}
+\DoxyCodeLine{166 \};}
+\DoxyCodeLine{167 }
+\DoxyCodeLine{168 \textcolor{keyword}{class }\mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{MarketOrderBookDouble}} \{}
+\DoxyCodeLine{169   \textcolor{keyword}{public}:}
+\DoxyCodeLine{170     \textcolor{keyword}{explicit} \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{MarketOrderBookDouble}}(\textcolor{keyword}{const} \mbox{\hyperlink{structTicker}{Ticker}}\& ticker)}
+\DoxyCodeLine{171         : precission\_price\_(ticker.info.price\_precission),}
+\DoxyCodeLine{172           precission\_qty\_(ticker.info.qty\_precission)\{\};}
+\DoxyCodeLine{173 }
+\DoxyCodeLine{174     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{\string~MarketOrderBookDouble}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{175 }
+\DoxyCodeLine{177     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble_a5dba7205599de678de1992df1d837255}{OnMarketUpdate}}(}
+\DoxyCodeLine{178         \textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{Exchange::MEMarketUpdateDouble}} *market\_update) \textcolor{keyword}{noexcept} -\/> void;}
+\DoxyCodeLine{179 }
+\DoxyCodeLine{180     \textcolor{keyword}{auto} SetTradeEngine(\mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine) \{}
+\DoxyCodeLine{181        trade\_engine\_ = trade\_engine;}
+\DoxyCodeLine{182     \}}
+\DoxyCodeLine{183 }
+\DoxyCodeLine{186     \textcolor{keyword}{auto} \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble_aabec1bd1a718c58d5f4ea755c5228cce}{updateBBO}}(\textcolor{keywordtype}{bool} update\_bid, \textcolor{keywordtype}{bool} update\_ask) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{187         book\_.\mbox{\hyperlink{classTrading_1_1MarketOrderBook_adfbf38c4585e21617079629d1f3549a2}{updateBBO}}(update\_bid, update\_ask);}
+\DoxyCodeLine{188     \}}
+\DoxyCodeLine{189 }
+\DoxyCodeLine{190     \textcolor{keyword}{auto} getBBO() noexcept -\/> const \mbox{\hyperlink{structTrading_1_1BBODouble}{BBODouble}} * \{}
+\DoxyCodeLine{191         bbo\_double\_ =}
+\DoxyCodeLine{192             \mbox{\hyperlink{structTrading_1_1BBODouble}{BBODouble}}(book\_.getBBO(), precission\_price\_, precission\_qty\_);}
+\DoxyCodeLine{193         \textcolor{keywordflow}{return} \&bbo\_double\_;}
+\DoxyCodeLine{194     \}}
+\DoxyCodeLine{195 }
+\DoxyCodeLine{196     \textcolor{comment}{// auto toString(bool detailed, bool validity\_check) const -\/> std::string;}}
+\DoxyCodeLine{197 }
+\DoxyCodeLine{199     \textcolor{comment}{// MarketOrderBook() = delete;}}
+\DoxyCodeLine{200 }
+\DoxyCodeLine{201     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble_a057a28a5e66ff05d062653cc9b60cb4f}{MarketOrderBookDouble}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&)             = \textcolor{keyword}{delete};}
+\DoxyCodeLine{202 }
+\DoxyCodeLine{203     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{MarketOrderBookDouble}}(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&\&)            = \textcolor{keyword}{delete};}
+\DoxyCodeLine{204 }
+\DoxyCodeLine{205     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{MarketOrderBookDouble}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&)  = \textcolor{keyword}{delete};}
+\DoxyCodeLine{206 }
+\DoxyCodeLine{207     \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{MarketOrderBookDouble}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{208 }
+\DoxyCodeLine{209   \textcolor{keyword}{private}:}
+\DoxyCodeLine{210     uint precission\_price\_;}
+\DoxyCodeLine{211     uint precission\_qty\_;}
+\DoxyCodeLine{212     \mbox{\hyperlink{structTrading_1_1BBODouble}{BBODouble}} bbo\_double\_;}
+\DoxyCodeLine{213     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} book\_;}
+\DoxyCodeLine{214     \mbox{\hyperlink{classTrading_1_1TradeEngine}{TradeEngine}} *trade\_engine\_ = \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{215 }
+\DoxyCodeLine{216 \};}
+\DoxyCodeLine{217 }
+\DoxyCodeLine{219 \textcolor{keyword}{using }MarketOrderBookHashMap =}
+\DoxyCodeLine{220     std::array<MarketOrderBook *, Common::ME\_MAX\_TICKERS>;}
+\DoxyCodeLine{221 \}  \textcolor{comment}{// namespace Trading}}
+
+\end{DoxyCode}

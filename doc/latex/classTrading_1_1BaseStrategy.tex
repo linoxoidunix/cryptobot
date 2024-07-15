@@ -1,0 +1,51 @@
+\hypertarget{classTrading_1_1BaseStrategy}{}\doxysection{Trading\+::Base\+Strategy Class Reference}
+\label{classTrading_1_1BaseStrategy}\index{Trading::BaseStrategy@{Trading::BaseStrategy}}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_a5bc8a9f20ab36c19fedf737f0e5c106b}\label{classTrading_1_1BaseStrategy_a5bc8a9f20ab36c19fedf737f0e5c106b}} 
+{\bfseries Base\+Strategy} (\mbox{\hyperlink{classbase__strategy_1_1Strategy}{base\+\_\+strategy\+::\+Strategy}} $\ast$strategy, \mbox{\hyperlink{classTrading_1_1TradeEngine}{Trade\+Engine}} $\ast$trade\+\_\+engine, \mbox{\hyperlink{classTrading_1_1OrderManager}{Order\+Manager}} $\ast$order\+\_\+manager, const Trade\+Engine\+Cfg\+Hash\+Map \&ticker\+\_\+cfg)
+\item 
+auto \mbox{\hyperlink{classTrading_1_1BaseStrategy_a1983e2d468f1fbd77f63ba009979ab96}{On\+Order\+Book\+Update}} (const TickerS \&ticker\+\_\+id, PriceD price, Side side, \mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Trading\+::\+Market\+Order\+Book\+Double}} $\ast$order\+\_\+book) noexcept -\/$>$ void
+\item 
+auto \mbox{\hyperlink{classTrading_1_1BaseStrategy_aebf8fdea52e42b5a601b5ee43d7d616a}{On\+Order\+Response}} (const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$client\+\_\+response) noexcept -\/$>$ void
+\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_aa9ed343e4cddca9f2ea6677e401b9132}\label{classTrading_1_1BaseStrategy_aa9ed343e4cddca9f2ea6677e401b9132}} 
+auto {\bfseries On\+New\+KLine} (const \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} $\ast$new\+\_\+kline) noexcept -\/$>$ void
+\begin{DoxyCompactList}\small\item\em Process new kline. Launch order manager. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}\label{classTrading_1_1BaseStrategy_a92f36dd39454e78ee6c8aac5b3bd6e80}} 
+{\bfseries Base\+Strategy} ()=delete
+\begin{DoxyCompactList}\small\item\em Deleted default, copy \& move constructors and assignment-\/operators. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_af703a5dc8f6f0fe30187a4927f0d9e98}\label{classTrading_1_1BaseStrategy_af703a5dc8f6f0fe30187a4927f0d9e98}} 
+{\bfseries Base\+Strategy} (const \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_af562671db5679497ee873e733ae832bb}\label{classTrading_1_1BaseStrategy_af562671db5679497ee873e733ae832bb}} 
+{\bfseries Base\+Strategy} (const \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \&\&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_a8b09893b1117a481077c1dbe96acea59}\label{classTrading_1_1BaseStrategy_a8b09893b1117a481077c1dbe96acea59}} 
+\mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \&)=delete
+\item 
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_a6e4fa253cfed2319e84f2b0e306f5e13}\label{classTrading_1_1BaseStrategy_a6e4fa253cfed2319e84f2b0e306f5e13}} 
+\mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \& {\bfseries operator=} (const \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} \&\&)=delete
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classTrading_1_1BaseStrategy_a1983e2d468f1fbd77f63ba009979ab96}\label{classTrading_1_1BaseStrategy_a1983e2d468f1fbd77f63ba009979ab96}} 
+\index{Trading::BaseStrategy@{Trading::BaseStrategy}!OnOrderBookUpdate@{OnOrderBookUpdate}}
+\index{OnOrderBookUpdate@{OnOrderBookUpdate}!Trading::BaseStrategy@{Trading::BaseStrategy}}
+\doxysubsubsection{\texorpdfstring{OnOrderBookUpdate()}{OnOrderBookUpdate()}}
+{\footnotesize\ttfamily auto Trading\+::\+Base\+Strategy\+::\+On\+Order\+Book\+Update (\begin{DoxyParamCaption}\item[{const TickerS \&}]{ticker\+\_\+id,  }\item[{PriceD}]{price,  }\item[{Side}]{side,  }\item[{\mbox{\hyperlink{classTrading_1_1MarketOrderBookDouble}{Trading\+::\+Market\+Order\+Book\+Double}} $\ast$}]{order\+\_\+book }\end{DoxyParamCaption}) -\/$>$ void \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Launch On\+Order\+Book\+Update callback when there are changes in marketorderbookdouble for \mbox{\hyperlink{classTrading_1_1BaseStrategy}{Base\+Strategy}} is None \mbox{\Hypertarget{classTrading_1_1BaseStrategy_aebf8fdea52e42b5a601b5ee43d7d616a}\label{classTrading_1_1BaseStrategy_aebf8fdea52e42b5a601b5ee43d7d616a}} 
+\index{Trading::BaseStrategy@{Trading::BaseStrategy}!OnOrderResponse@{OnOrderResponse}}
+\index{OnOrderResponse@{OnOrderResponse}!Trading::BaseStrategy@{Trading::BaseStrategy}}
+\doxysubsubsection{\texorpdfstring{OnOrderResponse()}{OnOrderResponse()}}
+{\footnotesize\ttfamily auto Trading\+::\+Base\+Strategy\+::\+On\+Order\+Response (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange\+::\+MEClient\+Response}} $\ast$}]{client\+\_\+response }\end{DoxyParamCaption}) -\/$>$ void \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+Process client responses for the strategy\textquotesingle{}s orders. 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/aot/strategy/base\+\_\+strategy.\+h\item 
+/home/linoxoidunix/\+Programming/cplusplus/cryptobot/src/base\+\_\+strategy.\+cpp\end{DoxyCompactItemize}

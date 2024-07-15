@@ -1,0 +1,78 @@
+\hypertarget{mem__pool_8h_source}{}\doxysection{mem\+\_\+pool.\+h}
+\label{mem__pool_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/mem\_pool.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/common/mem\_pool.h}}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{2 }
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <cstdint>}}
+\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <vector>}}
+\DoxyCodeLine{5 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{6 }
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
+\DoxyCodeLine{8 }
+\DoxyCodeLine{9 \textcolor{keyword}{namespace }common \{}
+\DoxyCodeLine{10   \textcolor{keyword}{template}<\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{11   \textcolor{keyword}{class }\mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} final \{}
+\DoxyCodeLine{12   \textcolor{keyword}{public}:}
+\DoxyCodeLine{13     \textcolor{keyword}{explicit} \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}}(std::size\_t num\_elems) :}
+\DoxyCodeLine{14         store\_(num\_elems, \{T(), \textcolor{keyword}{true}\}) \textcolor{comment}{/* pre-\/allocation of vector storage. */} \{}
+\DoxyCodeLine{15       ASSERT(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }ObjectBlock *\textcolor{keyword}{>}(\&(store\_[0].object\_)) == \&(store\_[0]), \textcolor{stringliteral}{"{}T object should be first member of ObjectBlock."{}});}
+\DoxyCodeLine{16     \}}
+\DoxyCodeLine{17 }
+\DoxyCodeLine{19     \textcolor{keyword}{template}<\textcolor{keyword}{typename}... Args>}
+\DoxyCodeLine{20     T *\mbox{\hyperlink{classcommon_1_1MemPool_a80ff98a1191fc755bc66444020b39e88}{allocate}}(Args... args) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{21       \textcolor{keyword}{auto} obj\_block = \&(store\_[next\_free\_index\_]);}
+\DoxyCodeLine{22       ASSERT(obj\_block-\/>is\_free\_, \textcolor{stringliteral}{"{}Expected free ObjectBlock at index:"{}} + std::to\_string(next\_free\_index\_));}
+\DoxyCodeLine{23       T *ret = \&(obj\_block-\/>object\_);}
+\DoxyCodeLine{24       ret = \textcolor{keyword}{new}(ret) T(args...); \textcolor{comment}{// placement new.}}
+\DoxyCodeLine{25       obj\_block-\/>is\_free\_ = \textcolor{keyword}{false};}
+\DoxyCodeLine{26 }
+\DoxyCodeLine{27       updateNextFreeIndex();}
+\DoxyCodeLine{28 }
+\DoxyCodeLine{29       \textcolor{keywordflow}{return} ret;}
+\DoxyCodeLine{30     \}}
+\DoxyCodeLine{31 }
+\DoxyCodeLine{34     \textcolor{keyword}{auto} \mbox{\hyperlink{classcommon_1_1MemPool_a1d1f1f478c6cea9aa62ef09b11ffd5a5}{deallocate}}(\textcolor{keyword}{const} T *elem) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{35       \textcolor{keyword}{const} \textcolor{keyword}{auto} elem\_index = (\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const }ObjectBlock *\textcolor{keyword}{>}(elem) -\/ \&store\_[0]);}
+\DoxyCodeLine{36       ASSERT(elem\_index >= 0 \&\& \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(elem\_index) < store\_.size(), \textcolor{stringliteral}{"{}Element being deallocated does not belong to this Memory pool."{}});}
+\DoxyCodeLine{37       ASSERT(!store\_[elem\_index].is\_free\_, \textcolor{stringliteral}{"{}Expected in-\/use ObjectBlock at index:"{}} + std::to\_string(elem\_index));}
+\DoxyCodeLine{38       store\_[elem\_index].is\_free\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{39     \}}
+\DoxyCodeLine{40 }
+\DoxyCodeLine{41     \textcolor{comment}{// Deleted default, copy \& move constructors and assignment-\/operators.}}
+\DoxyCodeLine{42     \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}}() = \textcolor{keyword}{delete};}
+\DoxyCodeLine{43 }
+\DoxyCodeLine{44     \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}}(\textcolor{keyword}{const} \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{45 }
+\DoxyCodeLine{46     \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}}(\textcolor{keyword}{const} \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{47 }
+\DoxyCodeLine{48     \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{50     \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classcommon_1_1MemPool}{MemPool}} \&\&) = \textcolor{keyword}{delete};}
+\DoxyCodeLine{51 }
+\DoxyCodeLine{52   \textcolor{keyword}{private}:}
+\DoxyCodeLine{54     \textcolor{keyword}{auto} updateNextFreeIndex() noexcept \{}
+\DoxyCodeLine{55       \textcolor{keyword}{const} \textcolor{keyword}{auto} initial\_free\_index = next\_free\_index\_;}
+\DoxyCodeLine{56       \textcolor{keywordflow}{while} (!store\_[next\_free\_index\_].is\_free\_) \{}
+\DoxyCodeLine{57         ++next\_free\_index\_;}
+\DoxyCodeLine{58         \textcolor{keywordflow}{if} (UNLIKELY(next\_free\_index\_ == store\_.size())) \{ \textcolor{comment}{// hardware branch predictor should almost always predict this to be false any ways.}}
+\DoxyCodeLine{59           next\_free\_index\_ = 0;}
+\DoxyCodeLine{60         \}}
+\DoxyCodeLine{61         \textcolor{keywordflow}{if} (UNLIKELY(initial\_free\_index == next\_free\_index\_)) \{}
+\DoxyCodeLine{62           ASSERT(initial\_free\_index != next\_free\_index\_, \textcolor{stringliteral}{"{}Memory Pool out of space."{}});}
+\DoxyCodeLine{63         \}}
+\DoxyCodeLine{64       \}}
+\DoxyCodeLine{65     \}}
+\DoxyCodeLine{66 }
+\DoxyCodeLine{69     \textcolor{keyword}{struct }ObjectBlock \{}
+\DoxyCodeLine{70       T object\_;}
+\DoxyCodeLine{71       \textcolor{keywordtype}{bool} is\_free\_ = \textcolor{keyword}{true};}
+\DoxyCodeLine{72     \};}
+\DoxyCodeLine{73 }
+\DoxyCodeLine{77     std::vector<ObjectBlock> store\_;}
+\DoxyCodeLine{78 }
+\DoxyCodeLine{79     \textcolor{keywordtype}{size\_t} next\_free\_index\_ = 0;}
+\DoxyCodeLine{80   \};}
+\DoxyCodeLine{81 \}}
+
+\end{DoxyCode}

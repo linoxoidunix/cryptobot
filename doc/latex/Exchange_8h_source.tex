@@ -1,46 +1,248 @@
 \hypertarget{Exchange_8h_source}{}\doxysection{Exchange.\+h}
-\label{Exchange_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/Exchange.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/bybit/Exchange.h}}
+\label{Exchange_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Exchange.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/Exchange.h}}
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{1 \textcolor{preprocessor}{\#pragma once}}
-\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <string>}}
-\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <string\_view>}}
-\DoxyCodeLine{4 \textcolor{preprocessor}{\#include <bybit/third\_party/fmt/core.h>}}
+\DoxyCodeLine{2 \textcolor{preprocessor}{\#include <openssl/hmac.h>}}
+\DoxyCodeLine{3 \textcolor{preprocessor}{\#include <openssl/sha.h>}}
+\DoxyCodeLine{4 }
 \DoxyCodeLine{5 \textcolor{preprocessor}{\#include <boost/algorithm/string.hpp>}}
-\DoxyCodeLine{6 }
-\DoxyCodeLine{7 \textcolor{keyword}{class }\mbox{\hyperlink{classChartInterval}{ChartInterval}}}
-\DoxyCodeLine{8 \{}
-\DoxyCodeLine{9     \textcolor{keyword}{public}:}
-\DoxyCodeLine{10         \textcolor{keyword}{virtual} std::string ToString() \textcolor{keyword}{const} = 0;}
-\DoxyCodeLine{11         \textcolor{keyword}{virtual} \mbox{\hyperlink{classChartInterval}{\string~ChartInterval}}() = \textcolor{keywordflow}{default};}
-\DoxyCodeLine{12 \};}
-\DoxyCodeLine{13 }
-\DoxyCodeLine{18 \textcolor{keyword}{class }\mbox{\hyperlink{classKLineStream}{KLineStream}}}
-\DoxyCodeLine{19 \{}
-\DoxyCodeLine{20     \textcolor{keyword}{public}:}
-\DoxyCodeLine{26         \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classKLineStream_a5f202d83e06bdec3dab6eea7f53efdf9}{ToString}}() \textcolor{keyword}{const} = 0;}
-\DoxyCodeLine{27         \textcolor{keyword}{virtual} \mbox{\hyperlink{classKLineStream}{\string~KLineStream}}() = \textcolor{keywordflow}{default};}
-\DoxyCodeLine{28 }
-\DoxyCodeLine{29 \};}
-\DoxyCodeLine{30 }
-\DoxyCodeLine{35 \textcolor{keyword}{class }\mbox{\hyperlink{classSymbol}{Symbol}}}
-\DoxyCodeLine{36 \{}
-\DoxyCodeLine{37     \textcolor{keyword}{public}:}
-\DoxyCodeLine{38         \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbol}{Symbol}}(std::string\_view first, std::string\_view second) :}
-\DoxyCodeLine{39         first\_(first.data()),}
-\DoxyCodeLine{40         second\_(second.data())}
-\DoxyCodeLine{41         \{}
-\DoxyCodeLine{42 }
-\DoxyCodeLine{43         \};}
-\DoxyCodeLine{44         \textcolor{keyword}{virtual} std::string ToString()\textcolor{keyword}{ const}}
-\DoxyCodeLine{45 \textcolor{keyword}{        }\{}
-\DoxyCodeLine{46             \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
-\DoxyCodeLine{47             boost::algorithm::to\_lower(out);}
-\DoxyCodeLine{48             \textcolor{keywordflow}{return} out;}
-\DoxyCodeLine{49         \}}
-\DoxyCodeLine{50     \textcolor{keyword}{private}:}
-\DoxyCodeLine{51         std::string first\_;}
-\DoxyCodeLine{52         std::string second\_;}
-\DoxyCodeLine{53 \};}
+\DoxyCodeLine{6 \textcolor{preprocessor}{\#include <boost/beast/http.hpp>}}
+\DoxyCodeLine{7 \textcolor{preprocessor}{\#include <cstdint>}}
+\DoxyCodeLine{8 \textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{9 \textcolor{preprocessor}{\#include <string\_view>}}
+\DoxyCodeLine{10 }
+\DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/Logger.h"{}}}
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}\mbox{\hyperlink{client__response_8h}{aot/client\_response.h}}"{}}}
+\DoxyCodeLine{13 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include "{}aot/market\_data/market\_update.h"{}}}
+\DoxyCodeLine{15 \textcolor{preprocessor}{\#include "{}moodycamel/concurrentqueue.h"{}}}
+\DoxyCodeLine{16 }
+\DoxyCodeLine{17 \textcolor{keyword}{enum class} TypeExchange \{ TESTNET, MAINNET \};}
+\DoxyCodeLine{18 \textcolor{comment}{// enum class Side \{ BUY, SELL \};}}
+\DoxyCodeLine{19 }
+\DoxyCodeLine{20 \textcolor{keyword}{namespace }https \{}
+\DoxyCodeLine{21 \textcolor{keyword}{class }\mbox{\hyperlink{classhttps_1_1ExchangeI}{ExchangeI}} \{}
+\DoxyCodeLine{22   \textcolor{keyword}{public}:}
+\DoxyCodeLine{23     \textcolor{keyword}{virtual} \mbox{\hyperlink{classhttps_1_1ExchangeI}{\string~ExchangeI}}()                     = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{24     \textcolor{keyword}{virtual} std::string\_view Host() \textcolor{keyword}{const}    = 0;}
+\DoxyCodeLine{25     \textcolor{keyword}{virtual} std::string\_view Port() \textcolor{keyword}{const}    = 0;}
+\DoxyCodeLine{26     \textcolor{keyword}{virtual} std::uint64\_t RecvWindow() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{27 \};}
+\DoxyCodeLine{28 \};  \textcolor{comment}{// namespace https}}
+\DoxyCodeLine{29 }
+\DoxyCodeLine{30 \textcolor{keyword}{class }\mbox{\hyperlink{classCurrentTime}{CurrentTime}} \{}
+\DoxyCodeLine{31   \textcolor{keyword}{public}:}
+\DoxyCodeLine{32     \textcolor{keyword}{explicit} \mbox{\hyperlink{classCurrentTime}{CurrentTime}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{33     std::uint64\_t Time()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{34         \textcolor{keywordflow}{return} \textcolor{keyword}{static\_cast<}std::uint64\_t\textcolor{keyword}{>}(}
+\DoxyCodeLine{35             std::chrono::duration\_cast<std::chrono::milliseconds>(}
+\DoxyCodeLine{36                 std::chrono::system\_clock::now().time\_since\_epoch())}
+\DoxyCodeLine{37                 .count());}
+\DoxyCodeLine{38     \};}
+\DoxyCodeLine{39 \};}
+\DoxyCodeLine{40 \textcolor{keyword}{class }\mbox{\hyperlink{classSignerI}{SignerI}} \{}
+\DoxyCodeLine{41   \textcolor{keyword}{public}:}
+\DoxyCodeLine{42     \textcolor{keyword}{virtual} std::string Sign(std::string\_view data) = 0;}
+\DoxyCodeLine{43     \textcolor{keyword}{virtual} std::string ApiKey()                    = 0;}
+\DoxyCodeLine{44     \textcolor{keyword}{virtual} \mbox{\hyperlink{classSignerI}{\string~SignerI}}()                              = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{45 \};}
+\DoxyCodeLine{46 \textcolor{keyword}{namespace }hmac\_sha256 \{}
+\DoxyCodeLine{47 \textcolor{keyword}{struct }\mbox{\hyperlink{structhmac__sha256_1_1Keys}{Keys}} \{}
+\DoxyCodeLine{48     std::string api\_key;}
+\DoxyCodeLine{49     std::string secret\_key;}
+\DoxyCodeLine{50     \mbox{\hyperlink{structhmac__sha256_1_1Keys}{Keys}}(std::string \_api\_key, std::string \_secret\_key) \{}
+\DoxyCodeLine{51         api\_key    = \_api\_key;}
+\DoxyCodeLine{52         secret\_key = \_secret\_key;}
+\DoxyCodeLine{53     \};}
+\DoxyCodeLine{54 \};}
+\DoxyCodeLine{55 \textcolor{keyword}{class }\mbox{\hyperlink{classhmac__sha256_1_1Signer}{Signer}} : \textcolor{keyword}{public} \mbox{\hyperlink{classSignerI}{SignerI}} \{}
+\DoxyCodeLine{56   \textcolor{keyword}{public}:}
+\DoxyCodeLine{57     \textcolor{keyword}{explicit} \mbox{\hyperlink{classhmac__sha256_1_1Signer}{Signer}}(std::string\_view secret\_key) : secret\_key\_(secret\_key) \{\};}
+\DoxyCodeLine{58     \textcolor{keyword}{explicit} \mbox{\hyperlink{classhmac__sha256_1_1Signer}{Signer}}(\mbox{\hyperlink{structhmac__sha256_1_1Keys}{Keys}} keys)}
+\DoxyCodeLine{59         : secret\_key\_(keys.secret\_key), api\_key\_(keys.api\_key) \{\};}
+\DoxyCodeLine{60 }
+\DoxyCodeLine{68     std::string \mbox{\hyperlink{classhmac__sha256_1_1Signer_a6e68e7635130df976310b276608d4c02}{Sign}}(std::string\_view data)\textcolor{keyword}{ override }\{}
+\DoxyCodeLine{69         std::uint8\_t digest[EVP\_MAX\_MD\_SIZE];}
+\DoxyCodeLine{70         std::uint32\_t dilen\{\};}
+\DoxyCodeLine{71 }
+\DoxyCodeLine{72         \textcolor{keyword}{auto} p =}
+\DoxyCodeLine{73             ::HMAC(::EVP\_sha256(), secret\_key\_.c\_str(), secret\_key\_.length(),}
+\DoxyCodeLine{74                    (std::uint8\_t *)data.data(), data.size(), digest, \&dilen);}
+\DoxyCodeLine{75         assert(p);}
+\DoxyCodeLine{76 }
+\DoxyCodeLine{77         \textcolor{keywordflow}{return} B2aHex(digest, dilen);}
+\DoxyCodeLine{78     \};}
+\DoxyCodeLine{79     std::string ApiKey()\textcolor{keyword}{ override }\{ \textcolor{keywordflow}{return} api\_key\_; \}}
+\DoxyCodeLine{80 }
+\DoxyCodeLine{81   \textcolor{keyword}{private}:}
+\DoxyCodeLine{82     std::string B2aHex(\textcolor{keyword}{const} std::uint8\_t *p, std::size\_t n) \{}
+\DoxyCodeLine{83         \textcolor{keyword}{static} \textcolor{keyword}{const} \textcolor{keywordtype}{char} hex[] = \textcolor{stringliteral}{"{}0123456789abcdef"{}};}
+\DoxyCodeLine{84         std::string res;}
+\DoxyCodeLine{85         res.reserve(n * 2);}
+\DoxyCodeLine{86 }
+\DoxyCodeLine{87         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} end = p + n; p != end; ++p) \{}
+\DoxyCodeLine{88             \textcolor{keyword}{const} std::uint8\_t v  = (*p);}
+\DoxyCodeLine{89             res                  += hex[(v >> 4) \& 0x0F];}
+\DoxyCodeLine{90             res                  += hex[v \& 0x0F];}
+\DoxyCodeLine{91         \}}
+\DoxyCodeLine{92 }
+\DoxyCodeLine{93         \textcolor{keywordflow}{return} res;}
+\DoxyCodeLine{94     \};}
+\DoxyCodeLine{95 }
+\DoxyCodeLine{96   \textcolor{keyword}{private}:}
+\DoxyCodeLine{97     std::string secret\_key\_;}
+\DoxyCodeLine{98     std::string api\_key\_;}
+\DoxyCodeLine{99 \};}
+\DoxyCodeLine{100 \};  \textcolor{comment}{// namespace hmac\_sha256}}
+\DoxyCodeLine{101 \textcolor{keyword}{struct }\mbox{\hyperlink{structTickerInfo}{TickerInfo}} \{}
+\DoxyCodeLine{102     \textcolor{keywordtype}{double} price\_precission;}
+\DoxyCodeLine{103     \textcolor{keywordtype}{double} qty\_precission;}
+\DoxyCodeLine{104 \};}
+\DoxyCodeLine{105 }
+\DoxyCodeLine{110 \textcolor{keyword}{class }\mbox{\hyperlink{classInterval}{Interval}} \{}
+\DoxyCodeLine{111     \textcolor{keyword}{enum class} Unit \{ SECONDS, MINUTES, HOURS, DAYS, UNKNOWN \};}
+\DoxyCodeLine{116     Unit unit = Unit::UNKNOWN;}
+\DoxyCodeLine{121     uint val  = 0;}
+\DoxyCodeLine{122 \};}
+\DoxyCodeLine{123 \textcolor{keyword}{struct }\mbox{\hyperlink{structOHLCV}{OHLCV}} \{}
+\DoxyCodeLine{124     uint data;}
+\DoxyCodeLine{125     \textcolor{keywordtype}{double} open;}
+\DoxyCodeLine{126     \textcolor{keywordtype}{double} high;}
+\DoxyCodeLine{127     \textcolor{keywordtype}{double} low;}
+\DoxyCodeLine{128     \textcolor{keywordtype}{double} close;}
+\DoxyCodeLine{129     \textcolor{keywordtype}{double} volume;}
+\DoxyCodeLine{130     std::string ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{131         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}o:\{\} h:\{\} l:\{\} c:\{\} v:\{\}"{}}, open, high, low, close,}
+\DoxyCodeLine{132                            volume);}
+\DoxyCodeLine{133     \}}
+\DoxyCodeLine{134 \};}
+\DoxyCodeLine{135 }
+\DoxyCodeLine{140 \textcolor{keyword}{struct }\mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} \{}
+\DoxyCodeLine{141     \mbox{\hyperlink{structOHLCV}{OHLCV}} ohlcv;}
+\DoxyCodeLine{142     \mbox{\hyperlink{classInterval}{Interval}} interval;}
+\DoxyCodeLine{143     Common::TickerS ticker;}
+\DoxyCodeLine{144     std::string ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{145         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}s:\{\} o:\{\} h:\{\} l:\{\} c:\{\} v:\{\}"{}}, ticker, ohlcv.open,}
+\DoxyCodeLine{146                            ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);}
+\DoxyCodeLine{147     \}}
+\DoxyCodeLine{148 \};}
+\DoxyCodeLine{149 \textcolor{keyword}{using }OHLCVILFQueue = moodycamel::ConcurrentQueue<OHLCVExt>;}
+\DoxyCodeLine{150 }
+\DoxyCodeLine{151 \textcolor{keyword}{using }OHLCVIStorage = std::list<OHLCVExt>;}
+\DoxyCodeLine{152 }
+\DoxyCodeLine{157 \textcolor{keyword}{class }\mbox{\hyperlink{classOHLCVGetter}{OHLCVGetter}} \{}
+\DoxyCodeLine{158   \textcolor{keyword}{public}:}
+\DoxyCodeLine{164     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} \mbox{\hyperlink{classOHLCVGetter_a654aa938df8f7370a93a20ddb7d236ac}{Init}}(OHLCVILFQueue \&lf\_queue) = 0;}
+\DoxyCodeLine{165     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} LaunchOne()                   = 0;}
+\DoxyCodeLine{166     \textcolor{keyword}{virtual} \mbox{\hyperlink{classOHLCVGetter}{\string~OHLCVGetter}}()                     = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{167 \};}
+\DoxyCodeLine{168 }
+\DoxyCodeLine{173 \textcolor{keyword}{class }\mbox{\hyperlink{classBookEventGetterI}{BookEventGetterI}} \{}
+\DoxyCodeLine{174   \textcolor{keyword}{public}:}
+\DoxyCodeLine{175     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} Init(Exchange::BookDiffLFQueue \&queue) = 0;}
+\DoxyCodeLine{176     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} Get()                                  = 0;}
+\DoxyCodeLine{177     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} LaunchOne()                            = 0;}
+\DoxyCodeLine{178     \textcolor{keyword}{virtual} \mbox{\hyperlink{classBookEventGetterI}{\string~BookEventGetterI}}()                         = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{179 \};}
+\DoxyCodeLine{180 }
+\DoxyCodeLine{186 \textcolor{keyword}{class }\mbox{\hyperlink{classChartInterval}{ChartInterval}} \{}
+\DoxyCodeLine{187   \textcolor{keyword}{public}:}
+\DoxyCodeLine{188     \textcolor{keyword}{virtual} std::string ToString() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{189     \textcolor{keyword}{virtual} uint Seconds() \textcolor{keyword}{const}         = 0;}
+\DoxyCodeLine{190     \textcolor{keyword}{virtual} \mbox{\hyperlink{classChartInterval}{\string~ChartInterval}}()             = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{191 \};}
+\DoxyCodeLine{192 }
+\DoxyCodeLine{197 \textcolor{keyword}{class }\mbox{\hyperlink{classKLineStreamI}{KLineStreamI}} \{}
+\DoxyCodeLine{198   \textcolor{keyword}{public}:}
+\DoxyCodeLine{204     \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classKLineStreamI_ac3d2cf4222aa57603432ef2b3ab41f9f}{ToString}}() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{205     \textcolor{keyword}{virtual} \mbox{\hyperlink{classKLineStreamI}{\string~KLineStreamI}}()              = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{206 \};}
+\DoxyCodeLine{207 }
+\DoxyCodeLine{208 \textcolor{keyword}{class }\mbox{\hyperlink{classDiffDepthStreamI}{DiffDepthStreamI}} \{}
+\DoxyCodeLine{209   \textcolor{keyword}{public}:}
+\DoxyCodeLine{215     \textcolor{keyword}{virtual} std::string \mbox{\hyperlink{classDiffDepthStreamI_a3905a2081efa6ab63ce9a878fb67e8c8}{ToString}}() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{216     \textcolor{keyword}{virtual} \mbox{\hyperlink{classDiffDepthStreamI}{\string~DiffDepthStreamI}}()          = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{217 \};}
+\DoxyCodeLine{218 }
+\DoxyCodeLine{224 \textcolor{keyword}{class }\mbox{\hyperlink{classSymbolI}{SymbolI}} \{}
+\DoxyCodeLine{225   \textcolor{keyword}{public}:}
+\DoxyCodeLine{226     \textcolor{keyword}{virtual} std::string ToString() \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{227     \textcolor{keyword}{virtual} \mbox{\hyperlink{classSymbolI}{\string~SymbolI}}()                   = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{228 \};}
+\DoxyCodeLine{229 }
+\DoxyCodeLine{230 \textcolor{keyword}{class }\mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} : \textcolor{keyword}{public} \mbox{\hyperlink{classSymbolI}{SymbolI}} \{}
+\DoxyCodeLine{231   \textcolor{keyword}{public}:}
+\DoxyCodeLine{232     \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}}(std::string\_view first, std::string\_view second)}
+\DoxyCodeLine{233         : first\_(first.data()), second\_(second.data()) \{\};}
+\DoxyCodeLine{234     \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}}(std::string\_view first) : first\_(first.data()) \{\};}
+\DoxyCodeLine{235     std::string ToString()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{236         \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
+\DoxyCodeLine{237         boost::algorithm::to\_upper(out);}
+\DoxyCodeLine{238         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{239     \};}
+\DoxyCodeLine{240     \mbox{\hyperlink{classSymbolUpperCase}{\string~SymbolUpperCase}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{241 }
+\DoxyCodeLine{242   \textcolor{keyword}{private}:}
+\DoxyCodeLine{243     std::string first\_;}
+\DoxyCodeLine{244     std::string second\_;}
+\DoxyCodeLine{245 \};}
+\DoxyCodeLine{246 }
+\DoxyCodeLine{247 \textcolor{keyword}{class }\mbox{\hyperlink{classSymbolLowerCase}{SymbolLowerCase}} : \textcolor{keyword}{public} \mbox{\hyperlink{classSymbolI}{SymbolI}} \{}
+\DoxyCodeLine{248   \textcolor{keyword}{public}:}
+\DoxyCodeLine{249     \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbolLowerCase}{SymbolLowerCase}}(std::string\_view first, std::string\_view second)}
+\DoxyCodeLine{250         : first\_(first.data()), second\_(second.data()) \{\};}
+\DoxyCodeLine{251     \textcolor{keyword}{explicit} \mbox{\hyperlink{classSymbolLowerCase}{SymbolLowerCase}}(std::string\_view first) : first\_(first.data()) \{\};}
+\DoxyCodeLine{252     std::string ToString()\textcolor{keyword}{ const override }\{}
+\DoxyCodeLine{253         \textcolor{keyword}{auto} out = fmt::format(\textcolor{stringliteral}{"{}\{0\}\{1\}"{}}, first\_, second\_);}
+\DoxyCodeLine{254         boost::algorithm::to\_lower(out);}
+\DoxyCodeLine{255         \textcolor{keywordflow}{return} out;}
+\DoxyCodeLine{256     \};}
+\DoxyCodeLine{257     \mbox{\hyperlink{classSymbolLowerCase}{\string~SymbolLowerCase}}() \textcolor{keyword}{override} = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{258 }
+\DoxyCodeLine{259   \textcolor{keyword}{private}:}
+\DoxyCodeLine{260     std::string first\_;}
+\DoxyCodeLine{261     std::string second\_;}
+\DoxyCodeLine{262 \};}
+\DoxyCodeLine{263 }
+\DoxyCodeLine{264 \textcolor{keyword}{struct }\mbox{\hyperlink{structTicker}{Ticker}} \{}
+\DoxyCodeLine{265     \textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}} *symbol;}
+\DoxyCodeLine{266     \mbox{\hyperlink{structTickerInfo}{TickerInfo}} info;}
+\DoxyCodeLine{267     \mbox{\hyperlink{structTicker}{Ticker}}(\textcolor{keyword}{const} \mbox{\hyperlink{classSymbolI}{SymbolI}} *\_symbol, \textcolor{keyword}{const} \mbox{\hyperlink{structTickerInfo}{TickerInfo}} \&\_info)}
+\DoxyCodeLine{268         : symbol(\_symbol), info(\_info) \{\};}
+\DoxyCodeLine{269 \};}
+\DoxyCodeLine{270 }
+\DoxyCodeLine{275 \textcolor{keyword}{class }\mbox{\hyperlink{classParserKLineResponseI}{ParserKLineResponseI}} \{}
+\DoxyCodeLine{276   \textcolor{keyword}{public}:}
+\DoxyCodeLine{277     \textcolor{keyword}{virtual} \mbox{\hyperlink{structOHLCVExt}{OHLCVExt}} Get(std::string\_view response\_from\_exchange) \textcolor{keyword}{const} = 0;}
+\DoxyCodeLine{278     \textcolor{keyword}{virtual} \mbox{\hyperlink{classParserKLineResponseI}{\string~ParserKLineResponseI}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{279 \};}
+\DoxyCodeLine{280 \textcolor{keyword}{namespace }Exchange \{}
+\DoxyCodeLine{281 \textcolor{keyword}{class }RequestNewOrder;}
+\DoxyCodeLine{282 \textcolor{keyword}{class }RequestCancelOrder;}
+\DoxyCodeLine{283 \};  \textcolor{comment}{// namespace Exchange}}
+\DoxyCodeLine{284 }
+\DoxyCodeLine{285 \textcolor{keyword}{namespace }inner \{}
+\DoxyCodeLine{286 \textcolor{keyword}{class }\mbox{\hyperlink{classinner_1_1OrderNewI}{OrderNewI}} \{}
+\DoxyCodeLine{287   \textcolor{keyword}{public}:}
+\DoxyCodeLine{293     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} \mbox{\hyperlink{classinner_1_1OrderNewI_adb7015a3f861becc30cc873d6593c89d}{Exec}}(\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{Exchange::RequestNewOrder}} *,}
+\DoxyCodeLine{294                       \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *) = 0;}
+\DoxyCodeLine{295     \textcolor{keyword}{virtual} \mbox{\hyperlink{classinner_1_1OrderNewI}{\string~OrderNewI}}()                                 = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{296 \};}
+\DoxyCodeLine{297 }
+\DoxyCodeLine{298 \textcolor{keyword}{class }\mbox{\hyperlink{classinner_1_1CancelOrderI}{CancelOrderI}} \{}
+\DoxyCodeLine{299   \textcolor{keyword}{public}:}
+\DoxyCodeLine{305     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} \mbox{\hyperlink{classinner_1_1CancelOrderI_af60e5dc604cddc28e9e38c3cb4874b3c}{Exec}}(\mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{Exchange::RequestCancelOrder}} *,}
+\DoxyCodeLine{306                       \mbox{\hyperlink{client__response_8h_a11fe083e6ab2d21f68e0bb554169be51}{Exchange::ClientResponseLFQueue}} *) = 0;}
+\DoxyCodeLine{307     \textcolor{keyword}{virtual} \mbox{\hyperlink{classinner_1_1CancelOrderI}{\string~CancelOrderI}}()                              = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{308 \};}
+\DoxyCodeLine{309 }
+\DoxyCodeLine{310 \textcolor{keyword}{class }\mbox{\hyperlink{classinner_1_1BookSnapshotI}{BookSnapshotI}} \{}
+\DoxyCodeLine{311   \textcolor{keyword}{public}:}
+\DoxyCodeLine{312     \textcolor{keyword}{virtual} \textcolor{keywordtype}{void} Exec()      = 0;}
+\DoxyCodeLine{313     \textcolor{keyword}{virtual} \mbox{\hyperlink{classinner_1_1BookSnapshotI}{\string~BookSnapshotI}}() = \textcolor{keywordflow}{default};}
+\DoxyCodeLine{314 \};}
+\DoxyCodeLine{315 }
+\DoxyCodeLine{316 \};  \textcolor{comment}{// namespace inner}}
 
 \end{DoxyCode}

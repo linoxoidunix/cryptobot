@@ -1,0 +1,85 @@
+\hypertarget{client__request_8h_source}{}\doxysection{client\+\_\+request.\+h}
+\label{client__request_8h_source}\index{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_request.h@{/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/client\_request.h}}
+\mbox{\hyperlink{client__request_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{1 }
+\DoxyCodeLine{12 \textcolor{preprocessor}{\#pragma once}}
+\DoxyCodeLine{13 }
+\DoxyCodeLine{14 \textcolor{preprocessor}{\#include <sstream>}}
+\DoxyCodeLine{15 }
+\DoxyCodeLine{16 \textcolor{preprocessor}{\#include "{}aot/common/types.h"{}}}
+\DoxyCodeLine{17 \textcolor{preprocessor}{\#include "{}moodycamel/concurrentqueue.h"{}}}
+\DoxyCodeLine{18 }
+\DoxyCodeLine{19 \textcolor{keyword}{namespace }Exchange \{}
+\DoxyCodeLine{21 \textcolor{keyword}{enum class} \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} : uint8\_t \{ INVALID = 0, NEW = 1, CANCEL = 2 \};}
+\DoxyCodeLine{22 }
+\DoxyCodeLine{23 \textcolor{keyword}{inline} std::string ClientRequestTypeToString(ClientRequestType type) \{}
+\DoxyCodeLine{24     \textcolor{keywordflow}{switch} (type) \{}
+\DoxyCodeLine{25         \textcolor{keywordflow}{case} ClientRequestType::NEW:}
+\DoxyCodeLine{26             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}NEW"{}};}
+\DoxyCodeLine{27         \textcolor{keywordflow}{case} ClientRequestType::CANCEL:}
+\DoxyCodeLine{28             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}CANCEL"{}};}
+\DoxyCodeLine{29         \textcolor{keywordflow}{case} ClientRequestType::INVALID:}
+\DoxyCodeLine{30             \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{31     \}}
+\DoxyCodeLine{32     \textcolor{keywordflow}{return} \textcolor{stringliteral}{"{}UNKNOWN"{}};}
+\DoxyCodeLine{33 \}}
+\DoxyCodeLine{34 }
+\DoxyCodeLine{37 \textcolor{comment}{//\#pragma pack(push, 1)}}
+\DoxyCodeLine{38 }
+\DoxyCodeLine{40 \textcolor{keyword}{class }\mbox{\hyperlink{classExchange_1_1Request}{Request}} \{}
+\DoxyCodeLine{41   \textcolor{keyword}{public}:}
+\DoxyCodeLine{42     \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} type = ClientRequestType::INVALID;}
+\DoxyCodeLine{43     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{44          \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{45             \textcolor{stringliteral}{"{}Request[type:\{\}]"{}},}
+\DoxyCodeLine{46             ClientRequestTypeToString(type));}
+\DoxyCodeLine{47     \}}
+\DoxyCodeLine{48 \};}
+\DoxyCodeLine{49 }
+\DoxyCodeLine{50 \textcolor{keyword}{class }\mbox{\hyperlink{classExchange_1_1RequestNewOrder}{RequestNewOrder}}\{}
+\DoxyCodeLine{51   \textcolor{keyword}{public}:}
+\DoxyCodeLine{52     \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} type = ClientRequestType::NEW;}
+\DoxyCodeLine{53     std::string ticker;}
+\DoxyCodeLine{54     Common::OrderId order\_id = Common::OrderId\_INVALID;}
+\DoxyCodeLine{55     Common::Side side        = Common::Side::INVALID;}
+\DoxyCodeLine{56     \textcolor{keywordtype}{double} price             = Common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{57     \textcolor{keywordtype}{double} qty               = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{58     uint8\_t price\_prec       = 0;}
+\DoxyCodeLine{59     uint8\_t qty\_prec         = 0;}
+\DoxyCodeLine{60     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{61         std::string price\_string =}
+\DoxyCodeLine{62             (price != Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{63                 ? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, price, price\_prec)}
+\DoxyCodeLine{64                 : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{65         std::string qty\_string = (qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{66                                      ? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, qty, qty\_prec)}
+\DoxyCodeLine{67                                      : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{68         \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{69             \textcolor{stringliteral}{"{}RequestNewOrder[type:\{\} ticker:\{\} order\_id:\{\} side:\{\} qty:\{\} price:\{\}]"{}},}
+\DoxyCodeLine{70             ClientRequestTypeToString(type), ticker, order\_id,}
+\DoxyCodeLine{71             Common::sideToString(side), qty\_string, price\_string);}
+\DoxyCodeLine{72     \}}
+\DoxyCodeLine{73 \};}
+\DoxyCodeLine{74 }
+\DoxyCodeLine{75 \textcolor{keyword}{class }\mbox{\hyperlink{classExchange_1_1RequestCancelOrder}{RequestCancelOrder}} \{}
+\DoxyCodeLine{76   \textcolor{keyword}{public}:}
+\DoxyCodeLine{77     \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} type = ClientRequestType::CANCEL;}
+\DoxyCodeLine{78     std::string ticker;}
+\DoxyCodeLine{79     Common::OrderId order\_id = Common::OrderId\_INVALID;}
+\DoxyCodeLine{80     }
+\DoxyCodeLine{81     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{82         \textcolor{keywordflow}{return} fmt::format(}
+\DoxyCodeLine{83             \textcolor{stringliteral}{"{}RequestNewOrder[type:\{\} ticker:\{\}]"{}},}
+\DoxyCodeLine{84             ClientRequestTypeToString(type), ticker);}
+\DoxyCodeLine{85     \}}
+\DoxyCodeLine{86 \};}
+\DoxyCodeLine{87 }
+\DoxyCodeLine{88 \textcolor{comment}{//\#pragma pack(pop)  // Undo the packed binary structure directive moving forward.}}
+\DoxyCodeLine{89 }
+\DoxyCodeLine{91 \textcolor{keyword}{using }\mbox{\hyperlink{client__request_8h_afdaba697086449aedd6facb0edb90085}{RequestNewLimitOrderLFQueue}} = moodycamel::ConcurrentQueue<RequestNewOrder>;}
+\DoxyCodeLine{92 \textcolor{keyword}{using }RequestCancelOrderLFQueue = moodycamel::ConcurrentQueue<RequestCancelOrder>;}
+\DoxyCodeLine{93 }
+\DoxyCodeLine{94 \}  \textcolor{comment}{// namespace Exchange}}
+
+\end{DoxyCode}
