@@ -25,11 +25,7 @@ thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 3. Trading::OrderManager have 2 public methods NewOrder and CancelOrder and OnOrderResponse callback which must be called when a new Exchange::MEClientResponse * event arrives from the exchange
 4. MarketOrderBook is entity that maintains the local order book based on bid and ask events received from the exchange
 
-+ 123123
-- 123123
 # Restrictions
-+ 123123
-- 123123
 * C++20
 * Boost 1.65.0
 * CMake 3.29
