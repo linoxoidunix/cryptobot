@@ -98,6 +98,7 @@ class Strategy : public IStrategy {
         }
         return result;
     };
+    ~Strategy() override { Py_DECREF(predictor_instance_); };
     class Parser {
       public:
         explicit Parser() = default;
@@ -115,7 +116,6 @@ class Strategy : public IStrategy {
             return Common::TradeAction::kNope;
         };
     };
-    ~Strategy() override { Py_DECREF(predictor_instance_); };
 
   private:
     std::string file_predictor_;
