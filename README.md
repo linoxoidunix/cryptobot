@@ -13,8 +13,7 @@ bot for algo trading
 thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 
 # TODO
-1. make order manager move_order function
-2. for order manager need consider riskmanager 
+1. for order manager need consider riskmanager 
 
 # Definitions
 1. Service - entity that runs in a separate thread
@@ -27,9 +26,9 @@ thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 4. MarketOrderBook is entity that maintains the local order book based on bid and ask events received from the exchange
 
 # Restrictions
-    * C++20
-    * Boost 1.65.0
-    * CMake 3.29
+* C++20
+* Boost 1.65.0
+* CMake 3.29
 1. OrderManager impl supports only 1 active order for each side!!!!
 2. OrderBook: 
     * uses boost::intrusive::avltree to sort prices into levels in ascending or descending order
