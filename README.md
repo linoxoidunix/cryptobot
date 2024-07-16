@@ -98,6 +98,28 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 ```
 1. For Binance launch trade engine + generator bid/ask events service. check update BBO and BBODouble
 ```c++
+#include <aot/WS.h>
+
+#include <boost/beast/core.hpp>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include "aot/Binance.h"
+#include "aot/Bybit.h"
+#include "aot/Logger.h"
+#include "aot/Predictor.h"
+#include "aot/common/types.h"
+#include "aot/order_gw/order_gw.h"
+#include "aot/strategy/kline.h"
+#include "aot/strategy/market_order_book.h"
+#include "aot/strategy/trade_engine.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/launcher_predictor.h"
+#include "moodycamel/concurrentqueue.h"
+
 int main() {
     fmtlog::setLogLevel(fmtlog::INF);
     using namespace binance;
@@ -128,6 +150,28 @@ int main() {
 
 2. For Binance check response when send new limit order
 ```c++
+#include <aot/WS.h>
+
+#include <boost/beast/core.hpp>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include "aot/Binance.h"
+#include "aot/Bybit.h"
+#include "aot/Logger.h"
+#include "aot/Predictor.h"
+#include "aot/common/types.h"
+#include "aot/order_gw/order_gw.h"
+#include "aot/strategy/kline.h"
+#include "aot/strategy/market_order_book.h"
+#include "aot/strategy/trade_engine.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/launcher_predictor.h"
+#include "moodycamel/concurrentqueue.h"
+
 int main(int argc, char** argv) {
     fmtlog::setLogLevel(fmtlog::DBG);
 
@@ -174,6 +218,28 @@ int main(int argc, char** argv) {
 
 3. For Binance test add and cancel order
 ```c++
+#include <aot/WS.h>
+
+#include <boost/beast/core.hpp>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include "aot/Binance.h"
+#include "aot/Bybit.h"
+#include "aot/Logger.h"
+#include "aot/Predictor.h"
+#include "aot/common/types.h"
+#include "aot/order_gw/order_gw.h"
+#include "aot/strategy/kline.h"
+#include "aot/strategy/market_order_book.h"
+#include "aot/strategy/trade_engine.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/launcher_predictor.h"
+#include "moodycamel/concurrentqueue.h"
+
 int main(int argc, char** argv) {
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
