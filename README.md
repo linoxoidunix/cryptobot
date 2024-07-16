@@ -72,6 +72,7 @@ thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 
 # Basic usage
 * Cmake
+```
 set (PROJECT_NAME test_reading)
 project(${PROJECT_NAME})
 
@@ -94,126 +95,131 @@ unordered_dense::unordered_dense
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
-
+```
 1. For Binance launch trade engine + generator bid/ask events service. check update BBO and BBODouble
+```c++
 int main() {
-    fmtlog::setLogLevel(fmtlog::INF);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;//this queue contains bids and asks from the bid ask generator
-    Exchange::RequestNewLimitOrderLFQueue request_new_order;//this queue contains requests for new limit order
-    Exchange::RequestCancelOrderLFQueue request_cancel_order;//this queue contains requests for cancel order by id
-    Exchange::ClientResponseLFQueue response;//this queue contains response from exchange when you send new order or send request cancel order
-    OHLCVILFQueue ohlcv_queue;//this queue contains klines from exchange. in this example this queue always empty
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};//set manual price precission and qty precission for ticker
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
-    GeneratorBidAskService generator(&event_queue, ticker, &interval,
-                                     TypeExchange::TESTNET);
-    generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue,
-    &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
-    trade_engine_service.Start();
-    while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             generator.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
+        fmtlog::setLogLevel(fmtlog::INF);
+        using namespace binance;
+        Exchange::EventLFQueue event_queue;//this queue contains bids and asks from the bid ask generator
+        Exchange::RequestNewLimitOrderLFQueue request_new_order;//this queue contains requests for new limit order
+        Exchange::RequestCancelOrderLFQueue request_cancel_order;//this queue contains requests for cancel order by id
+        Exchange::ClientResponseLFQueue response;//this queue contains response from exchange when you send new order or send request cancel order
+        OHLCVILFQueue ohlcv_queue;//this queue contains klines from exchange. in this example this queue always empty
+        DiffDepthStream::ms100 interval;
+        TickerInfo info{2, 5};//set manual price precission and qty precission for ticker
+        Symbol btcusdt("BTC", "USDT");
+        Ticker ticker(&btcusdt, info);
+        GeneratorBidAskService generator(&event_queue, ticker, &interval,
+                                        TypeExchange::TESTNET);
+        generator.Start();
+        Trading::TradeEngine trade_engine_service(&event_queue,
+        &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
+        trade_engine_service.Start();
+        while (trade_engine_service.GetDownTimeInS() < 120) {
+            logd("Waiting till no activity, been silent for {} seconds...",
+                generator.GetDownTimeInS());
+            using namespace std::literals::chrono_literals;
+            std::this_thread::sleep_for(30s);
+        }
 }
+```
 ![Alt Text](/doc/ForREADME/check_bbo.gif)
 
 2. For Binance check response when send new limit order
+```c++
 int main(int argc, char** argv) {
-    fmtlog::setLogLevel(fmtlog::DBG);
+        fmtlog::setLogLevel(fmtlog::DBG);
 
-    using namespace binance;
-    hmac_sha256::Keys keys{argv[2], argv[3]};//set api key and secret key
-    hmac_sha256::Signer signer(keys); //init hmac_sha256 signer
-    auto type = TypeExchange::TESTNET;
-    OrderNewLimit new_order(&signer, type);//init executor for send new order limit
-    CancelOrder executor_cancel_order(&signer, type);//init executor for cancel order by id
-    using namespace Trading;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
-    Exchange::RequestNewOrder request_new_order;//start init manual request new order
-    request_new_order.ticker   = "BTCUSDT";
-    request_new_order.order_id = 6;
-    request_new_order.side     = Common::Side::BUY;
-    request_new_order.price    = 40000;
-    request_new_order.qty      = 0.001;
+        using namespace binance;
+        hmac_sha256::Keys keys{argv[2], argv[3]};//set api key and secret key
+        hmac_sha256::Signer signer(keys); //init hmac_sha256 signer
+        auto type = TypeExchange::TESTNET;
+        OrderNewLimit new_order(&signer, type);//init executor for send new order limit
+        CancelOrder executor_cancel_order(&signer, type);//init executor for cancel order by id
+        using namespace Trading;
+        Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+        Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+        Exchange::ClientResponseLFQueue client_responses;
+        Exchange::RequestNewOrder request_new_order;//start init manual request new order
+        request_new_order.ticker   = "BTCUSDT";
+        request_new_order.order_id = 6;
+        request_new_order.side     = Common::Side::BUY;
+        request_new_order.price    = 40000;
+        request_new_order.qty      = 0.001;
 
-    requests_new_order.enqueue(request_new_order);
-    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-    &requests_cancel_order,
-                    &client_responses);
-    gw.start();//start order gateway for process RequestNewOrder 
-    while (gw.GetDownTimeInS() < 7) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             gw.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(3s);
-    }
+        requests_new_order.enqueue(request_new_order);
+        OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+        &requests_cancel_order,
+                        &client_responses);
+        gw.start();//start order gateway for process RequestNewOrder 
+        while (gw.GetDownTimeInS() < 7) {
+            logd("Waiting till no activity, been silent for {} seconds...",
+                gw.GetDownTimeInS());
+            using namespace std::literals::chrono_literals;
+            std::this_thread::sleep_for(3s);
+        }
 
-    Exchange::MEClientResponse response[50]; 
+        Exchange::MEClientResponse response[50]; 
 
-    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
-    for (int i = 0; i < count_new_order; i++) {
-        logd("{}", response[i].ToString());//check response on new order
-    }
+        size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+        for (int i = 0; i < count_new_order; i++) {
+            logd("{}", response[i].ToString());//check response on new order
+        }
 
-    return 0;
+        return 0;
 }
+```
 ![Alt Text](/doc/ForREADME/check_response.png)
 
 3. For Binance test add and cancel order
+```c++
 int main(int argc, char** argv) {
-    hmac_sha256::Keys keys{argv[2], argv[3]};
-    hmac_sha256::Signer signer(keys);
-    auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::DBG);
-    using namespace binance;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
-    using namespace Trading;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
+        hmac_sha256::Keys keys{argv[2], argv[3]};
+        hmac_sha256::Signer signer(keys);
+        auto type = TypeExchange::TESTNET;
+        fmtlog::setLogLevel(fmtlog::DBG);
+        using namespace binance;
+        OrderNewLimit new_order(&signer, type);
+        CancelOrder executor_cancel_order(&signer, type);
+        using namespace Trading;
+        Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+        Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+        Exchange::ClientResponseLFQueue client_responses;
 
-    Exchange::RequestNewOrder request_new_order;
-    request_new_order.ticker   = "BTCUSDT";
-    request_new_order.order_id = 6;//set manual unique id for new buy order 
-    request_new_order.side     = Common::Side::BUY;
-    request_new_order.price    = 40000;
-    request_new_order.qty      = 0.001;
+        Exchange::RequestNewOrder request_new_order;
+        request_new_order.ticker   = "BTCUSDT";
+        request_new_order.order_id = 6;//set manual unique id for new buy order 
+        request_new_order.side     = Common::Side::BUY;
+        request_new_order.price    = 40000;
+        request_new_order.qty      = 0.001;
 
-    requests_new_order.enqueue(request_new_order);
-    Exchange::RequestCancelOrder order_for_cancel;
-    order_for_cancel.ticker   = "BTCUSDT";
-    order_for_cancel.order_id = 6;//cancel order by manual id
+        requests_new_order.enqueue(request_new_order);
+        Exchange::RequestCancelOrder order_for_cancel;
+        order_for_cancel.ticker   = "BTCUSDT";
+        order_for_cancel.order_id = 6;//cancel order by manual id
 
-    requests_cancel_order.enqueue(order_for_cancel);
-    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-                    &requests_cancel_order, &client_responses);
-    gw.start();
-    while (gw.GetDownTimeInS() < 7) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             gw.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(3s);
-    }
+        requests_cancel_order.enqueue(order_for_cancel);
+        OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+                        &requests_cancel_order, &client_responses);
+        gw.start();
+        while (gw.GetDownTimeInS() < 7) {
+            logd("Waiting till no activity, been silent for {} seconds...",
+                gw.GetDownTimeInS());
+            using namespace std::literals::chrono_literals;
+            std::this_thread::sleep_for(3s);
+        }
 
-    Exchange::MEClientResponse response[50];  /
+        Exchange::MEClientResponse response[50];  /
 
-    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
-    for (int i = 0; i < count_new_order; i++) {
-        logd("{}", response[i].ToString());
-    }
+        size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+        for (int i = 0; i < count_new_order; i++) {
+            logd("{}", response[i].ToString());
+        }
 
-    return 0;
+        return 0;
 }
-
+```
 ![Alt Text](/doc/ForREADME/add_and_cancel_order.png)
 
 
