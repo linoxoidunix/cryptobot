@@ -268,11 +268,11 @@
 //     //logd("{}", elem.ToString());
 
 // }
-/**
- * @brief testing trade engine + generator bid ask service + check update BBO
- *
- * @return int
- */
+// /**
+//  * @brief testing trade engine + generator bid ask service + check update BBO
+//  *
+//  * @return int
+//  */
 // int main() {
 //     fmtlog::setLogLevel(fmtlog::INF);
 //     using namespace binance;
@@ -324,7 +324,7 @@
 // }
 //-----------------------------------------------------------------------------------
 // /**
-//  * @brief testing binance responce for new order
+//  * @brief testing binance response for new order
 //  *
 //  * @param argc
 //  * @param argv
@@ -334,10 +334,7 @@
 //     fmtlog::setLogLevel(fmtlog::DBG);
 
 //     using namespace binance;
-//     OrderNewLimit::ArgsOrder args{
-//         "BTCUSDT",         0.001,      40000, TimeInForce::FOK,
-//         Common::Side::BUY, Type::LIMIT};
-//     hmac_sha256::Keys keys{argv[1], argv[2]};
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
 //     hmac_sha256::Signer signer(keys);
 //     auto type = TypeExchange::TESTNET;
 //     OrderNewLimit new_order(&signer, type);
@@ -365,7 +362,7 @@
 //         std::this_thread::sleep_for(3s);
 //     }
 
-//     Exchange::MEClientResponse response[50];  // Could also be any iterator
+//     Exchange::MEClientResponse response[50]; 
 
 //     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
 //     for (int i = 0; i < count_new_order; i++) {
@@ -383,52 +380,51 @@
  * @param argv
  * @return int
  */
-// int main(int argc, char** argv) {
-//     hmac_sha256::Keys keys{argv[2], argv[3]};
-//     hmac_sha256::Signer signer(keys);
-//     auto type = TypeExchange::TESTNET;
-//     fmtlog::setLogLevel(fmtlog::DBG);
-//     using namespace binance;
-//     OrderNewLimit new_order(&signer, type);
-//     CancelOrder executor_cancel_order(&signer, type);
-//     using namespace Trading;
-//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-//     Exchange::ClientResponseLFQueue client_responses;
-//     Exchange::RequestCancelOrder order_for_cancel;
+int main(int argc, char** argv) {
+    hmac_sha256::Keys keys{argv[2], argv[3]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using namespace binance;
+    OrderNewLimit new_order(&signer, type);
+    CancelOrder executor_cancel_order(&signer, type);
+    using namespace Trading;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
 
-//     Exchange::RequestNewOrder request_new_order;
-//     request_new_order.ticker   = "BTCUSDT";
-//     request_new_order.order_id = 6;
-//     request_new_order.side     = Common::Side::BUY;
-//     request_new_order.price    = 40000;
-//     request_new_order.qty      = 0.001;
+    Exchange::RequestNewOrder request_new_order;
+    request_new_order.ticker   = "BTCUSDT";
+    request_new_order.order_id = 6;
+    request_new_order.side     = Common::Side::BUY;
+    request_new_order.price    = 40000;
+    request_new_order.qty      = 0.001;
 
-//     requests_new_order.enqueue(request_new_order);
+    requests_new_order.enqueue(request_new_order);
+    Exchange::RequestCancelOrder order_for_cancel;
+    order_for_cancel.ticker   = "BTCUSDT";
+    order_for_cancel.order_id = 6;
 
-//     order_for_cancel.ticker   = "BTCUSDT";
-//     order_for_cancel.order_id = 6;
+    requests_cancel_order.enqueue(order_for_cancel);
+    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+                    &requests_cancel_order, &client_responses);
+    gw.start();
+    while (gw.GetDownTimeInS() < 7) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             gw.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(3s);
+    }
 
-//     requests_cancel_order.enqueue(order_for_cancel);
-//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-//                     &requests_cancel_order, &client_responses);
-//     gw.start();
-//     while (gw.GetDownTimeInS() < 7) {
-//         logd("Waiting till no activity, been silent for {} seconds...",
-//              gw.GetDownTimeInS());
-//         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(3s);
-//     }
+    Exchange::MEClientResponse response[50];
 
-//     Exchange::MEClientResponse response[50];  // Could also be any iterator
+    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+    for (int i = 0; i < count_new_order; i++) {
+        logd("{}", response[i].ToString());
+    }
 
-//     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
-//     for (int i = 0; i < count_new_order; i++) {
-//         logd("{}", response[i].ToString());
-//     }
-
-//     return 0;
-// }
+    return 0;
+}
 //-----------------------------------------------------------------------------------
 // /**
 //  * @brief testing cpp wrapper for python strategy predict class
@@ -458,55 +454,55 @@
  * @param argv
  * @return int
  */
-int main(int argc, char** argv) {
-    hmac_sha256::Keys keys{argv[2], argv[3]};
-    hmac_sha256::Signer signer(keys);
-    auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::INF);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
-    OHLCVILFQueue ohlcv_queue;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
+// int main(int argc, char** argv) {
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     OHLCVILFQueue ohlcv_queue;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
 
-    GeneratorBidAskService generator_bid_ask_service(
-        &event_queue, ticker, &interval, TypeExchange::TESTNET);
-    generator_bid_ask_service.Start();
+//     GeneratorBidAskService generator_bid_ask_service(
+//         &event_queue, ticker, &interval, TypeExchange::TESTNET);
+//     generator_bid_ask_service.Start();
 
-    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
-                             &requests_new_order, &requests_cancel_order,
-                             &client_responses);
-    gw.start();
+//     Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+//                              &requests_new_order, &requests_cancel_order,
+//                              &client_responses);
+//     gw.start();
 
-    auto chart_interval = binance::m1();
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
-    KLineService kline_service(&fetcher, &ohlcv_queue);
-    kline_service.start();
+//     auto chart_interval = binance::m1();
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+//     KLineService kline_service(&fetcher, &ohlcv_queue);
+//     kline_service.start();
 
 
-    // init python predictor
-    const auto python_path = argv[1];
-    std::string path_where_models =
-        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    base_strategy::Strategy predictor(python_path, path_where_models,
-                                      "strategy.py", "Predictor", "predict");
+//     // init python predictor
+//     const auto python_path = argv[1];
+//     std::string path_where_models =
+//         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     base_strategy::Strategy predictor(python_path, path_where_models,
+//                                       "strategy.py", "Predictor", "predict");
 
-    Trading::TradeEngine trade_engine_service(
-        &event_queue, &requests_new_order, &requests_cancel_order,
-        &client_responses, &ohlcv_queue, ticker, &predictor);
-    trade_engine_service.Start();
+//     Trading::TradeEngine trade_engine_service(
+//         &event_queue, &requests_new_order, &requests_cancel_order,
+//         &client_responses, &ohlcv_queue, ticker, &predictor);
+//     trade_engine_service.Start();
 
-    while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             trade_engine_service.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+//     while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }

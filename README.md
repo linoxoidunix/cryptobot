@@ -57,7 +57,7 @@ thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 4. https://pypi.org/project/numpy/
 5. https://pypi.org/project/pandas/
 
-# Detail aot/python
+# Details aot/python
 1. aot/python/downloader.py - download raw kline from binance exchange
 2. aot/python/evaluate_trading_signals cpp.py - save X(open, high, low, close, volume and some features) dataset as features_df.h5 for Predictor class. Save top 3 best LightGBM model in .txt for evaluate y
 3. aot/python/evaluate_trading_signals.py - test file for learning lightgbm
@@ -65,9 +65,155 @@ thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
 5. aot/python/my_types.py - module that define enter_long, enter_short, exit_long, exit_short signals as string
 6. aot/python/prepare_features_target cpp.py - module that calculate some features from raw klines as Python notebook
 7. aot/python/prepare_features_target.py - test file for learning calculate features
-8. aot/python/prepare_model_for_bot.py - module that calculate some features from raw klines as Python class
+8. __aot/python/prepare_model_for_bot.py - module that calculate some features from raw klines as Python class__
 9. aot/python/prepare_model.py - test file for learning LightGBM
-10. aot/python/strategy.py - Python class with simple API that generate enter_long, enter_short, exit_long, exit_short signals as string
+10. __aot/python/strategy.py - Python class with simple API that generate enter_long, enter_short, exit_long, exit_short signals as string__
 11. aot/python/utils.py - utils that help split dataset for cross validation
+
+# Basic usage
+* Cmake
+set (PROJECT_NAME test_reading)
+project(${PROJECT_NAME})
+
+
+file(GLOB SRC
+     "*.cpp"
+)
+
+
+add_executable (${PROJECT_NAME}
+    ${SRC}
+)
+
+target_link_libraries(${PROJECT_NAME}
+aot
+concurrentqueue::concurrentqueue
+Python::Python
+${Boost_LIBRARIES}
+unordered_dense::unordered_dense
+)
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
+
+1. For Binance launch trade engine + generator bid/ask events service. check update BBO and BBODouble
+int main() {
+    fmtlog::setLogLevel(fmtlog::INF);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;//this queue contains bids and asks from the bid ask generator
+    Exchange::RequestNewLimitOrderLFQueue request_new_order;//this queue contains requests for new limit order
+    Exchange::RequestCancelOrderLFQueue request_cancel_order;//this queue contains requests for cancel order by id
+    Exchange::ClientResponseLFQueue response;//this queue contains response from exchange when you send new order or send request cancel order
+    OHLCVILFQueue ohlcv_queue;//this queue contains klines from exchange. in this example this queue always empty
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};//set manual price precission and qty precission for ticker
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+    GeneratorBidAskService generator(&event_queue, ticker, &interval,
+                                     TypeExchange::TESTNET);
+    generator.Start();
+    Trading::TradeEngine trade_engine_service(&event_queue,
+    &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
+    trade_engine_service.Start();
+    while (trade_engine_service.GetDownTimeInS() < 120) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             generator.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
+    }
+}
+![Alt Text](/doc/ForREADME/check_bbo.gif)
+
+2. For Binance check response when send new limit order
+int main(int argc, char** argv) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+
+    using namespace binance;
+    hmac_sha256::Keys keys{argv[2], argv[3]};//set api key and secret key
+    hmac_sha256::Signer signer(keys); //init hmac_sha256 signer
+    auto type = TypeExchange::TESTNET;
+    OrderNewLimit new_order(&signer, type);//init executor for send new order limit
+    CancelOrder executor_cancel_order(&signer, type);//init executor for cancel order by id
+    using namespace Trading;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+    Exchange::RequestNewOrder request_new_order;//start init manual request new order
+    request_new_order.ticker   = "BTCUSDT";
+    request_new_order.order_id = 6;
+    request_new_order.side     = Common::Side::BUY;
+    request_new_order.price    = 40000;
+    request_new_order.qty      = 0.001;
+
+    requests_new_order.enqueue(request_new_order);
+    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+    &requests_cancel_order,
+                    &client_responses);
+    gw.start();//start order gateway for process RequestNewOrder 
+    while (gw.GetDownTimeInS() < 7) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             gw.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(3s);
+    }
+
+    Exchange::MEClientResponse response[50]; 
+
+    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+    for (int i = 0; i < count_new_order; i++) {
+        logd("{}", response[i].ToString());//check response on new order
+    }
+
+    return 0;
+}
+![Alt Text](/doc/ForREADME/check_response.png)
+
+3. For Binance test add and cancel order
+int main(int argc, char** argv) {
+    hmac_sha256::Keys keys{argv[2], argv[3]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using namespace binance;
+    OrderNewLimit new_order(&signer, type);
+    CancelOrder executor_cancel_order(&signer, type);
+    using namespace Trading;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+
+    Exchange::RequestNewOrder request_new_order;
+    request_new_order.ticker   = "BTCUSDT";
+    request_new_order.order_id = 6;//set manual unique id for new buy order 
+    request_new_order.side     = Common::Side::BUY;
+    request_new_order.price    = 40000;
+    request_new_order.qty      = 0.001;
+
+    requests_new_order.enqueue(request_new_order);
+    Exchange::RequestCancelOrder order_for_cancel;
+    order_for_cancel.ticker   = "BTCUSDT";
+    order_for_cancel.order_id = 6;//cancel order by manual id
+
+    requests_cancel_order.enqueue(order_for_cancel);
+    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+                    &requests_cancel_order, &client_responses);
+    gw.start();
+    while (gw.GetDownTimeInS() < 7) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             gw.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(3s);
+    }
+
+    Exchange::MEClientResponse response[50];  /
+
+    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+    for (int i = 0; i < count_new_order; i++) {
+        logd("{}", response[i].ToString());
+    }
+
+    return 0;
+}
+
+![Alt Text](/doc/ForREADME/add_and_cancel_order.png)
 
 

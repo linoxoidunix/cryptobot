@@ -80,8 +80,8 @@ class RequestCancelOrder {
     
     auto ToString() const {
         return fmt::format(
-            "RequestNewOrder[type:{} ticker:{}]",
-            ClientRequestTypeToString(type), ticker);
+            "RequestNewOrder[type:{} ticker:{} id:{}]",
+            ClientRequestTypeToString(type), ticker, order_id);
     }
 };
 
