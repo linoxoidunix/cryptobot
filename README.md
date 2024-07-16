@@ -10,11 +10,6 @@ bot for algo trading on crypto exchanges
 6. Get bbo using order book for binance 
 7. Order gateway [testing for BINANCE] 
 
-thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
-
-# TODO
-1. for order manager need consider riskmanager 
-
 # Definitions
 1. Service - entity that runs in a separate thread
     * GeneratorBidAskService - a service that generate new bid and new ask events in lock-free queue
@@ -287,5 +282,11 @@ int main(int argc, char** argv) {
 }
 ```
 ![Alt Text](/doc/ForREADME/add_and_cancel_order.png)
+
+# TODO
+1. for order manager need consider riskmanager
+
+thanks to https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
+
 
 
