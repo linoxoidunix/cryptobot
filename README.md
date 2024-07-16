@@ -99,29 +99,29 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 1. For Binance launch trade engine + generator bid/ask events service. check update BBO and BBODouble
 ```c++
 int main() {
-        fmtlog::setLogLevel(fmtlog::INF);
-        using namespace binance;
-        Exchange::EventLFQueue event_queue;//this queue contains bids and asks from the bid ask generator
-        Exchange::RequestNewLimitOrderLFQueue request_new_order;//this queue contains requests for new limit order
-        Exchange::RequestCancelOrderLFQueue request_cancel_order;//this queue contains requests for cancel order by id
-        Exchange::ClientResponseLFQueue response;//this queue contains response from exchange when you send new order or send request cancel order
-        OHLCVILFQueue ohlcv_queue;//this queue contains klines from exchange. in this example this queue always empty
-        DiffDepthStream::ms100 interval;
-        TickerInfo info{2, 5};//set manual price precission and qty precission for ticker
-        Symbol btcusdt("BTC", "USDT");
-        Ticker ticker(&btcusdt, info);
-        GeneratorBidAskService generator(&event_queue, ticker, &interval,
-                                        TypeExchange::TESTNET);
-        generator.Start();
-        Trading::TradeEngine trade_engine_service(&event_queue,
-        &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
-        trade_engine_service.Start();
-        while (trade_engine_service.GetDownTimeInS() < 120) {
-            logd("Waiting till no activity, been silent for {} seconds...",
-                generator.GetDownTimeInS());
-            using namespace std::literals::chrono_literals;
-            std::this_thread::sleep_for(30s);
-        }
+    fmtlog::setLogLevel(fmtlog::INF);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;//this queue contains bids and asks from the bid ask generator
+    Exchange::RequestNewLimitOrderLFQueue request_new_order;//this queue contains requests for new limit order
+    Exchange::RequestCancelOrderLFQueue request_cancel_order;//this queue contains requests for cancel order by id
+    Exchange::ClientResponseLFQueue response;//this queue contains response from exchange when you send new order or send request cancel order
+    OHLCVILFQueue ohlcv_queue;//this queue contains klines from exchange. in this example this queue always empty
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};//set manual price precission and qty precission for ticker
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+    GeneratorBidAskService generator(&event_queue, ticker, &interval,
+                                    TypeExchange::TESTNET);
+    generator.Start();
+    Trading::TradeEngine trade_engine_service(&event_queue,
+    &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
+    trade_engine_service.Start();
+    while (trade_engine_service.GetDownTimeInS() < 120) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+            generator.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
+    }
 }
 ```
 ![Alt Text](/doc/ForREADME/check_bbo.gif)
