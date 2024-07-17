@@ -122,7 +122,7 @@ class MarketOrderBook final {
             // How to manage a local order book correctly
             // 9.Receiving an event that removes a price level that is not in
             // your local order book can happen and is normal.
-            loge("order_book not contain such price");
+            logw("order_book not contain such price");
             return;
         }
         if (side == Common::Side::BUY)

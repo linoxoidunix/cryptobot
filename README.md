@@ -1,5 +1,5 @@
 # cryptobot
-bot for algo trading on crypto exchanges
+multithreaded bot for algo trading on crypto exchanges
 
 # Features
 1. Post order for Binance and Bybit
@@ -56,7 +56,7 @@ bot for algo trading on crypto exchanges
 5. https://pypi.org/project/pandas/
 
 # Details aot/python
-1. aot/python/downloader.py - download raw kline from binance exchange
+1. aot/python/downloader.py - download raw klines from binance exchange
 2. aot/python/evaluate_trading_signals cpp.py - save X(open, high, low, close, volume and some features) dataset as features_df.h5 for Predictor class. Save top 3 best LightGBM model in .txt for evaluate y
 3. aot/python/evaluate_trading_signals.py - test file for learning lightgbm
 4. aot/python/machine_learning.py - test file for learning C++ wrapper for python
@@ -285,6 +285,85 @@ int main(int argc, char** argv) {
 }
 ```
 ![Alt Text](/doc/ForREADME/add_and_cancel_order.png)
+
+4. For Binance test create order from strategy signal and check later behaviour is correct
+```c++
+#include <aot/WS.h>
+
+#include <boost/beast/core.hpp>
+#include <cmath>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <thread>
+
+#include "aot/Binance.h"
+#include "aot/Bybit.h"
+#include "aot/Logger.h"
+#include "aot/Predictor.h"
+#include "aot/common/types.h"
+#include "aot/order_gw/order_gw.h"
+#include "aot/strategy/kline.h"
+#include "aot/strategy/market_order_book.h"
+#include "aot/strategy/trade_engine.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/launcher_predictor.h"
+#include "moodycamel/concurrentqueue.h"
+
+int main(int argc, char** argv) {
+    hmac_sha256::Keys keys{argv[2], argv[3]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::INF);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+    OHLCVILFQueue ohlcv_queue;
+    OrderNewLimit new_order(&signer, type);
+    CancelOrder executor_cancel_order(&signer, type);
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+
+    GeneratorBidAskService generator_bid_ask_service(
+        &event_queue, ticker, &interval, TypeExchange::TESTNET);
+    generator_bid_ask_service.Start();
+
+    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+                             &requests_new_order, &requests_cancel_order,
+                             &client_responses);
+    gw.start();
+
+    auto chart_interval = binance::m1();
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
+    KLineService kline_service(&fetcher, &ohlcv_queue);
+    kline_service.start();
+
+
+    // init python predictor
+    const auto python_path = argv[1];
+    std::string path_where_models =
+        "/home/linoxoidunix/Programming/cplusplus/cryptobot";//init path where exist folder models, that generated from aot/python/prepare_model_for_bot.py
+    base_strategy::Strategy predictor(python_path, path_where_models,
+                                      "strategy.py", "Predictor", "predict");
+
+    Trading::TradeEngine trade_engine_service(
+        &event_queue, &requests_new_order, &requests_cancel_order,
+        &client_responses, &ohlcv_queue, ticker, &predictor);
+    trade_engine_service.Start();
+
+    while (trade_engine_service.GetDownTimeInS() < 120) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             trade_engine_service.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
+    }
+}
+```
+![Alt Text](/doc/ForREADME/check_full_work.gif)
 
 # TODO
 1. for order manager need consider riskmanager

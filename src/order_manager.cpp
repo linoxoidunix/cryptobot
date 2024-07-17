@@ -10,6 +10,7 @@ auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
     if(OrderIsLive())
     {
         logi("there is live order for ticker:{}. can't create new order", order->ticker);
+        fmtlog::poll();
         return;
     }
     const Exchange::RequestNewOrder new_request{
