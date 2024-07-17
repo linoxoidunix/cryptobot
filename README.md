@@ -24,7 +24,7 @@ multithreaded bot for algo trading on crypto exchanges
 7. Common::TradeEngineCfgHashMap is hashmap that contains clip for each ticker  
 8. Trading::PositionKeeper is entity that controls realized or unrealized pnls
 
-# Bot's scheme
+# General bot's scheme
 ![Alt Text](/doc/ForREADME/scheme_project.png)
 
 # Restrictions
