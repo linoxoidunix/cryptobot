@@ -2,6 +2,9 @@
 set (PROJECT_NAME test_reading)
 project(${PROJECT_NAME})
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 file(GLOB SRC
      "*.cpp"
@@ -21,3 +24,5 @@ unordered_dense::unordered_dense
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
+

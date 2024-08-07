@@ -13,7 +13,11 @@ add_subdirectory(googletest)
 # add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 find_package(benchmark)
 find_package(Boost 1.65.0) 

@@ -4,9 +4,13 @@
 #include "aot/client_request.h"
 
 auto Trading::OrderGateway::Run() noexcept -> void {
-    while (run_) {
-        Exchange::RequestNewOrder
+    Exchange::RequestNewOrder
             results_new_orders[50];  // Could also be any iterator
+    Exchange::RequestCancelOrder
+            requests_cancel_orders[50];  // Could also be any iterator
+
+    while (run_) {
+        
 
         size_t count_new_order =
             requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
@@ -16,9 +20,7 @@ auto Trading::OrderGateway::Run() noexcept -> void {
                                        incoming_responses_);
             time_manager_.Update();
         }
-        Exchange::RequestCancelOrder
-            requests_cancel_orders[50];  // Could also be any iterator
-
+        
         size_t count_cancel_order =
             requests_cancel_order_->try_dequeue_bulk(requests_cancel_orders, 50);
         for (int i = 0; i < count_cancel_order; i++) {

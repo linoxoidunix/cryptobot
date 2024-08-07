@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <aot/WS.h>
 
 #include <boost/beast/core.hpp>
@@ -274,7 +275,7 @@
 //  * @return int
 //  */
 // int main() {
-//     fmtlog::setLogLevel(fmtlog::INF);
+//     fmtlog::setLogLevel(fmtlog::DBG);
 //     using namespace binance;
 //     Exchange::EventLFQueue event_queue;
 //     Exchange::RequestNewLimitOrderLFQueue request_new_order;
@@ -290,13 +291,17 @@
 //     generator.Start();
 //     Trading::TradeEngine trade_engine_service(&event_queue,
 //     &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
+    
 //     trade_engine_service.Start();
-//     while (trade_engine_service.GetDownTimeInS() < 120) {
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10 && time_manager.GetDeltaInS() < 60) {
 //         logd("Waiting till no activity, been silent for {} seconds...",
 //              generator.GetDownTimeInS());
 //         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(30s);
+//         std::this_thread::sleep_for(1s);
 //     }
+//     generator.stop();
+//     trade_engine_service.Stop();
 // }
 
 // int main()
@@ -439,10 +444,36 @@
 //     const auto python_path = argv[1];
 //     std::string path_where_models =
 //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     auto predictor_module = "strategy.py";
+//     auto class_module = "Predictor";
+//     auto method_module = "predict";
+
 //     base_strategy::Strategy predictor(python_path, path_where_models,
-//     "strategy.py", "Predictor", "predict");
+//     predictor_module, class_module, method_module);
 //     fmtlog::poll();
+//     for(int i =0 ; i < 100; i++){
 //     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     }
+
 // }
 //----------------------------------------------------------------------------------------
 /**
@@ -491,15 +522,20 @@ int main(int argc, char** argv) {
     const auto python_path = argv[1];
     std::string path_where_models =
         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    auto predictor_module = "strategy.py";
+    auto class_module = "Predictor";
+    auto method_module = "predict";
     base_strategy::Strategy predictor(python_path, path_where_models,
-                                      "strategy.py", "Predictor", "predict");
+                                      predictor_module, class_module, method_module);
 
     Trading::TradeEngine trade_engine_service(
         &event_queue, &requests_new_order, &requests_cancel_order,
         &client_responses, &ohlcv_queue, ticker, &predictor);
     trade_engine_service.Start();
 
-    while (trade_engine_service.GetDownTimeInS() < 120) {
+    common::TimeManager time_manager;
+    while (trade_engine_service.GetDownTimeInS() < 10 && time_manager.GetDeltaInS() < 90) {
+    //while (trade_engine_service.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
              trade_engine_service.GetDownTimeInS());
         using namespace std::literals::chrono_literals;

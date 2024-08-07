@@ -27,13 +27,15 @@ class OrderGateway {
 
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
+        thread_->join();
     }
 
     /// Start and stop the order gateway main thread.
     auto start() {
         run_ = true;
-        ASSERT(common::createAndStartThread(-1, "Trading/OrderGateway",
-                                            [this]() { Run(); }) != nullptr,
+        thread_ = std::unique_ptr<std::thread>( common::createAndStartThread(-1, "Trading/OrderGateway",
+                                            [this]() { Run(); }));
+        ASSERT(thread_ != nullptr,
                "Failed to start OrderGateway thread.");
     }
     common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
@@ -63,6 +65,7 @@ class OrderGateway {
     volatile bool run_                                          = false;
 
   private:
+    std::unique_ptr<std::thread> thread_;
     /// Main thread loop - sends out client requests to the exchange and reads
     /// and dispatches incoming client responses.
     auto Run() noexcept -> void;

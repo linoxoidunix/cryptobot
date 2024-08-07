@@ -15,7 +15,7 @@ class OrderNewI;
 
 class KLineService {
   public:
-    explicit KLineService(OHLCVGetter* ohlcv_getter,
+    explicit KLineService(OHLCVGetter *ohlcv_getter,
                           OHLCVILFQueue *kline_lfqueue);
 
     ~KLineService() {
@@ -23,14 +23,15 @@ class KLineService {
 
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
+        thread_->join();
     }
 
     /// Start and stop the order gateway main thread.
     auto start() {
-        run_ = true;
-        ASSERT(common::createAndStartThread(-1, "Trading/KLineService",
-                                            [this]() { Run(); }) != nullptr,
-               "Failed to start KLineService thread.");
+        run_    = true;
+        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
+            -1, "Trading/KLineService", [this]() { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start KLineService thread.");
     }
     common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
     auto stop() -> void { run_ = false; }
@@ -47,11 +48,12 @@ class KLineService {
     KLineService &operator=(const KLineService &&) = delete;
 
   private:
-    OHLCVGetter* ohlcv_getter_;
+    std::unique_ptr<std::thread> thread_;
+    OHLCVGetter *ohlcv_getter_;
     /// Lock free queue on which we consume client requests from the trade
     /// engine and forward them to the exchange's order server.
     OHLCVILFQueue *kline_lfqueue_ = nullptr;
-    volatile bool run_           = false;
+    volatile bool run_            = false;
 
   private:
     /// Main thread loop - sends out client requests to the exchange and reads

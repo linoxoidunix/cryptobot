@@ -35,6 +35,8 @@ TradeEngine::~TradeEngine() {
     request_cancel_order_ = nullptr;
     response_             = nullptr;
     klines_               = nullptr;
+
+    thread_->join();
 };
 
 /// Write a client request to the lock free queue for the order server to
@@ -44,9 +46,11 @@ TradeEngine::~TradeEngine() {
 /// data updates which in turn may generate client requests.
 auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
+    Exchange::MEClientResponse
+        results_responses[50];                   
+    Exchange::MEMarketUpdateDouble results[50];
+    OHLCVExt new_klines[50];
     while (run_) {
-        Exchange::MEClientResponse
-            results_responses[50];  // Could also be any iterator
         size_t count_responses =
             response_->try_dequeue_bulk(results_responses, 50);
         for (uint i = 0; i < count_responses; i++) [[likely]] {
@@ -54,15 +58,12 @@ auto TradeEngine::Run() noexcept -> void {
             time_manager_.Update();
         }
 
-        Exchange::MEMarketUpdateDouble
-            results[50];  // Could also be any iterator
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
         for (uint i = 0; i < count; i++) [[likely]] {
             order_book_.OnMarketUpdate(&results[i]);
             time_manager_.Update();
         }
 
-        OHLCVExt new_klines[50];  // Could also be any iterator
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             OnNewKLine(&new_klines[i]);

@@ -98,7 +98,7 @@ class Strategy : public IStrategy {
         }
         return result;
     };
-    ~Strategy() override { Py_DECREF(predictor_instance_); };
+    ~Strategy() override { Py_DECREF(predictor_instance_); Py_Finalize();};
     class Parser {
       public:
         explicit Parser() = default;

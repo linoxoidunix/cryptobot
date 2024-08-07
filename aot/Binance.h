@@ -389,7 +389,8 @@ struct StringHash {
     std::size_t operator()(const char* s) const { return std::strlen(s); }
 };
 
-class Args : public std::unordered_map<std::string, std::string, StringHash, StringHash::transparent_key_equal> {};
+class Args : public std::unordered_map<std::string, std::string, StringHash,
+                                       StringHash::transparent_key_equal> {};
 
 class ArgsQuery : public Args {
   public:
@@ -824,17 +825,17 @@ class GeneratorBidAskService {
         Exchange::EventLFQueue* event_lfqueue, const Ticker& ticker,
         const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
     auto Start() {
-        run_ = true;
-        ASSERT(
-            common::createAndStartThread(-1, "Trading/GeneratorBidAskService",
-                                         [this]() { Run(); }) != nullptr,
-            "Failed to start MarketData thread.");
+        run_    = true;
+        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
+            -1, "Trading/GeneratorBidAskService", [this]() { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start MarketData thread.");
     };
     common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
     ~GeneratorBidAskService() {
         stop();
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(2s);
+        thread_->join();
     }
     auto stop() -> void { run_ = false; }
 
@@ -849,6 +850,8 @@ class GeneratorBidAskService {
     GeneratorBidAskService& operator=(const GeneratorBidAskService&&) = delete;
 
   private:
+    std::unique_ptr<std::thread> thread_;
+
     volatile bool run_                     = false;
 
     Exchange::EventLFQueue* event_lfqueue_ = nullptr;

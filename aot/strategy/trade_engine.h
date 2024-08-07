@@ -22,7 +22,7 @@
 // #include "liquidity_taker.h"
 
 namespace Trading {
-    class BaseStrategy;
+class BaseStrategy;
 class TradeEngine {
   public:
     explicit TradeEngine(
@@ -30,18 +30,16 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
-        const Ticker &ticker,
-        base_strategy::Strategy* predictor
-        );
+        const Ticker &ticker, base_strategy::Strategy *predictor);
 
     ~TradeEngine();
 
     /// Start and stop the trade engine main thread.
     auto Start() -> void {
-        run_ = true;
-        ASSERT(common::createAndStartThread(-1, "Trading/TradeEngine",
-                                            [this] { Run(); }) != nullptr,
-               "Failed to start TradeEngine thread.");
+        run_    = true;
+        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
+            -1, "Trading/TradeEngine", [this] { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start TradeEngine thread.");
     };
 
     auto Stop() -> void {
@@ -102,6 +100,7 @@ class TradeEngine {
     PositionKeeper position_keeper_;
 
     volatile bool run_ = false;
+    std::unique_ptr<std::thread> thread_;
     TradeEngineCfgHashMap config_;
     common::TimeManager time_manager_;
     Trading::MarketOrderBookDouble order_book_;
