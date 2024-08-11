@@ -9,6 +9,7 @@ find_package(simdjson CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
 find_package(fast_double_parser REQUIRED)
+find_package(prometheus-cpp REQUIRED)
 add_subdirectory(googletest)
 # add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
@@ -29,6 +30,8 @@ file(GLOB LIST_H
      "aot/*.h"
      "aot/common/*.h"
      "aot/market_data/*.h"
+     "aot/order_gw/*.h"
+     "aot/prometheus/*.h"
      "aot/strategy/*.h"
      "aot/python/*.h"
 )
@@ -36,7 +39,7 @@ file(GLOB LIST_CPP
      "src/*.cpp"
 )
 set(ALL_FILES ${LIST_H} ${LIST_CPP})
-message (${ALL_FILES})
+message (${LIST_CPP})
 
 set (PROJECT_NAME aot)
 project(${PROJECT_NAME})
@@ -76,10 +79,16 @@ target_link_libraries(${PROJECT_NAME}
     concurrentqueue::concurrentqueue
     fast_double_parser::fast_double_parser
     unordered_dense::unordered_dense
+    prometheus-cpp::core 
+    prometheus-cpp::util 
+    prometheus-cpp::civetweb 
+    prometheus-cpp::pull
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/aot/python\"")
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=true")
 
 add_subdirectory(example)
 add_subdirectory(test)

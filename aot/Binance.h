@@ -16,6 +16,8 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/prometheus/event.h"
+
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -23,6 +25,8 @@
 // wss://stream.binance.com:9443/stream	     wss://testnet.binance.vision/stream
 
 namespace binance {
+const auto kMeasureTForGeneratorBidAskService =
+    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;
 enum class TimeInForce { GTC, IOC, FOK };
 
 namespace testnet {
@@ -822,7 +826,9 @@ class BookSnapshot : public inner::BookSnapshotI {
 class GeneratorBidAskService {
   public:
     explicit GeneratorBidAskService(
-        Exchange::EventLFQueue* event_lfqueue, const Ticker& ticker,
+        Exchange::EventLFQueue* event_lfqueue,
+        prometheus::EventLFQueue *prometheus_event_lfqueue,
+         const Ticker& ticker,
         const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
     auto Start() {
         run_    = true;
@@ -832,12 +838,13 @@ class GeneratorBidAskService {
     };
     common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
     ~GeneratorBidAskService() {
-        stop();
+        Stop();
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(2s);
-        thread_->join();
+        if (thread_) [[likely]]
+            thread_->join();
     }
-    auto stop() -> void { run_ = false; }
+    auto Stop() -> void { run_ = false; }
 
     GeneratorBidAskService()                                          = delete;
 
@@ -852,9 +859,10 @@ class GeneratorBidAskService {
   private:
     std::unique_ptr<std::thread> thread_;
 
-    volatile bool run_                     = false;
+    volatile bool run_                                  = false;
 
-    Exchange::EventLFQueue* event_lfqueue_ = nullptr;
+    Exchange::EventLFQueue* event_lfqueue_              = nullptr;
+    prometheus::EventLFQueue* prometheus_event_lfqueue_ = nullptr;
     common::TimeManager time_manager_;
     size_t next_inc_seq_num_                             = 0;
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
@@ -874,5 +882,15 @@ class GeneratorBidAskService {
     /// multicast sockets - the heavy lifting is in the recvCallback() and
     /// checkSnapshotSync() methods.
     auto Run() noexcept -> void;
+    template <bool need_measure_latency>
+    void AddEventForPrometheus(prometheus::EventType type) {
+        if constexpr (need_measure_latency == true) {
+            if (prometheus_event_lfqueue_) [[likely]] {
+                prometheus_event_lfqueue_->enqueue(prometheus::Event(
+                    type,
+                    common::getCurrentNanoS()));
+            }
+        }
+    }
 };
 };  // namespace binance

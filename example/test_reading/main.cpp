@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#define PY_SSIZE_T_CLEAN
 #include <aot/WS.h>
 
 #include <boost/beast/core.hpp>
@@ -14,6 +14,7 @@
 #include "aot/Predictor.h"
 #include "aot/common/types.h"
 #include "aot/order_gw/order_gw.h"
+#include "aot/prometheus/service.h"
 #include "aot/strategy/kline.h"
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
@@ -21,6 +22,7 @@
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
+#include "magic_enum.hpp"
 #include "moodycamel/concurrentqueue.h"
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
@@ -274,35 +276,42 @@
 //  *
 //  * @return int
 //  */
-// int main() {
-//     fmtlog::setLogLevel(fmtlog::DBG);
-//     using namespace binance;
-//     Exchange::EventLFQueue event_queue;
-//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
-//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
-//     Exchange::ClientResponseLFQueue response;
-//     OHLCVILFQueue ohlcv_queue;
-//     DiffDepthStream::ms100 interval;
-//     TickerInfo info{2, 5};
-//     Symbol btcusdt("BTC", "USDT");
-//     Ticker ticker(&btcusdt, info);
-//     GeneratorBidAskService generator(&event_queue, ticker, &interval,
-//                                      TypeExchange::TESTNET);
-//     generator.Start();
-//     Trading::TradeEngine trade_engine_service(&event_queue,
-//     &request_new_order, &request_cancel_order,  &response, &ohlcv_queue, ticker, nullptr);
-    
-//     trade_engine_service.Start();
-//     common::TimeManager time_manager;
-//     while (trade_engine_service.GetDownTimeInS() < 10 && time_manager.GetDeltaInS() < 60) {
-//         logd("Waiting till no activity, been silent for {} seconds...",
-//              generator.GetDownTimeInS());
-//         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(1s);
-//     }
-//     generator.stop();
-//     trade_engine_service.Stop();
-// }
+int main() {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;
+    prometheus::EventLFQueue prometheus_event_queue;
+    Exchange::RequestNewLimitOrderLFQueue request_new_order;
+    Exchange::RequestCancelOrderLFQueue request_cancel_order;
+    Exchange::ClientResponseLFQueue response;
+    OHLCVILFQueue ohlcv_queue;
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+    GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
+                                     ticker, &interval, TypeExchange::TESTNET);
+    generator.Start();
+    Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order,
+                                              &request_cancel_order, &response,
+                                              &ohlcv_queue, ticker, nullptr);
+    std::string host  = "localhost";
+    unsigned int port = 6060;
+    prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
+    prometheus_service
+        .Start();  // launch prometheus server that send data to prometheus
+
+    trade_engine_service.Start();
+    common::TimeManager time_manager;
+    while (trade_engine_service.GetDownTimeInS() < 10) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             generator.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(1s);
+    }
+    generator.Stop();
+    trade_engine_service.Stop();
+}
 
 // int main()
 // {
@@ -367,7 +376,7 @@
 //         std::this_thread::sleep_for(3s);
 //     }
 
-//     Exchange::MEClientResponse response[50]; 
+//     Exchange::MEClientResponse response[50];
 
 //     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
 //     for (int i = 0; i < count_new_order; i++) {
@@ -447,33 +456,58 @@
 //     auto predictor_module = "strategy.py";
 //     auto class_module = "Predictor";
 //     auto method_module = "predict";
-
-//     base_strategy::Strategy predictor(python_path, path_where_models,
-//     predictor_module, class_module, method_module);
-//     fmtlog::poll();
-//     for(int i =0 ; i < 100; i++){
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
-//     predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     {
+//         base_strategy::Strategy predictor(python_path, path_where_models,
+//         predictor_module, class_module, method_module);
 //     }
-
+//     // fmtlog::poll();
+//     // for(int i =0 ; i < 100; i++){
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // predictor.Predict(40000.0, 70000.0, 50000.0, 60000.0, 10000);
+//     // //     base_strategy::Strategy predictor1(python_path,
+//     path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     // //     base_strategy::Strategy predictor2(python_path,
+//     path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor3(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor4(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor5(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor6(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor7(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor8(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor9(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor10(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     base_strategy::Strategy predictor11(python_path, path_where_models,
+//     // // predictor_module, class_module, method_module);
+//     // }
+//     fmtlog::poll();
 // }
 //----------------------------------------------------------------------------------------
 /**
@@ -485,60 +519,133 @@
  * @param argv
  * @return int
  */
-int main(int argc, char** argv) {
-    hmac_sha256::Keys keys{argv[2], argv[3]};
-    hmac_sha256::Signer signer(keys);
-    auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::INF);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
-    OHLCVILFQueue ohlcv_queue;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
+// int main(int argc, char** argv) {
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     OHLCVILFQueue ohlcv_queue;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
 
-    GeneratorBidAskService generator_bid_ask_service(
-        &event_queue, ticker, &interval, TypeExchange::TESTNET);
-    generator_bid_ask_service.Start();
+//     GeneratorBidAskService generator_bid_ask_service(
+//         &event_queue, ticker, &interval, TypeExchange::TESTNET);
+//     generator_bid_ask_service.Start();
 
-    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
-                             &requests_new_order, &requests_cancel_order,
-                             &client_responses);
-    gw.start();
+//     Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+//                              &requests_new_order, &requests_cancel_order,
+//                              &client_responses);
+//     gw.start();
 
-    auto chart_interval = binance::m1();
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval, TypeExchange::TESTNET);
-    KLineService kline_service(&fetcher, &ohlcv_queue);
-    kline_service.start();
+//     auto chart_interval = binance::m1();
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
+//     TypeExchange::TESTNET); KLineService kline_service(&fetcher,
+//     &ohlcv_queue); kline_service.start();
 
+//     // init python predictor
+//     const auto python_path = argv[1];
+//     std::string path_where_models =
+//         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     auto predictor_module = "strategy.py";
+//     auto class_module = "Predictor";
+//     auto method_module = "predict";
+//     base_strategy::Strategy predictor(python_path, path_where_models,
+//                                       predictor_module, class_module,
+//                                       method_module);
 
-    // init python predictor
-    const auto python_path = argv[1];
-    std::string path_where_models =
-        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    auto predictor_module = "strategy.py";
-    auto class_module = "Predictor";
-    auto method_module = "predict";
-    base_strategy::Strategy predictor(python_path, path_where_models,
-                                      predictor_module, class_module, method_module);
+//     Trading::TradeEngine trade_engine_service(
+//         &event_queue, &requests_new_order, &requests_cancel_order,
+//         &client_responses, &ohlcv_queue, ticker, &predictor);
+//     trade_engine_service.Start();
 
-    Trading::TradeEngine trade_engine_service(
-        &event_queue, &requests_new_order, &requests_cancel_order,
-        &client_responses, &ohlcv_queue, ticker, &predictor);
-    trade_engine_service.Start();
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10 &&
+//     time_manager.GetDeltaInS() < 90) {
+//     //while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
+//----------------------------------------------------------------------------------------
+/**
+ * @brief launch prometheus service
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
 
-    common::TimeManager time_manager;
-    while (trade_engine_service.GetDownTimeInS() < 10 && time_manager.GetDeltaInS() < 90) {
-    //while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             trade_engine_service.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+// int a = 0;
+// void IncA(){
+//     a++;
+// }
+// //#define COMPILE_TIME 0
+
+// #ifdef COMPILE_TIME
+//     #define MY_FUNC() IncA()
+// #else
+//     #define MY_FUNC()
+// #endif
+
+// constexpr bool NeedPrint(bool need_print)
+// {
+//     return need_print;
+// }
+
+// template<bool a>
+// void Foo(){
+//     if constexpr (a == true)
+//         std::cout << "execute business logic" << std::endl;
+// }
+
+// int main(int argc, char** argv) {
+//     std::string host = "localhost";
+//     unsigned int port = 6060;
+//     prometheus::EventLFQueue event_lfqueue;
+//     prometheus::Service service (host, port, &event_lfqueue);
+//     service.Start();
+//     constexpr bool tt = true;
+//     // MY_FUNC();
+//     // Foo<false>();
+//     //std::cout << a << std::endl;
+//     common::TimeManager time_manager;
+//     while (service.GetDownTimeInS() < 5) {
+//         // logd("Waiting till no activity, been silent for {} seconds...",
+//         //      trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         event_lfqueue.enqueue(prometheus::Event(prometheus::EventType::kLFQueuePushNewBidAsksEvents,
+//         common::getCurrentNanoS())); std::this_thread::sleep_for(1s);
+//     }
+// }
+
+// enum class Color : int { RED = 0, BLUE = 1, GREEN = 2 };
+// #include <random>
+// int main() {
+//     Color color = Color::RED;
+//     auto s      = magic_enum::enum_name(color);
+
+//     std::random_device rd;   // a seed source for the random number engine
+//     std::mt19937 gen(rd());  // mersenne_twister_engine seeded with rd()
+//     std::uniform_int_distribution<> distrib(0, 2);
+
+//     for (int i = 0; i < 10; i++) {
+//         const auto random_value = distrib(gen);
+//         auto color              = magic_enum::enum_cast<Color>(random_value);
+//         if (color.has_value()) {
+//             s = magic_enum::enum_name(color.value());
+//             std::cout << s.data() << std::endl;
+//         }
+//     }
+//     auto ccc = 0;
+// }
