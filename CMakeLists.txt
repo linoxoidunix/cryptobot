@@ -20,6 +20,10 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
+# option(TURN_ON_LATENCY_FOR_GENERATOR_BID_ASK_SERVICE "turn on measure latency for generator bid ask" true)
+# option(TURN_ON_LATENCY_FOR_TRADE_ENGINE "turn on measure latency for trade engine" true)
+
+
 find_package(benchmark)
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
@@ -89,6 +93,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/aot/python\"")
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=true")
+target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=true")
 
 add_subdirectory(example)
 add_subdirectory(test)

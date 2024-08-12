@@ -22,7 +22,16 @@ namespace prometheus{
         /*
         kLFQueuePullNewBidAsksEvents occured when LFQueue ready to pull new batch bid or ask event
         */
-        kLFQueuePullNewBidAsksEvents
+        kLFQueuePullNewBidAsksEvents,
+        /*
+        kStrategyOnNewKLineBefore time when strategy want call cb on new kline 
+        */
+        kStrategyOnNewKLineBefore,
+        /*
+        kStrategyOnNewKLineAfter time when strategy executed cb on new kline 
+        */
+        kStrategyOnNewKLineAfter
+
     };
     struct Event{
         EventType event_type;

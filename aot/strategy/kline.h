@@ -23,7 +23,8 @@ class KLineService {
 
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
-        thread_->join();
+        if (thread_) [[likely]]
+            thread_->join();
     }
 
     /// Start and stop the order gateway main thread.

@@ -7,13 +7,16 @@ TradeEngine::TradeEngine(
     Exchange::EventLFQueue* market_updates,
     Exchange::RequestNewLimitOrderLFQueue* request_new_order,
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
-    Exchange::ClientResponseLFQueue* response, OHLCVILFQueue* klines,
+    Exchange::ClientResponseLFQueue* response, 
+    OHLCVILFQueue* klines,
+    prometheus::EventLFQueue* latency_event_lfqueue,
     const Ticker& ticker, base_strategy::Strategy* predictor)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
       request_cancel_order_(request_cancel_order),
       response_(response),
       klines_(klines),
+      latency_event_lfqueue_(latency_event_lfqueue),
       ticker_(ticker),
       order_book_(ticker),
       order_manager_(this),
@@ -35,8 +38,8 @@ TradeEngine::~TradeEngine() {
     request_cancel_order_ = nullptr;
     response_             = nullptr;
     klines_               = nullptr;
-
-    thread_->join();
+    if (thread_) [[likely]]
+        thread_->join();
 };
 
 /// Write a client request to the lock free queue for the order server to
@@ -46,8 +49,7 @@ TradeEngine::~TradeEngine() {
 /// data updates which in turn may generate client requests.
 auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
-    Exchange::MEClientResponse
-        results_responses[50];                   
+    Exchange::MEClientResponse results_responses[50];
     Exchange::MEMarketUpdateDouble results[50];
     OHLCVExt new_klines[50];
     while (run_) {
@@ -99,7 +101,9 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
     // launch algorithm prediction, that generate signals
     logi("launch algorithm prediction for {}", new_kline->ToString());
+    AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore, latency_event_lfqueue_);
     strategy_.OnNewKLine(new_kline);
+    AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter, latency_event_lfqueue_);
 }
 
 //   /// Process changes to the order book - updates the position keeper,

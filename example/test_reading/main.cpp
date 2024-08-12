@@ -276,42 +276,42 @@
 //  *
 //  * @return int
 //  */
-int main() {
-    fmtlog::setLogLevel(fmtlog::DBG);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    prometheus::EventLFQueue prometheus_event_queue;
-    Exchange::RequestNewLimitOrderLFQueue request_new_order;
-    Exchange::RequestCancelOrderLFQueue request_cancel_order;
-    Exchange::ClientResponseLFQueue response;
-    OHLCVILFQueue ohlcv_queue;
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
-    GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-                                     ticker, &interval, TypeExchange::TESTNET);
-    generator.Start();
-    Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order,
-                                              &request_cancel_order, &response,
-                                              &ohlcv_queue, ticker, nullptr);
-    std::string host  = "localhost";
-    unsigned int port = 6060;
-    prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
-    prometheus_service
-        .Start();  // launch prometheus server that send data to prometheus
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::OFF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
+//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
+//     Exchange::ClientResponseLFQueue response;
+//     OHLCVILFQueue ohlcv_queue;
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+//     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
+//                                      ticker, &interval, TypeExchange::TESTNET);
+//     generator.Start();
+//     Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order,
+//                                               &request_cancel_order, &response,
+//                                               &ohlcv_queue, &prometheus_event_queue, ticker, nullptr);
+//     std::string host  = "localhost";
+//     unsigned int port = 6060;
+//     prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
+//     prometheus_service
+//         .Start();  // launch prometheus server that send data to prometheus
 
-    trade_engine_service.Start();
-    common::TimeManager time_manager;
-    while (trade_engine_service.GetDownTimeInS() < 10) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             generator.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(1s);
-    }
-    generator.Stop();
-    trade_engine_service.Stop();
-}
+//     trade_engine_service.Start();
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              generator.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(1s);
+//     }
+//     generator.Stop();
+//     trade_engine_service.Stop();
+// }
 
 // int main()
 // {
@@ -519,64 +519,70 @@ int main() {
  * @param argv
  * @return int
  */
-// int main(int argc, char** argv) {
-//     hmac_sha256::Keys keys{argv[2], argv[3]};
-//     hmac_sha256::Signer signer(keys);
-//     auto type = TypeExchange::TESTNET;
-//     fmtlog::setLogLevel(fmtlog::INF);
-//     using namespace binance;
-//     Exchange::EventLFQueue event_queue;
-//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-//     Exchange::ClientResponseLFQueue client_responses;
-//     OHLCVILFQueue ohlcv_queue;
-//     OrderNewLimit new_order(&signer, type);
-//     CancelOrder executor_cancel_order(&signer, type);
-//     DiffDepthStream::ms100 interval;
-//     TickerInfo info{2, 5};
-//     Symbol btcusdt("BTC", "USDT");
-//     Ticker ticker(&btcusdt, info);
+int main(int argc, char** argv) {
+    hmac_sha256::Keys keys{argv[2], argv[3]};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::OFF);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+    OHLCVILFQueue ohlcv_queue;
+    prometheus::EventLFQueue prometheus_event_queue;
+    OrderNewLimit new_order(&signer, type);
+    CancelOrder executor_cancel_order(&signer, type);
+    DiffDepthStream::ms100 interval;
+    TickerInfo info{2, 5};
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
 
-//     GeneratorBidAskService generator_bid_ask_service(
-//         &event_queue, ticker, &interval, TypeExchange::TESTNET);
-//     generator_bid_ask_service.Start();
+    std::string host  = "localhost";
+    unsigned int port = 6060;
+    prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
+    prometheus_service
+        .Start();  // launch prometheus server that send data to prometheus
 
-//     Trading::OrderGateway gw(&new_order, &executor_cancel_order,
-//                              &requests_new_order, &requests_cancel_order,
-//                              &client_responses);
-//     gw.start();
+    GeneratorBidAskService generator_bid_ask_service(
+        &event_queue, &prometheus_event_queue, ticker, &interval, TypeExchange::TESTNET);
+    generator_bid_ask_service.Start();
 
-//     auto chart_interval = binance::m1();
-//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
-//     TypeExchange::TESTNET); KLineService kline_service(&fetcher,
-//     &ohlcv_queue); kline_service.start();
+    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+                             &requests_new_order, &requests_cancel_order,
+                             &client_responses);
+    gw.start();
 
-//     // init python predictor
-//     const auto python_path = argv[1];
-//     std::string path_where_models =
-//         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-//     auto predictor_module = "strategy.py";
-//     auto class_module = "Predictor";
-//     auto method_module = "predict";
-//     base_strategy::Strategy predictor(python_path, path_where_models,
-//                                       predictor_module, class_module,
-//                                       method_module);
+    auto chart_interval = binance::m1();
+    binance::OHLCVI fetcher(&btcusdt, &chart_interval,
+    TypeExchange::TESTNET); KLineService kline_service(&fetcher,
+    &ohlcv_queue); kline_service.start();
 
-//     Trading::TradeEngine trade_engine_service(
-//         &event_queue, &requests_new_order, &requests_cancel_order,
-//         &client_responses, &ohlcv_queue, ticker, &predictor);
-//     trade_engine_service.Start();
+    // init python predictor
+    const auto python_path = argv[1];
+    std::string path_where_models =
+        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    auto predictor_module = "strategy.py";
+    auto class_module = "Predictor";
+    auto method_module = "predict";
+    base_strategy::Strategy predictor(python_path, path_where_models,
+                                      predictor_module, class_module,
+                                      method_module);
 
-//     common::TimeManager time_manager;
-//     while (trade_engine_service.GetDownTimeInS() < 10 &&
-//     time_manager.GetDeltaInS() < 90) {
-//     //while (trade_engine_service.GetDownTimeInS() < 120) {
-//         logd("Waiting till no activity, been silent for {} seconds...",
-//              trade_engine_service.GetDownTimeInS());
-//         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(30s);
-//     }
-// }
+    Trading::TradeEngine trade_engine_service(
+        &event_queue, &requests_new_order, &requests_cancel_order,
+        &client_responses, &ohlcv_queue, &prometheus_event_queue, ticker, &predictor);
+    trade_engine_service.Start();
+
+    common::TimeManager time_manager;
+    while (trade_engine_service.GetDownTimeInS() < 10) {
+    //while (trade_engine_service.GetDownTimeInS() < 120) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             trade_engine_service.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(30s);
+    }
+}
 //----------------------------------------------------------------------------------------
 /**
  * @brief launch prometheus service

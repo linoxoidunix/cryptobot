@@ -85,7 +85,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         if (bool found = book_diff_lfqueue_.try_dequeue(item); !found)
             [[unlikely]]
             continue;
-        AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kDiffMarketOrderBookExchangeIncoming);
+        AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kDiffMarketOrderBookExchangeIncoming, prometheus_event_lfqueue_);
         logd("fetch diff book event from exchange {}", item.ToString());
         diff_packet_lost =
             !is_first_run && (item.first_id != last_id_diff_book_event + 1);
@@ -107,7 +107,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
                 std::move(args), type_exchange_,
                 &snapshot_);  // TODO parametrize 1000
             book_snapshoter.Exec();
-            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kSnapshotMarketOrderBookIncoming);
+            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kSnapshotMarketOrderBookIncoming, prometheus_event_lfqueue_);
             if (item.last_id <= snapshot_.lastUpdateId) {
                 is_first_run = false;
                 logd(
@@ -134,14 +134,14 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             if (snapshot_and_diff_now_sync) {
                 snapshot_and_diff_was_synced = true;
                 logd("add {} to order book", snapshot_.ToString());
-                AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kLFQueuePushNewBidAsksEvents);
+                AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kLFQueuePushNewBidAsksEvents, prometheus_event_lfqueue_);
                 snapshot_.AddToQueue(*event_lfqueue_);
             }
         }
         if (!diff_packet_lost && snapshot_and_diff_was_synced) [[likely]] {
             logd("add {} to order book. snapshot_.lastUpdateId = {}",
                  item.ToString(), snapshot_.lastUpdateId);
-            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kLFQueuePushNewBidAsksEvents);
+            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(prometheus::EventType::kLFQueuePushNewBidAsksEvents, prometheus_event_lfqueue_);
             item.AddToQueue(*event_lfqueue_);
         }
 

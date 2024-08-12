@@ -11,7 +11,7 @@
 namespace inner {
 class OrderNewI;
 class CancelOrderI;
-};
+};  // namespace inner
 
 namespace Trading {
 class OrderGateway {
@@ -27,16 +27,16 @@ class OrderGateway {
 
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
-        thread_->join();
+        if (thread_) [[likely]]
+            thread_->join();
     }
 
     /// Start and stop the order gateway main thread.
     auto start() {
-        run_ = true;
-        thread_ = std::unique_ptr<std::thread>( common::createAndStartThread(-1, "Trading/OrderGateway",
-                                            [this]() { Run(); }));
-        ASSERT(thread_ != nullptr,
-               "Failed to start OrderGateway thread.");
+        run_    = true;
+        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
+            -1, "Trading/OrderGateway", [this]() { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start OrderGateway thread.");
     }
     common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
     auto stop() -> void { run_ = false; }

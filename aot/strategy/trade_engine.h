@@ -12,6 +12,7 @@
 #include "aot/strategy/base_strategy.h"
 #include "aot/strategy/market_order_book.h"
 // #include "feature_engine.h"
+#include "aot/prometheus/event.h"
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/position_keeper.h"
 
@@ -22,6 +23,11 @@
 // #include "liquidity_taker.h"
 
 namespace Trading {
+
+const auto kMeasureTForTradeEngine =
+    MEASURE_T_FOR_TRADE_ENGINE;  // MEASURE_T_FOR_TRADE_ENGINE define in
+                                 // cmakelists.txt;
+
 class BaseStrategy;
 class TradeEngine {
   public:
@@ -30,6 +36,7 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
+        prometheus::EventLFQueue *latency_event_lfqueue,
         const Ticker &ticker, base_strategy::Strategy *predictor);
 
     ~TradeEngine();
@@ -96,6 +103,7 @@ class TradeEngine {
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
     OHLCVILFQueue *klines_                                     = nullptr;
+    prometheus::EventLFQueue *latency_event_lfqueue_              = nullptr;
     const Ticker &ticker_;
     PositionKeeper position_keeper_;
 
@@ -118,5 +126,14 @@ class TradeEngine {
      * @param new_kline
      */
     auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
+    template <bool need_measure_latency, class LFQueuePtr>
+    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
+        if constexpr (need_measure_latency == true) {
+            if (queue) [[likely]] {
+                queue->enqueue(
+                    prometheus::Event(type, common::getCurrentNanoS()));
+            }
+        }
+    }
 };
 }  // namespace Trading

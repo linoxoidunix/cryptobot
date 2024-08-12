@@ -26,7 +26,7 @@
 
 namespace binance {
 const auto kMeasureTForGeneratorBidAskService =
-    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;
+    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;//MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE define in cmakelists.txt
 enum class TimeInForce { GTC, IOC, FOK };
 
 namespace testnet {
@@ -882,11 +882,11 @@ class GeneratorBidAskService {
     /// multicast sockets - the heavy lifting is in the recvCallback() and
     /// checkSnapshotSync() methods.
     auto Run() noexcept -> void;
-    template <bool need_measure_latency>
-    void AddEventForPrometheus(prometheus::EventType type) {
+    template <bool need_measure_latency, class LFQueuePtr>
+    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
         if constexpr (need_measure_latency == true) {
-            if (prometheus_event_lfqueue_) [[likely]] {
-                prometheus_event_lfqueue_->enqueue(prometheus::Event(
+            if (queue) [[likely]] {
+                queue->enqueue(prometheus::Event(
                     type,
                     common::getCurrentNanoS()));
             }
