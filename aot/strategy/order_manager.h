@@ -27,6 +27,10 @@ class OrderManager {
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void {
         logd("{}", client_response->ToString());
+        if (!ticker_side_order_.count(client_response->ticker)) [[unlikely]] {
+            loge("critical error in OrderManager");
+            return;
+        }
         auto order = &(ticker_side_order_.at(client_response->ticker)
                            .at(sideToIndex(client_response->side)));
         switch (client_response->type) {

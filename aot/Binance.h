@@ -18,7 +18,6 @@
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
 
-
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
 // wss://stream.binance.com:9443/ws	         wss://testnet.binance.vision/ws
@@ -26,7 +25,8 @@
 
 namespace binance {
 const auto kMeasureTForGeneratorBidAskService =
-    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;//MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE define in cmakelists.txt
+    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;  // MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE
+                                              // define in cmakelists.txt
 enum class TimeInForce { GTC, IOC, FOK };
 
 namespace testnet {
@@ -353,8 +353,10 @@ class BookEventGetter : public BookEventGetterI {
             auto resut = boost::beast::buffers_to_string(buffer.data());
             // logi("{}", resut);
             ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            queue.enqueue(answer);
+            auto answer    = parser.Parse(resut);
+            bool status_op = queue.try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queuee is full. need clean my queue");
         };
 
         using dds = DiffDepthStream;
@@ -638,8 +640,10 @@ class OrderNewLimit : public inner::OrderNewI {
             logi("{}", resut);
             fmtlog::poll();
             ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            response_lfqueue->enqueue(answer);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queuee is full. need clean my queue");
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -717,8 +721,10 @@ class CancelOrder : public inner::CancelOrderI {
             logi("{}", resut);
             fmtlog::poll();
             ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            response_lfqueue->enqueue(answer);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queue is full. need clean my queue");
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -827,9 +833,9 @@ class GeneratorBidAskService {
   public:
     explicit GeneratorBidAskService(
         Exchange::EventLFQueue* event_lfqueue,
-        prometheus::EventLFQueue *prometheus_event_lfqueue,
-         const Ticker& ticker,
-        const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
+        prometheus::EventLFQueue* prometheus_event_lfqueue,
+        const Ticker& ticker, const DiffDepthStream::StreamIntervalI* interval,
+        TypeExchange type);
     auto Start() {
         run_    = true;
         thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
@@ -886,9 +892,10 @@ class GeneratorBidAskService {
     void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
         if constexpr (need_measure_latency == true) {
             if (queue) [[likely]] {
-                queue->enqueue(prometheus::Event(
-                    type,
-                    common::getCurrentNanoS()));
+                bool status_op = queue->try_enqueue(
+                    prometheus::Event(type, common::getCurrentNanoS()));
+                if (!status_op) [[unlikely]]
+                    loge("my queuee is full. need clean my queue");
             }
         }
     }

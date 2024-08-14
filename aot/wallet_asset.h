@@ -1,3 +1,6 @@
+#pragma once 
+
+#include <iostream>
 #include "aot/client_response.h"
 #include "aot/common/types.h"
 /**
@@ -14,11 +17,13 @@ class Wallet : public WalletAsset {
         if (response->type == Exchange::ClientResponseType::ACCEPTED) {
             if (response->side == Common::Side::BUY) {
                 InitTicker(response->ticker);
-                at(response->ticker) += response->exec_qty;
+                if(count(response->ticker))[[likely]]
+                    at(response->ticker) += response->exec_qty;
             }
             if (response->side == Common::Side::SELL) {
                 InitTicker(response->ticker);
-                at(response->ticker) -= response->exec_qty;
+                if(count(response->ticker))[[likely]]
+                    at(response->ticker) -= response->exec_qty;
             }
         }
     };
@@ -29,7 +34,7 @@ class Wallet : public WalletAsset {
 
   private:
     void InitTicker(const Common::TickerS& ticker_id) {
-        if (count(ticker_id)) [[unlikely]]
+        if (!count(ticker_id)) [[unlikely]]
             insert({ticker_id, 0});
     }
 };

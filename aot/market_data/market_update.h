@@ -131,14 +131,18 @@ struct BookDiffSnapshot {
             event.side  = Common::Side::SELL;
             event.price = bid.price;
             event.qty   = bid.qty;
-            queue.enqueue(event);
+            auto status_op = queue.try_enqueue(event);
+            if(!status_op)[[unlikely]]
+                loge("can't enqueue more elements. my lfqueue is busy");
         }
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
             event.side  = Common::Side::BUY;
             event.price = ask.price;
             event.qty   = ask.qty;
-            queue.enqueue(event);
+            auto status_op = queue.try_enqueue(event);
+            if(!status_op)[[unlikely]]
+                loge("can't enqueue more elements. my lfqueue is busy");
         }
     }
 };

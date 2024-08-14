@@ -108,9 +108,24 @@ class MarketOrderBook final {
                                               new_orders_at_price);
 
         if (new_orders_at_price->side_ == Common::Side::BUY)
-            asks_at_price_map_.insert_unique(*new_orders_at_price);
+        {   
+            //if(asks_at_price_map_.insert_unique_check(*new_orders_at_price))[[likely]]
+             auto vvv = asks_at_price_map_.size();
+            logd("asks_at_price_map_ size = {}", vvv);
+                    asks_at_price_map_.insert_equal(*new_orders_at_price);
+            //else
+            //    loge("can't insert new buy order in order book");
+        }
         if (new_orders_at_price->side_ == Common::Side::SELL)
-            bids_at_price_map_.insert_unique(*new_orders_at_price);
+        {
+            //if(bids_at_price_map_.insert_unique_check(*new_orders_at_price))[[likely]]
+            auto vvv = bids_at_price_map_.size();
+            logd("bids_at_price_map_ size = {}", vvv);
+
+                bids_at_price_map_.insert_equal(*new_orders_at_price);
+            //else
+            //    loge("can't insert new sell order in order book");
+        }
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
@@ -126,10 +141,20 @@ class MarketOrderBook final {
             return;
         }
         if (side == Common::Side::BUY)
-            asks_at_price_map_.erase(*order_at_price);
+        {
+            if(asks_at_price_map_.count(*order_at_price))[[likely]]
+                asks_at_price_map_.erase(*order_at_price);
+            else
+                loge("critical error asks_at_price_map_");
+        }
         if (side == Common::Side::SELL)
-            bids_at_price_map_.erase(*order_at_price);
-
+        {
+            if(bids_at_price_map_.count(*order_at_price))[[likely]]
+                bids_at_price_map_.erase(*order_at_price);
+            else
+                loge("critical error bids_at_price_map_");
+        }    
+        fmtlog::poll();
         price_orders_at_price_.at(price) = nullptr;
         price_orders_at_price_.erase(price);
 

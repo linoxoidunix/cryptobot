@@ -36,8 +36,8 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
-        prometheus::EventLFQueue *latency_event_lfqueue,
-        const Ticker &ticker, base_strategy::Strategy *predictor);
+        prometheus::EventLFQueue *latency_event_lfqueue, const Ticker &ticker,
+        base_strategy::Strategy *predictor);
 
     ~TradeEngine();
 
@@ -69,11 +69,15 @@ class TradeEngine {
     /// consume and send to the exchange.
     auto SendRequestNewOrder(
         const Exchange::RequestNewOrder *request_new_order) noexcept -> void {
-        request_new_order_->enqueue(*request_new_order);
+        auto status_op = request_new_order_->try_enqueue(*request_new_order);
+        if (!status_op) [[unlikely]]
+            loge("my queue is full");
     }
     auto SendRequestCancelOrder(const Exchange::RequestCancelOrder
                                     *request_cancel_order) noexcept -> void {
-        request_cancel_order_->enqueue(*request_cancel_order);
+        auto status_op = request_cancel_order_->try_enqueue(*request_cancel_order);
+        if (!status_op) [[unlikely]]
+            loge("my queue is full");
     }
 
     /// Process changes to the order book - updates the position keeper, feature
@@ -103,7 +107,7 @@ class TradeEngine {
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
     OHLCVILFQueue *klines_                                     = nullptr;
-    prometheus::EventLFQueue *latency_event_lfqueue_              = nullptr;
+    prometheus::EventLFQueue *latency_event_lfqueue_           = nullptr;
     const Ticker &ticker_;
     PositionKeeper position_keeper_;
 
@@ -130,8 +134,10 @@ class TradeEngine {
     void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
         if constexpr (need_measure_latency == true) {
             if (queue) [[likely]] {
-                queue->enqueue(
+                auto status = queue->try_enqueue(
                     prometheus::Event(type, common::getCurrentNanoS()));
+                    if(!status)[[unlikely]]
+                        loge("my queue is full");
             }
         }
     }
