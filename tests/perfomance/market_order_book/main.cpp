@@ -16,7 +16,6 @@ constexpr std::string_view kPathData = PATH_TO_DATA;
 class FixtureMarketOrderBook : public benchmark::Fixture {
   public:
     void SetUp(::benchmark::State& state) override{
-        std::cout << "1" << std::endl;
         fmtlog::setLogLevel(fmtlog::OFF);
         std::ifstream infile(fmt::format("{}/{}", kPathData, "999.txt"));
         std::string line;
@@ -56,7 +55,6 @@ class FixtureMarketOrderBook : public benchmark::Fixture {
     }
 
     void TearDown(::benchmark::State& state) override{
-        std::cout << "2" << std::endl;
         diffs.clear();
         diffs_double.clear();
     }
