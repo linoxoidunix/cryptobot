@@ -14,7 +14,8 @@ MarketOrderBook::MarketOrderBook()
 }
 
 MarketOrderBook::~MarketOrderBook() {
-    logi("call ~MarketOrderBook() OrderBook\n{}", toString(false, true));
+//    logi("call ~MarketOrderBook() OrderBook\n{}", toString(false, true));
+    logi("call ~MarketOrderBook()");
     ClearOrderBook();
 }
 
@@ -59,8 +60,8 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
     const Exchange::MEMarketUpdate buf(market_update, precission_price_,
                                        precission_qty_);
     book_.onMarketUpdate(&buf);
-    trade_engine_->OnOrderBookUpdate(
-        market_update->ticker, market_update->price, market_update->side, this);
+    // trade_engine_->OnOrderBookUpdate(
+    //     ticker_, market_update->price, market_update->side, this);
 };
 
 };  // namespace Trading

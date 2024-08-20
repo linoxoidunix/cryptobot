@@ -271,6 +271,41 @@
 //     //logd("{}", elem.ToString());
 
 // }
+//-----------------------------------------------------------------------------------
+/**
+ * @brief launch only generator bid ask service
+ *
+ * @return int
+ */
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     fmtlog::setLogFile("999.txt");
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
+//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
+//     Exchange::ClientResponseLFQueue response;
+//     OHLCVILFQueue ohlcv_queue;
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+//     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
+//                                      ticker, &interval,
+//                                      TypeExchange::TESTNET);
+//     generator.Start();
+//     common::TimeManager time_manager;
+//     while (generator.GetDownTimeInS() < 10) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              generator.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(1s);
+//         fmtlog::poll();
+//     }
+//     generator.Stop();
+// }
+//-----------------------------------------------------------------------------------
 // /**
 //  * @brief testing trade engine + generator bid ask service + check update BBO
 //  *
@@ -290,15 +325,19 @@
 //     Symbol btcusdt("BTC", "USDT");
 //     Ticker ticker(&btcusdt, info);
 //     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-//                                      ticker, &interval, TypeExchange::TESTNET);
+//                                      ticker, &interval,
+//                                      TypeExchange::TESTNET);
 //     generator.Start();
-//     Trading::TradeEngine trade_engine_service(&event_queue, &request_new_order,
-//                                               &request_cancel_order, &response,
-//                                               &ohlcv_queue, &prometheus_event_queue, ticker, nullptr);
+//     Trading::TradeEngine trade_engine_service(&event_queue,
+//     &request_new_order,
+//                                               &request_cancel_order,
+//                                               &response, &ohlcv_queue,
+//                                               &prometheus_event_queue,
+//                                               ticker, nullptr);
 //     std::string host  = "localhost";
 //     unsigned int port = 6060;
-//     prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
-//     prometheus_service
+//     prometheus::Service prometheus_service(host, port,
+//     &prometheus_event_queue); prometheus_service
 //         .Start();  // launch prometheus server that send data to prometheus
 
 //     trade_engine_service.Start();
@@ -519,70 +558,72 @@
  * @param argv
  * @return int
  */
-int main(int argc, char** argv) {
-    hmac_sha256::Keys keys{argv[2], argv[3]};
-    hmac_sha256::Signer signer(keys);
-    auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::OFF);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-    Exchange::ClientResponseLFQueue client_responses;
-    OHLCVILFQueue ohlcv_queue;
-    prometheus::EventLFQueue prometheus_event_queue;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
-    DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
+// int main(int argc, char** argv) {
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::OFF);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     OHLCVILFQueue ohlcv_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
 
-    std::string host  = "localhost";
-    unsigned int port = 6060;
-    prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
-    prometheus_service
-        .Start();  // launch prometheus server that send data to prometheus
+//     std::string host  = "localhost";
+//     unsigned int port = 6060;
+//     prometheus::Service prometheus_service(host, port,
+//     &prometheus_event_queue); prometheus_service
+//         .Start();  // launch prometheus server that send data to prometheus
 
-    GeneratorBidAskService generator_bid_ask_service(
-        &event_queue, &prometheus_event_queue, ticker, &interval, TypeExchange::TESTNET);
-    generator_bid_ask_service.Start();
+//     GeneratorBidAskService generator_bid_ask_service(
+//         &event_queue, &prometheus_event_queue, ticker, &interval,
+//         TypeExchange::TESTNET);
+//     generator_bid_ask_service.Start();
 
-    Trading::OrderGateway gw(&new_order, &executor_cancel_order,
-                             &requests_new_order, &requests_cancel_order,
-                             &client_responses);
-    gw.start();
+//     Trading::OrderGateway gw(&new_order, &executor_cancel_order,
+//                              &requests_new_order, &requests_cancel_order,
+//                              &client_responses);
+//     gw.start();
 
-    auto chart_interval = binance::m1();
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval,
-    TypeExchange::TESTNET); KLineService kline_service(&fetcher,
-    &ohlcv_queue); kline_service.start();
+//     auto chart_interval = binance::m1();
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
+//     TypeExchange::TESTNET); KLineService kline_service(&fetcher,
+//     &ohlcv_queue); kline_service.start();
 
-    // init python predictor
-    const auto python_path = argv[1];
-    std::string path_where_models =
-        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    auto predictor_module = "strategy.py";
-    auto class_module = "Predictor";
-    auto method_module = "predict";
-    base_strategy::Strategy predictor(python_path, path_where_models,
-                                      predictor_module, class_module,
-                                      method_module);
+//     // init python predictor
+//     const auto python_path = argv[1];
+//     std::string path_where_models =
+//         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     auto predictor_module = "strategy.py";
+//     auto class_module = "Predictor";
+//     auto method_module = "predict";
+//     base_strategy::Strategy predictor(python_path, path_where_models,
+//                                       predictor_module, class_module,
+//                                       method_module);
 
-    Trading::TradeEngine trade_engine_service(
-        &event_queue, &requests_new_order, &requests_cancel_order,
-        &client_responses, &ohlcv_queue, &prometheus_event_queue, ticker, &predictor);
-    trade_engine_service.Start();
+//     Trading::TradeEngine trade_engine_service(
+//         &event_queue, &requests_new_order, &requests_cancel_order,
+//         &client_responses, &ohlcv_queue, &prometheus_event_queue, ticker,
+//         &predictor);
+//     trade_engine_service.Start();
 
-    common::TimeManager time_manager;
-    while (trade_engine_service.GetDownTimeInS() < 10) {
-    //while (trade_engine_service.GetDownTimeInS() < 120) {
-        logd("Waiting till no activity, been silent for {} seconds...",
-             trade_engine_service.GetDownTimeInS());
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(30s);
-    }
-}
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10) {
+//     //while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
 //----------------------------------------------------------------------------------------
 /**
  * @brief launch prometheus service
@@ -592,29 +633,6 @@ int main(int argc, char** argv) {
  * @return int
  */
 
-// int a = 0;
-// void IncA(){
-//     a++;
-// }
-// //#define COMPILE_TIME 0
-
-// #ifdef COMPILE_TIME
-//     #define MY_FUNC() IncA()
-// #else
-//     #define MY_FUNC()
-// #endif
-
-// constexpr bool NeedPrint(bool need_print)
-// {
-//     return need_print;
-// }
-
-// template<bool a>
-// void Foo(){
-//     if constexpr (a == true)
-//         std::cout << "execute business logic" << std::endl;
-// }
-
 // int main(int argc, char** argv) {
 //     std::string host = "localhost";
 //     unsigned int port = 6060;
@@ -622,8 +640,6 @@ int main(int argc, char** argv) {
 //     prometheus::Service service (host, port, &event_lfqueue);
 //     service.Start();
 //     constexpr bool tt = true;
-//     // MY_FUNC();
-//     // Foo<false>();
 //     //std::cout << a << std::endl;
 //     common::TimeManager time_manager;
 //     while (service.GetDownTimeInS() < 5) {
@@ -655,3 +671,152 @@ int main(int argc, char** argv) {
 //     }
 //     auto ccc = 0;
 // }
+//----------------------------------------------------------------------------------------
+// #include "aot/common/time_utils.h"
+// int main(){
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     auto t11 = common::getCurNano();
+//     for(int i = 0; i < 1000000; i++)
+//     {
+//         auto v = 0;
+//         v++;
+//     }
+//     auto t21 = common::getCurNano();
+//     logd("new:{}", t21-t11);
+//     auto t12 = common::getCurrentNanoS();
+//     for(int i = 0; i < 1000000; i++)
+//     {
+//         auto v = 0;
+//         v++;
+//     }
+//     auto t22 = common::getCurrentNanoS();
+//     logd("old:{}",t22-t12);
+// }
+//----------------------------------------------------------------------------------------
+// #include <aot/strategy/market_order_book.h>
+// #include <random>
+// int main(){
+//     fmtlog::setLogLevel(fmtlog::OFF);
+//     std::vector<Exchange::MEMarketUpdate> diffs;
+//     diffs.reserve(100000);
+//     std::random_device dev;
+//     std::mt19937 rng(dev());
+//     std::uniform_int_distribution<std::mt19937::result_type> dist(1,256); // distribution in range [1, 6]
+//     std::uniform_int_distribution<std::mt19937::result_type> dist_qty(0,1); // distribution in range [1, 6]
+//     std::uniform_int_distribution<std::mt19937::result_type> dist_action(0,1); // distribution in range [1, 6]
+
+//     for(int i = 0; i < 10000000; i++)
+//     {
+//         Exchange::MEMarketUpdate market_update;
+//         market_update.order_id = 1;
+//         market_update.ticker = "USDT";
+//         market_update.side = (Common::Side) dist_action(rng);
+//         market_update.price = dist(rng);
+//         market_update.qty = dist_qty(rng);
+//         diffs.push_back(market_update);
+//     }
+//     Trading::MarketOrderBook book;
+//     auto begin = common::getCurrentNanoS();
+//     auto buffer = 0;
+//     for(int i = 0; i < 10000000; i++)
+//     {
+//         book.onMarketUpdate(&diffs[i]);
+//     }
+//     auto end = common::getCurrentNanoS();
+//     std::cout << (end-begin) / 10000000.0 << "ns" << std::endl;
+//     //std::cout << buffer / 100000.0 << "ns" << std::endl;
+
+// }
+//----------------------------------------------------------------------------------------
+#include <regex>
+#include <fstream>
+#include <regex>
+#include "aot/market_data/market_update.h"
+int main(){
+    using namespace binance;
+    // std::string pp = "18:36:30.499159 market_update.h:135 INF[1915418] MEMarketUpdateDouble[ticker: type:DEFAULT side:SELL qty:0.00735 price:59880.11]";
+    // std::string pp1 = "MEMarketUpdateDouble[type:DEFAULT side:SELL price:59880.54]";
+
+    // std::string gg = "MEMarketUpdateDouble[type:DEFAULT]";
+    // std::regex gg_regex("MEMarketUpdateDouble\\[type:(\\w*) side:(\\w+) price:(\\d+\\.\\d+)\\]");
+    // std::smatch pieces_match1;
+    // if (std::regex_match(pp1, pieces_match1, gg_regex))
+    //     std::cout << pieces_match1[1] << pieces_match1[2] << pieces_match1[3] /*<< pieces_match1[4] << pieces_match1[5]*/ << std::endl;
+    fmtlog::setLogLevel(fmtlog::OFF);
+    std::ifstream infile(fmt::format("999.txt"));
+    std::string line;
+    std::regex word_regex(".+ MEMarketUpdateDouble\\[ticker:(\\w*) type:(\\w*) side:(\\w+) qty:(\\d+\\.\\d+) price:(\\d+\\.\\d+)\\]");
+    std::smatch pieces_match;
+    std::vector<Exchange::MEMarketUpdate> diffs;
+    diffs.reserve(200000);
+    std::vector<Exchange::MEMarketUpdateDouble> diffs_double;
+    diffs_double.reserve(200000);
+    while (std::getline(infile, line))
+    {
+        //std::cout << line << std::endl;
+
+        if (std::regex_match(line, pieces_match, word_regex)){
+
+            Exchange::MEMarketUpdate update;
+            Exchange::MEMarketUpdateDouble update_double;
+
+            std::string color_name{"GREEN"};
+            //std::cout << pieces_match[1] << " " << pieces_match[2] << " " << pieces_match[3] << " " << pieces_match[4] << " " << pieces_match[5] << std::endl;
+            auto _type = magic_enum::enum_cast<Exchange::MarketUpdateType>(std::string(pieces_match[2]));
+            if(!_type.has_value())
+                continue;
+            update.type = _type.value();
+            update_double.type = _type.value();
+            auto _side = magic_enum::enum_cast<Common::Side>(std::string(pieces_match[3]));
+            if(!_side.has_value())
+                continue;
+            update.side = _side.value();
+            update_double.side = _side.value();
+
+            double qty = stod(pieces_match[4]);
+            update_double.qty = qty;
+            double price = stod(pieces_match[5]);
+            update_double.price = price;
+
+            update.qty =  qty * 10000;
+            update.price =  price * 100;
+            diffs.push_back(update);
+            diffs_double.push_back(update_double); 
+ 
+        }    
+    }
+    Trading::MarketOrderBook book;
+    auto begin = common::getCurrentNanoS();
+    for(int i = 0; i < diffs.size(); i++)
+    {
+        book.onMarketUpdate(&diffs[i]);
+    }
+    auto end = common::getCurrentNanoS();
+    std::cout << (end-begin)*1.0 / diffs.size() << "ns" << std::endl;
+    std::cout << diffs.size() << std::endl;
+
+    TickerInfo info{2, 5};
+    Symbol btcusdt("BTC", "USDT");
+    Ticker ticker(&btcusdt, info);
+    Trading::MarketOrderBookDouble book_double(ticker);
+    auto begin1 = common::getCurrentNanoS();
+    for(int i = 0; i < diffs_double.size(); i++)
+    {
+        book_double.OnMarketUpdate(&diffs_double[i]);
+    }
+    auto end1 = common::getCurrentNanoS();
+    std::cout << (end1-begin1)*1.0 / diffs_double.size() << "ns" << std::endl;
+    std::cout << diffs_double.size() << std::endl;
+
+    Trading::MarketOrderBook book2;
+    auto begin2 = common::getCurrentNanoS();
+    for(int i = 0; i < diffs_double.size(); i++)
+    {
+        const Exchange::MEMarketUpdate buf(&diffs_double[i], 2,
+                                       5);
+        book2.onMarketUpdate(&buf);
+    }
+    auto end2 = common::getCurrentNanoS();
+    std::cout << (end2-begin2)*1.0 / diffs_double.size() << "ns" << std::endl;
+    std::cout << diffs_double.size() << std::endl;
+}

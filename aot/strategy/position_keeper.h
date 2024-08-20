@@ -154,7 +154,7 @@ class PositionKeeper {
         ticker_position[client_response->ticker].addFill(client_response);
     };
 
-    auto UpdateBBO(std::string ticker, const Trading::BBODouble *bbo) noexcept {
+    auto UpdateBBO(const std::string& ticker, const Trading::BBODouble *bbo) noexcept {
         ticker_position[ticker].updateBBO(bbo);
     };
 

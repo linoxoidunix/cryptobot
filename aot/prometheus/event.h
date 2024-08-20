@@ -15,23 +15,46 @@ namespace prometheus{
          * 
          */
         kSnapshotMarketOrderBookIncoming,
-        /*
-        kLFQueuePushNewBidAsksEvents occured when LFQueue ready to push new batch bid or ask event
-        */
+        /**
+         * @brief kLFQueuePushNewBidAsksEvents occured when LFQueue ready to push new batch bid or ask event
+         * 
+         */ 
         kLFQueuePushNewBidAsksEvents,
-        /*
-        kLFQueuePullNewBidAsksEvents occured when LFQueue ready to pull new batch bid or ask event
-        */
+        /**
+         * @brief kLFQueuePullNewBidAsksEvents occured when LFQueue ready to pull new batch bid or ask event
+         * 
+         */ 
         kLFQueuePullNewBidAsksEvents,
-        /*
-        kStrategyOnNewKLineBefore time when strategy want call cb on new kline 
-        */
+        /**
+         * @brief kStrategyOnNewKLineBefore time when strategy want call cb on new kline 
+         * 
+         */ 
         kStrategyOnNewKLineBefore,
-        /*
-        kStrategyOnNewKLineAfter time when strategy executed cb on new kline 
-        */
-        kStrategyOnNewKLineAfter
-
+        /**
+         * @brief kStrategyOnNewKLineAfter time when strategy executed cb on new kline 
+         * 
+         */ 
+        kStrategyOnNewKLineAfter,
+        /**
+         * @brief kStrategyOnNewKLineAfter time when strategy executed cb on new kline 
+         * 
+         */ 
+        kStrategyOnNewKLineRate,
+        /**
+         * @brief kOrderBookUpdateBefore - time when market order book start update by self
+         * 
+         */ 
+        kOrderBookUpdateBefore,
+        /**
+         * @brief kOrderBookUpdatefAfter - time when market order book end update by self
+         * 
+         */ 
+        kOrderBookUpdateAfter,
+        /**
+         * @brief kOrderBookUpdatefAfter - time when market order book end update by self
+         * 
+         */ 
+        kUpdateSpeedOrderBook
     };
     struct Event{
         EventType event_type;
@@ -44,4 +67,28 @@ namespace prometheus{
         Event() : event_type(EventType::kNoEvent){};
     };
     using EventLFQueue = moodycamel::ConcurrentQueue<Event>;
+    
+    template <bool need_measure_latency, class LFQueuePtr>
+    void LogEvent(prometheus::EventType type, LFQueuePtr queue) {
+        if constexpr (need_measure_latency == true) {
+            if (queue) [[likely]] {
+                auto status = queue->try_enqueue(
+                    prometheus::Event(type, common::getCurrentNanoS()));
+                    if(!status)[[unlikely]]
+                        loge("my queue is full");
+            }
+        }
+    };
+
+    template <bool need_measure_latency, class Value, class LFQueuePtr>
+    void LogEvent(prometheus::EventType type, const Value& value, LFQueuePtr queue) {
+        if constexpr (need_measure_latency == true) {
+            if (queue) [[likely]] {
+                auto status = queue->try_enqueue(
+                    prometheus::Event(type, value));
+                    if(!status)[[unlikely]]
+                        loge("my queue is full");
+            }
+        }
+    };
 };

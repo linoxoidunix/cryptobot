@@ -82,7 +82,7 @@ class TradeEngine {
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(std::string ticker, PriceD price, Side side,
+    auto OnOrderBookUpdate(const std::string& ticker, PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
     /// Process trade events - updates the  feature engine and informs the

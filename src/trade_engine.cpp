@@ -52,26 +52,45 @@ auto TradeEngine::Run() noexcept -> void {
     Exchange::MEClientResponse results_responses[50];
     Exchange::MEMarketUpdateDouble results[50];
     OHLCVExt new_klines[50];
+    
+    common::Delta delta = 0;
+    unsigned int number_messages = 0;
+
     while (run_) {
         size_t count_responses =
             response_->try_dequeue_bulk(results_responses, 50);
         for (uint i = 0; i < count_responses; i++) [[likely]] {
             OnOrderResponse(&results_responses[i]);
-            time_manager_.Update();
         }
+        time_manager_.Update();
 
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
+        auto start = common::getCurrentNanoS();
         for (uint i = 0; i < count; i++) [[likely]] {
             order_book_.OnMarketUpdate(&results[i]);
-            time_manager_.Update();
         }
+        auto end = common::getCurrentNanoS();
+
+        if(count)[[likely]]
+        {
+            delta += end - start;
+            number_messages += count;
+            prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kUpdateSpeedOrderBook, delta*1.0/number_messages, latency_event_lfqueue_);
+        }
+        time_manager_.Update();
 
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
+        
+        auto begin_on_new_line = common::getCurrentNanoS();
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             OnNewKLine(&new_klines[i]);
-            time_manager_.Update();
         }
+        auto end_on_new_line = common::getCurrentNanoS();
+        if(count_new_klines)[[likely]]
+            prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineRate, (end_on_new_line-begin_on_new_line)*1.0/count_new_klines, latency_event_lfqueue_);
+        time_manager_.Update();
 
+        
         if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
@@ -81,7 +100,7 @@ auto TradeEngine::Run() noexcept -> void {
 }  // namespace Trading
 
 auto Trading::TradeEngine::OnOrderBookUpdate(
-    std::string ticker, PriceD price, Side side,
+    const std::string& ticker, PriceD price, Side side,
     MarketOrderBookDouble* book) noexcept -> void {
     auto bbo = order_book_.getBBO();
     position_keeper_.UpdateBBO(ticker, bbo);
@@ -101,9 +120,9 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
     // launch algorithm prediction, that generate signals
     logi("launch algorithm prediction for {}", new_kline->ToString());
-    AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore, latency_event_lfqueue_);
+    //AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore, latency_event_lfqueue_);
     strategy_.OnNewKLine(new_kline);
-    AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter, latency_event_lfqueue_);
+    //AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter, latency_event_lfqueue_);
 }
 
 //   /// Process changes to the order book - updates the position keeper,
