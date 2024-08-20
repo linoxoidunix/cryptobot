@@ -13,9 +13,9 @@
 
 constexpr std::string_view kPathData = PATH_TO_DATA;
 
-class MyFixture : public benchmark::Fixture {
+class FixtureMarketOrderBook : public benchmark::Fixture {
   public:
-    void SetUp(::benchmark::State& state) {
+    void SetUp(::benchmark::State& state) override{
         std::cout << "1" << std::endl;
         fmtlog::setLogLevel(fmtlog::OFF);
         std::ifstream infile(fmt::format("{}/{}", kPathData, "999.txt"));
@@ -27,8 +27,6 @@ class MyFixture : public benchmark::Fixture {
         diffs.reserve(200000);
         diffs_double.reserve(200000);
         while (std::getline(infile, line)) {
-            // std::cout << line << std::endl;
-
             if (std::regex_match(line, pieces_match, word_regex)) {
                 Exchange::MEMarketUpdate update;
                 Exchange::MEMarketUpdateDouble update_double;
@@ -57,14 +55,17 @@ class MyFixture : public benchmark::Fixture {
         }
     }
 
-    void TearDown(::benchmark::State& state) {}
+    void TearDown(::benchmark::State& state) override{
+        std::cout << "2" << std::endl;
+        diffs.clear();
+        diffs_double.clear();
+    }
 
     std::vector<Exchange::MEMarketUpdate> diffs;
     std::vector<Exchange::MEMarketUpdateDouble> diffs_double;
 };
 
-// Defines and registers `FooTest` using the class `MyFixture`.
-BENCHMARK_DEFINE_F(MyFixture, FooTest)(benchmark::State& st) {
+BENCHMARK_DEFINE_F(FixtureMarketOrderBook, TestMarketOrderBook)(benchmark::State& st) {
     Trading::MarketOrderBook book;
     for (auto _ : st) {
         auto begin = common::getCurrentNanoS();
@@ -73,13 +74,13 @@ BENCHMARK_DEFINE_F(MyFixture, FooTest)(benchmark::State& st) {
         }
         auto end             = common::getCurrentNanoS();
         auto elapsed_seconds = (end - begin) / diffs.size() * 1e-9;
-        // std::cout << elapsed_seconds << std::endl;
         st.SetIterationTime(elapsed_seconds);
+        book.ClearOrderBook();
     }
 }
 
-BENCHMARK_REGISTER_F(MyFixture, FooTest)
-    ->Iterations(1)
+BENCHMARK_REGISTER_F(FixtureMarketOrderBook, TestMarketOrderBook)
+    ->Iterations(100)
     ->UseManualTime()
     ->Unit(benchmark::kNanosecond);
 

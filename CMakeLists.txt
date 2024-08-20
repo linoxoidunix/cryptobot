@@ -116,5 +116,5 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_A
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=true")
 
 add_subdirectory(example)
-add_subdirectory(test)
+add_subdirectory(tests)
 
