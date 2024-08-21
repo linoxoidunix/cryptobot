@@ -17,3 +17,4 @@ models/
 example/cpp_with_python/__pycache__/
 prometheus-cpp/
 re2/
+abseil-cpp/
