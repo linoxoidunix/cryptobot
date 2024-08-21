@@ -3,7 +3,7 @@ set (PROJECT_NAME aot)
 project(${PROJECT_NAME} C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(OpenSSL)
-add_subdirectory(clickhouse-cpp)
+#add_subdirectory(clickhouse-cpp)
 add_subdirectory(aot_data)
 find_package(Threads REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
@@ -11,8 +11,10 @@ find_package(magic_enum CONFIG REQUIRED)
 find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
 find_package(fast_double_parser REQUIRED)
 find_package(prometheus-cpp REQUIRED)
+find_package(re2 REQUIRED)
+find_package(absl REQUIRED)#re2 need in absl
 add_subdirectory(googletest)
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
 add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
@@ -75,8 +77,8 @@ add_library (${PROJECT_NAME}
     ${SRC}
 )
 
-add_library(cpp_trader STATIC IMPORTED)
-SET_TARGET_PROPERTIES(cpp_trader PROPERTIES IMPORTED_LOCATION /home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/lib/libcpptrader.a)
+#add_library(cpp_trader STATIC IMPORTED)
+#SET_TARGET_PROPERTIES(cpp_trader PROPERTIES IMPORTED_LOCATION /home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/lib/libcpptrader.a)
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -85,7 +87,7 @@ target_include_directories(
     ${Boost_INCLUDE_DIRS}
     PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
-    /home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/include
+    #/home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/include
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -107,7 +109,9 @@ target_link_libraries(${PROJECT_NAME}
     prometheus-cpp::util 
     prometheus-cpp::civetweb 
     prometheus-cpp::pull
-    cpp_trader
+    #cpp_trader
+    absl::base
+    re2::re2
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)

@@ -325,15 +325,16 @@
 //     Symbol btcusdt("BTC", "USDT");
 //     Ticker ticker(&btcusdt, info);
 //     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-//                                      ticker, &interval, TypeExchange::TESTNET);
+//                                      ticker, &interval,
+//                                      TypeExchange::TESTNET);
 //     generator.Start();
 //     Trading::TradeEngine trade_engine_service(
 //         &event_queue, &request_new_order, &request_cancel_order, &response,
 //         &ohlcv_queue, &prometheus_event_queue, ticker, nullptr);
 //     std::string host  = "localhost";
 //     unsigned int port = 6060;
-//     prometheus::Service prometheus_service(host, port, &prometheus_event_queue);
-//     prometheus_service
+//     prometheus::Service prometheus_service(host, port,
+//     &prometheus_event_queue); prometheus_service
 //         .Start();  // launch prometheus server that send data to prometheus
 
 //     trade_engine_service.Start();
@@ -799,6 +800,73 @@
  * @param argv
  * @return int
  */
+// int main(int argc, char** argv) {
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     OHLCVILFQueue internal_ohlcv_queue;
+//     OHLCVILFQueue external_ohlcv_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+
+//     auto chart_interval = binance::m1();
+//     binance::OHLCVI fetcher(&btcusdt, &chart_interval,
+//     TypeExchange::TESTNET); backtesting::KLineService kline_service(&fetcher,
+//     &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
+//     kline_service.start();
+
+//     Trading::TradeEngine trade_engine_service(
+//         &event_queue, &requests_new_order, &requests_cancel_order,
+//         &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
+//         ticker, nullptr);
+//     trade_engine_service.Start();
+
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10) {
+//         // while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(30s);
+//     }
+// }
+//----------------------------------------------------------------------------------------
+/**
+ * @brief test market order book without GeneratorBidAskService
+ * KLineService will generate events for order book
+ * @param argc
+ * @param argv
+ * @return int
+ */
+// int main(int argc, char** argv) {
+//     fmtlog::setLogLevel(fmtlog::INF);
+//     backtesting::OHLCVI
+//     ohlcv_history("/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/ohlcv_history/ohlcv.csv");
+//     OHLCVILFQueue ohlcv_queue;
+//     ohlcv_history.Init(ohlcv_queue);
+//     for(int i = 0; i < 5900; i++)
+//         ohlcv_history.LaunchOne();
+//     fmtlog::poll();
+// }
+//----------------------------------------------------------------------------------------
+/**
+ * @brief test market order book with backtesting::OHLCV
+ * KLineService will generate events for order book
+ * @param argc
+ * @param argv
+ * @return int
+ */
 int main(int argc, char** argv) {
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
@@ -820,9 +888,9 @@ int main(int argc, char** argv) {
     Ticker ticker(&btcusdt, info);
 
     auto chart_interval = binance::m1();
-    binance::OHLCVI fetcher(&btcusdt, &chart_interval,
-    TypeExchange::TESTNET); backtesting::KLineService kline_service(&fetcher,
-    &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
+    backtesting::OHLCVI fetcher("/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/ohlcv_history/ohlcv.csv");
+    backtesting::KLineService kline_service(
+        &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
     kline_service.start();
 
     Trading::TradeEngine trade_engine_service(

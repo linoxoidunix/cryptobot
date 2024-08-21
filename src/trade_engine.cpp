@@ -80,7 +80,6 @@ auto TradeEngine::Run() noexcept -> void {
         time_manager_.Update();
 
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
-        
         auto begin_on_new_line = common::getCurrentNanoS();
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             OnNewKLine(&new_klines[i]);

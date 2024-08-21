@@ -121,4 +121,38 @@ class KLineService {
     auto Run() noexcept -> void;
     common::TimeManager time_manager_;
 };
+
+/**
+ * @brief class for reading ohlcv history file
+ *
+ */
+class OHLCVI : public OHLCVGetter {
+  public:
+    explicit OHLCVI(std::string_view path_to_file)
+        : path_to_file_(path_to_file.data()) {};
+    void Init(OHLCVILFQueue &lf_queue) override;
+    void LaunchOne() override {
+        if (lf_queue_ == nullptr) [[unlikely]]
+            return;
+        if (iterator_ohlcv_history == ohlcv_history_.end()) [[unlikely]] {
+          loge("iterator_ohlcv_history = ohlcv_history_.end()");
+          return;
+        }
+        auto status =
+            lf_queue_->try_enqueue(*iterator_ohlcv_history);
+        if (status) [[likely]] {
+            ++iterator_ohlcv_history;
+        } else {
+            logw("can't push data to queue. probably queue is full");
+        }
+    };
+    void ResetIterator(){
+      iterator_ohlcv_history = ohlcv_history_.begin();
+    }
+  private:
+    const std::string path_to_file_;
+    std::list<OHLCVExt> ohlcv_history_;
+    OHLCVILFQueue *lf_queue_            = nullptr;
+    std::list<OHLCVExt>::iterator iterator_ohlcv_history = ohlcv_history_.begin();
+};
 }  // namespace backtesting
