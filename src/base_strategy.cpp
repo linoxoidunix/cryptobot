@@ -16,6 +16,8 @@ Trading::BaseStrategy::BaseStrategy(base_strategy::Strategy* strategy,
 
 auto Trading::BaseStrategy::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
+    if(!strategy_)[[unlikely]]
+        return;    
     auto result = strategy_->Predict(
         new_kline->ohlcv.open, new_kline->ohlcv.high, new_kline->ohlcv.low,
         new_kline->ohlcv.close, new_kline->ohlcv.volume);

@@ -95,6 +95,7 @@ auto TradeEngine::Run() noexcept -> void {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
         }
+        fmtlog::poll();
     }
 }
 }  // namespace Trading

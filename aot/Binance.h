@@ -302,7 +302,6 @@ class OHLCVI : public OHLCVGetter {
           chart_interval_(chart_interval),
           type_exchange_(type_exchange) {};
     void LaunchOne() override { ioc.run_one(); };
-
     void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&lf_queue](boost::beast::flat_buffer& buffer) {

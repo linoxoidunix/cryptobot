@@ -27,12 +27,16 @@ auto MarketOrderBook::onMarketUpdate(
         return;
     }
 
-    const auto bid_updated =
-        (bids_at_price_map_.size() &&
+    const auto bid_will_be_updated =
+         (!bids_at_price_map_.size() &&
+         market_update->side == Common::Side::SELL ||
+         bids_at_price_map_.size() &&
          market_update->side == Common::Side::SELL &&
          market_update->price >= bids_at_price_map_.begin()->price_);
-    const auto ask_updated =
-        (asks_at_price_map_.size() &&
+    const auto ask_will_be_updated =
+        (!asks_at_price_map_.size() &&
+         market_update->side == Common::Side::BUY ||
+         asks_at_price_map_.size() &&
          market_update->side == Common::Side::BUY &&
          market_update->price <= asks_at_price_map_.begin()->price_);
 
@@ -44,8 +48,8 @@ auto MarketOrderBook::onMarketUpdate(
         removeOrdersAtPrice(market_update->side, market_update->price);
     }
 
-    updateBBO(bid_updated, ask_updated);
-    if (bid_updated || ask_updated) logi("{}", bbo_.toString());
+    updateBBO(bid_will_be_updated, ask_will_be_updated);
+    if (bid_will_be_updated || ask_will_be_updated) logi("{}", bbo_.toString());
     logd("{}", market_update->ToString());
 }
 
@@ -60,8 +64,8 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
     const Exchange::MEMarketUpdate buf(market_update, precission_price_,
                                        precission_qty_);
     book_.onMarketUpdate(&buf);
-    // trade_engine_->OnOrderBookUpdate(
-    //     ticker_, market_update->price, market_update->side, this);
+    trade_engine_->OnOrderBookUpdate(
+        ticker_, market_update->price, market_update->side, this);
 };
 
 };  // namespace Trading
