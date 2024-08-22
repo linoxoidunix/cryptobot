@@ -51,7 +51,7 @@ class TradeEngine {
 
     auto Stop() -> void {
         while (incoming_md_updates_->size_approx()) {
-            logi("Sleeping till all updates are consumed md-size:%\n",
+            logi("Sleeping till all updates are consumed md-size:{}",
                  incoming_md_updates_->size_approx());
             using namespace std::literals::chrono_literals;
             std::this_thread::sleep_for(10ms);

@@ -872,6 +872,7 @@ int main(int argc, char** argv) {
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
     fmtlog::setLogLevel(fmtlog::DBG);
+    fmtlog::setLogFile("111.txt");
     using namespace binance;
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -887,17 +888,21 @@ int main(int argc, char** argv) {
     Symbol btcusdt("BTC", "USDT");
     Ticker ticker(&btcusdt, info);
 
-    auto chart_interval = binance::m1();
-    backtesting::OHLCVI fetcher("/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/ohlcv_history/ohlcv.csv");
-    backtesting::KLineService kline_service(
-        &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
-    kline_service.start();
-
     Trading::TradeEngine trade_engine_service(
         &event_queue, &requests_new_order, &requests_cancel_order,
         &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
         ticker, nullptr);
+
+    auto chart_interval = binance::m1();
+    backtesting::OHLCVI fetcher(
+        "/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/ohlcv_history/ohlcv.csv",
+        &trade_engine_service);
+    backtesting::KLineService kline_service(
+        &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
+
+    
     trade_engine_service.Start();
+    kline_service.start();
 
     common::TimeManager time_manager;
     while (trade_engine_service.GetDownTimeInS() < 10) {

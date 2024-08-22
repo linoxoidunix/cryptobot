@@ -9,6 +9,7 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/strategy/trade_engine.h"
 
 namespace inner {
 class OrderNewI;
@@ -128,31 +129,34 @@ class KLineService {
  */
 class OHLCVI : public OHLCVGetter {
   public:
-    explicit OHLCVI(std::string_view path_to_file)
-        : path_to_file_(path_to_file.data()) {};
+    explicit OHLCVI(std::string_view path_to_file,
+                    Trading::TradeEngine *trade_engine)
+        : path_to_file_(path_to_file.data()), trade_engine_(trade_engine) {};
     void Init(OHLCVILFQueue &lf_queue) override;
     void LaunchOne() override {
         if (lf_queue_ == nullptr) [[unlikely]]
             return;
         if (iterator_ohlcv_history == ohlcv_history_.end()) [[unlikely]] {
-          loge("iterator_ohlcv_history = ohlcv_history_.end()");
-          return;
+            logw("iterator_ohlcv_history = ohlcv_history_.end()");
+            if (trade_engine_) [[likely]]
+                trade_engine_->Stop();
+            return;
         }
-        auto status =
-            lf_queue_->try_enqueue(*iterator_ohlcv_history);
+        auto status = lf_queue_->try_enqueue(*iterator_ohlcv_history);
         if (status) [[likely]] {
             ++iterator_ohlcv_history;
         } else {
             logw("can't push data to queue. probably queue is full");
         }
     };
-    void ResetIterator(){
-      iterator_ohlcv_history = ohlcv_history_.begin();
-    }
+    void ResetIterator() { iterator_ohlcv_history = ohlcv_history_.begin(); }
+
   private:
     const std::string path_to_file_;
+    Trading::TradeEngine *trade_engine_ = nullptr;
     std::list<OHLCVExt> ohlcv_history_;
-    OHLCVILFQueue *lf_queue_            = nullptr;
-    std::list<OHLCVExt>::iterator iterator_ohlcv_history = ohlcv_history_.begin();
+    OHLCVILFQueue *lf_queue_ = nullptr;
+    std::list<OHLCVExt>::iterator iterator_ohlcv_history =
+        ohlcv_history_.begin();
 };
 }  // namespace backtesting
