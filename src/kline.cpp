@@ -34,14 +34,20 @@ auto KLineService::Run() noexcept -> void {
     clear_event.type = Exchange::MarketUpdateType::CLEAR;
     Exchange::MEMarketUpdateDouble new_ohlcv;
     while (run_) {
-        ohlcv_getter_->LaunchOne();
+        bool need_fetch_more = ohlcv_getter_->LaunchOne();
         time_manager_.Update();
+        if(!need_fetch_more){
+            run_ = false;
+            continue;
+        }    
         size_t count_new_klines =
-            internal_kline_lfqueue_->try_dequeue_bulk(o_h_l_c_v_ext, 50);
+            internal_kline_lfqueue_->try_dequeue_bulk(o_h_l_c_v_ext, 1);
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             if(market_updates_lfqueue_)[[likely]]
                 while (!market_updates_lfqueue_->try_enqueue(clear_event)) {
-                    loge("can't clear order book. wait 10ms");
+                    loge("can't clear order book. wait 1s");
+                    using namespace std::literals::chrono_literals;
+                    std::this_thread::sleep_for(1s);
                 }
             new_ohlcv.side =
                 Common::Side::BUY;  // no matter side because price = (best_bid

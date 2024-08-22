@@ -162,7 +162,13 @@ class OHLCVGetter {
      * @param buffer
      */
     virtual void Init(OHLCVILFQueue &lf_queue) = 0;
-    virtual void LaunchOne()                   = 0;
+    /**
+     * @brief 
+     * 
+     * @return true if OHLCVGetter is not empty
+     * @return false if OHLCVGetter is empty
+     */
+    virtual bool LaunchOne()                   = 0;
     virtual ~OHLCVGetter()                     = default;
 };
 

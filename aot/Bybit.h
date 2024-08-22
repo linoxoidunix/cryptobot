@@ -223,7 +223,7 @@ class OHLCVI : public OHLCVGetter {
           type_exchange_(type_exchange) {
         current_exchange_ = exchange_.Get(type_exchange);
     };
-    void LaunchOne() override { ioc.run_one(); };
+    bool LaunchOne() override { ioc.run_one();return true; };
 
     void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;

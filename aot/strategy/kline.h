@@ -133,14 +133,14 @@ class OHLCVI : public OHLCVGetter {
                     Trading::TradeEngine *trade_engine)
         : path_to_file_(path_to_file.data()), trade_engine_(trade_engine) {};
     void Init(OHLCVILFQueue &lf_queue) override;
-    void LaunchOne() override {
+    bool LaunchOne() override {
         if (lf_queue_ == nullptr) [[unlikely]]
-            return;
+            return false;
         if (iterator_ohlcv_history == ohlcv_history_.end()) [[unlikely]] {
             logw("iterator_ohlcv_history = ohlcv_history_.end()");
             if (trade_engine_) [[likely]]
                 trade_engine_->Stop();
-            return;
+            return false;
         }
         auto status = lf_queue_->try_enqueue(*iterator_ohlcv_history);
         if (status) [[likely]] {
@@ -148,6 +148,7 @@ class OHLCVI : public OHLCVGetter {
         } else {
             logw("can't push data to queue. probably queue is full");
         }
+        return true;
     };
     void ResetIterator() { iterator_ohlcv_history = ohlcv_history_.begin(); }
 
