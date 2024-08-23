@@ -36,14 +36,14 @@ auto KLineService::Run() noexcept -> void {
     while (run_) {
         bool need_fetch_more = ohlcv_getter_->LaunchOne();
         time_manager_.Update();
-        if(!need_fetch_more){
+        if (!need_fetch_more) {
             run_ = false;
             continue;
-        }    
+        }
         size_t count_new_klines =
             internal_kline_lfqueue_->try_dequeue_bulk(o_h_l_c_v_ext, 1);
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
-            if(market_updates_lfqueue_)[[likely]]
+            if (market_updates_lfqueue_) [[likely]]
                 while (!market_updates_lfqueue_->try_enqueue(clear_event)) {
                     loge("can't clear order book. wait 1s");
                     using namespace std::literals::chrono_literals;
@@ -59,20 +59,39 @@ auto KLineService::Run() noexcept -> void {
                     // best_offer * qty(best_offer))/(qty(best_bid) +
                     // qty(best_offer))
             new_ohlcv.price = o_h_l_c_v_ext[i].ohlcv.open;
-            if(market_updates_lfqueue_)[[likely]]
+            if (market_updates_lfqueue_) [[likely]] {
                 while (!market_updates_lfqueue_->try_enqueue(new_ohlcv)) {
                     loge("can't add new ohlcv event. wait 10ms");
                     using namespace std::literals::chrono_literals;
                     std::this_thread::sleep_for(10ms);
                 }
-            if(external_kline_lfqueue_)[[likely]]
-                while (!external_kline_lfqueue_->try_enqueue(o_h_l_c_v_ext[i])) {
+                /**
+                 * @brief blocking until market_updates_lfqueue_ not empty
+                 *
+                 */
+                while (market_updates_lfqueue_->size_approx()) {
+                    using namespace std::literals::chrono_literals;
+                    std::this_thread::sleep_for(10ms);
+                }
+            }
+            if (external_kline_lfqueue_) [[likely]] {
+                while (
+                    !external_kline_lfqueue_->try_enqueue(o_h_l_c_v_ext[i])) {
                     loge("can't push new ohlcv event in external lfqueu");
                     using namespace std::literals::chrono_literals;
                     std::this_thread::sleep_for(10ms);
                 }
+                /**
+                 * @brief blocking until external_kline_lfqueue_ not empty
+                 *
+                 */
+                while (external_kline_lfqueue_->size_approx()) {
+                    using namespace std::literals::chrono_literals;
+                    std::this_thread::sleep_for(10ms);
+                }
+            }
+            time_manager_.Update();
         }
-        time_manager_.Update();
     }
 }
 
