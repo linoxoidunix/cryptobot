@@ -163,8 +163,8 @@ class OHLCVGetter {
      */
     virtual void Init(OHLCVILFQueue &lf_queue) = 0;
     /**
-     * @brief 
-     * 
+     * @brief
+     *
      * @return true if OHLCVGetter is not empty
      * @return false if OHLCVGetter is empty
      */
@@ -229,42 +229,46 @@ class DiffDepthStreamI {
  */
 class SymbolI {
   public:
-    virtual std::string ToString() const = 0;
-    virtual ~SymbolI()                   = default;
+    virtual std::string_view ToString() const = 0;
+    virtual ~SymbolI()                    = default;
 };
 
 class SymbolUpperCase : public SymbolI {
   public:
     explicit SymbolUpperCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_upper(out);
-        return out;
+        : first_(first.data()), second_(second.data()) {
+          ticker_ = fmt::format("{0}{1}", first_, second_);
+          boost::algorithm::to_upper(ticker_);
+        };
+    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {
     };
+    std::string_view ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 
 class SymbolLowerCase : public SymbolI {
   public:
     explicit SymbolLowerCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_lower(out);
-        return out;
+        : first_(first.data()), second_(second.data()) {
+          ticker_ = fmt::format("{0}{1}", first_, second_);
+          boost::algorithm::to_lower(ticker_);
+        };
+    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {
+    };
+    std::string_view ToString() const override {
+        return ticker_;
     };
     ~SymbolLowerCase() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 
 struct Ticker {

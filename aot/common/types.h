@@ -6,6 +6,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <string_view>
 
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
@@ -204,7 +205,37 @@ struct TradeEngineCfg {
 };
 
 //using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
-using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg>;
+
+struct StringHash
+{
+    using is_transparent = void;
+    std::size_t operator()(const char* key)             const { return std::hash<std::string_view>()(std::string_view(key, strlen(key))); }
+    std::size_t operator()(const std::string& key)      const { return std::hash<std::string_view>()(key); }
+    std::size_t operator()(const std::string_view& key) const { return std::hash<std::string_view>()(key); }
+};
+
+struct StringEqual
+{
+    using is_transparent = int;
+
+
+    bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+        return lhs == rhs;
+    }
+
+    bool operator()(const std::string& lhs, const std::string& rhs) const {
+        return lhs == rhs;
+    }
+
+    bool operator()(const char* lhs, const std::string& rhs) const {
+        return std::strcmp(lhs, rhs.data()) == 0;
+    }
+    bool operator()(const std::string& rhs, const char* lhs) const {
+        return std::strcmp(lhs, rhs.data()) == 0;
+    }
+};
+
+using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg, StringHash, StringEqual>;
 
 inline uint32_t Digits10(uint64_t v) {
     return 1 + (std::uint32_t)(v >= 10) + (std::uint32_t)(v >= 100) +

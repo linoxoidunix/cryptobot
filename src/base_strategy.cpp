@@ -6,11 +6,13 @@
 Trading::BaseStrategy::BaseStrategy(base_strategy::Strategy* strategy,
                                     TradeEngine* trade_engine,
                                     OrderManager* order_manager,
-                                    const TradeEngineCfgHashMap& ticker_cfg)
+                                    const TradeEngineCfgHashMap& ticker_cfg,
+                                    std::string_view ticker)
     : strategy_(strategy),
       trade_engine_(trade_engine),
       order_manager_(order_manager),
-      ticker_cfg_(ticker_cfg) {
+      ticker_cfg_(ticker_cfg),
+      for_ticker_(ticker) {
     InitActions();
 }
 
@@ -23,8 +25,8 @@ auto Trading::BaseStrategy::OnNewKLine(const OHLCVExt* new_kline) noexcept
         new_kline->ohlcv.close, new_kline->ohlcv.volume);
     base_strategy::Strategy::Parser parser;
     auto number_action = parser.Parse(result);
-    actions_[(int)number_action](new_kline->ticker);     //i confident that number_action <= actions_size()
+    logd("ticker:{}",for_ticker_);
+    fmtlog::poll();
+    actions_[(int)number_action](for_ticker_);     //i confident that number_action <= actions_size()
 }
 
-// НЕОБХОДИМО НАПИСАТЬ ГЕНЕРАЦИЮ СИГНАЛОВ КУПИТЬ И ПРОДАТЬ
-// ОБРАБОТКА ENTER_LONG, ENTER_SHORT, EXIT_LONG, EXIT_SHORT,

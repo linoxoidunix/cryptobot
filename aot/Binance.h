@@ -132,17 +132,18 @@ enum class Type {
 class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_lower(out);
-        return out;
+        : first_(first.data()),
+          second_(second.data()),
+          ticker_(fmt::format("{0}{1}", first_, second_)) {
+        boost::algorithm::to_lower(ticker_);
     };
+    std::string_view ToString() const override { return ticker_; };
     ~Symbol() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 class s1 : public ChartInterval {
   public:

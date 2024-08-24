@@ -18,7 +18,8 @@ class BaseStrategy {
     explicit BaseStrategy(base_strategy::Strategy *strategy,
                           TradeEngine *trade_engine,
                           OrderManager *order_manager,
-                          const TradeEngineCfgHashMap &ticker_cfg);
+                          const TradeEngineCfgHashMap &ticker_cfg,
+                          std::string_view ticker);
 
     /**
      * Launch OnOrderBookUpdate callback when there are changes in
@@ -62,9 +63,10 @@ class BaseStrategy {
     TradeEngine *trade_engine_;
     Trading::OrderManager *order_manager_ = nullptr;
     const TradeEngineCfgHashMap &ticker_cfg_;
+    std::string_view for_ticker_;
     Wallet wallet_;
     Trading::MarketOrderBookDouble *order_book_ = nullptr;
-    std::vector<std::function<void(const TickerS &ticker)>> actions_;
+    std::vector<std::function<void(std::string_view ticker)>> actions_;
     /**
      * @brief if strategy want buy qty asset with price_asset=price it calls
      * this BuySomeAsset. Used for long operation
@@ -73,13 +75,13 @@ class BaseStrategy {
      * @param price
      * @param qty
      */
-    auto BuySomeAsset(const TickerS &ticker_id) noexcept -> void {
+    auto BuySomeAsset(std::string_view ticker_id) noexcept -> void {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
         }
         if (!ticker_cfg_.count(ticker_id)) [[unlikely]] {
-            logw("fail buy because tickercfg not contain {}", ticker_id);
+            logw("fail buy because tickercfg not contain ticker:{}", ticker_id);
             return;
         }
         auto buy_price = order_book_->getBBO()->ask_price;
@@ -88,10 +90,10 @@ class BaseStrategy {
             logw("skip BuySomeAsset. BBO ask_price=INVALID. please wait more time for update BBO");
             return;
         }
-        auto qty = ticker_cfg_.at(ticker_id).clip;
+        auto qty = ticker_cfg_.at(std::string(ticker_id)).clip;
         logi("launch long buy action for ticker:{} price:{} qty:{}", ticker_id,
              buy_price, qty);
-        order_manager_->NewOrder(ticker_id, buy_price, Side::BUY, qty);
+        order_manager_->NewOrder(std::string(ticker_id), buy_price, Side::BUY, qty);
     }
     /**
      * @brief if strategy want sell all asset that early buyed than it calls
@@ -100,16 +102,16 @@ class BaseStrategy {
      * @param ticker_id ticker asset
      * @param price
      */
-    auto SellAllAsset(const TickerS &ticker_id) noexcept -> void {
+    auto SellAllAsset(std::string_view ticker_id) noexcept -> void {
         logi("launch long sell action for ticker:{}", ticker_id);
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
         }
-        if (auto number_asset = wallet_.SafetyGetNumberAsset(ticker_id);
+        if (auto number_asset = wallet_.SafetyGetNumberAsset(std::string(ticker_id));
             number_asset > 0) {
             auto price = order_book_->getBBO()->bid_price;
-            order_manager_->NewOrder(ticker_id, price, Side::SELL,
+            order_manager_->NewOrder(std::string(ticker_id), price, Side::SELL,
                                      number_asset);
         } else
             logw("fail because number_asset={} <= 0", number_asset);
@@ -122,7 +124,7 @@ class BaseStrategy {
      * @param price
      * @param qty
      */
-    auto SellSomeAsset(const TickerS &ticker_id) noexcept -> void {
+    auto SellSomeAsset(std::string_view ticker_id) noexcept -> void {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
@@ -137,10 +139,10 @@ class BaseStrategy {
             logw("skip SellSomeAsset. BBO bid_price=INVALID. please wait more time for update BBO");
             return;
         }
-        auto qty = ticker_cfg_.at(ticker_id).clip;
+        auto qty = ticker_cfg_.at(std::string(ticker_id)).clip;
         logi("launch short sell action for ticker:{} price:{} qty:{}",
              ticker_id, sell_price, qty);
-        order_manager_->NewOrder(ticker_id, sell_price, Side::SELL, qty);
+        order_manager_->NewOrder(std::string(ticker_id), sell_price, Side::SELL, qty);
     };
     /**
      * @brief if strategy want buy all asset that early sold than it calls
@@ -149,16 +151,16 @@ class BaseStrategy {
      * @param ticker_id ticker asset
      * @param price
      */
-    auto BuyAllAsset(const TickerS &ticker_id) noexcept -> void {
+    auto BuyAllAsset(std::string_view ticker_id) noexcept -> void {
         logi("launch short buy action for ticker:{}", ticker_id);
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
         }
-        if (auto number_asset = wallet_.SafetyGetNumberAsset(ticker_id);
+        if (auto number_asset = wallet_.SafetyGetNumberAsset(std::string(ticker_id));
             number_asset < 0) {
             auto buy_price = order_book_->getBBO()->ask_price;
-            order_manager_->NewOrder(ticker_id, buy_price, Side::BUY,
+            order_manager_->NewOrder(std::string(ticker_id), buy_price, Side::BUY,
                                      number_asset);
         } else
             logw("fail because number_asset={} >= 0", number_asset);
@@ -169,19 +171,19 @@ class BaseStrategy {
      */
     void InitActions() {
         actions_.resize((int)TradeAction::kNope + 1);
-        actions_[(int)TradeAction::kEnterLong] = [this](const TickerS &ticker) {
+        actions_[(int)TradeAction::kEnterLong] = [this](std::string_view ticker) {
             BuySomeAsset(ticker);
         };
-        actions_[(int)TradeAction::kEnterShort] = [this](const TickerS &ticker) {
+        actions_[(int)TradeAction::kEnterShort] = [this](std::string_view ticker) {
             SellSomeAsset(ticker);
         };
-        actions_[(int)TradeAction::kExitLong] = [this](const TickerS &ticker) {
+        actions_[(int)TradeAction::kExitLong] = [this](std::string_view ticker) {
             SellAllAsset(ticker);
         };
-        actions_[(int)TradeAction::kExitShort] = [this](const TickerS &ticker) {
+        actions_[(int)TradeAction::kExitShort] = [this](std::string_view ticker) {
             BuyAllAsset(ticker);
         };
-        actions_[(int)TradeAction::kNope] = [this](const TickerS &ticker) {
+        actions_[(int)TradeAction::kNope] = [this](std::string_view ticker) {
         };
     };
 };

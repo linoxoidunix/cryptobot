@@ -29,5 +29,3 @@ magic_enum::magic_enum
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=true")
-target_compile_definitions(${PROJECT_NAME} PRIVATE "MEASURE_T_FOR_TRADE_ENGINE=true")

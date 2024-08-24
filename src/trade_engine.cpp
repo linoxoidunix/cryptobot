@@ -20,10 +20,11 @@ TradeEngine::TradeEngine(
       ticker_(ticker),
       order_book_(ticker),
       order_manager_(this),
-      strategy_(predictor, this, &order_manager_, config_) {
+      strategy_(predictor, this, &order_manager_, config_, ticker.symbol->ToString()) {
     Common::TradeEngineCfg btcusdt_cfg;
     btcusdt_cfg.clip   = 0.0001;
-    config_["BTCUSDT"] = btcusdt_cfg;
+    auto ticker_local = ticker_.symbol->ToString();
+    config_[std::string(ticker_local)] = btcusdt_cfg;
     order_book_.SetTradeEngine(this);
 };
 

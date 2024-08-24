@@ -872,7 +872,7 @@ int main(int argc, char** argv) {
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
     fmtlog::setLogLevel(fmtlog::DBG);
-    fmtlog::setLogFile("111.txt");
+    //fmtlog::setLogFile("111.txt");
     using namespace binance;
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -888,10 +888,22 @@ int main(int argc, char** argv) {
     Symbol btcusdt("BTC", "USDT");
     Ticker ticker(&btcusdt, info);
 
+        // init python predictor
+    const auto python_path = argv[1];
+    std::string path_where_models =
+        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    auto predictor_module = "strategy.py";
+    auto class_module = "Predictor";
+    auto method_module = "predict";
+    base_strategy::Strategy predictor(python_path, path_where_models,
+                                      predictor_module, class_module,
+                                      method_module);
+    
+    
     Trading::TradeEngine trade_engine_service(
         &event_queue, &requests_new_order, &requests_cancel_order,
         &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
-        ticker, nullptr);
+        ticker, &predictor);
 
     auto chart_interval = binance::m1();
     backtesting::OHLCVI fetcher(
