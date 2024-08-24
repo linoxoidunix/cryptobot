@@ -75,14 +75,15 @@ class TradeEngine {
     }
     auto SendRequestCancelOrder(const Exchange::RequestCancelOrder
                                     *request_cancel_order) noexcept -> void {
-        auto status_op = request_cancel_order_->try_enqueue(*request_cancel_order);
+        auto status_op =
+            request_cancel_order_->try_enqueue(*request_cancel_order);
         if (!status_op) [[unlikely]]
             loge("my queue is full");
     }
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(const std::string& ticker, PriceD price, Side side,
+    auto OnOrderBookUpdate(const std::string &ticker, PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
     /// Process trade events - updates the  feature engine and informs the
@@ -136,8 +137,8 @@ class TradeEngine {
             if (queue) [[likely]] {
                 auto status = queue->try_enqueue(
                     prometheus::Event(type, common::getCurrentNanoS()));
-                    if(!status)[[unlikely]]
-                        loge("my queue is full");
+                if (!status) [[unlikely]]
+                    loge("my queue is full");
             }
         }
     }

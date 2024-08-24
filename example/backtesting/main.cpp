@@ -19,11 +19,11 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-// #include "aot/strategy/position_keeper.h"
-// #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
 #include "magic_enum.hpp"
 #include "moodycamel/concurrentqueue.h"
+
+
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -871,8 +871,8 @@ int main(int argc, char** argv) {
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::OFF);
-    //fmtlog::setLogFile("111.txt");
+    fmtlog::setLogLevel(fmtlog::DBG);
+    fmtlog::setLogFile("111.txt");
     using namespace binance;
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
