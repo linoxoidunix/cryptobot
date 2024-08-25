@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/macros.h"
@@ -60,8 +61,8 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    auto NewOrder(TickerS ticker_id, PriceD price, Side side,
-                  QtyD qty, uint8_t price_prec, uint8_t qty_prec) noexcept -> void;
+    auto NewOrder(const Ticker& ticker, PriceD price, Side side,
+                  QtyD qty) noexcept -> void;
 
     /**
      * @brief

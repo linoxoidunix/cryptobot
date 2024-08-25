@@ -867,11 +867,11 @@
  * @return int
  */
 int main(int argc, char** argv) {
+    fmtlog::setLogLevel(fmtlog::OFF);
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
-    fmtlog::setLogLevel(fmtlog::DBG);
-    fmtlog::setLogFile("444.txt");
+    //fmtlog::setLogFile("555.txt");
     using namespace binance;
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;

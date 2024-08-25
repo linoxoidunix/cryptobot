@@ -12,6 +12,7 @@
 #include "aot/client_response.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
 #include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
@@ -230,18 +231,17 @@ class DiffDepthStreamI {
 class SymbolI {
   public:
     virtual std::string_view ToString() const = 0;
-    virtual ~SymbolI()                    = default;
+    virtual ~SymbolI()                        = default;
 };
 
 class SymbolUpperCase : public SymbolI {
   public:
     explicit SymbolUpperCase(std::string_view first, std::string_view second)
         : first_(first.data()), second_(second.data()) {
-          ticker_ = fmt::format("{0}{1}", first_, second_);
-          boost::algorithm::to_upper(ticker_);
-        };
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {
+        ticker_ = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_upper(ticker_);
     };
+    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
     std::string_view ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 
@@ -255,14 +255,11 @@ class SymbolLowerCase : public SymbolI {
   public:
     explicit SymbolLowerCase(std::string_view first, std::string_view second)
         : first_(first.data()), second_(second.data()) {
-          ticker_ = fmt::format("{0}{1}", first_, second_);
-          boost::algorithm::to_lower(ticker_);
-        };
-    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {
+        ticker_ = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_lower(ticker_);
     };
-    std::string_view ToString() const override {
-        return ticker_;
-    };
+    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
+    std::string_view ToString() const override { return ticker_; };
     ~SymbolLowerCase() override = default;
 
   private:
@@ -277,6 +274,46 @@ struct Ticker {
     Ticker(const SymbolI *_symbol, const TickerInfo &_info)
         : symbol(_symbol), info(_info) {};
 };
+
+struct TradingPairInfo {
+    Common::TradingPairS trading_pairs;
+    uint8_t price_precission;
+    uint8_t qty_precission;
+};
+
+struct TradingPair {
+    Common::TickerId first;
+    Common::TickerId second;
+    friend bool operator==(const TradingPair &left, const TradingPair &right) {
+        if (left.first == right.first && left.second == right.second) return true;
+        return false;
+    }
+};
+
+struct TradingPairHash {
+    using is_transparent = void;
+    std::size_t operator()(const TradingPair key) const {
+        std::size_t h1 = std::hash<Common::TickerId>{}(key.first);
+        std::size_t h2 = std::hash<Common::TickerId>{}(key.second);
+        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+    }
+    std::size_t operator()(const TradingPair *key) const {
+        std::size_t h1 = std::hash<Common::TickerId>{}(key->first);
+        std::size_t h2 = std::hash<Common::TickerId>{}(key->second);
+        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+    }
+};
+
+struct TradingPairEqual {
+    using is_transparent = int;
+
+    bool operator()(TradingPair lhs, TradingPair rhs) const {
+        return lhs == rhs;
+    }
+};
+
+using TradingPairHashMap = emhash7::HashMap<TradingPair, TradingPairInfo,
+                                            TradingPairHash, TradingPairEqual>;
 
 /**
  * @brief get OHLCVI structure from json response from exchange

@@ -1,11 +1,12 @@
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/trade_engine.h"
 
-auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
-                                     QtyD qty,  uint8_t price_prec, uint8_t qty_prec) noexcept -> void {
+auto Trading::OrderManager::NewOrder(const Ticker& ticker, PriceD price, Side side,
+                                     QtyD qty) noexcept -> void {
+    auto ticker_as_string = ticker.symbol->ToString();
     assert(price > 0);
     assert(qty > 0);
-    auto order = GetOrder(ticker_id, side);
+    auto order = GetOrder(std::string(ticker_as_string), side);
     auto OrderIsLive = [order](){
         return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
     };
@@ -17,15 +18,15 @@ auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
     }
     const Exchange::RequestNewOrder new_request{
         Exchange::ClientRequestType::NEW,
-        ticker_id,
+        std::string(ticker_as_string),
         next_order_id_,
         side,
         price,
         qty,
-        price_prec,
-        qty_prec};
+        ticker.info.price_precission,
+        ticker.info.qty_precission};
     trade_engine_->SendRequestNewOrder(&new_request);
-    *order = {ticker_id, next_order_id_,           side, price,
+    *order = {std::string(ticker_as_string), next_order_id_,           side, price,
               qty,       OMOrderState::PENDING_NEW};
     ++next_order_id_;
 }

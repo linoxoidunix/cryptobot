@@ -27,6 +27,6 @@ auto Trading::BaseStrategy::OnNewKLine(const OHLCVExt* new_kline) noexcept
     auto number_action = parser.Parse(result);
     logd("ticker:{}",ticker_.symbol->ToString());
     fmtlog::poll();
-    actions_[(int)number_action](ticker_.symbol->ToString());     //i confident that number_action <= actions_size()
+    actions_[(int)number_action](ticker_);     //i confident that number_action <= actions_size()
 }
 

@@ -914,26 +914,42 @@
 //     }
 // }
 //----------------------------------------------------------------------------------------
+// int main(int argc, char** argv) {
+
+//     // std::string path_where_models =
+//     //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     // std::string path_where_models =
+//     //     "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
+//     std::string path_where_models = argv[1];
+//     auto predictor_module = "strategy.py";
+//     auto class_module = "Predictor";
+//     auto method_module = "predict";
+
+//     setenv("PYTHONPATH", path_where_models.c_str(), 1);
+//     Py_Initialize();
+//     PyRun_SimpleString("import sys\nprint(sys.path)");
+//     auto file_predictor_ = std::string(predictor_module);
+//     size_t lastindex                 = file_predictor_.find_last_of(".");
+//     auto file_name_without_extension = file_predictor_.substr(0, lastindex);
+//     auto file_name_ = PyUnicode_DecodeFSDefault(file_name_without_extension.c_str());
+//     auto module_name_ = PyImport_Import(file_name_);
+//     if(module_name_)
+//         std::cout << "success" << std::endl;
+//     int x = 0;
+// }
+//----------------------------------------------------------------------------------------
 int main(int argc, char** argv) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    TickerHashMap tickers;
+    tickers[1] = "btc";
+    tickers[2] = "usdt";
 
-    // std::string path_where_models =
-    //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    // std::string path_where_models =
-    //     "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
-    std::string path_where_models = argv[1];
-    auto predictor_module = "strategy.py";
-    auto class_module = "Predictor";
-    auto method_module = "predict";
-
-    setenv("PYTHONPATH", path_where_models.c_str(), 1);
-    Py_Initialize();
-    PyRun_SimpleString("import sys\nprint(sys.path)");
-    auto file_predictor_ = std::string(predictor_module);
-    size_t lastindex                 = file_predictor_.find_last_of(".");
-    auto file_name_without_extension = file_predictor_.substr(0, lastindex);
-    auto file_name_ = PyUnicode_DecodeFSDefault(file_name_without_extension.c_str());
-    auto module_name_ = PyImport_Import(file_name_);
-    if(module_name_)
-        std::cout << "success" << std::endl;
-    int x = 0;
+    TradingPairHashMap pair;
+    TradingPairInfo pair_info{"BTCUSDT", 2, 5};
+    pair[{1,2}] = pair_info;
+    logd("p_p:{} q_p:{}", pair[{1,2}].price_precission, pair[{1,2}].qty_precission);
+    fmtlog::poll();
 }
+
+
+

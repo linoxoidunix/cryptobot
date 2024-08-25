@@ -42,6 +42,7 @@ using QtyD                           = double;
  * 
  */
 using TickerS = std::string;
+using TradingPairS = std::string;
 
 constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
 constexpr auto kQTY_DOUBLE_INVALID   = std::numeric_limits<double>::max();
@@ -235,7 +236,10 @@ struct StringEqual
     }
 };
 
-using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg, StringHash, StringEqual>;
+using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, Common::TradeEngineCfg, Common::StringHash, Common::StringEqual>;
+using TickerHashMap = emhash7::HashMap<Common::TickerId, Common::TickerS>;
+
+
 
 inline uint32_t Digits10(uint64_t v) {
     return 1 + (std::uint32_t)(v >= 10) + (std::uint32_t)(v >= 100) +
