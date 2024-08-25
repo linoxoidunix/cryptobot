@@ -19,7 +19,7 @@ class BaseStrategy {
                           TradeEngine *trade_engine,
                           OrderManager *order_manager,
                           const TradeEngineCfgHashMap &ticker_cfg,
-                          std::string_view ticker);
+                          const Ticker &ticker);
 
     /**
      * Launch OnOrderBookUpdate callback when there are changes in
@@ -63,7 +63,7 @@ class BaseStrategy {
     TradeEngine *trade_engine_;
     Trading::OrderManager *order_manager_ = nullptr;
     const TradeEngineCfgHashMap &ticker_cfg_;
-    std::string_view for_ticker_;
+    const Ticker &ticker_;
     Wallet wallet_;
     Trading::MarketOrderBookDouble *order_book_ = nullptr;
     std::vector<std::function<void(std::string_view ticker)>> actions_;
@@ -93,7 +93,7 @@ class BaseStrategy {
         auto qty = ticker_cfg_.at(std::string(ticker_id)).clip;
         logi("launch long buy action for ticker:{} price:{} qty:{}", ticker_id,
              buy_price, qty);
-        order_manager_->NewOrder(std::string(ticker_id), buy_price, Side::BUY, qty);
+        order_manager_->NewOrder(std::string(ticker_id), buy_price, Side::BUY, std::abs(qty), ticker_.info.price_precission, ticker_.info.qty_precission);
     }
     /**
      * @brief if strategy want sell all asset that early buyed than it calls
@@ -112,7 +112,7 @@ class BaseStrategy {
             number_asset > 0) {
             auto price = order_book_->getBBO()->bid_price;
             order_manager_->NewOrder(std::string(ticker_id), price, Side::SELL,
-                                     number_asset);
+                                     std::abs(number_asset), ticker_.info.price_precission, ticker_.info.qty_precission);
         } else
             logw("fail because number_asset={} <= 0", number_asset);
     };
@@ -142,7 +142,7 @@ class BaseStrategy {
         auto qty = ticker_cfg_.at(std::string(ticker_id)).clip;
         logi("launch short sell action for ticker:{} price:{} qty:{}",
              ticker_id, sell_price, qty);
-        order_manager_->NewOrder(std::string(ticker_id), sell_price, Side::SELL, qty);
+        order_manager_->NewOrder(std::string(ticker_id), sell_price, Side::SELL, std::abs(qty), ticker_.info.price_precission, ticker_.info.qty_precission);
     };
     /**
      * @brief if strategy want buy all asset that early sold than it calls
@@ -161,7 +161,7 @@ class BaseStrategy {
             number_asset < 0) {
             auto buy_price = order_book_->getBBO()->ask_price;
             order_manager_->NewOrder(std::string(ticker_id), buy_price, Side::BUY,
-                                     number_asset);
+                                     std::abs(number_asset), ticker_.info.price_precission, ticker_.info.qty_precission);
         } else
             logw("fail because number_asset={} >= 0", number_asset);
     };

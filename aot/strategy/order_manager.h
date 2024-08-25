@@ -61,7 +61,7 @@ class OrderManager {
      * @param qty
      */
     auto NewOrder(TickerS ticker_id, PriceD price, Side side,
-                  QtyD qty) noexcept -> void;
+                  QtyD qty, uint8_t price_prec, uint8_t qty_prec) noexcept -> void;
 
     /**
      * @brief

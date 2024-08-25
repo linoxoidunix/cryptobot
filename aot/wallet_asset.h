@@ -14,7 +14,7 @@ class Wallet : public WalletAsset {
   public:
     explicit Wallet() = default;
     void Update(const Exchange::MEClientResponse* response) {
-        if (response->type == Exchange::ClientResponseType::ACCEPTED) {
+        if (response->type == Exchange::ClientResponseType::FILLED) {
             if (response->side == Common::Side::BUY) {
                 InitTicker(response->ticker);
                 if(count(response->ticker))[[likely]]

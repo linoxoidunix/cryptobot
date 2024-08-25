@@ -50,7 +50,6 @@ class Strategy : public IStrategy {
         : file_predictor_(file_predictor.data()),
           class_predictor_(class_predictor.data()),
           method_predictor_(method_predictor.data()) {
-        //std::string kPythonPath = python_path.data();
         setenv("PYTHONPATH", python_path.data(), 1);
         Py_Initialize();
         //PyRun_SimpleString("import sys\nprint(sys.path)");

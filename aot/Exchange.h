@@ -99,8 +99,8 @@ class Signer : public SignerI {
 };
 };  // namespace hmac_sha256
 struct TickerInfo {
-    double price_precission;
-    double qty_precission;
+    uint8_t price_precission;
+    uint8_t qty_precission;
 };
 
 /**

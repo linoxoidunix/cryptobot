@@ -27,7 +27,7 @@ struct PositionInfo {
         std::stringstream ss;
         ss << "Position{" << "pos:" << position << " u-pnl:" << unreal_pnl
            << " r-pnl:" << real_pnl << " t-pnl:" << total_pnl
-           << " vol:" << volume << " vwaps:["
+           << " vol:" << volume << " ovwaps:["
            << (position
                    ? open_vwap.at(Common::sideToIndex(Common::Side::BUY)) / std::abs(position)
                    : 0)
@@ -52,6 +52,8 @@ struct PositionInfo {
         const auto opp_side_index = Common::sideToIndex(
             client_response->side == Side::BUY ? Side::SELL : Side::BUY);
         const auto side_value  = Common::sideToValue(client_response->side);
+        assert(client_response->exec_qty >= 0);
+        assert(client_response->price >= 0);
         position              += client_response->exec_qty * side_value;
         volume                += client_response->exec_qty;
 

@@ -32,7 +32,7 @@ auto KLineService::Run() noexcept -> void {
     OHLCVExt o_h_l_c_v_ext[50];
     Exchange::MEMarketUpdateDouble clear_event;
     clear_event.type = Exchange::MarketUpdateType::CLEAR;
-    Exchange::MEMarketUpdateDouble new_ohlcv;
+    Exchange::MEMarketUpdateDouble new_ohlcv[2];
     while (run_) {
         bool need_fetch_more = ohlcv_getter_->LaunchOne();
         time_manager_.Update();
@@ -49,18 +49,29 @@ auto KLineService::Run() noexcept -> void {
                     using namespace std::literals::chrono_literals;
                     std::this_thread::sleep_for(1s);
                 }
-            new_ohlcv.side =
-                Common::Side::BUY;  // no matter side because price = (best_bid
-                                    // * qty(best_bid) + best_offer *
-                                    // qty(best_offer))/(qty(best_bid) +
-                                    // qty(best_offer))
-            new_ohlcv.qty =
+                //I think that spread equal 0.02. Spread not equal 0
+            new_ohlcv[0].side =
+                Common::Side::BUY;  
+            new_ohlcv[0].qty =
                 1;  // no matter qty because price = (best_bid * qty(best_bid) +
                     // best_offer * qty(best_offer))/(qty(best_bid) +
                     // qty(best_offer))
-            new_ohlcv.price = o_h_l_c_v_ext[i].ohlcv.open;
+            new_ohlcv[0].price = o_h_l_c_v_ext[i].ohlcv.open*1.01;
+
+            new_ohlcv[1].side =
+                Common::Side::SELL;  // no matter side because price = (best_bid
+                                    // * qty(best_bid) + best_offer *
+                                    // qty(best_offer))/(qty(best_bid) +
+                                    // qty(best_offer))
+            new_ohlcv[1].qty =
+                1;  // no matter qty because price = (best_bid * qty(best_bid) +
+                    // best_offer * qty(best_offer))/(qty(best_bid) +
+                    // qty(best_offer))
+            new_ohlcv[1].price = o_h_l_c_v_ext[i].ohlcv.open*0.99;
+
+
             if (market_updates_lfqueue_) [[likely]] {
-                while (!market_updates_lfqueue_->try_enqueue(new_ohlcv)) {
+                while (!market_updates_lfqueue_->try_enqueue_bulk(new_ohlcv, 2)) {
                     loge("can't add new ohlcv event. wait 10ms");
                     using namespace std::literals::chrono_literals;
                     std::this_thread::sleep_for(10ms);

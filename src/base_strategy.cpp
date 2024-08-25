@@ -7,12 +7,12 @@ Trading::BaseStrategy::BaseStrategy(base_strategy::Strategy* strategy,
                                     TradeEngine* trade_engine,
                                     OrderManager* order_manager,
                                     const TradeEngineCfgHashMap& ticker_cfg,
-                                    std::string_view ticker)
+                                    const Ticker &ticker)
     : strategy_(strategy),
       trade_engine_(trade_engine),
       order_manager_(order_manager),
       ticker_cfg_(ticker_cfg),
-      for_ticker_(ticker) {
+      ticker_(ticker) {
     InitActions();
 }
 
@@ -25,8 +25,8 @@ auto Trading::BaseStrategy::OnNewKLine(const OHLCVExt* new_kline) noexcept
         new_kline->ohlcv.close, new_kline->ohlcv.volume);
     base_strategy::Strategy::Parser parser;
     auto number_action = parser.Parse(result);
-    logd("ticker:{}",for_ticker_);
+    logd("ticker:{}",ticker_.symbol->ToString());
     fmtlog::poll();
-    actions_[(int)number_action](for_ticker_);     //i confident that number_action <= actions_size()
+    actions_[(int)number_action](ticker_.symbol->ToString());     //i confident that number_action <= actions_size()
 }
 

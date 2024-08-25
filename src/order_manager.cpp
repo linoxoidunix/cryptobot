@@ -2,7 +2,9 @@
 #include "aot/strategy/trade_engine.h"
 
 auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
-                                     QtyD qty) noexcept -> void {
+                                     QtyD qty,  uint8_t price_prec, uint8_t qty_prec) noexcept -> void {
+    assert(price > 0);
+    assert(qty > 0);
     auto order = GetOrder(ticker_id, side);
     auto OrderIsLive = [order](){
         return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
@@ -20,8 +22,8 @@ auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
         side,
         price,
         qty,
-        0,
-        0};
+        price_prec,
+        qty_prec};
     trade_engine_->SendRequestNewOrder(&new_request);
     *order = {ticker_id, next_order_id_,           side, price,
               qty,       OMOrderState::PENDING_NEW};

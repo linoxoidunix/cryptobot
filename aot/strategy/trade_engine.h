@@ -86,6 +86,9 @@ class TradeEngine {
     auto OnOrderBookUpdate(const std::string &ticker, PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
+    std::string GetStatistics() const{
+        return position_keeper_.ToString();
+    }
     /// Process trade events - updates the  feature engine and informs the
     /// trading algorithm about the trade event.
     // auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update,

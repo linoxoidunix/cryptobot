@@ -98,10 +98,6 @@ class MarketOrderBook final {
     BBO bbo_;
 
   private:
-    // auto priceToIndex(Common::Price price) const noexcept {
-    //     return (price % Common::ME_MAX_PRICE_LEVELS);
-    // }
-
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
     /// price.
     auto getOrdersAtPrice(Common::Price price) noexcept

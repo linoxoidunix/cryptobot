@@ -914,12 +914,13 @@
 //     }
 // }
 //----------------------------------------------------------------------------------------
-int main() {
+int main(int argc, char** argv) {
 
     // std::string path_where_models =
     //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    std::string path_where_models =
-        "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
+    // std::string path_where_models =
+    //     "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
+    std::string path_where_models = argv[1];
     auto predictor_module = "strategy.py";
     auto class_module = "Predictor";
     auto method_module = "predict";
