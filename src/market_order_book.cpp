@@ -65,7 +65,7 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
                                        precission_qty_);
     book_.onMarketUpdate(&buf);
     trade_engine_->OnOrderBookUpdate(
-        ticker_, market_update->price, market_update->side, this);
+        trading_pair_, market_update->price, market_update->side, this);
 };
 
 };  // namespace Trading

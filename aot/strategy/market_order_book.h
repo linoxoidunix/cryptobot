@@ -171,10 +171,12 @@ class MarketOrderBook final {
 
 class MarketOrderBookDouble {
   public:
-    explicit MarketOrderBookDouble(const Ticker &ticker)
-        : ticker_(ticker.symbol->ToString()),
-          precission_price_(ticker.info.price_precission),
-          precission_qty_(ticker.info.qty_precission) {};
+    explicit MarketOrderBookDouble(Common::TradingPair trading_pair,
+                                   Common::TradingPairHashMap &pairs)
+        : trading_pair_(trading_pair),
+          pairs_(pairs),
+          precission_price_(pairs[trading_pair].price_precission),
+          precission_qty_(pairs[trading_pair].qty_precission) {};
 
     ~MarketOrderBookDouble() = default;
 
@@ -212,7 +214,8 @@ class MarketOrderBookDouble {
     MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    const Common::TickerS ticker_;
+    Common::TradingPair trading_pair_;
+    Common::TradingPairHashMap &pairs_;
     uint precission_price_;
     uint precission_qty_;
     BBODouble bbo_double_;

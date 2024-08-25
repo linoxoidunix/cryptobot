@@ -36,7 +36,7 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
-        prometheus::EventLFQueue *latency_event_lfqueue, const Ticker &ticker,
+        prometheus::EventLFQueue *latency_event_lfqueue, const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
         base_strategy::Strategy *predictor);
 
     ~TradeEngine();
@@ -83,7 +83,7 @@ class TradeEngine {
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(const std::string &ticker, PriceD price, Side side,
+    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair, PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
     std::string GetStatistics() const{
@@ -112,7 +112,8 @@ class TradeEngine {
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
     OHLCVILFQueue *klines_                                     = nullptr;
     prometheus::EventLFQueue *latency_event_lfqueue_           = nullptr;
-    const Ticker &ticker_;
+    const TradingPair trading_pair_;
+    TradingPairHashMap pairs_;
     PositionKeeper position_keeper_;
 
     volatile bool run_ = false;

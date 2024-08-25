@@ -22,27 +22,27 @@ constexpr size_t ME_MAX_NUM_CLIENTS    = 256;
 constexpr size_t ME_MAX_ORDER_IDS      = 1024 * 1024;
 constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
-               // for ask is 5000.
+                // for ask is 5000.
 
 typedef uint64_t OrderId;
 constexpr auto OrderId_INVALID       = std::numeric_limits<OrderId>::max();
 
 /**
  * @brief PriceD = price double
- * 
+ *
  */
 using PriceD                         = double;
 /**
  * @brief QtyD = qty double
- * 
+ *
  */
 using QtyD                           = double;
 /**
  * @brief TickerS = ticker string
- * 
+ *
  */
-using TickerS = std::string;
-using TradingPairS = std::string;
+using TickerS                        = std::string;
+using TradingPairS                   = std::string;
 
 constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
 constexpr auto kQTY_DOUBLE_INVALID   = std::numeric_limits<double>::max();
@@ -114,7 +114,13 @@ inline auto priorityToString(Priority priority) -> std::string {
 
 enum class Side : int8_t { INVALID = 0, BUY = 1, SELL = -1, MAX = 2 };
 
-enum class TradeAction { kEnterLong, kExitLong, kEnterShort, kExitShort, kNope};
+enum class TradeAction {
+    kEnterLong,
+    kExitLong,
+    kEnterShort,
+    kExitShort,
+    kNope
+};
 
 inline auto sideToString(Side side) -> std::string {
     switch (side) {
@@ -164,7 +170,7 @@ inline auto algoTypeToString(AlgoType type) -> std::string {
     return "UNKNOWN";
 }
 
-inline auto stringToAlgoType(const std::string &str) -> AlgoType {
+inline auto stringToAlgoType(const std::string& str) -> AlgoType {
     for (auto i = static_cast<int>(AlgoType::INVALID);
          i <= static_cast<int>(AlgoType::MAX); ++i) {
         const auto algo_type = static_cast<AlgoType>(i);
@@ -191,7 +197,7 @@ struct RiskCfg {
 };
 
 struct TradeEngineCfg {
-    QtyD clip         = 0;
+    QtyD clip        = 0;
     double threshold = 0;
     RiskCfg risk_cfg;
 
@@ -205,20 +211,24 @@ struct TradeEngineCfg {
     }
 };
 
-//using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
+// using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
 
-struct StringHash
-{
+struct StringHash {
     using is_transparent = void;
-    std::size_t operator()(const char* key)             const { return std::hash<std::string_view>()(std::string_view(key, strlen(key))); }
-    std::size_t operator()(const std::string& key)      const { return std::hash<std::string_view>()(key); }
-    std::size_t operator()(const std::string_view& key) const { return std::hash<std::string_view>()(key); }
+    std::size_t operator()(const char* key) const {
+        return std::hash<std::string_view>()(
+            std::string_view(key, strlen(key)));
+    }
+    std::size_t operator()(const std::string& key) const {
+        return std::hash<std::string_view>()(key);
+    }
+    std::size_t operator()(const std::string_view& key) const {
+        return std::hash<std::string_view>()(key);
+    }
 };
 
-struct StringEqual
-{
+struct StringEqual {
     using is_transparent = int;
-
 
     bool operator()(const std::string_view& lhs, const std::string& rhs) const {
         return lhs == rhs;
@@ -236,10 +246,58 @@ struct StringEqual
     }
 };
 
-using TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, Common::TradeEngineCfg, Common::StringHash, Common::StringEqual>;
+struct TradingPair {
+    Common::TickerId first;
+    Common::TickerId second;
+    friend bool operator==(const TradingPair& left, const TradingPair& right) {
+        if (left.first == right.first && left.second == right.second)
+            return true;
+        return false;
+    }
+    // TradingPair(const Common::TradingPair& pair):first(pair.first),
+    // second(pair.second){} TradingPair(){}
+    auto ToString() const {
+        return fmt::format("TradingPair[f:{} s:{}]", first, second);
+    }
+};
+
+struct TradingPairInfo {
+    Common::TradingPairS trading_pairs;
+    uint8_t price_precission;
+    uint8_t qty_precission;
+};
+
+struct TradingPairHash {
+    using is_transparent = void;
+    std::size_t operator()(const TradingPair key) const {
+        std::size_t h1 = std::hash<Common::TickerId>{}(key.first);
+        std::size_t h2 = std::hash<Common::TickerId>{}(key.second);
+        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+    }
+    std::size_t operator()(const TradingPair* key) const {
+        std::size_t h1 = std::hash<Common::TickerId>{}(key->first);
+        std::size_t h2 = std::hash<Common::TickerId>{}(key->second);
+        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+    }
+};
+
+struct TradingPairEqual {
+    using is_transparent = int;
+
+    bool operator()(TradingPair lhs, TradingPair rhs) const {
+        return lhs == rhs;
+    }
+};
+
+using TradingPairHashMap = emhash7::HashMap<TradingPair, TradingPairInfo,
+                                            TradingPairHash, TradingPairEqual>;
+using TradingPairReverseHashMap =
+    emhash7::HashMap<Common::TickerS, Common::TradingPair, StringHash,
+                     StringEqual>;
 using TickerHashMap = emhash7::HashMap<Common::TickerId, Common::TickerS>;
-
-
+using TradeEngineCfgHashMap =
+    emhash7::HashMap<Common::TradingPair, Common::TradeEngineCfg,
+                     Common::TradingPairHash, Common::TradingPairEqual>;
 
 inline uint32_t Digits10(uint64_t v) {
     return 1 + (std::uint32_t)(v >= 10) + (std::uint32_t)(v >= 100) +

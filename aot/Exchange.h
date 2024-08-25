@@ -141,9 +141,9 @@ struct OHLCV {
 struct OHLCVExt {
     OHLCV ohlcv;
     Interval interval;
-    Common::TickerS ticker;
+    Common::TradingPair trading_pair;
     std::string ToString() const {
-        return fmt::format("s:{} o:{} h:{} l:{} c:{} v:{}", ticker, ohlcv.open,
+        return fmt::format("{} o:{} h:{} l:{} c:{} v:{}", trading_pair.ToString(), ohlcv.open,
                            ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);
     }
 };
@@ -274,46 +274,6 @@ struct Ticker {
     Ticker(const SymbolI *_symbol, const TickerInfo &_info)
         : symbol(_symbol), info(_info) {};
 };
-
-struct TradingPairInfo {
-    Common::TradingPairS trading_pairs;
-    uint8_t price_precission;
-    uint8_t qty_precission;
-};
-
-struct TradingPair {
-    Common::TickerId first;
-    Common::TickerId second;
-    friend bool operator==(const TradingPair &left, const TradingPair &right) {
-        if (left.first == right.first && left.second == right.second) return true;
-        return false;
-    }
-};
-
-struct TradingPairHash {
-    using is_transparent = void;
-    std::size_t operator()(const TradingPair key) const {
-        std::size_t h1 = std::hash<Common::TickerId>{}(key.first);
-        std::size_t h2 = std::hash<Common::TickerId>{}(key.second);
-        return h1 ^ (h2 << 1);  // or use boost::hash_combine
-    }
-    std::size_t operator()(const TradingPair *key) const {
-        std::size_t h1 = std::hash<Common::TickerId>{}(key->first);
-        std::size_t h2 = std::hash<Common::TickerId>{}(key->second);
-        return h1 ^ (h2 << 1);  // or use boost::hash_combine
-    }
-};
-
-struct TradingPairEqual {
-    using is_transparent = int;
-
-    bool operator()(TradingPair lhs, TradingPair rhs) const {
-        return lhs == rhs;
-    }
-};
-
-using TradingPairHashMap = emhash7::HashMap<TradingPair, TradingPairInfo,
-                                            TradingPairHash, TradingPairEqual>;
 
 /**
  * @brief get OHLCVI structure from json response from exchange

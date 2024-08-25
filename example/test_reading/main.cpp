@@ -938,18 +938,6 @@
 //     int x = 0;
 // }
 //----------------------------------------------------------------------------------------
-int main(int argc, char** argv) {
-    fmtlog::setLogLevel(fmtlog::DBG);
-    TickerHashMap tickers;
-    tickers[1] = "btc";
-    tickers[2] = "usdt";
-
-    TradingPairHashMap pair;
-    TradingPairInfo pair_info{"BTCUSDT", 2, 5};
-    pair[{1,2}] = pair_info;
-    logd("p_p:{} q_p:{}", pair[{1,2}].price_precission, pair[{1,2}].qty_precission);
-    fmtlog::poll();
-}
 
 
 

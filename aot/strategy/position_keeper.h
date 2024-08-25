@@ -150,18 +150,18 @@ class PositionKeeper {
 
     /// Hash map container from TickerId -> PositionInfo.
     //std::array<PositionInfo, ME_MAX_TICKERS> ticker_position_;
-    std::unordered_map<std::string, PositionInfo> ticker_position;
+    std::unordered_map<Common::TradingPair, PositionInfo, Common::TradingPairHash, Common::TradingPairEqual> ticker_position;
   public:
     auto AddFill(const Exchange::MEClientResponse *client_response) noexcept {
-        ticker_position[client_response->ticker].addFill(client_response);
+        ticker_position[client_response->trading_pair].addFill(client_response);
     };
 
-    auto UpdateBBO(const std::string& ticker, const Trading::BBODouble *bbo) noexcept {
-        ticker_position[ticker].updateBBO(bbo);
+    auto UpdateBBO(const Common::TradingPair trading_pair, const Trading::BBODouble *bbo) noexcept {
+        ticker_position[trading_pair].updateBBO(bbo);
     };
 
-    auto getPositionInfo(std::string ticker) noexcept {
-        return &(ticker_position[ticker]);
+    auto getPositionInfo(const Common::TradingPair trading_pair) noexcept {
+        return &(ticker_position[trading_pair]);
     };
 
     auto ToString() const {
@@ -171,7 +171,7 @@ class PositionKeeper {
         std::stringstream ss;
         for(auto& it : ticker_position)
         {
-            ss << "TickerId:" << it.first << " "
+            ss << "TickerId:" << it.first.ToString() << " "
                << it.second.ToString() << "\n";
                 total_pnl += it.second.total_pnl;
                 total_vol += it.second.volume;

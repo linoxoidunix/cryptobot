@@ -15,6 +15,7 @@
 #include "aot/client_response.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
+#include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
 
@@ -291,8 +292,13 @@ class DiffDepthStream : public DiffDepthStreamI {
 class OHLCVI : public OHLCVGetter {
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse) {};
         OHLCVExt Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
 
   public:
@@ -308,14 +314,14 @@ class OHLCVI : public OHLCVGetter {
     };
     void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&lf_queue](boost::beast::flat_buffer& buffer) {
+        OnMessageCB = [&lf_queue, this](boost::beast::flat_buffer& buffer) {
             auto result = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser;
+            ParserResponse parser(pairs_reverse_);
             lf_queue.try_enqueue(parser.Parse(result));
             // logi("{}", result);
             // fmtlog::poll();
         };
-
+        assert(false);
         using kls = KLineStream;
         kls channel(s_, chart_interval_);
         std::string empty_request = "{}";
@@ -331,6 +337,7 @@ class OHLCVI : public OHLCVGetter {
     const Symbol* s_;
     const ChartInterval* chart_interval_;
     TypeExchange type_exchange_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookEventGetter : public BookEventGetterI {
@@ -513,8 +520,13 @@ class OrderNewLimit : public inner::OrderNewI {
   public:
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
@@ -531,8 +543,15 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order) : ArgsQuery() {
-            SetSymbol(new_order->ticker);
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order,
+                           Common::TradingPairHashMap& pairs,
+                           Common::TradingPairReverseHashMap& pairs_reverse)
+            : ArgsQuery() {
+            if (!pairs_reverse.count(
+                    pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
+                pairs_reverse[pairs[new_order->trading_pair].trading_pairs] =
+                    new_order->trading_pair;
+            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);
@@ -621,11 +640,14 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
+    explicit OrderNewLimit(SignerI* signer, TypeExchange type,
+                           Common::TradingPairHashMap& pairs)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs) {};
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(new_order);
+        ArgsOrder args(new_order, pairs_, pairs_reverse_);
 
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -636,13 +658,13 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](
+        cb = [response_lfqueue, this](
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();
-            ParserResponse parser;
+            ParserResponse parser(pairs_reverse_);
             auto answer    = parser.Parse(resut);
             bool status_op = response_lfqueue->try_enqueue(answer);
             if (!status_op) [[unlikely]]
@@ -660,6 +682,8 @@ class OrderNewLimit : public inner::OrderNewI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    Common::TradingPairHashMap& pairs_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class CancelOrder : public inner::CancelOrderI {
@@ -668,8 +692,13 @@ class CancelOrder : public inner::CancelOrderI {
   public:
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
@@ -680,9 +709,17 @@ class CancelOrder : public inner::CancelOrderI {
             SetOrderId(order_id);
         };
         explicit ArgsOrder(
-            const Exchange::RequestCancelOrder* request_cancel_order)
+            const Exchange::RequestCancelOrder* request_cancel_order,
+            Common::TradingPairHashMap& pairs,
+            Common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            SetSymbol(request_cancel_order->ticker);
+            if (!pairs_reverse.count(
+                    pairs[request_cancel_order->trading_pair].trading_pairs))
+                [[unlikely]]
+                pairs_reverse[pairs[request_cancel_order->trading_pair]
+                                   .trading_pairs] =
+                    request_cancel_order->trading_pair;
+            SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
             SetOrderId(request_cancel_order->order_id);
         };
 
@@ -702,11 +739,14 @@ class CancelOrder : public inner::CancelOrderI {
     };
 
   public:
-    explicit CancelOrder(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
+    explicit CancelOrder(SignerI* signer, TypeExchange type,
+                         Common::TradingPairHashMap& pairs)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs) {};
     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(request_cancel_order);
+        ArgsOrder args(request_cancel_order, pairs_, pairs_reverse_);
 
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -717,13 +757,13 @@ class CancelOrder : public inner::CancelOrderI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](
+        cb = [response_lfqueue, this](
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();
-            ParserResponse parser;
+            ParserResponse parser(pairs_reverse_);
             auto answer    = parser.Parse(resut);
             bool status_op = response_lfqueue->try_enqueue(answer);
             if (!status_op) [[unlikely]]
@@ -741,6 +781,8 @@ class CancelOrder : public inner::CancelOrderI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    Common::TradingPairHashMap& pairs_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {

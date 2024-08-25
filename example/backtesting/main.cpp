@@ -866,13 +866,93 @@
  * @param argv
  * @return int
  */
+// int main(int argc, char** argv) {
+//     fmtlog::setLogLevel(fmtlog::OFF);
+//     hmac_sha256::Keys keys{argv[2], argv[3]};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     //fmtlog::setLogFile("555.txt");
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+//     OHLCVILFQueue internal_ohlcv_queue;
+//     OHLCVILFQueue external_ohlcv_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     OrderNewLimit new_order(&signer, type);
+//     CancelOrder executor_cancel_order(&signer, type);
+//     DiffDepthStream::ms100 interval;
+//     TickerInfo info{2, 5};
+//     Symbol btcusdt("BTC", "USDT");
+//     Ticker ticker(&btcusdt, info);
+
+//     backtesting::OrderGateway gw(&requests_new_order, &requests_cancel_order,
+//                              &client_responses);
+//     gw.Start();
+
+//     // init python predictor
+//     const auto python_path = argv[1];
+//     std::string path_where_models =
+//         "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+//     auto predictor_module = "strategy.py";
+//     auto class_module     = "Predictor";
+//     auto method_module    = "predict";
+//     base_strategy::Strategy predictor(python_path, path_where_models,
+//                                       predictor_module, class_module,
+//                                       method_module);
+
+//     Trading::TradeEngine trade_engine_service(
+//         &event_queue, &requests_new_order, &requests_cancel_order,
+//         &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
+//         ticker, &predictor);
+
+//     // Trading::TradeEngine trade_engine_service(
+//     //     &event_queue, &requests_new_order, &requests_cancel_order,
+//     //     &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
+//     //     ticker, nullptr);
+
+
+//     auto chart_interval = binance::m1();
+//     backtesting::OHLCVI fetcher(
+//         "/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/"
+//         "ohlcv_history/ohlcv.csv",
+//         &trade_engine_service);
+//     backtesting::KLineService kline_service(
+//         &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
+
+//     trade_engine_service.Start();
+//     kline_service.start();
+
+//     common::TimeManager time_manager;
+//     while (trade_engine_service.GetDownTimeInS() < 10) {
+//         // while (trade_engine_service.GetDownTimeInS() < 120) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              trade_engine_service.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(2s);
+//     }
+//     logi("{}", trade_engine_service.GetStatistics());
+//     fmtlog::poll();
+// }
+
 int main(int argc, char** argv) {
+    using namespace binance;
     fmtlog::setLogLevel(fmtlog::OFF);
+    TickerHashMap tickers;
+    tickers[1] = "usdt";
+    tickers[2] = "btc";
+    
+    TradingPairHashMap pair;
+    binance::Symbol symbol(tickers[2], tickers[1]);
+    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    pair[{2, 1}] = pair_info;
+    
+    
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
     //fmtlog::setLogFile("555.txt");
-    using namespace binance;
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
@@ -880,12 +960,12 @@ int main(int argc, char** argv) {
     OHLCVILFQueue internal_ohlcv_queue;
     OHLCVILFQueue external_ohlcv_queue;
     prometheus::EventLFQueue prometheus_event_queue;
-    OrderNewLimit new_order(&signer, type);
-    CancelOrder executor_cancel_order(&signer, type);
+    OrderNewLimit new_order(&signer, type, pair);
+    CancelOrder executor_cancel_order(&signer, type, pair);
     DiffDepthStream::ms100 interval;
-    TickerInfo info{2, 5};
-    Symbol btcusdt("BTC", "USDT");
-    Ticker ticker(&btcusdt, info);
+    //TickerInfo info{2, 5};
+    //Symbol btcusdt("BTC", "USDT");
+    //Ticker ticker(&btcusdt, info);
 
     backtesting::OrderGateway gw(&requests_new_order, &requests_cancel_order,
                              &client_responses);
@@ -905,7 +985,7 @@ int main(int argc, char** argv) {
     Trading::TradeEngine trade_engine_service(
         &event_queue, &requests_new_order, &requests_cancel_order,
         &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
-        ticker, &predictor);
+        TradingPair{2,1}, pair, &predictor);
 
     // Trading::TradeEngine trade_engine_service(
     //     &event_queue, &requests_new_order, &requests_cancel_order,

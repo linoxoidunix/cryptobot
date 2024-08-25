@@ -10,21 +10,23 @@ TradeEngine::TradeEngine(
     Exchange::ClientResponseLFQueue* response, 
     OHLCVILFQueue* klines,
     prometheus::EventLFQueue* latency_event_lfqueue,
-    const Ticker& ticker, base_strategy::Strategy* predictor)
+    const Common::TradingPair trading_pair,
+    Common::TradingPairHashMap& pairs,
+     base_strategy::Strategy* predictor)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
       request_cancel_order_(request_cancel_order),
       response_(response),
       klines_(klines),
       latency_event_lfqueue_(latency_event_lfqueue),
-      ticker_(ticker),
-      order_book_(ticker),
+      trading_pair_(trading_pair),
+      pairs_(pairs),
+      order_book_(trading_pair, pairs),
       order_manager_(this),
-      strategy_(predictor, this, &order_manager_, config_, ticker) {
+      strategy_(predictor, this, &order_manager_, config_, trading_pair, pairs) {
     Common::TradeEngineCfg btcusdt_cfg;
     btcusdt_cfg.clip   = 0.0001;
-    auto ticker_local = ticker_.symbol->ToString();
-    config_[std::string(ticker_local)] = btcusdt_cfg;
+    config_[trading_pair] = btcusdt_cfg;
     order_book_.SetTradeEngine(this);
 };
 
@@ -101,11 +103,11 @@ auto TradeEngine::Run() noexcept -> void {
 }  // namespace Trading
 
 auto Trading::TradeEngine::OnOrderBookUpdate(
-    const std::string& ticker, PriceD price, Side side,
+    const Common::TradingPair& trading_pair, PriceD price, Side side,
     MarketOrderBookDouble* book) noexcept -> void {
     auto bbo = order_book_.getBBO();
-    position_keeper_.UpdateBBO(ticker, bbo);
-    strategy_.OnOrderBookUpdate(ticker, price, side, &order_book_);
+    position_keeper_.UpdateBBO(trading_pair, bbo);
+    strategy_.OnOrderBookUpdate(trading_pair, price, side, &order_book_);
 }
 
 auto Trading::TradeEngine::OnOrderResponse(
