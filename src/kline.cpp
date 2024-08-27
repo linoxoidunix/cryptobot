@@ -33,75 +33,82 @@ auto KLineService::Run() noexcept -> void {
     Exchange::MEMarketUpdateDouble clear_event;
     clear_event.type = Exchange::MarketUpdateType::CLEAR;
     Exchange::MEMarketUpdateDouble new_ohlcv[2];
+    bool need_fetch_more = true;
     while (run_) {
-        bool need_fetch_more = ohlcv_getter_->LaunchOne();
-        time_manager_.Update();
-        if (!need_fetch_more) {
-            run_ = false;
-            continue;
-        }
+        if (need_fetch_more) {
+            need_fetch_more = ohlcv_getter_->LaunchOne();
+        } else
+            int x = 0;
         size_t count_new_klines =
             internal_kline_lfqueue_->try_dequeue_bulk(o_h_l_c_v_ext, 1);
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
+            logd("{}", o_h_l_c_v_ext[0].ToString());
             if (market_updates_lfqueue_) [[likely]]
                 while (!market_updates_lfqueue_->try_enqueue(clear_event)) {
                     loge("can't clear order book. wait 1s");
-                    using namespace std::literals::chrono_literals;
-                    std::this_thread::sleep_for(1s);
+                    // using namespace std::literals::chrono_literals;
+                    // std::this_thread::sleep_for(1s);
                 }
-                //I think that spread equal 0.02. Spread not equal 0
-            new_ohlcv[0].side =
-                Common::Side::BUY;  
+                logi("clear send success");
+            // I think that spread equal 0.02. Spread not equal 0
+            new_ohlcv[0].side = Common::Side::BUY;
             new_ohlcv[0].qty =
                 1;  // no matter qty because price = (best_bid * qty(best_bid) +
                     // best_offer * qty(best_offer))/(qty(best_bid) +
                     // qty(best_offer))
-            new_ohlcv[0].price = o_h_l_c_v_ext[i].ohlcv.open*1.01;
+            new_ohlcv[0].price = o_h_l_c_v_ext[i].ohlcv.open * 1.01;
 
             new_ohlcv[1].side =
                 Common::Side::SELL;  // no matter side because price = (best_bid
-                                    // * qty(best_bid) + best_offer *
-                                    // qty(best_offer))/(qty(best_bid) +
-                                    // qty(best_offer))
+                                     // * qty(best_bid) + best_offer *
+                                     // qty(best_offer))/(qty(best_bid) +
+                                     // qty(best_offer))
             new_ohlcv[1].qty =
                 1;  // no matter qty because price = (best_bid * qty(best_bid) +
                     // best_offer * qty(best_offer))/(qty(best_bid) +
                     // qty(best_offer))
-            new_ohlcv[1].price = o_h_l_c_v_ext[i].ohlcv.open*0.99;
-
+            new_ohlcv[1].price = o_h_l_c_v_ext[i].ohlcv.open * 0.99;
 
             if (market_updates_lfqueue_) [[likely]] {
-                while (!market_updates_lfqueue_->try_enqueue_bulk(new_ohlcv, 2)) {
+                while (
+                    !market_updates_lfqueue_->try_enqueue_bulk(new_ohlcv, 2)) {
                     loge("can't add new ohlcv event. wait 10ms");
-                    using namespace std::literals::chrono_literals;
-                    std::this_thread::sleep_for(10ms);
+                    // using namespace std::literals::chrono_literals;
+                    // std::this_thread::sleep_for(10ms);
                 }
+                logi("send clear 2 events in marketorder book success");
+
                 /**
                  * @brief blocking until market_updates_lfqueue_ not empty
                  *
                  */
                 while (market_updates_lfqueue_->size_approx()) {
-                    using namespace std::literals::chrono_literals;
-                    std::this_thread::sleep_for(10ms);
+                    // using namespace std::literals::chrono_literals;
+                    // std::this_thread::sleep_for(10ms);
                 }
+                logi("trade engine process 2 events success");
             }
             if (external_kline_lfqueue_) [[likely]] {
                 while (
                     !external_kline_lfqueue_->try_enqueue(o_h_l_c_v_ext[i])) {
                     loge("can't push new ohlcv event in external lfqueu");
-                    using namespace std::literals::chrono_literals;
-                    std::this_thread::sleep_for(10ms);
+                    // using namespace std::literals::chrono_literals;
+                    // std::this_thread::sleep_for(10ms);
                 }
+                logi("send new kline in trade engine success");
+
                 /**
                  * @brief blocking until external_kline_lfqueue_ not empty
                  *
                  */
                 while (external_kline_lfqueue_->size_approx()) {
-                    using namespace std::literals::chrono_literals;
-                    std::this_thread::sleep_for(10ms);
+                    // using namespace std::literals::chrono_literals;
+                    // std::this_thread::sleep_for(10ms);
                 }
+                logi("trade engine success process new candle");
+
             }
-            time_manager_.Update();
+            // time_manager_.Update();
         }
     }
 }
@@ -131,6 +138,7 @@ void OHLCVI::Init(OHLCVILFQueue& lf_queue) {
                 new_line.ohlcv.low    = stod(low);
                 new_line.ohlcv.close  = stod(close);
                 new_line.ohlcv.volume = stod(volume);
+                new_line.trading_pair = trading_pair_;
                 ohlcv_history_.push_back(new_line);
             }
             fmtlog::poll();

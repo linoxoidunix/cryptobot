@@ -85,12 +85,11 @@ struct MEClientResponse {
             (leaves_qty != Common::kQTY_DOUBLE_INVALID)
                 ? fmt::format("{}", leaves_qty)
                 : "INVALID";
-        assert(false);
         return fmt::format(
-            "MEClientResponse[type:{} ticker:{} order_id:{} side:{} "
+            "MEClientResponse[type:{} {} order_id:{} side:{} "
             "exec_qty:{} "
             "leaves_qty:{} price:{}]",
-            ClientResponseTypeToString(type), "",
+            ClientResponseTypeToString(type), trading_pair.ToString(),
             Common::orderIdToString(order_id), sideToString(side), exec_qty_string,
             leaves_qty_string, price_string);
     }

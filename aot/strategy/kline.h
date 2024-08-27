@@ -130,16 +130,19 @@ class KLineService {
 class OHLCVI : public OHLCVGetter {
   public:
     explicit OHLCVI(std::string_view path_to_file,
-                    Trading::TradeEngine *trade_engine)
-        : path_to_file_(path_to_file.data()), trade_engine_(trade_engine) {};
+                    Trading::TradeEngine *trade_engine,
+                    Common::TradingPair trading_pair)
+        : path_to_file_(path_to_file.data()),
+          trade_engine_(trade_engine),
+          trading_pair_(trading_pair) {};
     void Init(OHLCVILFQueue &lf_queue) override;
     bool LaunchOne() override {
         if (lf_queue_ == nullptr) [[unlikely]]
             return false;
         if (iterator_ohlcv_history == ohlcv_history_.end()) [[unlikely]] {
             logw("iterator_ohlcv_history = ohlcv_history_.end()");
-            if (trade_engine_) [[likely]]
-                trade_engine_->Stop();
+            // if (trade_engine_) [[likely]]
+            //     trade_engine_->Stop();
             return false;
         }
         auto status = lf_queue_->try_enqueue(*iterator_ohlcv_history);
@@ -155,6 +158,7 @@ class OHLCVI : public OHLCVGetter {
   private:
     const std::string path_to_file_;
     Trading::TradeEngine *trade_engine_ = nullptr;
+    Common::TradingPair trading_pair_;
     std::list<OHLCVExt> ohlcv_history_;
     OHLCVILFQueue *lf_queue_ = nullptr;
     std::list<OHLCVExt>::iterator iterator_ohlcv_history =

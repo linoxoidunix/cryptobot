@@ -50,6 +50,7 @@ class TradeEngine {
     };
 
     auto Stop() -> void {
+        logi("stop trade engine");
         while (incoming_md_updates_->size_approx()) {
             logi("Sleeping till all updates are consumed md-size:{}",
                  incoming_md_updates_->size_approx());

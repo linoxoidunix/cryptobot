@@ -56,7 +56,6 @@ class RequestNewOrder{
     double price             = Common::kPRICE_DOUBLE_INVALID;
     double qty               = Common::kQTY_DOUBLE_INVALID;
     auto ToString() const {
-        assert(false);
         std::string price_string =
             (price != Common::kPRICE_DOUBLE_INVALID)
                 ? fmt::format("{:.{}f}", price, 5)
@@ -65,8 +64,8 @@ class RequestNewOrder{
                                      ? fmt::format("{:.{}f}", qty, 5)
                                      : "INVALID";
         return fmt::format(
-            "RequestNewOrder[type:{} ticker:{} order_id:{} side:{} qty:{} price:{}]",
-            ClientRequestTypeToString(type), "", order_id,
+            "RequestNewOrder[type:{} {} order_id:{} side:{} qty:{} price:{}]",
+            ClientRequestTypeToString(type), trading_pair.ToString(), order_id,
             Common::sideToString(side), qty_string, price_string);
     }
 };

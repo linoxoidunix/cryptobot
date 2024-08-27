@@ -7,12 +7,10 @@ TradeEngine::TradeEngine(
     Exchange::EventLFQueue* market_updates,
     Exchange::RequestNewLimitOrderLFQueue* request_new_order,
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
-    Exchange::ClientResponseLFQueue* response, 
-    OHLCVILFQueue* klines,
+    Exchange::ClientResponseLFQueue* response, OHLCVILFQueue* klines,
     prometheus::EventLFQueue* latency_event_lfqueue,
-    const Common::TradingPair trading_pair,
-    Common::TradingPairHashMap& pairs,
-     base_strategy::Strategy* predictor)
+    const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
+    base_strategy::Strategy* predictor)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
       request_cancel_order_(request_cancel_order),
@@ -23,9 +21,10 @@ TradeEngine::TradeEngine(
       pairs_(pairs),
       order_book_(trading_pair, pairs),
       order_manager_(this),
-      strategy_(predictor, this, &order_manager_, config_, trading_pair, pairs) {
+      strategy_(predictor, this, &order_manager_, config_, trading_pair,
+                pairs) {
     Common::TradeEngineCfg btcusdt_cfg;
-    btcusdt_cfg.clip   = 0.0001;
+    btcusdt_cfg.clip      = 0.0001;
     config_[trading_pair] = btcusdt_cfg;
     order_book_.SetTradeEngine(this);
 };
@@ -55,50 +54,66 @@ auto TradeEngine::Run() noexcept -> void {
     Exchange::MEClientResponse results_responses[50];
     Exchange::MEMarketUpdateDouble results[50];
     OHLCVExt new_klines[50];
-    
-    common::Delta delta = 0;
-    unsigned int number_messages = 0;
 
+    common::Delta delta          = 0;
+    unsigned int number_messages = 0;
+    unsigned int dequed_elements = 0;
+    unsigned int dequed_mb_elements = 0;
     while (run_) {
         size_t count_responses =
             response_->try_dequeue_bulk(results_responses, 50);
         for (uint i = 0; i < count_responses; i++) [[likely]] {
             OnOrderResponse(&results_responses[i]);
         }
-        time_manager_.Update();
+        if (count_responses) time_manager_.Update();
 
         size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
-        auto start = common::getCurrentNanoS();
+        // auto start = common::getCurrentNanoS();
         for (uint i = 0; i < count; i++) [[likely]] {
             order_book_.OnMarketUpdate(&results[i]);
         }
-        auto end = common::getCurrentNanoS();
-
-        if(count)[[likely]]
-        {
-            delta += end - start;
-            number_messages += count;
-            prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kUpdateSpeedOrderBook, delta*1.0/number_messages, latency_event_lfqueue_);
+        // auto end = common::getCurrentNanoS();
+        if (count){
+             time_manager_.Update();
+             dequed_mb_elements+=count;
         }
-        time_manager_.Update();
+        // if(count)[[likely]]
+        // {
+        //     delta += end - start;
+        //     number_messages += count;
+        //     prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kUpdateSpeedOrderBook,
+        //     delta*1.0/number_messages, latency_event_lfqueue_);
+        // }
+        // time_manager_.Update();
 
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
-        auto begin_on_new_line = common::getCurrentNanoS();
+        // logd("{}", count_new_klines);
+        // auto begin_on_new_line = common::getCurrentNanoS();
         for (uint i = 0; i < count_new_klines; i++) [[likely]] {
             OnNewKLine(&new_klines[i]);
         }
-        auto end_on_new_line = common::getCurrentNanoS();
-        if(count_new_klines)[[likely]]
-            prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineRate, (end_on_new_line-begin_on_new_line)*1.0/count_new_klines, latency_event_lfqueue_);
-        time_manager_.Update();
+        if (count_new_klines) {
+            time_manager_.Update();
+            dequed_elements+=count_new_klines;
+            logd("{}", count_new_klines);
+        }
+        // auto end_on_new_line = common::getCurrentNanoS();
+        //  if(count_new_klines)[[likely]]
+        //      prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineRate,
+        //      (end_on_new_line-begin_on_new_line)*1.0/count_new_klines,
+        //      latency_event_lfqueue_);
+        // time_manager_.Update();
 
-        
         if (count) [[likely]] {
             auto bbo = order_book_.getBBO();
             logi("process {} operations {}", count, bbo->ToString());
         }
-        fmtlog::poll();
+        // fmtlog::poll();
+        // time_manager_.Update();
     }
+    logd("dequed klines={}", dequed_elements);
+    logd("dequed diffs_mb={}", dequed_mb_elements);
+
 }
 }  // namespace Trading
 
@@ -123,9 +138,11 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
     // launch algorithm prediction, that generate signals
     logi("launch algorithm prediction for {}", new_kline->ToString());
-    //AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore, latency_event_lfqueue_);
+    // AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore,
+    // latency_event_lfqueue_);
     strategy_.OnNewKLine(new_kline);
-    //AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter, latency_event_lfqueue_);
+    // AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter,
+    // latency_event_lfqueue_);
 }
 
 //   /// Process changes to the order book - updates the position keeper,

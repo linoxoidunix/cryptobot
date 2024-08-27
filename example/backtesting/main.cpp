@@ -952,7 +952,7 @@ int main(int argc, char** argv) {
     hmac_sha256::Keys keys{argv[2], argv[3]};
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
-    //fmtlog::setLogFile("555.txt");
+    //fmtlog::setLogFile("888.txt");
     Exchange::EventLFQueue event_queue;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
@@ -963,41 +963,38 @@ int main(int argc, char** argv) {
     OrderNewLimit new_order(&signer, type, pair);
     CancelOrder executor_cancel_order(&signer, type, pair);
     DiffDepthStream::ms100 interval;
-    //TickerInfo info{2, 5};
-    //Symbol btcusdt("BTC", "USDT");
-    //Ticker ticker(&btcusdt, info);
 
     backtesting::OrderGateway gw(&requests_new_order, &requests_cancel_order,
                              &client_responses);
-    gw.Start();
+    //gw.Start();
 
     // init python predictor
-    const auto python_path = argv[1];
-    std::string path_where_models =
-        "/home/linoxoidunix/Programming/cplusplus/cryptobot";
-    auto predictor_module = "strategy.py";
-    auto class_module     = "Predictor";
-    auto method_module    = "predict";
-    base_strategy::Strategy predictor(python_path, path_where_models,
-                                      predictor_module, class_module,
-                                      method_module);
-
-    Trading::TradeEngine trade_engine_service(
-        &event_queue, &requests_new_order, &requests_cancel_order,
-        &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
-        TradingPair{2,1}, pair, &predictor);
+    // const auto python_path = argv[1];
+    // std::string path_where_models =
+    //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
+    // auto predictor_module = "strategy.py";
+    // auto class_module     = "Predictor";
+    // auto method_module    = "predict";
+    // base_strategy::Strategy predictor(python_path, path_where_models,
+    //                                   predictor_module, class_module,
+    //                                   method_module);
 
     // Trading::TradeEngine trade_engine_service(
     //     &event_queue, &requests_new_order, &requests_cancel_order,
     //     &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
-    //     ticker, nullptr);
+    //     TradingPair{2,1}, pair, &predictor);
+
+    Trading::TradeEngine trade_engine_service(
+        &event_queue, &requests_new_order, &requests_cancel_order,
+        &client_responses, &external_ohlcv_queue, &prometheus_event_queue,
+        TradingPair{2,1}, pair, nullptr);
 
 
     auto chart_interval = binance::m1();
     backtesting::OHLCVI fetcher(
         "/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/"
         "ohlcv_history/ohlcv.csv",
-        &trade_engine_service);
+        &trade_engine_service, TradingPair{2,1});
     backtesting::KLineService kline_service(
         &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);
 
@@ -1005,12 +1002,12 @@ int main(int argc, char** argv) {
     kline_service.start();
 
     common::TimeManager time_manager;
-    while (trade_engine_service.GetDownTimeInS() < 10) {
+    while (trade_engine_service.GetDownTimeInS() < 4) {
         // while (trade_engine_service.GetDownTimeInS() < 120) {
         logd("Waiting till no activity, been silent for {} seconds...",
              trade_engine_service.GetDownTimeInS());
         using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(2s);
+        std::this_thread::sleep_for(1s);
     }
     logi("{}", trade_engine_service.GetStatistics());
     fmtlog::poll();
