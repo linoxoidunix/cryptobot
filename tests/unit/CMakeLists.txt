@@ -18,4 +18,7 @@ PRIVATE
 ${CMAKE_SOURCE_DIR}
 )
 
+
+
+
 set_property(TARGET ${PROJECT_NAME}_trading_pair PROPERTY CXX_STANDARD 23)

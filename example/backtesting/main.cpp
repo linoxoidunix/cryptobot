@@ -1,18 +1,23 @@
 #define PY_SSIZE_T_CLEAN
-#include <aot/WS.h>
+
 
 #include <boost/beast/core.hpp>
 #include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <thread>
+
+#include "magic_enum.hpp"
+#include "moodycamel/concurrentqueue.h"
 
 #include "aot/Binance.h"
 #include "aot/Bybit.h"
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
 #include "aot/common/types.h"
+#include "aot/config/config.h"
 #include "aot/launcher_predictor.h"
 #include "aot/order_gw/order_gw.h"
 #include "aot/prometheus/service.h"
@@ -20,8 +25,8 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/strategy/trade_engine.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-#include "magic_enum.hpp"
-#include "moodycamel/concurrentqueue.h"
+#include "aot/WS.h"
+
 
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
@@ -937,8 +942,9 @@
 // }
 
 int main(int argc, char** argv) {
+    config::BackTesting config(argv[0]);
     using namespace binance;
-    fmtlog::setLogLevel(fmtlog::OFF);
+    fmtlog::setLogLevel(fmtlog::DBG);
     TickerHashMap tickers;
     tickers[1] = "usdt";
     tickers[2] = "btc";
@@ -991,9 +997,10 @@ int main(int argc, char** argv) {
 
 
     auto chart_interval = binance::m1();
+    
+    auto history_path = config.PathToHistoryData();
     backtesting::OHLCVI fetcher(
-        "/home/linoxoidunix/Programming/cplusplus/cryptobot/aot_data/"
-        "ohlcv_history/ohlcv.csv",
+        history_path,
         &trade_engine_service, TradingPair{2,1});
     backtesting::KLineService kline_service(
         &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);

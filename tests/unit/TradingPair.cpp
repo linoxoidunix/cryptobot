@@ -84,5 +84,9 @@ TEST(TradingPairReverseHashMap, compare_with_string_view) {
     auto trading_pair = TradingPair{1,2};
     std::string_view s_v= "btcusdt";
     EXPECT_EQ(tr_pair, (pair_reverse.find(s_v)->second));
+}
 
+int main(int argc, char** argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

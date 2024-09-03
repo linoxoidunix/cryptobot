@@ -55,6 +55,14 @@ multithreaded bot for algo trading on crypto exchanges
 4. https://pypi.org/project/numpy/
 5. https://pypi.org/project/pandas/
 
+# Install dependencies
+```shell
+sudo apt-get install cmake
+sudo apt-get install python3-dev
+sudo apt-get install libboost1.83-all-dev
+sudo apt-get install libssl-dev
+```
+
 # Details aot/python
 1. aot/python/downloader.py - download raw klines from binance exchange
 2. aot/python/evaluate_trading_signals cpp.py - save X(open, high, low, close, volume and some features) dataset as features_df.h5 for Predictor class. Save top 3 best LightGBM model in .txt for evaluate y

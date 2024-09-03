@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.28)
 set (PROJECT_NAME aot)
 project(${PROJECT_NAME} C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -26,7 +26,13 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 # option(TURN_ON_LATENCY_FOR_GENERATOR_BID_ASK_SERVICE "turn on measure latency for generator bid ask" true)
 # option(TURN_ON_LATENCY_FOR_TRADE_ENGINE "turn on measure latency for trade engine" true)
-
+include(FetchContent)
+FetchContent_Declare(
+    tomlplusplus
+    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
+    GIT_TAG        v3.4.0
+)
+FetchContent_MakeAvailable(tomlplusplus)
 
 find_package(benchmark)
 find_package(Boost 1.65.0) 
@@ -112,13 +118,14 @@ target_link_libraries(${PROJECT_NAME}
     #cpp_trader
     absl::base
     re2::re2
+    tomlplusplus::tomlplusplus
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ROOT_PATH=\"${CMAKE_CURRENT_LIST_DIR}\"")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/aot/python\"")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=false")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
-
 
 add_subdirectory(example)
 add_subdirectory(tests)

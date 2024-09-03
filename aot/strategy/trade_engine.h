@@ -23,7 +23,6 @@
 // #include "liquidity_taker.h"
 
 namespace Trading {
-
 const auto kMeasureTForTradeEngine =
     MEASURE_T_FOR_TRADE_ENGINE;  // MEASURE_T_FOR_TRADE_ENGINE define in
                                  // cmakelists.txt;
