@@ -1,4 +1,3 @@
 add_subdirectory(json_reader)
 add_subdirectory(market_order_book)
 add_subdirectory(lfqueue)
-add_subdirectory(hello_world)

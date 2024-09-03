@@ -546,4 +546,8 @@ BENCHMARK_REGISTER_F(FixtureLFQueueRandom,
 //     ->UseManualTime()
 //     ->Unit(benchmark::kNanosecond);
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
+}

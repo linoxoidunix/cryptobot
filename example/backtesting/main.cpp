@@ -940,9 +940,10 @@
 //     logi("{}", trade_engine_service.GetStatistics());
 //     fmtlog::poll();
 // }
+#include <filesystem>
 
 int main(int argc, char** argv) {
-    config::BackTesting config(argv[0]);
+    config::BackTesting config(argv[1]);
     using namespace binance;
     fmtlog::setLogLevel(fmtlog::DBG);
     TickerHashMap tickers;
@@ -955,8 +956,7 @@ int main(int argc, char** argv) {
     pair[{2, 1}] = pair_info;
     
     
-    hmac_sha256::Keys keys{argv[2], argv[3]};
-    hmac_sha256::Signer signer(keys);
+
     auto type = TypeExchange::TESTNET;
     //fmtlog::setLogFile("888.txt");
     Exchange::EventLFQueue event_queue;
@@ -966,8 +966,7 @@ int main(int argc, char** argv) {
     OHLCVILFQueue internal_ohlcv_queue;
     OHLCVILFQueue external_ohlcv_queue;
     prometheus::EventLFQueue prometheus_event_queue;
-    OrderNewLimit new_order(&signer, type, pair);
-    CancelOrder executor_cancel_order(&signer, type, pair);
+
     DiffDepthStream::ms100 interval;
 
     backtesting::OrderGateway gw(&requests_new_order, &requests_cancel_order,
@@ -998,9 +997,14 @@ int main(int argc, char** argv) {
 
     auto chart_interval = binance::m1();
     
-    auto history_path = config.PathToHistoryData();
+    auto [status, path_to_history_data] = config.PathToHistoryData();
+    if(!status)[[unlikely]]{
+        loge("path to history data is not correct");
+        fmtlog::poll();
+        return 0;
+    }
     backtesting::OHLCVI fetcher(
-        history_path,
+        path_to_history_data,
         &trade_engine_service, TradingPair{2,1});
     backtesting::KLineService kline_service(
         &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue, &event_queue);

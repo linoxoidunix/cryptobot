@@ -31,3 +31,4 @@ tomlplusplus::tomlplusplus
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 # target_compile_definitions(${PROJECT_NAME} PRIVATE "CURRENT_PATH=\"${CMAKE_CURRENT_LIST_DIR}\"")
+configure_file(${CMAKE_SOURCE_DIR}/aot_data/launch_config/back_testing.toml ${CMAKE_CURRENT_BINARY_DIR})

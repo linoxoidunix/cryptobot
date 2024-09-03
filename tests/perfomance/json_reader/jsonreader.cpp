@@ -25,4 +25,8 @@ static void BM_StringCreation(benchmark::State& state) {
 // Register the function as a benchmark
 BENCHMARK(BM_StringCreation);
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+  benchmark::Initialize(&argc, argv);
+  benchmark::RunSpecifiedBenchmarks();
+  benchmark::Shutdown();
+}
