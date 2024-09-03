@@ -13,9 +13,12 @@ find_package(fast_double_parser REQUIRED)
 find_package(prometheus-cpp REQUIRED)
 find_package(re2 REQUIRED)
 find_package(absl REQUIRED)#re2 need in absl
+
 add_subdirectory(googletest)
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
-add_subdirectory(benchmark)
+find_package(benchmark)
+
+#add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF)
@@ -26,6 +29,7 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
 # option(TURN_ON_LATENCY_FOR_GENERATOR_BID_ASK_SERVICE "turn on measure latency for generator bid ask" true)
 # option(TURN_ON_LATENCY_FOR_TRADE_ENGINE "turn on measure latency for trade engine" true)
+
 include(FetchContent)
 FetchContent_Declare(
     tomlplusplus
@@ -34,7 +38,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-find_package(benchmark)
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
