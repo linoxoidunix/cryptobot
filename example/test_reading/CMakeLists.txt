@@ -21,8 +21,11 @@ concurrentqueue::concurrentqueue
 Python::Python
 ${Boost_LIBRARIES}
 unordered_dense::unordered_dense
+prometheus-cpp::core 
+prometheus-cpp::util 
+prometheus-cpp::civetweb 
+prometheus-cpp::pull
+magic_enum::magic_enum
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
-

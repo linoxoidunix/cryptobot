@@ -50,9 +50,9 @@ class Strategy : public IStrategy {
         : file_predictor_(file_predictor.data()),
           class_predictor_(class_predictor.data()),
           method_predictor_(method_predictor.data()) {
-        std::string kPythonPath = python_path.data();
-        setenv("PYTHONPATH", kPythonPath.c_str(), 1);
+        setenv("PYTHONPATH", python_path.data(), 1);
         Py_Initialize();
+        //PyRun_SimpleString("import sys\nprint(sys.path)");
         size_t lastindex                 = file_predictor_.find_last_of(".");
         auto file_name_without_extension = file_predictor_.substr(0, lastindex);
         file_name_ =

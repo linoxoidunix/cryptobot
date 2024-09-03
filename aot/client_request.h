@@ -50,24 +50,22 @@ class Request {
 class RequestNewOrder{
   public:
     ClientRequestType type = ClientRequestType::NEW;
-    std::string ticker;
+    Common::TradingPair trading_pair;
     Common::OrderId order_id = Common::OrderId_INVALID;
     Common::Side side        = Common::Side::INVALID;
     double price             = Common::kPRICE_DOUBLE_INVALID;
     double qty               = Common::kQTY_DOUBLE_INVALID;
-    uint8_t price_prec       = 0;
-    uint8_t qty_prec         = 0;
     auto ToString() const {
         std::string price_string =
             (price != Common::kPRICE_DOUBLE_INVALID)
-                ? fmt::format("{:.{}f}", price, price_prec)
+                ? fmt::format("{:.{}f}", price, 5)
                 : "INVALID";
         std::string qty_string = (qty != Common::kQTY_DOUBLE_INVALID)
-                                     ? fmt::format("{:.{}f}", qty, qty_prec)
+                                     ? fmt::format("{:.{}f}", qty, 5)
                                      : "INVALID";
         return fmt::format(
-            "RequestNewOrder[type:{} ticker:{} order_id:{} side:{} qty:{} price:{}]",
-            ClientRequestTypeToString(type), ticker, order_id,
+            "RequestNewOrder[type:{} {} order_id:{} side:{} qty:{} price:{}]",
+            ClientRequestTypeToString(type), trading_pair.ToString(), order_id,
             Common::sideToString(side), qty_string, price_string);
     }
 };
@@ -75,13 +73,14 @@ class RequestNewOrder{
 class RequestCancelOrder {
   public:
     ClientRequestType type = ClientRequestType::CANCEL;
-    std::string ticker;
+    Common::TradingPair trading_pair;
     Common::OrderId order_id = Common::OrderId_INVALID;
     
     auto ToString() const {
+        assert(false);
         return fmt::format(
             "RequestNewOrder[type:{} ticker:{} id:{}]",
-            ClientRequestTypeToString(type), ticker, order_id);
+            ClientRequestTypeToString(type), "", order_id);
     }
 };
 

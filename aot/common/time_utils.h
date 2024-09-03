@@ -3,6 +3,7 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <stdexcept>
 
 namespace common {
 typedef int64_t Nanos;
@@ -17,6 +18,13 @@ inline auto getCurrentNanoS() noexcept {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
+}
+
+inline uint64_t getCurNano() noexcept {
+    struct timespec timestamp = { 0 };
+    if (clock_gettime(CLOCK_MONOTONIC, &timestamp) != 0)[[likely]]
+        loge("Cannot get value of CLOCK_MONOTONIC timer!");
+    return (timestamp.tv_sec * 1000000000) + timestamp.tv_nsec;
 }
 
 inline auto& getCurrentTimeStr(std::string* time_str) {

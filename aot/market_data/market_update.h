@@ -24,19 +24,18 @@ inline std::string marketUpdateTypeToString(MarketUpdateType type) {
 
 struct MEMarketUpdateDouble;
 struct MEMarketUpdate {
-    MarketUpdateType type      = MarketUpdateType::DEFAULT;
+    MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
-    Common::OrderId order_id   = Common::OrderId_INVALID;
-    //Common::TickerId ticker_id = Common::TickerId_INVALID;
-    std::string ticker;
-    Common::Side side          = Common::Side::INVALID;
-    Common::Price price        = Common::Price_INVALID;
-    Common::Qty qty            = Common::Qty_INVALID;
+    Common::OrderId order_id = Common::OrderId_INVALID;
+    // Common::TickerId ticker_id = Common::TickerId_INVALID;
+    //std::string ticker;
+    Common::Side side   = Common::Side::INVALID;
+    Common::Price price = Common::Price_INVALID;
+    Common::Qty qty     = Common::Qty_INVALID;
 
     auto ToString() const {
         return fmt::format(
-            "MEMarketUpdate[ticker:{} oid:{} side:{} qty:{} price:{}]",
-            ticker,
+            "MEMarketUpdate[oid:{} side:{} qty:{} price:{}]", /*ticker,*/
             Common::orderIdToString(order_id), sideToString(side),
             Common::qtyToString(qty), Common::priceToString(price));
     };
@@ -46,19 +45,19 @@ struct MEMarketUpdate {
 };
 
 struct MEMarketUpdateDouble {
-    MarketUpdateType type      = MarketUpdateType::DEFAULT;
+    MarketUpdateType type = MarketUpdateType::DEFAULT;
 
-    //Common::TickerId ticker_id = Common::TickerId_INVALID;
-    std::string ticker;
-    Common::Side side          = Common::Side::INVALID;
-    double price               = std::numeric_limits<double>::max();
-    double qty                 = std::numeric_limits<double>::max();
+    // Common::TickerId ticker_id = Common::TickerId_INVALID;
+    //std::string ticker;
+    Common::Side side = Common::Side::INVALID;
+    double price      = std::numeric_limits<double>::max();
+    double qty        = std::numeric_limits<double>::max();
 
     auto ToString() const {
         return fmt::format(
-            "MEMarketUpdateDouble[ticker:{} type:{} side:{} qty:{} price:{}]",
-            ticker, marketUpdateTypeToString(type),
-            sideToString(side), qty, price);
+            "MEMarketUpdateDouble[type:{} side:{} qty:{} price:{}]",
+            marketUpdateTypeToString(type), sideToString(side), qty,
+            price);
     };
     explicit MEMarketUpdateDouble(const MEMarketUpdate*, uint precission_price,
                                   uint precission_qty);
@@ -70,7 +69,7 @@ using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdateDouble>;
 struct BookSnapshotElem {
     double price = std::numeric_limits<double>::max();
     double qty   = std::numeric_limits<double>::max();
-    BookSnapshotElem(double _price, double _qty) : price(_price), qty(_qty){};
+    BookSnapshotElem(double _price, double _qty) : price(_price), qty(_qty) {};
     auto ToString() const {
         return fmt::format("BookSnapshotElem[price:{} qty:{}]", price, qty);
     };
@@ -87,29 +86,29 @@ struct BookSnapshot {
         int i = 0;
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
-            event.ticker = ticker;
-            event.side  = Common::Side::SELL;
-            event.price = bid.price;
-            event.qty   = bid.qty;
-            bulk[i] = event;
+            //event.ticker = ticker;
+            event.side   = Common::Side::SELL;
+            event.price  = bid.price;
+            event.qty    = bid.qty;
+            bulk[i]      = event;
             i++;
         }
         bool status = false;
-        while(!status) status = queue.try_enqueue_bulk(&bulk[0], bids.size());
-        
+        while (!status) status = queue.try_enqueue_bulk(&bulk[0], bids.size());
+
         bulk.resize(asks.size());
         i = 0;
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
-            event.ticker = ticker;
-            event.side  = Common::Side::BUY;
-            event.price = ask.price;
-            event.qty   = ask.qty;
-            bulk[i] = event;
+            //event.ticker = ticker;
+            event.side   = Common::Side::BUY;
+            event.price  = ask.price;
+            event.qty    = ask.qty;
+            bulk[i]      = event;
             i++;
         }
         status = false;
-        while(!status) status = queue.try_enqueue_bulk(&bulk[0], asks.size());
+        while (!status) status = queue.try_enqueue_bulk(&bulk[0], asks.size());
     }
     auto ToString() const {
         return fmt::format("BookSnapshot[lastUpdateId:{}]", lastUpdateId);
@@ -128,17 +127,23 @@ struct BookDiffSnapshot {
     void AddToQueue(EventLFQueue& queue) {
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::SELL;
-            event.price = bid.price;
-            event.qty   = bid.qty;
-            queue.enqueue(event);
+            event.side     = Common::Side::SELL;
+            event.price    = bid.price;
+            event.qty      = bid.qty;
+            auto status_op = queue.try_enqueue(event);
+            logi("{}", event.ToString());
+            // if(!status_op)[[unlikely]]
+            //     loge("can't enqueue more elements. my lfqueue is busy");
         }
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
-            event.side  = Common::Side::BUY;
-            event.price = ask.price;
-            event.qty   = ask.qty;
-            queue.enqueue(event);
+            event.side     = Common::Side::BUY;
+            event.price    = ask.price;
+            event.qty      = ask.qty;
+            auto status_op = queue.try_enqueue(event);
+            logi("{}", event.ToString());
+            // if(!status_op)[[unlikely]]
+            //     loge("can't enqueue more elements. my lfqueue is busy");
         }
     }
 };

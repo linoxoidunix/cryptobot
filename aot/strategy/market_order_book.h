@@ -25,6 +25,13 @@ class MarketOrderBook final {
     //    trade_engine_ = trade_engine;
     //  }
 
+    auto getBBO() const noexcept -> const BBO * { return &bbo_; }
+
+    auto toString(bool detailed, bool validity_check) const -> std::string;
+
+    /// Deleted default, copy & move constructors and assignment-operators.
+    // MarketOrderBook() = delete;
+
     /// Update the BBO abstraction, the two boolean parameters represent if the
     /// buy or the sekk (or both) sides or both need to be updated.
     auto updateBBO(bool update_bid, bool update_ask) noexcept {
@@ -53,12 +60,13 @@ class MarketOrderBook final {
         }
     }
 
-    auto getBBO() const noexcept -> const BBO * { return &bbo_; }
-
-    auto toString(bool detailed, bool validity_check) const -> std::string;
-
-    /// Deleted default, copy & move constructors and assignment-operators.
-    // MarketOrderBook() = delete;
+    void ClearOrderBook() {
+        bids_at_price_map_.clear();
+        asks_at_price_map_.clear();
+        for (const auto &order_at_price : price_orders_at_price_)
+            orders_at_price_pool_.deallocate(order_at_price.second);
+        price_orders_at_price_.clear();
+    }
 
     MarketOrderBook(const MarketOrderBook &)             = delete;
 
@@ -90,10 +98,6 @@ class MarketOrderBook final {
     BBO bbo_;
 
   private:
-    // auto priceToIndex(Common::Price price) const noexcept {
-    //     return (price % Common::ME_MAX_PRICE_LEVELS);
-    // }
-
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
     /// price.
     auto getOrdersAtPrice(Common::Price price) noexcept
@@ -108,9 +112,9 @@ class MarketOrderBook final {
                                               new_orders_at_price);
 
         if (new_orders_at_price->side_ == Common::Side::BUY)
-            asks_at_price_map_.insert_unique(*new_orders_at_price);
+            asks_at_price_map_.insert_equal(*new_orders_at_price);
         if (new_orders_at_price->side_ == Common::Side::SELL)
-            bids_at_price_map_.insert_unique(*new_orders_at_price);
+            bids_at_price_map_.insert_equal(*new_orders_at_price);
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
@@ -125,11 +129,19 @@ class MarketOrderBook final {
             logw("order_book not contain such price");
             return;
         }
-        if (side == Common::Side::BUY)
-            asks_at_price_map_.erase(*order_at_price);
-        if (side == Common::Side::SELL)
-            bids_at_price_map_.erase(*order_at_price);
-
+        if (side == Common::Side::BUY) {
+            if (asks_at_price_map_.count(*order_at_price)) [[likely]]
+                asks_at_price_map_.erase(*order_at_price);
+            else
+                loge("critical error asks_at_price_map_");
+        }
+        if (side == Common::Side::SELL) {
+            if (bids_at_price_map_.count(*order_at_price)) [[likely]]
+                bids_at_price_map_.erase(*order_at_price);
+            else
+                loge("critical error bids_at_price_map_");
+        }
+        fmtlog::poll();
         price_orders_at_price_.at(price) = nullptr;
         price_orders_at_price_.erase(price);
 
@@ -155,21 +167,16 @@ class MarketOrderBook final {
             orders_at_price->first_mkt_order_.qty_   = order->qty_;
         }
     }
-
-    void ClearOrderBook() {
-        bids_at_price_map_.clear();
-        asks_at_price_map_.clear();
-        for(const auto& order_at_price : price_orders_at_price_)
-            orders_at_price_pool_.deallocate(order_at_price.second);
-        price_orders_at_price_.clear();
-    }
 };
 
 class MarketOrderBookDouble {
   public:
-    explicit MarketOrderBookDouble(const Ticker& ticker)
-        : precission_price_(ticker.info.price_precission),
-          precission_qty_(ticker.info.qty_precission){};
+    explicit MarketOrderBookDouble(Common::TradingPair trading_pair,
+                                   Common::TradingPairHashMap &pairs)
+        : trading_pair_(trading_pair),
+          pairs_(pairs),
+          precission_price_(pairs[trading_pair].price_precission),
+          precission_qty_(pairs[trading_pair].qty_precission) {};
 
     ~MarketOrderBookDouble() = default;
 
@@ -178,7 +185,7 @@ class MarketOrderBookDouble {
         const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
 
     auto SetTradeEngine(TradeEngine *trade_engine) {
-       trade_engine_ = trade_engine;
+        trade_engine_ = trade_engine;
     }
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
@@ -207,12 +214,13 @@ class MarketOrderBookDouble {
     MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
 
   private:
+    Common::TradingPair trading_pair_;
+    Common::TradingPairHashMap &pairs_;
     uint precission_price_;
     uint precission_qty_;
     BBODouble bbo_double_;
     MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;
-
 };
 
 /// Hash map from TickerId -> MarketOrderBook.

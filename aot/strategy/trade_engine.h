@@ -12,6 +12,7 @@
 #include "aot/strategy/base_strategy.h"
 #include "aot/strategy/market_order_book.h"
 // #include "feature_engine.h"
+#include "aot/prometheus/event.h"
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/position_keeper.h"
 
@@ -22,6 +23,10 @@
 // #include "liquidity_taker.h"
 
 namespace Trading {
+const auto kMeasureTForTradeEngine =
+    MEASURE_T_FOR_TRADE_ENGINE;  // MEASURE_T_FOR_TRADE_ENGINE define in
+                                 // cmakelists.txt;
+
 class BaseStrategy;
 class TradeEngine {
   public:
@@ -30,7 +35,8 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
-        const Ticker &ticker, base_strategy::Strategy *predictor);
+        prometheus::EventLFQueue *latency_event_lfqueue, const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
+        base_strategy::Strategy *predictor);
 
     ~TradeEngine();
 
@@ -43,8 +49,9 @@ class TradeEngine {
     };
 
     auto Stop() -> void {
+        logi("stop trade engine");
         while (incoming_md_updates_->size_approx()) {
-            logi("Sleeping till all updates are consumed md-size:%\n",
+            logi("Sleeping till all updates are consumed md-size:{}",
                  incoming_md_updates_->size_approx());
             using namespace std::literals::chrono_literals;
             std::this_thread::sleep_for(10ms);
@@ -62,18 +69,26 @@ class TradeEngine {
     /// consume and send to the exchange.
     auto SendRequestNewOrder(
         const Exchange::RequestNewOrder *request_new_order) noexcept -> void {
-        request_new_order_->enqueue(*request_new_order);
+        auto status_op = request_new_order_->try_enqueue(*request_new_order);
+        if (!status_op) [[unlikely]]
+            loge("my queue is full");
     }
     auto SendRequestCancelOrder(const Exchange::RequestCancelOrder
                                     *request_cancel_order) noexcept -> void {
-        request_cancel_order_->enqueue(*request_cancel_order);
+        auto status_op =
+            request_cancel_order_->try_enqueue(*request_cancel_order);
+        if (!status_op) [[unlikely]]
+            loge("my queue is full");
     }
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(std::string ticker, PriceD price, Side side,
+    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair, PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
+    std::string GetStatistics() const{
+        return position_keeper_.ToString();
+    }
     /// Process trade events - updates the  feature engine and informs the
     /// trading algorithm about the trade event.
     // auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update,
@@ -96,7 +111,9 @@ class TradeEngine {
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
     OHLCVILFQueue *klines_                                     = nullptr;
-    const Ticker &ticker_;
+    prometheus::EventLFQueue *latency_event_lfqueue_           = nullptr;
+    const TradingPair trading_pair_;
+    TradingPairHashMap pairs_;
     PositionKeeper position_keeper_;
 
     volatile bool run_ = false;
@@ -118,5 +135,16 @@ class TradeEngine {
      * @param new_kline
      */
     auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
+    template <bool need_measure_latency, class LFQueuePtr>
+    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
+        if constexpr (need_measure_latency == true) {
+            if (queue) [[likely]] {
+                auto status = queue->try_enqueue(
+                    prometheus::Event(type, common::getCurrentNanoS()));
+                if (!status) [[unlikely]]
+                    loge("my queue is full");
+            }
+        }
+    }
 };
 }  // namespace Trading

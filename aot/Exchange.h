@@ -12,6 +12,7 @@
 #include "aot/client_response.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
 #include "moodycamel/concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
@@ -99,8 +100,8 @@ class Signer : public SignerI {
 };
 };  // namespace hmac_sha256
 struct TickerInfo {
-    double price_precission;
-    double qty_precission;
+    uint8_t price_precission;
+    uint8_t qty_precission;
 };
 
 /**
@@ -140,9 +141,9 @@ struct OHLCV {
 struct OHLCVExt {
     OHLCV ohlcv;
     Interval interval;
-    Common::TickerS ticker;
+    Common::TradingPair trading_pair;
     std::string ToString() const {
-        return fmt::format("s:{} o:{} h:{} l:{} c:{} v:{}", ticker, ohlcv.open,
+        return fmt::format("{} o:{} h:{} l:{} c:{} v:{}", trading_pair.ToString(), ohlcv.open,
                            ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);
     }
 };
@@ -162,7 +163,13 @@ class OHLCVGetter {
      * @param buffer
      */
     virtual void Init(OHLCVILFQueue &lf_queue) = 0;
-    virtual void LaunchOne()                   = 0;
+    /**
+     * @brief
+     *
+     * @return true if OHLCVGetter is not empty
+     * @return false if OHLCVGetter is empty
+     */
+    virtual bool LaunchOne()                   = 0;
     virtual ~OHLCVGetter()                     = default;
 };
 
@@ -223,42 +230,42 @@ class DiffDepthStreamI {
  */
 class SymbolI {
   public:
-    virtual std::string ToString() const = 0;
-    virtual ~SymbolI()                   = default;
+    virtual std::string_view ToString() const = 0;
+    virtual ~SymbolI()                        = default;
 };
 
 class SymbolUpperCase : public SymbolI {
   public:
     explicit SymbolUpperCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_upper(out);
-        return out;
+        : first_(first.data()), second_(second.data()) {
+        ticker_ = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_upper(ticker_);
     };
+    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
+    std::string_view ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 
 class SymbolLowerCase : public SymbolI {
   public:
     explicit SymbolLowerCase(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_lower(out);
-        return out;
+        : first_(first.data()), second_(second.data()) {
+        ticker_ = fmt::format("{0}{1}", first_, second_);
+        boost::algorithm::to_lower(ticker_);
     };
+    explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
+    std::string_view ToString() const override { return ticker_; };
     ~SymbolLowerCase() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 
 struct Ticker {

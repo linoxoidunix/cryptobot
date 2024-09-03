@@ -1,39 +1,40 @@
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/trade_engine.h"
 
-auto Trading::OrderManager::NewOrder(TickerS ticker_id, PriceD price, Side side,
+auto Trading::OrderManager::NewOrder(const Common::TradingPair trading_pair, PriceD price, Side side,
                                      QtyD qty) noexcept -> void {
-    auto order = GetOrder(ticker_id, side);
+    //auto ticker_as_string = trading_pair.ToString();
+    assert(price > 0);
+    assert(qty > 0);
+    auto order = GetOrder(trading_pair, side);
     auto OrderIsLive = [order](){
         return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
     };
     if(OrderIsLive())
     {
-        logi("there is live order for ticker:{}. can't create new order", order->ticker);
+        logi("there is live order for ticker:{}. can't create new order", trading_pair.ToString());
         fmtlog::poll();
         return;
     }
     const Exchange::RequestNewOrder new_request{
         Exchange::ClientRequestType::NEW,
-        ticker_id,
+        trading_pair,
         next_order_id_,
         side,
         price,
-        qty,
-        0,
-        0};
+        qty};
     trade_engine_->SendRequestNewOrder(&new_request);
-    *order = {ticker_id, next_order_id_,           side, price,
+    *order = {trading_pair, next_order_id_,           side, price,
               qty,       OMOrderState::PENDING_NEW};
     ++next_order_id_;
 }
 
-auto Trading::OrderManager::CancelOrder(TickerS ticker_id,
+auto Trading::OrderManager::CancelOrder(Common::TradingPair trading_pair,
                                         Side side) noexcept -> void {
-    auto order = GetOrder(ticker_id, side);
+    auto order = GetOrder(trading_pair, side);
     const Exchange::RequestCancelOrder cancel_request{
         Exchange::ClientRequestType::CANCEL,
-        order->ticker,
+        order->trading_pair,
         order->order_id};
     trade_engine_->SendRequestCancelOrder(&cancel_request);
     order->state = OMOrderState::PENDING_CANCEL;

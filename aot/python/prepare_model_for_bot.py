@@ -43,11 +43,11 @@ class BaseStrategy:
         new_row.set_index('date', inplace=True)
         data_with_new_row = pd.concat([self.__data__, new_row], ignore_index=False)
         self.__calculate_features__(data_with_new_row, date)
-        print('calculate features is SUCCESS')
+        # print('calculate features is SUCCESS')
         predicted_value = self.__predict__(data_with_new_row.loc[date, self.__name_features_for_model__])
-        print('calculate predicted values is SUCCESS')
+        # print('calculate predicted values is SUCCESS')
         action = self.__generate_action__(predicted_value)
-        print('calculate action is SUCCESS')
+        # print('calculate action is SUCCESS')
         return {action:1}
     
     def __calculate_features__(self, data, date):
@@ -151,7 +151,7 @@ class BaseStrategy:
         return statistics.mean(predicted_value)
 
     def __generate_action__(self, predicted_value):
-        print(f'start calculate action for predicted_value={predicted_value}')
+        # print(f'start calculate action for predicted_value={predicted_value}')
         if(predicted_value > 0.01):
             return ksignals.enter_long
         if(predicted_value < -0.01):

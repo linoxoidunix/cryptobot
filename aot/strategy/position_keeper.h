@@ -27,7 +27,7 @@ struct PositionInfo {
         std::stringstream ss;
         ss << "Position{" << "pos:" << position << " u-pnl:" << unreal_pnl
            << " r-pnl:" << real_pnl << " t-pnl:" << total_pnl
-           << " vol:" << volume << " vwaps:["
+           << " vol:" << volume << " ovwaps:["
            << (position
                    ? open_vwap.at(Common::sideToIndex(Common::Side::BUY)) / std::abs(position)
                    : 0)
@@ -52,6 +52,8 @@ struct PositionInfo {
         const auto opp_side_index = Common::sideToIndex(
             client_response->side == Side::BUY ? Side::SELL : Side::BUY);
         const auto side_value  = Common::sideToValue(client_response->side);
+        assert(client_response->exec_qty >= 0);
+        assert(client_response->price >= 0);
         position              += client_response->exec_qty * side_value;
         volume                += client_response->exec_qty;
 
@@ -148,18 +150,18 @@ class PositionKeeper {
 
     /// Hash map container from TickerId -> PositionInfo.
     //std::array<PositionInfo, ME_MAX_TICKERS> ticker_position_;
-    std::unordered_map<std::string, PositionInfo> ticker_position;
+    std::unordered_map<Common::TradingPair, PositionInfo, Common::TradingPairHash, Common::TradingPairEqual> ticker_position;
   public:
     auto AddFill(const Exchange::MEClientResponse *client_response) noexcept {
-        ticker_position[client_response->ticker].addFill(client_response);
+        ticker_position[client_response->trading_pair].addFill(client_response);
     };
 
-    auto UpdateBBO(std::string ticker, const Trading::BBODouble *bbo) noexcept {
-        ticker_position[ticker].updateBBO(bbo);
+    auto UpdateBBO(const Common::TradingPair trading_pair, const Trading::BBODouble *bbo) noexcept {
+        ticker_position[trading_pair].updateBBO(bbo);
     };
 
-    auto getPositionInfo(std::string ticker) noexcept {
-        return &(ticker_position[ticker]);
+    auto getPositionInfo(const Common::TradingPair trading_pair) noexcept {
+        return &(ticker_position[trading_pair]);
     };
 
     auto ToString() const {
@@ -169,7 +171,7 @@ class PositionKeeper {
         std::stringstream ss;
         for(auto& it : ticker_position)
         {
-            ss << "TickerId:" << it.first << " "
+            ss << "TickerId:" << it.first.ToString() << " "
                << it.second.ToString() << "\n";
                 total_pnl += it.second.total_pnl;
                 total_vol += it.second.volume;

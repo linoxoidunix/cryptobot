@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/macros.h"
@@ -27,7 +28,11 @@ class OrderManager {
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void {
         logd("{}", client_response->ToString());
-        auto order = &(ticker_side_order_.at(client_response->ticker)
+        if (!ticker_side_order_.count(client_response->trading_pair)) [[unlikely]] {
+            loge("critical error in OrderManager");
+            return;
+        }
+        auto order = &(ticker_side_order_.at(client_response->trading_pair)
                            .at(sideToIndex(client_response->side)));
         switch (client_response->type) {
             case Exchange::ClientResponseType::ACCEPTED: {
@@ -56,7 +61,7 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    auto NewOrder(TickerS ticker_id, PriceD price, Side side,
+    auto NewOrder(Common::TradingPair trading_pair, PriceD price, Side side,
                   QtyD qty) noexcept -> void;
 
     /**
@@ -65,7 +70,7 @@ class OrderManager {
      * @param ticker_id
      * @param side
      */
-    auto CancelOrder(TickerS ticker_id, Side side) noexcept -> void;
+    auto CancelOrder(Common::TradingPair trading_pair, Side side) noexcept -> void;
 
     /// Deleted default, copy & move constructors and assignment-operators.
     OrderManager()                                 = delete;
@@ -91,10 +96,10 @@ class OrderManager {
     /// Used to set OrderIds on outgoing new order requests.
     Common::OrderId next_order_id_ = 1;
 
-    Trading::OMOrder *GetOrder(TickerS ticker_id, Side side) {
-        if (!ticker_side_order_.count(ticker_id)) [[unlikely]]
-            ticker_side_order_.insert({ticker_id, {}});
-        return &(ticker_side_order_.at(ticker_id).at(sideToIndex(side)));
+    Trading::OMOrder *GetOrder(Common::TradingPair trading_pair, Side side) {
+        if (!ticker_side_order_.count(trading_pair)) [[unlikely]]
+            ticker_side_order_.insert({trading_pair, {}});
+        return &(ticker_side_order_.at(trading_pair).at(sideToIndex(side)));
     };
 };
 }  // namespace Trading

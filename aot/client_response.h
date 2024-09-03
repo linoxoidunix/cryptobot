@@ -54,7 +54,7 @@ struct MEClientResponse {
      */
     using PriceQty          = std::pair<double, double>;
     ClientResponseType type = ClientResponseType::INVALID;
-    std::string ticker;
+    Common::TradingPair trading_pair; 
     Common::OrderId order_id = Common::OrderId_INVALID;
     Common::Side side        = Common::Side::INVALID;
     double price             = Common::kPRICE_DOUBLE_INVALID;
@@ -64,9 +64,10 @@ struct MEClientResponse {
     auto ToString() const {
         auto PrintAsCancelled = [this]()
         {
+            assert(false);
             return fmt::format(
                         "MEClientResponse[type:{} ticker:{} order_id:{}]",
-                        ClientResponseTypeToString(type), ticker,
+                        ClientResponseTypeToString(type), "",
                         Common::orderIdToString(order_id));
         };
         if(type == ClientResponseType::CANCELED)
@@ -85,10 +86,10 @@ struct MEClientResponse {
                 ? fmt::format("{}", leaves_qty)
                 : "INVALID";
         return fmt::format(
-            "MEClientResponse[type:{} ticker:{} order_id:{} side:{} "
+            "MEClientResponse[type:{} {} order_id:{} side:{} "
             "exec_qty:{} "
             "leaves_qty:{} price:{}]",
-            ClientResponseTypeToString(type), ticker,
+            ClientResponseTypeToString(type), trading_pair.ToString(),
             Common::orderIdToString(order_id), sideToString(side), exec_qty_string,
             leaves_qty_string, price_string);
     }

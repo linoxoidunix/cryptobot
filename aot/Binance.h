@@ -15,7 +15,9 @@
 #include "aot/client_response.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
+#include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
+#include "aot/prometheus/event.h"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -23,6 +25,9 @@
 // wss://stream.binance.com:9443/stream	     wss://testnet.binance.vision/stream
 
 namespace binance {
+const auto kMeasureTForGeneratorBidAskService =
+    MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;  // MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE
+                                              // define in cmakelists.txt
 enum class TimeInForce { GTC, IOC, FOK };
 
 namespace testnet {
@@ -128,17 +133,18 @@ enum class Type {
 class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()) {};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_lower(out);
-        return out;
+        : first_(first.data()),
+          second_(second.data()),
+          ticker_(fmt::format("{0}{1}", first_, second_)) {
+        boost::algorithm::to_lower(ticker_);
     };
+    std::string_view ToString() const override { return ticker_; };
     ~Symbol() override = default;
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 class s1 : public ChartInterval {
   public:
@@ -286,8 +292,13 @@ class DiffDepthStream : public DiffDepthStreamI {
 class OHLCVI : public OHLCVGetter {
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse) {};
         OHLCVExt Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
 
   public:
@@ -297,18 +308,20 @@ class OHLCVI : public OHLCVGetter {
           s_(s),
           chart_interval_(chart_interval),
           type_exchange_(type_exchange) {};
-    void LaunchOne() override { ioc.run_one(); };
-
+    bool LaunchOne() override {
+        ioc.run_one();
+        return true;
+    };
     void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&lf_queue](boost::beast::flat_buffer& buffer) {
+        OnMessageCB = [&lf_queue, this](boost::beast::flat_buffer& buffer) {
             auto result = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser;
+            ParserResponse parser(pairs_reverse_);
             lf_queue.try_enqueue(parser.Parse(result));
             // logi("{}", result);
             // fmtlog::poll();
         };
-
+        assert(false);
         using kls = KLineStream;
         kls channel(s_, chart_interval_);
         std::string empty_request = "{}";
@@ -324,6 +337,7 @@ class OHLCVI : public OHLCVGetter {
     const Symbol* s_;
     const ChartInterval* chart_interval_;
     TypeExchange type_exchange_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookEventGetter : public BookEventGetterI {
@@ -349,8 +363,10 @@ class BookEventGetter : public BookEventGetterI {
             auto resut = boost::beast::buffers_to_string(buffer.data());
             // logi("{}", resut);
             ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            queue.enqueue(answer);
+            auto answer    = parser.Parse(resut);
+            bool status_op = queue.try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queuee is full. need clean my queue");
         };
 
         using dds = DiffDepthStream;
@@ -504,8 +520,13 @@ class OrderNewLimit : public inner::OrderNewI {
   public:
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
@@ -522,8 +543,15 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order) : ArgsQuery() {
-            SetSymbol(new_order->ticker);
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order,
+                           Common::TradingPairHashMap& pairs,
+                           Common::TradingPairReverseHashMap& pairs_reverse)
+            : ArgsQuery() {
+            if (!pairs_reverse.count(
+                    pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
+                pairs_reverse[pairs[new_order->trading_pair].trading_pairs] =
+                    new_order->trading_pair;
+            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);
@@ -612,11 +640,14 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
+    explicit OrderNewLimit(SignerI* signer, TypeExchange type,
+                           Common::TradingPairHashMap& pairs)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs) {};
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(new_order);
+        ArgsOrder args(new_order, pairs_, pairs_reverse_);
 
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -627,15 +658,17 @@ class OrderNewLimit : public inner::OrderNewI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](
+        cb = [response_lfqueue, this](
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();
-            ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            response_lfqueue->enqueue(answer);
+            ParserResponse parser(pairs_reverse_);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queuee is full. need clean my queue");
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -649,6 +682,8 @@ class OrderNewLimit : public inner::OrderNewI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    Common::TradingPairHashMap& pairs_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class CancelOrder : public inner::CancelOrderI {
@@ -657,8 +692,13 @@ class CancelOrder : public inner::CancelOrderI {
   public:
     class ParserResponse {
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(
+            Common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        Common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
@@ -669,9 +709,17 @@ class CancelOrder : public inner::CancelOrderI {
             SetOrderId(order_id);
         };
         explicit ArgsOrder(
-            const Exchange::RequestCancelOrder* request_cancel_order)
+            const Exchange::RequestCancelOrder* request_cancel_order,
+            Common::TradingPairHashMap& pairs,
+            Common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            SetSymbol(request_cancel_order->ticker);
+            if (!pairs_reverse.count(
+                    pairs[request_cancel_order->trading_pair].trading_pairs))
+                [[unlikely]]
+                pairs_reverse[pairs[request_cancel_order->trading_pair]
+                                   .trading_pairs] =
+                    request_cancel_order->trading_pair;
+            SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
             SetOrderId(request_cancel_order->order_id);
         };
 
@@ -691,11 +739,14 @@ class CancelOrder : public inner::CancelOrderI {
     };
 
   public:
-    explicit CancelOrder(SignerI* signer, TypeExchange type)
-        : current_exchange_(exchange_.Get(type)), signer_(signer) {};
+    explicit CancelOrder(SignerI* signer, TypeExchange type,
+                         Common::TradingPairHashMap& pairs)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs) {};
     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(request_cancel_order);
+        ArgsOrder args(request_cancel_order, pairs_, pairs_reverse_);
 
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -706,15 +757,17 @@ class CancelOrder : public inner::CancelOrderI {
                                        need_sign};
         boost::asio::io_context ioc;
         OnHttpsResponce cb;
-        cb = [response_lfqueue](
+        cb = [response_lfqueue, this](
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
             fmtlog::poll();
-            ParserResponse parser;
-            auto answer = parser.Parse(resut);
-            response_lfqueue->enqueue(answer);
+            ParserResponse parser(pairs_reverse_);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queue is full. need clean my queue");
             fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
@@ -728,6 +781,8 @@ class CancelOrder : public inner::CancelOrderI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    Common::TradingPairHashMap& pairs_;
+    Common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {
@@ -822,8 +877,10 @@ class BookSnapshot : public inner::BookSnapshotI {
 class GeneratorBidAskService {
   public:
     explicit GeneratorBidAskService(
-        Exchange::EventLFQueue* event_lfqueue, const Ticker& ticker,
-        const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
+        Exchange::EventLFQueue* event_lfqueue,
+        prometheus::EventLFQueue* prometheus_event_lfqueue,
+        const Ticker& ticker, const DiffDepthStream::StreamIntervalI* interval,
+        TypeExchange type);
     auto Start() {
         run_    = true;
         thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
@@ -832,12 +889,13 @@ class GeneratorBidAskService {
     };
     common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
     ~GeneratorBidAskService() {
-        stop();
+        Stop();
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(2s);
-        thread_->join();
+        if (thread_) [[likely]]
+            thread_->join();
     }
-    auto stop() -> void { run_ = false; }
+    auto Stop() -> void { run_ = false; }
 
     GeneratorBidAskService()                                          = delete;
 
@@ -852,9 +910,10 @@ class GeneratorBidAskService {
   private:
     std::unique_ptr<std::thread> thread_;
 
-    volatile bool run_                     = false;
+    volatile bool run_                                  = false;
 
-    Exchange::EventLFQueue* event_lfqueue_ = nullptr;
+    Exchange::EventLFQueue* event_lfqueue_              = nullptr;
+    prometheus::EventLFQueue* prometheus_event_lfqueue_ = nullptr;
     common::TimeManager time_manager_;
     size_t next_inc_seq_num_                             = 0;
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
@@ -874,5 +933,16 @@ class GeneratorBidAskService {
     /// multicast sockets - the heavy lifting is in the recvCallback() and
     /// checkSnapshotSync() methods.
     auto Run() noexcept -> void;
+    template <bool need_measure_latency, class LFQueuePtr>
+    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
+        if constexpr (need_measure_latency == true) {
+            if (queue) [[likely]] {
+                bool status_op = queue->try_enqueue(
+                    prometheus::Event(type, common::getCurrentNanoS()));
+                if (!status_op) [[unlikely]]
+                    loge("my queuee is full. need clean my queue");
+            }
+        }
+    }
 };
 };  // namespace binance

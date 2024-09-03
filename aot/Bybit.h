@@ -108,16 +108,17 @@ class ExchangeChooser {
 class Symbol : public SymbolI {
   public:
     explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()){};
-    std::string ToString() const override {
-        auto out = fmt::format("{0}{1}", first_, second_);
-        boost::algorithm::to_upper(out);
-        return out;
+        : first_(first.data()), second_(second.data()), ticker_(fmt::format("{0}{1}", first_, second_)){
+            boost::algorithm::to_upper(ticker_);
+        };
+    std::string_view ToString() const override {
+        return ticker_;
     }
 
   private:
     std::string first_;
     std::string second_;
+    std::string ticker_;
 };
 class m1 : public ChartInterval {
   public:
@@ -223,7 +224,7 @@ class OHLCVI : public OHLCVGetter {
           type_exchange_(type_exchange) {
         current_exchange_ = exchange_.Get(type_exchange);
     };
-    void LaunchOne() override { ioc.run_one(); };
+    bool LaunchOne() override { ioc.run_one();return true; };
 
     void Init(OHLCVILFQueue& lf_queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
@@ -409,9 +410,9 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order) : ArgsBody() {
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order, Common::TradingPairHashMap& pairs) : ArgsBody() {
             storage["category"] = "spot";
-            SetSymbol(new_order->ticker);
+            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);
@@ -483,8 +484,8 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type)
-        : signer_(signer) {
+    explicit OrderNewLimit(SignerI* signer, TypeExchange type, Common::TradingPairHashMap& pairs)
+        : signer_(signer),pairs_(pairs) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &testnet_exchange;
@@ -499,7 +500,7 @@ class OrderNewLimit : public inner::OrderNewI {
     };
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(new_order);
+        ArgsOrder args(new_order, pairs_);
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
                                        OrderNewLimit::end_point,
@@ -526,5 +527,6 @@ class OrderNewLimit : public inner::OrderNewI {
     testnet::HttpsExchange testnet_exchange;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    Common::TradingPairHashMap& pairs_;
 };
 };  // namespace bybit
