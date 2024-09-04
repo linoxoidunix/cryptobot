@@ -15,7 +15,8 @@ add_executable (${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
 aot
 benchmark::benchmark
-concurrentqueue::concurrentqueue
+# concurrentqueue::concurrentqueue
+concurrentqueue
 magic_enum::magic_enum
 )
 

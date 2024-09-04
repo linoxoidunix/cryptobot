@@ -1,4 +1,5 @@
 build/
+BLD/
 .vscode
 sdk/
 simdjson/
@@ -7,7 +8,6 @@ json/
 CppTrader/
 concurrentqueue/
 fast_double_parser/
-emhash/
 benchmark/
 unordered_dense/
 data/

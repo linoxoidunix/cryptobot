@@ -10,7 +10,8 @@ add_executable (${PROJECT_NAME}_trading_pair
 target_link_libraries(${PROJECT_NAME}_trading_pair
 aot
 gtest_main
-concurrentqueue::concurrentqueue
+# concurrentqueue::concurrentqueue
+concurrentqueue
 )
 
 target_include_directories(${PROJECT_NAME}_trading_pair
@@ -25,7 +26,8 @@ add_executable (${PROJECT_NAME}_config_back_testing
 target_link_libraries(${PROJECT_NAME}_config_back_testing
 aot
 gtest_main
-concurrentqueue::concurrentqueue
+# concurrentqueue::concurrentqueue
+concurrentqueue
 tomlplusplus::tomlplusplus
 )
 

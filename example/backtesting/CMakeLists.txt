@@ -17,7 +17,8 @@ add_executable (${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
 aot
-concurrentqueue::concurrentqueue
+# concurrentqueue::concurrentqueue
+concurrentqueue
 Python::Python
 ${Boost_LIBRARIES}
 unordered_dense::unordered_dense

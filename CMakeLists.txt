@@ -39,22 +39,22 @@ FetchContent_Declare(
 # find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
 # find_package(fast_double_parser REQUIRED)
 # find_package(prometheus-cpp REQUIRED)
+
+set(ABSL_ENABLE_INSTALL ON)
 FetchContent_Declare(
     abseil
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    GIT_TAG        master
+    GIT_TAG        origin/master
     OVERRIDE_FIND_PACKAGE
 )
-find_package(absl REQUIRED)
-# FetchContent_MakeAvailable(abseil)
  
 FetchContent_Declare(
     re2
     GIT_REPOSITORY https://github.com/google/re2.git
     GIT_TAG        main
-    OVERRIDE_FIND_PACKAGE
+    # OVERRIDE_FIND_PACKAGE
 )
-find_package(re2 REQUIRED)
+
 
 
 # find_package(re2 REQUIRED)
@@ -84,9 +84,6 @@ FetchContent_Declare(
 
 
 FetchContent_MakeAvailable( simdjson magic_enum nlohmann_json prometheus-cpp tomlplusplus)
-if(TARGET benchmark)
-message("benchmark exist")
-endif()
 
 FetchContent_Declare(
     benchmark
@@ -104,11 +101,31 @@ FetchContent_Declare(gmock_main
 FetchContent_MakeAvailable(gmock_main)
 endif()
 
+FetchContent_Declare(
+    concurrentqueue
+    GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
+    GIT_TAG        master
+    OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(concurrentqueue)
+
+FetchContent_Declare(
+    unordered_dense
+    GIT_REPOSITORY https://github.com/martinus/unordered_dense.git
+    GIT_TAG        main
+)
+FetchContent_MakeAvailable(unordered_dense)
+
+
+FetchContent_MakeAvailable(abseil)
+FetchContent_MakeAvailable(re2)
+
+
 
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
-find_package(unordered_dense)
+# find_package(unordered_dense)
 
                                                     # include(ExternalProject)
                                                     # ExternalProject_Add(cpptrader
@@ -131,6 +148,7 @@ file(GLOB LIST_H
      "aot/order_gw/*.h"
      "aot/prometheus/*.h"
      "aot/strategy/*.h"
+     "aot/third_party/*.h"
      "aot/python/*.h"
 )
 file(GLOB LIST_CPP
@@ -150,8 +168,14 @@ file(GLOB SRC
 #set(CMAKE_CXX_CLANG_TIDY clang-tidy ${ALL_FILES}, -header-filter=, -checks=cppcoreguidlines-*, -warnings-as-errors=*, -p build)
 
 add_library (${PROJECT_NAME}
+    ${LIST_H} #for use emhash library need add LIST_H
     ${SRC}
 )
+
+#find_package(absl REQUIRED)
+#find_package(concurrentqueue REQUIRED)
+
+
 
 #add_library(cpp_trader STATIC IMPORTED)
 #SET_TARGET_PROPERTIES(cpp_trader PROPERTIES IMPORTED_LOCATION /home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/lib/libcpptrader.a)
@@ -178,8 +202,9 @@ target_link_libraries(${PROJECT_NAME}
     simdjson::simdjson
     nlohmann_json::nlohmann_json
     Python::Python
-    concurrentqueue::concurrentqueue
+    # concurrentqueue::concurrentqueue
     # fast_double_parser::fast_double_parser
+    concurrentqueue
     unordered_dense::unordered_dense
     prometheus-cpp::core 
     prometheus-cpp::util 

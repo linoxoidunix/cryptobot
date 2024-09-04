@@ -14,7 +14,8 @@ add_executable (${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
 aot
-concurrentqueue::concurrentqueue
+# concurrentqueue::concurrentqueue
+concurrentqueue
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
