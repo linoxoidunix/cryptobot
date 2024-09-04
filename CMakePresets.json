@@ -9,17 +9,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_C_COMPILER": "/usr/bin/c89-gcc",
-                "CMAKE_BUILD_TYPE": "Debug",
-                "simdjson_DIR": "${workspaceFolder}/sdk/simdjson/lib/cmake/simdjson",
-                "magic_enum_DIR": "${workspaceFolder}/sdk/magic_enum/lib/cmake/magic_enum",
-                "nlohmann_json_DIR": "${workspaceFolder}/sdk/nlohmann_json/share/cmake/nlohmann_json",
-                "concurrentqueue_DIR": "${workspaceFolder}/sdk/concurrentqueue/lib/cmake/concurrentqueue",
-                "fast_double_parser_DIR": "${workspaceFolder}/sdk/fast_double_parser/share/fast_double_parser",
-                "benchmark_DIR": "${workspaceFolder}/sdk/benchmark/lib/cmake/benchmark",
-                "unordered_dense_DIR": "${workspaceFolder}/sdk/unordered_dense/lib/cmake/unordered_dense",
-                "prometheus-cpp_DIR": "${workspaceFolder}/sdk/prometheus-cpp/lib/cmake/prometheus-cpp",
-                "re2_DIR": "${workspaceFolder}/sdk/re2/lib/cmake/re2",
-                "absl_DIR": "${workspaceFolder}/sdk/absl/lib/cmake/absl"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -30,17 +20,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_C_COMPILER": "/usr/bin/c89-gcc",
-                "CMAKE_BUILD_TYPE": "Release",
-                "simdjson_DIR": "${workspaceFolder}/sdk/simdjson/lib/cmake/simdjson",
-                "magic_enum_DIR": "${workspaceFolder}/sdk/magic_enum/lib/cmake/magic_enum",
-                "nlohmann_json_DIR": "${workspaceFolder}/sdk/nlohmann_json/share/cmake/nlohmann_json",
-                "concurrentqueue_DIR": "${workspaceFolder}/sdk/concurrentqueue/lib/cmake/concurrentqueue",
-                "fast_double_parser_DIR": "${workspaceFolder}/sdk/fast_double_parser/share/fast_double_parser",
-                "benchmark_DIR": "${workspaceFolder}/sdk/benchmark/lib/cmake/benchmark",
-                "unordered_dense_DIR": "${workspaceFolder}/sdk/unordered_dense/lib/cmake/unordered_dense",
-                "prometheus-cpp_DIR": "${workspaceFolder}/sdk/prometheus-cpp/lib/cmake/prometheus-cpp",
-                "re2_DIR": "${workspaceFolder}/sdk/re2/lib/cmake/re2",
-                "absl_DIR": "${workspaceFolder}/sdk/absl/lib/cmake/absl"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ]

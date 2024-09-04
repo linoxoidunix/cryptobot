@@ -4,7 +4,6 @@
 #include <unordered_set>
 
 #include "aot/Logger.h"
-#include "fast_double_parser.h"
 #include "simdjson.h"
 
 Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(

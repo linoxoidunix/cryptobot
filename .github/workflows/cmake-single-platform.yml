@@ -25,9 +25,20 @@ jobs:
       with:
         token: ${{ secrets.TOKEN }}
         submodules: true
+    
+    # Install dependencies
+    - name: Install developer dependencies
+      run: |
+       - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt-get install -y build-essential libboost-all-dev libssl-dev python3-dev git cmake libcurl4-openssl-dev
+
     # Update references
     - name: Git Submodule Update
       run: |
+       - name: Install General
+        run: |
         git pull --recurse-submodules
         git submodule update --remote --recursive
    

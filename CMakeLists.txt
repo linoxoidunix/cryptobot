@@ -6,17 +6,63 @@ find_package(OpenSSL)
 #add_subdirectory(clickhouse-cpp)
 add_subdirectory(aot_data)
 find_package(Threads REQUIRED)
-find_package(simdjson CONFIG REQUIRED)
-find_package(magic_enum CONFIG REQUIRED)
-find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
-find_package(fast_double_parser REQUIRED)
-find_package(prometheus-cpp REQUIRED)
-find_package(re2 REQUIRED)
-find_package(absl REQUIRED)#re2 need in absl
+find_package(CURL REQUIRED)
+include(FetchContent)
 
-add_subdirectory(googletest)
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
-find_package(benchmark)
+# Externally provided libraries
+
+
+FetchContent_Declare(
+    simdjson
+    GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+)
+FetchContent_Declare(
+    magic_enum
+    GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+)
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+)
+# FetchContent_Declare(
+#     fast_double_parser
+#     GIT_REPOSITORY https://github.com/lemire/fast_double_parser.git
+# )
+FetchContent_Declare(
+    prometheus-cpp
+    GIT_REPOSITORY https://github.com/jupp0r/prometheus-cpp.git
+    FIND_PACKAGE_ARGS NAMES prometheus-cpp
+)
+# FetchContent_MakeAvailable(tomlplusplus)
+#find_package(simdjson CONFIG REQUIRED)
+# find_package(magic_enum CONFIG REQUIRED)
+# find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
+# find_package(fast_double_parser REQUIRED)
+# find_package(prometheus-cpp REQUIRED)
+FetchContent_Declare(
+    abseil
+    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+    GIT_TAG        master
+    OVERRIDE_FIND_PACKAGE
+)
+find_package(absl REQUIRED)
+# FetchContent_MakeAvailable(abseil)
+ 
+FetchContent_Declare(
+    re2
+    GIT_REPOSITORY https://github.com/google/re2.git
+    GIT_TAG        main
+    OVERRIDE_FIND_PACKAGE
+)
+find_package(re2 REQUIRED)
+
+
+# find_package(re2 REQUIRED)
+# find_package(absl REQUIRED)#re2 need in absl
+
+# add_subdirectory(googletest)
+# set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
+# find_package(benchmark)
 
 #add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
@@ -30,13 +76,34 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 # option(TURN_ON_LATENCY_FOR_GENERATOR_BID_ASK_SERVICE "turn on measure latency for generator bid ask" true)
 # option(TURN_ON_LATENCY_FOR_TRADE_ENGINE "turn on measure latency for trade engine" true)
 
-include(FetchContent)
 FetchContent_Declare(
     tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
     GIT_TAG        v3.4.0
 )
-FetchContent_MakeAvailable(tomlplusplus)
+
+
+FetchContent_MakeAvailable( simdjson magic_enum nlohmann_json prometheus-cpp tomlplusplus)
+if(TARGET benchmark)
+message("benchmark exist")
+endif()
+
+FetchContent_Declare(
+    benchmark
+    GIT_REPOSITORY https://github.com/google/benchmark.git
+    GIT_TAG main
+)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
+FetchContent_MakeAvailable(benchmark)
+
+if (NOT TARGET gmock_main)
+FetchContent_Declare(gmock_main
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG main
+)
+FetchContent_MakeAvailable(gmock_main)
+endif()
+
 
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
@@ -112,7 +179,7 @@ target_link_libraries(${PROJECT_NAME}
     nlohmann_json::nlohmann_json
     Python::Python
     concurrentqueue::concurrentqueue
-    fast_double_parser::fast_double_parser
+    # fast_double_parser::fast_double_parser
     unordered_dense::unordered_dense
     prometheus-cpp::core 
     prometheus-cpp::util 
