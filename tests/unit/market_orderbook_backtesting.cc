@@ -1,3 +1,5 @@
+#include "cmath"
+
 #include "gtest/gtest.h"
 
 #include "aot/Logger.h"
@@ -31,6 +33,17 @@ TEST(MarketOrderBookBacktesting, UPDATE_BBO) {
     EXPECT_EQ(bbo->GetWeightedPrice(),6);
     EXPECT_EQ(bbo->price,6);
     EXPECT_EQ(bbo->qty,2);
+}
+
+TEST(BBODoubleBacktesting, Create) {
+    using namespace backtesting;
+    BBO bbo;
+    bbo.price = 7*std::pow(10,7);
+    bbo.qty = 4*std::pow(10,8);
+    BBODouble bbodouble(&bbo, 7,8);
+    EXPECT_EQ(bbodouble.GetWeightedPrice(),7);
+    EXPECT_EQ(bbodouble.price,7);
+    EXPECT_EQ(bbodouble.qty,4);
 }
 
 int main(int argc, char** argv) {
