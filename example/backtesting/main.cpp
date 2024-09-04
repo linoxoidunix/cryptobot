@@ -10,7 +10,8 @@
 #include <thread>
 
 #include "magic_enum.hpp"
-#include "moodycamel/concurrentqueue.h"
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
 
 #include "aot/Binance.h"
 #include "aot/Bybit.h"

@@ -13,7 +13,8 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-#include "moodycamel/concurrentqueue.h"
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
 
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };

@@ -14,7 +14,8 @@
 #include <sstream>
 
 #include "aot/common/types.h"
-#include "moodycamel/concurrentqueue.h"
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
 
 namespace Exchange {
 /// Type of the order request sent by the trading client to the exchange.

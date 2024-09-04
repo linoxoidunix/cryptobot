@@ -7,7 +7,8 @@
 #include "aot/Logger.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
-#include "moodycamel/concurrentqueue.h"
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
 
 using namespace std::literals::chrono_literals;
 auto timeout                  = 1ms;

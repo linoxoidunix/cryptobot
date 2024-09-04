@@ -25,6 +25,7 @@ add_executable (${PROJECT_NAME}_config_back_testing
 
 target_link_libraries(${PROJECT_NAME}_config_back_testing
 aot
+gtest
 gtest_main
 # concurrentqueue::concurrentqueue
 concurrentqueue

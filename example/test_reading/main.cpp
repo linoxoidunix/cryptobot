@@ -23,7 +23,8 @@
 // #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
 #include "magic_enum.hpp"
-#include "moodycamel/concurrentqueue.h"
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -938,6 +939,8 @@
 //     int x = 0;
 // }
 //----------------------------------------------------------------------------------------
-
+int main(){
+    return 0;
+}
 
 

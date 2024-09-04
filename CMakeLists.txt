@@ -28,6 +28,7 @@ FetchContent_Declare(
 #     fast_double_parser
 #     GIT_REPOSITORY https://github.com/lemire/fast_double_parser.git
 # )
+SET(ENABLE_TESTING OFF)
 FetchContent_Declare(
     prometheus-cpp
     GIT_REPOSITORY https://github.com/jupp0r/prometheus-cpp.git
@@ -93,13 +94,11 @@ FetchContent_Declare(
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
 FetchContent_MakeAvailable(benchmark)
 
-if (NOT TARGET gmock_main)
-FetchContent_Declare(gmock_main
+FetchContent_Declare(gtest_main
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_TAG main
 )
-FetchContent_MakeAvailable(gmock_main)
-endif()
+FetchContent_MakeAvailable(gtest_main)
 
 FetchContent_Declare(
     concurrentqueue

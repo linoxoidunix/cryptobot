@@ -4,7 +4,7 @@
         {
             "name": "cryptobot_dbg",
             "displayName": "GCC x86_64 Debug",
-            "description": "Using compilers: C = /usr/bin/c89-gcc",
+            "description": "Using compilers: C = /usr/bin/g++",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
@@ -15,13 +15,25 @@
         {
             "name": "cryptobot_release",
             "displayName": "GCC x86_64 Release",
-            "description": "Using compilers: C = /usr/bin/c89-gcc",
+            "description": "Using compilers: C = /usr/bin/g++",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_C_COMPILER": "/usr/bin/g++",
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "build_dbg",
+            "configurePreset": "cryptobot_dbg",
+            "jobs": 18
+        },
+        {
+            "name": "build_release",
+            "configurePreset": "cryptobot_release",
+            "jobs": 18
         }
     ]
 }

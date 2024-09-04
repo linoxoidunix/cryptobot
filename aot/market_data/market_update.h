@@ -5,7 +5,10 @@
 
 #include "aot/Logger.h"
 #include "aot/common/types.h"
-#include "moodycamel/concurrentqueue.h"
+
+//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"//if link form source
+
 namespace Exchange {
 enum class MarketUpdateType : uint8_t {
     CLEAR   = 0,  // if this event occured then neen clear order book
