@@ -174,5 +174,6 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=fa
 add_subdirectory(example)
 enable_testing()
 include(GoogleTest)
+
 add_subdirectory(tests)
 

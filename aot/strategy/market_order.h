@@ -5,10 +5,13 @@
 #include <vector>
 
 #include "aot/common/types.h"
+#include "aot/Logger.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
 #include "boost/intrusive/avltree.hpp"
 
-// using namespace Common;
+struct BBOI {
+    virtual Common::Price GetWeightedPrice() const = 0;
+};
 
 namespace Trading {
 /// Used by the trade engine to represent a single order in the limit order
@@ -105,7 +108,6 @@ using OrdersAtPriceHashMap =
 struct BBO;
 
 struct BBODouble {
-
     double bid_price   = Common::kPRICE_DOUBLE_INVALID;
     double ask_price   = Common::kPRICE_DOUBLE_INVALID;
     double bid_qty     = Common::kQTY_DOUBLE_INVALID;
@@ -114,19 +116,29 @@ struct BBODouble {
     uint8_t qty_prec   = 0;
 
     auto ToString() const {
-        auto bid_qty_string = (bid_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_qty, qty_prec) : "INVALID";
-        auto ask_qty_string = (ask_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_qty, qty_prec) : "INVALID";
-        auto bid_price_string = (bid_price != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", bid_price, price_prec) : "INVALID";
-        auto ask_price_string = (ask_qty != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", ask_price, price_prec) : "INVALID";
-        return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty_string, bid_price_string,
-                           ask_price_string, ask_qty_string);
+        auto bid_qty_string = (bid_qty != Common::kQTY_DOUBLE_INVALID)
+                                  ? fmt::format("{:.{}f}", bid_qty, qty_prec)
+                                  : "INVALID";
+        auto ask_qty_string = (ask_qty != Common::kQTY_DOUBLE_INVALID)
+                                  ? fmt::format("{:.{}f}", ask_qty, qty_prec)
+                                  : "INVALID";
+        auto bid_price_string =
+            (bid_price != Common::kPRICE_DOUBLE_INVALID)
+                ? fmt::format("{:.{}f}", bid_price, price_prec)
+                : "INVALID";
+        auto ask_price_string =
+            (ask_qty != Common::kPRICE_DOUBLE_INVALID)
+                ? fmt::format("{:.{}f}", ask_price, price_prec)
+                : "INVALID";
+        return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty_string,
+                           bid_price_string, ask_price_string, ask_qty_string);
     };
     explicit BBODouble(const BBO *bbo, uint8_t precission_price,
                        uint8_t precission_qty);
     explicit BBODouble() = default;
 };
 
-struct BBO {
+struct BBO : BBOI {
     Common::Price bid_price = Common::Price_INVALID;
     Common::Price ask_price = Common::Price_INVALID;
     Common::Qty bid_qty     = Common::Qty_INVALID;
@@ -141,8 +153,56 @@ struct BBO {
 
         return ss.str();
     };
+
+    Common::Price GetWeightedPrice() const override {
+        if (bid_qty + ask_qty == 0) [[unlikely]]
+            return Common::Price_INVALID;
+        return bid_price * bid_qty + ask_price * ask_qty / (bid_qty + ask_qty);
+    };
+
     explicit BBO(const BBODouble *bbo_double, uint8_t precission_price,
                  uint8_t precission_qty);
     explicit BBO() = default;
 };
 }  // namespace Trading
+
+namespace backtesting {
+
+struct BBO;
+
+struct BBODouble {
+
+    double price   = Common::kPRICE_DOUBLE_INVALID;
+    double qty     = Common::kQTY_DOUBLE_INVALID;
+    uint8_t price_prec = 0;
+    uint8_t qty_prec   = 0;
+
+    auto ToString() const {
+        auto bid_qty_string = (qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", qty, qty_prec) : "INVALID";
+        auto bid_price_string = (price != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", price, price_prec) : "INVALID";
+        return fmt::format("BBODouble[{}@{}]", bid_qty_string, bid_price_string);
+    };
+    explicit BBODouble(const BBO *bbo, uint8_t precission_price,
+                       uint8_t precission_qty);
+    explicit BBODouble() = default;
+};
+
+struct BBO : BBOI{
+    Common::Price price = Common::Price_INVALID;
+    Common::Qty qty     = Common::Qty_INVALID;
+
+    auto ToString() const {
+        std::stringstream ss;
+        ss << "BBO{" << Common::qtyToString(qty) << "@"
+           << Common::priceToString(price) << "}";
+
+        return ss.str();
+    };
+    
+    Common::Price GetWeightedPrice() const override {return price;};
+
+    explicit BBO(const backtesting::BBODouble *bbo_double, uint8_t precission_price,
+                 uint8_t precission_qty);
+    explicit BBO() = default;
+};
+}  // namespace backtesting

@@ -47,6 +47,28 @@ BBO::BBO(const BBODouble* bbo_double, uint8_t precission_price,
       bid_qty(
           (Common::Qty)(bbo_double->bid_qty * std::pow(10, precission_qty))),
       ask_qty(
-          (Common::Qty)(bbo_double->ask_qty * std::pow(10, precission_qty))){};
-
+          (Common::Qty)(bbo_double->ask_qty * std::pow(10, precission_qty))) {};
 }  // namespace Trading
+
+namespace backtesting {
+// namespace Trading
+BBODouble::BBODouble(const BBO* bbo, uint8_t precission_price,
+                     uint8_t precission_qty)
+    : price_prec(precission_price), qty_prec(precission_qty) {
+    if (bbo->price != Common::Price_INVALID) [[likely]]
+        price = (double)bbo->price * 1.0 * std::pow(10, -precission_price);
+    else
+        price = Common::kPRICE_DOUBLE_INVALID;
+
+    if (bbo->qty != Common::Qty_INVALID) [[likely]]
+        qty = (double)bbo->qty * 1.0 * std::pow(10, -precission_qty);
+    else
+        qty = Common::kQTY_DOUBLE_INVALID;
+};
+
+BBO::BBO(const BBODouble* bbo_double, uint8_t precission_price,
+         uint8_t precission_qty)
+    : price(
+          (Common::Price)(bbo_double->price * std::pow(10, precission_price))),
+      qty((Common::Qty)(bbo_double->qty * std::pow(10, precission_qty))) {};
+}  // namespace backtesting

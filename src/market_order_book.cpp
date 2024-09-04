@@ -9,12 +9,9 @@
 namespace Trading {
 MarketOrderBook::MarketOrderBook()
     : orders_at_price_pool_(Common::ME_MAX_ORDERS_AT_PRICE) {
-    // oid_to_order_.resize(Common::ME_MAX_ORDER_IDS);
-    // price_orders_at_price_.resize(Common::ME_MAX_PRICE_LEVELS);
 }
 
 MarketOrderBook::~MarketOrderBook() {
-//    logi("call ~MarketOrderBook() OrderBook\n{}", toString(false, true));
     logi("call ~MarketOrderBook()");
     ClearOrderBook();
 }
@@ -53,12 +50,6 @@ auto MarketOrderBook::onMarketUpdate(
     logd("{}", market_update->ToString());
 }
 
-auto MarketOrderBook::toString(bool detailed,
-                               bool validity_check) const -> std::string {
-    std::stringstream ss;
-    return ss.str();
-};
-
 auto Trading::MarketOrderBookDouble::OnMarketUpdate(
     const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void {
     const Exchange::MEMarketUpdate buf(market_update, precission_price_,
@@ -69,3 +60,17 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
 };
 
 };  // namespace Trading
+
+namespace backtesting {
+MarketOrderBook::MarketOrderBook(){
+}
+
+MarketOrderBook::~MarketOrderBook() {
+    logi("call ~MarketOrderBook()");
+}
+
+/// Process market data update and update the limit order book.
+auto MarketOrderBook::onMarketUpdate(
+    const Exchange::MEMarketUpdate *market_update) noexcept -> void {
+}
+}
