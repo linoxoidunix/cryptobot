@@ -1,49 +1,21 @@
 
-set (PROJECT_NAME unit_tests)
+set (PROJECT_NAME unit_test)
 project(${PROJECT_NAME})
 
+macro(cxx_executable_extended prjname src)
+  set(prj ${PROJECT_NAME}_${prjname})
+  add_executable(${prj} ${src})
+  foreach (lib "${ARGN}")
+    target_link_libraries(${prj} ${lib})
+  endforeach()
+  target_include_directories(${prj} PRIVATE ${CMAKE_SOURCE_DIR})
+  set_property(TARGET ${prj} PROPERTY CXX_STANDARD 23)
+  gtest_add_tests(TARGET ${prj})
+endmacro()
 
-add_executable (${PROJECT_NAME}_trading_pair
-    ${CMAKE_CURRENT_LIST_DIR}/TradingPair.cpp
-)
+macro(cxx_executable name dir libs)
+cxx_executable_extended(${name} ${dir}/${name}.cc ${libs}  ${ARGN})
+endmacro()
 
-target_link_libraries(${PROJECT_NAME}_trading_pair
-aot
-gtest_main
-# concurrentqueue::concurrentqueue
-concurrentqueue
-)
-
-target_include_directories(${PROJECT_NAME}_trading_pair
-PRIVATE
-${CMAKE_SOURCE_DIR}
-)
-
-add_executable (${PROJECT_NAME}_config_back_testing
-    ${CMAKE_CURRENT_LIST_DIR}/ConfigBackTesting.cpp
-)
-
-target_link_libraries(${PROJECT_NAME}_config_back_testing
-aot
-gtest
-gtest_main
-# concurrentqueue::concurrentqueue
-concurrentqueue
-tomlplusplus::tomlplusplus
-)
-
-target_include_directories(${PROJECT_NAME}_config_back_testing
-PRIVATE
-${CMAKE_SOURCE_DIR}
-)
-
-
-
-# gtest_discover_tests(${PROJECT_NAME}_trading_pair)
-# gtest_discover_tests(${PROJECT_NAME}_config_back_testing)
-
-set_property(TARGET ${PROJECT_NAME}_trading_pair PROPERTY CXX_STANDARD 23)
-set_property(TARGET ${PROJECT_NAME}_config_back_testing PROPERTY CXX_STANDARD 23)
-
-gtest_add_tests(TARGET ${PROJECT_NAME}_trading_pair)
-gtest_add_tests(TARGET ${PROJECT_NAME}_config_back_testing)
+cxx_executable(trading_pair ${CMAKE_CURRENT_LIST_DIR} aot gtest_main concurrentqueue)
+cxx_executable(config_backtesting ${CMAKE_CURRENT_LIST_DIR} aot gtest_main tomlplusplus::tomlplusplus)

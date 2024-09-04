@@ -21,16 +21,7 @@ class MarketOrderBook final {
     auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
         -> void;
 
-    //  auto setTradeEngine(TradeEngine *trade_engine) {
-    //    trade_engine_ = trade_engine;
-    //  }
-
     auto getBBO() const noexcept -> const BBO * { return &bbo_; }
-
-    auto toString(bool detailed, bool validity_check) const -> std::string;
-
-    /// Deleted default, copy & move constructors and assignment-operators.
-    // MarketOrderBook() = delete;
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
     /// buy or the sekk (or both) sides or both need to be updated.
@@ -77,14 +68,6 @@ class MarketOrderBook final {
     MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    // const Common::TickerId ticker_id_;
-
-    /// Parent trade engine that owns this limit order book, used to send
-    /// notifications when book changes or trades occur.
-
-    /// Hash map from OrderId -> MarketOrder.
-    // OrderHashMap oid_to_order_;
-
     /// Memory pool to manage MarketOrdersAtPrice objects.
     common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
 
@@ -200,11 +183,6 @@ class MarketOrderBookDouble {
         return &bbo_double_;
     }
 
-    // auto toString(bool detailed, bool validity_check) const -> std::string;
-
-    /// Deleted default, copy & move constructors and assignment-operators.
-    // MarketOrderBook() = delete;
-
     MarketOrderBookDouble(const MarketOrderBook &)             = delete;
 
     MarketOrderBookDouble(const MarketOrderBook &&)            = delete;
@@ -220,6 +198,82 @@ class MarketOrderBookDouble {
     uint precission_qty_;
     BBODouble bbo_double_;
     MarketOrderBook book_;
+    TradeEngine *trade_engine_ = nullptr;
+};
+
+/// Hash map from TickerId -> MarketOrderBook.
+using MarketOrderBookHashMap =
+    std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
+}  // namespace Trading
+
+namespace backtesting {
+class TradeEngine;
+
+class MarketOrderBook final {
+  public:
+    explicit MarketOrderBook();
+
+    ~MarketOrderBook();
+
+    /// Process market data update and update the limit order book.
+    auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
+        -> void;
+
+    auto getBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
+
+    MarketOrderBook(const MarketOrderBook &)             = delete;
+
+    MarketOrderBook(const MarketOrderBook &&)            = delete;
+
+    MarketOrderBook &operator=(const MarketOrderBook &)  = delete;
+
+    MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
+
+  private:
+    backtesting::BBO bbo_;
+
+ };
+
+class MarketOrderBookDouble {
+  public:
+    explicit MarketOrderBookDouble(Common::TradingPair trading_pair,
+                                   Common::TradingPairHashMap &pairs)
+        : trading_pair_(trading_pair),
+          pairs_(pairs),
+          precission_price_(pairs[trading_pair].price_precission),
+          precission_qty_(pairs[trading_pair].qty_precission) {};
+
+    ~MarketOrderBookDouble() = default;
+
+    /// Process market data update and update the limit order book.
+    auto OnMarketUpdate(
+        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
+
+    auto SetTradeEngine(TradeEngine *trade_engine) {
+        trade_engine_ = trade_engine;
+    }
+
+    auto getBBO() noexcept -> const BBODouble * {
+        bbo_double_ =
+            BBODouble(book_.getBBO(), precission_price_, precission_qty_);
+        return &bbo_double_;
+    }
+
+    MarketOrderBookDouble(const MarketOrderBook &)             = delete;
+
+    MarketOrderBookDouble(const MarketOrderBook &&)            = delete;
+
+    MarketOrderBookDouble &operator=(const MarketOrderBook &)  = delete;
+
+    MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
+
+  private:
+    Common::TradingPair trading_pair_;
+    Common::TradingPairHashMap &pairs_;
+    uint precission_price_;
+    uint precission_qty_;
+    BBODouble bbo_double_;
+    backtesting::MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;
 };
 
