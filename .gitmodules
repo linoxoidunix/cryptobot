@@ -1,6 +1,3 @@
-[submodule "googletest"]
-	path = googletest
-	url = https://github.com/google/googletest.git
 [submodule "aot_data"]
 	path = aot_data
 	url = https://github.com/linoxoidunix/aot_data.git
