@@ -36,7 +36,7 @@ jobs:
     - name: Git Submodule Update
       run: |
         git pull --recurse-submodules
-        git submodule update --remote --recursive
+        git submodule update --force --recursive --init --remote
    
     - name: Configure CMake DBG
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
