@@ -38,11 +38,19 @@ jobs:
         git pull --recurse-submodules
         git submodule update --remote --recursive
    
-    # - name: Configure CMake
-    #   # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-    #   # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-    #   # run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} --target aot
-    #   run: cmake --preset cryptobot_dbg -S ${{github.workspace}} -B ${{github.workspace}}/build
+    - name: Configure CMake DBG
+      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+      # run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} --target aot
+      # run: cmake --preset cryptobot_dbg -S ${{github.workspace}} -B ${{github.workspace}}/build
+      run: cmake --preset cryptobot_dbg
+
+    - name: Configure CMake RELEASE
+    # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+    # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+    # run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} --target aot
+    # run: cmake --preset cryptobot_dbg -S ${{github.workspace}} -B ${{github.workspace}}/build
+      run: cmake --preset cryptobot_release
 
     - name: Build DBG
       # Build your program with the given configuration
