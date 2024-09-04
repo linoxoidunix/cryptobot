@@ -2,8 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#define FMT_HEADER_ONLY
-#include "aot/third_party/fmt/core.h"
+#include "aot/Logger.h"
 
 #include "aot/common/types.h"
 #include "aot/Binance.h"

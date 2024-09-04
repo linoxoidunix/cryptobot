@@ -39,6 +39,11 @@ ${CMAKE_SOURCE_DIR}
 
 
 
+# gtest_discover_tests(${PROJECT_NAME}_trading_pair)
+# gtest_discover_tests(${PROJECT_NAME}_config_back_testing)
 
 set_property(TARGET ${PROJECT_NAME}_trading_pair PROPERTY CXX_STANDARD 23)
 set_property(TARGET ${PROJECT_NAME}_config_back_testing PROPERTY CXX_STANDARD 23)
+
+gtest_add_tests(TARGET ${PROJECT_NAME}_trading_pair)
+gtest_add_tests(TARGET ${PROJECT_NAME}_config_back_testing)

@@ -35,5 +35,13 @@
             "configurePreset": "cryptobot_release",
             "jobs": 18
         }
-    ]
+    ],
+    "testPresets": [
+    {
+      "name": "tests",
+      "configurePreset": "cryptobot_release",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ]
 }
