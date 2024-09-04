@@ -9,9 +9,6 @@ find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
 include(FetchContent)
 
-# Externally provided libraries
-
-
 FetchContent_Declare(
     simdjson
     GIT_REPOSITORY https://github.com/simdjson/simdjson.git
@@ -24,22 +21,13 @@ FetchContent_Declare(
     nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
 )
-# FetchContent_Declare(
-#     fast_double_parser
-#     GIT_REPOSITORY https://github.com/lemire/fast_double_parser.git
-# )
+
 SET(ENABLE_TESTING OFF)
 FetchContent_Declare(
     prometheus-cpp
     GIT_REPOSITORY https://github.com/jupp0r/prometheus-cpp.git
     FIND_PACKAGE_ARGS NAMES prometheus-cpp
 )
-# FetchContent_MakeAvailable(tomlplusplus)
-#find_package(simdjson CONFIG REQUIRED)
-# find_package(magic_enum CONFIG REQUIRED)
-# find_package(nlohmann_json 3.2.0 CONFIG REQUIRED)
-# find_package(fast_double_parser REQUIRED)
-# find_package(prometheus-cpp REQUIRED)
 
 set(ABSL_ENABLE_INSTALL ON)
 FetchContent_Declare(
@@ -56,16 +44,6 @@ FetchContent_Declare(
     # OVERRIDE_FIND_PACKAGE
 )
 
-
-
-# find_package(re2 REQUIRED)
-# find_package(absl REQUIRED)#re2 need in absl
-
-# add_subdirectory(googletest)
-# set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
-# find_package(benchmark)
-
-#add_subdirectory(benchmark)
 set(Boost_USE_STATIC_LIBS ON) 
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF)
@@ -73,9 +51,6 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
-
-# option(TURN_ON_LATENCY_FOR_GENERATOR_BID_ASK_SERVICE "turn on measure latency for generator bid ask" true)
-# option(TURN_ON_LATENCY_FOR_TRADE_ENGINE "turn on measure latency for trade engine" true)
 
 FetchContent_Declare(
     tomlplusplus
@@ -124,22 +99,7 @@ FetchContent_MakeAvailable(re2)
 find_package(Boost 1.65.0) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
-# find_package(unordered_dense)
 
-                                                    # include(ExternalProject)
-                                                    # ExternalProject_Add(cpptrader
-                                                    #   GIT_REPOSITORY    https://github.com/chronoxor/CppTrader.git
-                                                    #   PREFIX CppTrader
-                                                    # #   EXCLUDE_FROM_ALL TRUE
-                                                    # #   SOURCE_DIR   = CppTrader/source
-
-                                                    #   CMAKE_ARGS
-                                                    #     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                                                    #     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                                                    #     -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_INSTALL_PREFIX}
-                                                    # )
-
-                                                    # ExternalProject_Get_Property(cpptrader install_dir)
 file(GLOB LIST_H
      "aot/*.h"
      "aot/common/*.h"
@@ -171,14 +131,6 @@ add_library (${PROJECT_NAME}
     ${SRC}
 )
 
-#find_package(absl REQUIRED)
-#find_package(concurrentqueue REQUIRED)
-
-
-
-#add_library(cpp_trader STATIC IMPORTED)
-#SET_TARGET_PROPERTIES(cpp_trader PROPERTIES IMPORTED_LOCATION /home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/lib/libcpptrader.a)
-
 target_include_directories(
     ${PROJECT_NAME}
     ${BOOST_BEAST_FILES}
@@ -201,8 +153,6 @@ target_link_libraries(${PROJECT_NAME}
     simdjson::simdjson
     nlohmann_json::nlohmann_json
     Python::Python
-    # concurrentqueue::concurrentqueue
-    # fast_double_parser::fast_double_parser
     concurrentqueue
     unordered_dense::unordered_dense
     prometheus-cpp::core 
@@ -222,5 +172,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_A
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
 add_subdirectory(example)
+enable_testing()
+include(GoogleTest)
 add_subdirectory(tests)
 
