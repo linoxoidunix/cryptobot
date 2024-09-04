@@ -219,7 +219,7 @@ class MarketOrderBook final {
     auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
         -> void;
 
-    auto getBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
+    auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 
     MarketOrderBook(const MarketOrderBook &)             = delete;
 
@@ -255,7 +255,7 @@ class MarketOrderBookDouble {
 
     auto getBBO() noexcept -> const BBODouble * {
         bbo_double_ =
-            BBODouble(book_.getBBO(), precission_price_, precission_qty_);
+            BBODouble(book_.GetBBO(), precission_price_, precission_qty_);
         return &bbo_double_;
     }
 
