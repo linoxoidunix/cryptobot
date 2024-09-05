@@ -148,3 +148,13 @@ class TradeEngine {
     }
 };
 }  // namespace Trading
+
+namespace backtesting{
+class TradeEngine : public Trading::TradeEngine{
+public:
+    explicit TradeEngine(Exchange::EventLFQueue *market_updates,
+        OHLCVILFQueue *klines,
+        const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
+        base_strategy::Strategy *predictor): Trading::TradeEngine(market_updates, nullptr, nullptr, nullptr, klines, nullptr, trading_pair, pairs, predictor) {};
+};
+};

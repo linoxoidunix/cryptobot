@@ -211,7 +211,7 @@ class TradeEngine;
 
 class MarketOrderBook final {
   public:
-    explicit MarketOrderBook();
+    explicit MarketOrderBook() = default;
 
     ~MarketOrderBook();
 

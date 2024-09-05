@@ -62,8 +62,6 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
 };  // namespace Trading
 
 namespace backtesting {
-MarketOrderBook::MarketOrderBook(){
-}
 
 MarketOrderBook::~MarketOrderBook() {
     logi("call ~MarketOrderBook()");

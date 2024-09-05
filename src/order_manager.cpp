@@ -39,3 +39,28 @@ auto Trading::OrderManager::CancelOrder(Common::TradingPair trading_pair,
     trade_engine_->SendRequestCancelOrder(&cancel_request);
     order->state = OMOrderState::PENDING_CANCEL;
 }
+
+auto backtesting::OrderManager::NewOrder(const Common::TradingPair trading_pair, PriceD price, Side side,
+                                     QtyD qty) noexcept -> void {
+    assert(price > 0);
+    assert(qty > 0);
+    auto order = GetOrder(trading_pair, side);
+    auto OrderIsLive = [order](){
+        return !(order->state == Trading::OMOrderState::DEAD || order->state == Trading::OMOrderState::INVALID); 
+    };
+    if(OrderIsLive())
+    {
+        logi("there is live order for ticker:{}. can't create new order", trading_pair.ToString());
+        fmtlog::poll();
+        return;
+    }
+    *order = {trading_pair, next_order_id_,           side, price,
+              qty,       Trading::OMOrderState::LIVE};
+    ++next_order_id_;
+}
+
+auto backtesting::OrderManager::CancelOrder(Common::TradingPair trading_pair,
+                                        Side side) noexcept -> void {
+    auto order = GetOrder(trading_pair, side);
+    order->state = Trading::OMOrderState::DEAD;
+}
