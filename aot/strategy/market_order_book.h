@@ -245,17 +245,14 @@ class MarketOrderBookDouble {
 
     ~MarketOrderBookDouble() = default;
 
-    /// Process market data update and update the limit order book.
-    auto OnMarketUpdate(
-        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
-
+    auto OnNewKLine(
+        const OHLCVExt *market_update) noexcept -> void;
+    
     auto SetTradeEngine(TradeEngine *trade_engine) {
         trade_engine_ = trade_engine;
     }
 
     auto getBBO() noexcept -> const BBODouble * {
-        bbo_double_ =
-            BBODouble(book_.GetBBO(), precission_price_, precission_qty_);
         return &bbo_double_;
     }
 
@@ -273,7 +270,6 @@ class MarketOrderBookDouble {
     uint precission_price_;
     uint precission_qty_;
     BBODouble bbo_double_;
-    backtesting::MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;
 };
 

@@ -73,4 +73,10 @@ auto MarketOrderBook::onMarketUpdate(
         bbo_.price = market_update->price;
         bbo_.qty = market_update->qty;
 }
+
+auto MarketOrderBookDouble::OnNewKLine(
+    const OHLCVExt *new_kline) noexcept -> void {
+        bbo_double_.price = new_kline->ohlcv.open;
+        bbo_double_.qty = new_kline->ohlcv.volume/bbo_double_.price;
+}
 }

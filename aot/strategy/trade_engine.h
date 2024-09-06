@@ -35,10 +35,11 @@ class TradeEngine {
         Exchange::RequestNewLimitOrderLFQueue *request_new_order,
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
-        prometheus::EventLFQueue *latency_event_lfqueue, const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
-        base_strategy::Strategy *predictor);
+        prometheus::EventLFQueue *latency_event_lfqueue,
+        const Common::TradingPair trading_pair,
+        Common::TradingPairHashMap &pairs, base_strategy::Strategy *predictor);
 
-    ~TradeEngine();
+    virtual ~TradeEngine();
 
     /// Start and stop the trade engine main thread.
     auto Start() -> void {
@@ -58,12 +59,14 @@ class TradeEngine {
         }
         run_ = false;
     }
+    /**
+     * @brief launch strategy for generate trade signals
+     *
+     * @param new_kline
+     */
+    virtual auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
 
     common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
-
-    /// Main loop for this thread - processes incoming client responses and
-    /// market data updates which in turn may generate client requests.
-    auto Run() noexcept -> void;
 
     /// Write a client request to the lock free queue for the order server to
     /// consume and send to the exchange.
@@ -83,12 +86,11 @@ class TradeEngine {
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair, PriceD price, Side side,
+    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair,
+                           PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
-    std::string GetStatistics() const{
-        return position_keeper_.ToString();
-    }
+    std::string GetStatistics() const { return position_keeper_.ToString(); }
     /// Process trade events - updates the  feature engine and informs the
     /// trading algorithm about the trade event.
     // auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update,
@@ -110,51 +112,49 @@ class TradeEngine {
     Exchange::RequestNewLimitOrderLFQueue *request_new_order_  = nullptr;
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
     Exchange::ClientResponseLFQueue *response_                 = nullptr;
-    OHLCVILFQueue *klines_                                     = nullptr;
     prometheus::EventLFQueue *latency_event_lfqueue_           = nullptr;
     const TradingPair trading_pair_;
     TradingPairHashMap pairs_;
     PositionKeeper position_keeper_;
 
-    volatile bool run_ = false;
     std::unique_ptr<std::thread> thread_;
     TradeEngineCfgHashMap config_;
-    common::TimeManager time_manager_;
     Trading::MarketOrderBookDouble order_book_;
     Trading::OrderManager order_manager_;
-    Trading::BaseStrategy strategy_;
     /**
     * Process client responses - updates the position keeper and informs the
     trading algorithm about the response.
     */
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void;
-    /**
-     * @brief launch strategy for generate trade signals
-     *
-     * @param new_kline
-     */
-    auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
-    template <bool need_measure_latency, class LFQueuePtr>
-    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
-        if constexpr (need_measure_latency == true) {
-            if (queue) [[likely]] {
-                auto status = queue->try_enqueue(
-                    prometheus::Event(type, common::getCurrentNanoS()));
-                if (!status) [[unlikely]]
-                    loge("my queue is full");
-            }
-        }
-    }
+
+  protected:    
+    volatile bool run_ = false;
+    common::TimeManager time_manager_;
+    OHLCVILFQueue *klines_                                     = nullptr;
+    Trading::BaseStrategy strategy_;
+
+    /// Main loop for this thread - processes incoming client responses and
+    /// market data updates which in turn may generate client requests.
+    virtual auto Run() noexcept -> void;
 };
 }  // namespace Trading
 
-namespace backtesting{
-class TradeEngine : public Trading::TradeEngine{
-public:
-    explicit TradeEngine(Exchange::EventLFQueue *market_updates,
-        OHLCVILFQueue *klines,
-        const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
-        base_strategy::Strategy *predictor): Trading::TradeEngine(market_updates, nullptr, nullptr, nullptr, klines, nullptr, trading_pair, pairs, predictor) {};
+namespace backtesting {
+class TradeEngine : public Trading::TradeEngine {
+    backtesting::MarketOrderBookDouble order_book_;
+  public:
+    explicit TradeEngine(OHLCVILFQueue *klines,
+                         const Common::TradingPair trading_pair,
+                         Common::TradingPairHashMap &pairs,
+                         base_strategy::Strategy *predictor)
+        : Trading::TradeEngine(nullptr, nullptr, nullptr, nullptr,
+                               klines, nullptr, trading_pair, pairs,
+                               predictor),order_book_(trading_pair, pairs) {};
+    ~TradeEngine() override = default;
+
+  private:
+    auto Run() noexcept -> void override;
+    auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void override;
 };
-};
+};  // namespace backtesting
