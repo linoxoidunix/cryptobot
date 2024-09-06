@@ -62,8 +62,6 @@ auto Trading::MarketOrderBookDouble::OnMarketUpdate(
 };  // namespace Trading
 
 namespace backtesting {
-MarketOrderBook::MarketOrderBook(){
-}
 
 MarketOrderBook::~MarketOrderBook() {
     logi("call ~MarketOrderBook()");
@@ -72,5 +70,7 @@ MarketOrderBook::~MarketOrderBook() {
 /// Process market data update and update the limit order book.
 auto MarketOrderBook::onMarketUpdate(
     const Exchange::MEMarketUpdate *market_update) noexcept -> void {
+        bbo_.price = market_update->price;
+        bbo_.qty = market_update->qty;
 }
 }

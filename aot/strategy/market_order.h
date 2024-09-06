@@ -11,6 +11,12 @@
 
 struct BBOI {
     virtual Common::Price GetWeightedPrice() const = 0;
+    virtual ~BBOI() = default;
+};
+
+struct BBODI {
+    virtual Common::PriceD GetWeightedPrice() const = 0;
+    virtual ~BBODI() = default;
 };
 
 namespace Trading {
@@ -170,7 +176,7 @@ namespace backtesting {
 
 struct BBO;
 
-struct BBODouble {
+struct BBODouble : BBODI{
 
     double price   = Common::kPRICE_DOUBLE_INVALID;
     double qty     = Common::kQTY_DOUBLE_INVALID;
@@ -182,9 +188,13 @@ struct BBODouble {
         auto bid_price_string = (price != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", price, price_prec) : "INVALID";
         return fmt::format("BBODouble[{}@{}]", bid_qty_string, bid_price_string);
     };
+    Common::PriceD GetWeightedPrice() const override{
+        return price;
+    };
     explicit BBODouble(const BBO *bbo, uint8_t precission_price,
                        uint8_t precission_qty);
     explicit BBODouble() = default;
+    ~BBODouble() = default;
 };
 
 struct BBO : BBOI{

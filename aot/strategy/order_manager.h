@@ -28,7 +28,8 @@ class OrderManager {
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void {
         logd("{}", client_response->ToString());
-        if (!ticker_side_order_.count(client_response->trading_pair)) [[unlikely]] {
+        if (!ticker_side_order_.count(client_response->trading_pair))
+            [[unlikely]] {
             loge("critical error in OrderManager");
             return;
         }
@@ -61,8 +62,8 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    auto NewOrder(Common::TradingPair trading_pair, PriceD price, Side side,
-                  QtyD qty) noexcept -> void;
+    virtual auto NewOrder(Common::TradingPair trading_pair, PriceD price,
+                          Side side, QtyD qty) noexcept -> void;
 
     /**
      * @brief
@@ -70,18 +71,16 @@ class OrderManager {
      * @param ticker_id
      * @param side
      */
-    auto CancelOrder(Common::TradingPair trading_pair, Side side) noexcept -> void;
+    virtual auto CancelOrder(Common::TradingPair trading_pair,
+                             Side side) noexcept -> void;
 
     /// Deleted default, copy & move constructors and assignment-operators.
     OrderManager()                                 = delete;
-
     OrderManager(const OrderManager &)             = delete;
-
     OrderManager(const OrderManager &&)            = delete;
-
     OrderManager &operator=(const OrderManager &)  = delete;
-
     OrderManager &operator=(const OrderManager &&) = delete;
+    virtual ~OrderManager()                        = default;
 
   private:
     /// The parent trade engine object, used to send out client requests.
@@ -96,6 +95,7 @@ class OrderManager {
     /// Used to set OrderIds on outgoing new order requests.
     Common::OrderId next_order_id_ = 1;
 
+  protected:
     Trading::OMOrder *GetOrder(Common::TradingPair trading_pair, Side side) {
         if (!ticker_side_order_.count(trading_pair)) [[unlikely]]
             ticker_side_order_.insert({trading_pair, {}});
@@ -103,3 +103,35 @@ class OrderManager {
     };
 };
 }  // namespace Trading
+
+namespace backtesting {
+class OrderManager : public Trading::OrderManager {
+    using Trading::OrderManager::OrderManager;
+
+    Trading::OMOrderTickerSideHashMap ticker_side_order_;
+
+    Common::OrderId next_order_id_ = 1;
+
+  public:
+    auto NewOrder(Common::TradingPair trading_pair, PriceD price, Side side,
+                  QtyD qty) noexcept -> void override;
+    auto CancelOrder(Common::TradingPair trading_pair,
+                     Side side) noexcept -> void override;
+
+    Trading::OMOrder *TestGetOrder(Common::TradingPair trading_pair,
+                                   Side side) {
+        return GetOrder(trading_pair, side);
+    };
+
+    OrderManager()                                 = delete;
+    OrderManager(const OrderManager &)             = delete;
+    OrderManager(const OrderManager &&)            = delete;
+    OrderManager &operator=(const OrderManager &)  = delete;
+    OrderManager &operator=(const OrderManager &&) = delete;
+    ~OrderManager() override                       = default;
+
+  private:
+    auto OnOrderResponse(const Exchange::MEClientResponse *) const {};
+};
+
+}  // namespace backtesting
