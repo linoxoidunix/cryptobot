@@ -125,7 +125,6 @@ class MarketOrderBook final {
             else
                 loge("critical error bids_at_price_map_");
         }
-        fmtlog::poll();
         price_orders_at_price_.at(price) = nullptr;
         price_orders_at_price_.erase(price);
 
@@ -179,8 +178,7 @@ class MarketOrderBookDouble {
     }
 
     auto getBBO() noexcept -> const BBODouble * {
-        bbo_double_ =
-            BBODouble(book_.getBBO(), precission_price_, precission_qty_);
+        bbo_double_ = BBODouble(book_.getBBO(), precission_price_, precission_qty_);
         return &bbo_double_;
     }
 
@@ -195,8 +193,8 @@ class MarketOrderBookDouble {
   private:
     Common::TradingPair trading_pair_;
     Common::TradingPairHashMap &pairs_;
-    uint precission_price_;
-    uint precission_qty_;
+    uint8_t precission_price_;
+    uint8_t precission_qty_;
     BBODouble bbo_double_;
     MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;

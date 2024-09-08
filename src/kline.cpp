@@ -89,7 +89,6 @@ void OHLCVI::Init(OHLCVILFQueue& lf_queue) {
                 new_line.trading_pair = trading_pair_;
                 ohlcv_history_.push_back(new_line);
             }
-            fmtlog::poll();
         }
     } catch (const std::ifstream::failure& e) {
         loge("Exception opening/reading file {}", path_to_file_);

@@ -663,13 +663,11 @@ class OrderNewLimit : public inner::OrderNewI {
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
-            fmtlog::poll();
             ParserResponse parser(pairs_reverse_);
             auto answer    = parser.Parse(resut);
             bool status_op = response_lfqueue->try_enqueue(answer);
             if (!status_op) [[unlikely]]
                 loge("my queuee is full. need clean my queue");
-            fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),
@@ -762,13 +760,11 @@ class CancelOrder : public inner::CancelOrderI {
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
-            fmtlog::poll();
             ParserResponse parser(pairs_reverse_);
             auto answer    = parser.Parse(resut);
             bool status_op = response_lfqueue->try_enqueue(answer);
             if (!status_op) [[unlikely]]
                 loge("my queue is full. need clean my queue");
-            fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),
@@ -850,7 +846,6 @@ class BookSnapshot : public inner::BookSnapshotI {
             auto answer   = parser.Parse(resut);
             answer.ticker = args_["symbol"];
             *snapshot_    = answer;
-            fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),

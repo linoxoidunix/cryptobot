@@ -231,7 +231,6 @@ class OHLCVI : public OHLCVGetter {
         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
             logi("{}", resut);
-            fmtlog::poll();
         };
 
         using kls = KLineStream;
@@ -515,7 +514,6 @@ class OrderNewLimit : public inner::OrderNewI {
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
-            fmtlog::poll();
         };
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),

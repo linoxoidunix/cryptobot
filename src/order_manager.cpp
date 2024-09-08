@@ -13,7 +13,6 @@ auto Trading::OrderManager::NewOrder(const Common::TradingPair trading_pair, Pri
     if(OrderIsLive())
     {
         logi("there is live order for ticker:{}. can't create new order", trading_pair.ToString());
-        fmtlog::poll();
         return;
     }
     const Exchange::RequestNewOrder new_request{
@@ -51,7 +50,6 @@ auto backtesting::OrderManager::NewOrder(const Common::TradingPair trading_pair,
     if(OrderIsLive())
     {
         logi("there is live order for ticker:{}. can't create new order", trading_pair.ToString());
-        fmtlog::poll();
         return;
     }
     *order = {trading_pair, next_order_id_,           side, price,

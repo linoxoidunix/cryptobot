@@ -73,7 +73,6 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
     logd("GeneratorBidAskService start");
     book_event_getter_->Init(book_diff_lfqueue_);
     logd("start subscribe book diff binance");
-    fmtlog::poll();
     bool is_first_run                 = true;
     bool diff_packet_lost             = true;
     bool snapshot_and_diff_was_synced = false;
@@ -152,7 +151,6 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             item.AddToQueue(*event_lfqueue_);
         }
 
-        fmtlog::poll();
         time_manager_.Update();
     }
 }

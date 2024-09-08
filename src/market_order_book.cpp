@@ -55,7 +55,8 @@ auto MarketOrderBookDouble::OnMarketUpdate(
     const Exchange::MEMarketUpdate buf(market_update, precission_price_,
                                        precission_qty_);
     book_.onMarketUpdate(&buf);
-    trade_engine_->OnOrderBookUpdate(trading_pair_, market_update->price,
+    if(trade_engine_)
+        trade_engine_->OnOrderBookUpdate(trading_pair_, market_update->price,
                                      market_update->side, this);
 };
 
