@@ -19,18 +19,22 @@ struct BaseEvent : public Event{
     ~BaseEvent() override = default;
     EventType GetType() override { return EventType::kNoEvent; };
 };
-struct BidUpdated : public BaseEvent {
+/**
+ * @brief best bid updated
+ * 
+ */
+struct BBidUpdated : public BaseEvent {
     Common::TradingPair trading_pair;
     Common::PriceD price;
     Common::QtyD qty;
-    BidUpdated() = default;
-    BidUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
+    BBidUpdated() = default;
+    BBidUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
                Common::QtyD _qty)
         : trading_pair(_trading_pair), price(_price), qty(_qty) {};
-    ~BidUpdated() override = default;
+    ~BBidUpdated() override = default;
     EventType GetType() override { return EventType::kBidUpdate; };
 };
 using LFQueue =  moodycamel::ConcurrentQueue<Event*>;
-using BUPool = common::MemPool<BidUpdated>;
+using BUPool = common::MemPool<BBidUpdated>;
 }  // namespace cross_arbitrage
 }  // namespace strategy

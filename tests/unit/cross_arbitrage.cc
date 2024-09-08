@@ -43,14 +43,14 @@ TEST(MemPoolEvents, UsingInThread) {
     std::jthread t1([&pool, &queue]() {
         for (int i = 0; i < 9; i++) {
             auto ptr =
-                pool.allocate(BidUpdated(TradingPair{2, 1}, 100.0+i, 14.0+i));
+                pool.allocate(BBidUpdated(TradingPair{2, 1}, 100.0+i, 14.0+i));
             queue.enqueue(ptr);
         }
         while (queue.size_approx()) {
         };
         for (int i = 0; i < 9; i++) {
             auto ptr =
-                pool.allocate(BidUpdated(TradingPair{2, 1}, 100.0 + 9 + i , 14.0 + 9 + i));
+                pool.allocate(BBidUpdated(TradingPair{2, 1}, 100.0 + 9 + i , 14.0 + 9 + i));
             queue.enqueue(ptr);
         }
     });
@@ -63,7 +63,7 @@ TEST(MemPoolEvents, UsingInThread) {
             auto status = queue.try_dequeue(event);
             if(status)
                 if (event->GetType() == EventType::kBidUpdate) {
-                    auto bid_event = static_cast<BidUpdated*>(event);
+                    auto bid_event = static_cast<BBidUpdated*>(event);
                     EXPECT_EQ(bid_event->GetType(), EventType::kBidUpdate);
                     EXPECT_EQ(bid_event->price, 100+number_dequed);
                     EXPECT_EQ(bid_event->qty, 14+number_dequed);
