@@ -46,6 +46,33 @@ TEST(BBODoubleBacktesting, Create) {
     EXPECT_EQ(bbodouble.qty,4);
 }
 
+TEST(OrderBookService, Launch) {
+    using namespace Trading;
+    Exchange::EventLFQueue queue;
+    Common::TradingPair trading_pair{2,1};
+    Common::TradingPairHashMap pair;
+    MarketOrderBookDouble book(trading_pair, pair);
+    Exchange::MEMarketUpdateDouble market_update;
+    market_update.price = 7.0;
+    market_update.qty = 1.0;
+    market_update.side = Common::Side::BUY;
+
+    queue.enqueue(market_update);
+    market_update.price = 6.0;
+    market_update.qty = 2.0;
+    market_update.side = Common::Side::SELL;
+
+    queue.enqueue(market_update);
+    OrderBookService service(&book, &queue);
+    service.Start();
+    service.StopWaitAllQueue();
+
+    EXPECT_EQ(book.getBBO()->ask_price,7.0);
+    EXPECT_EQ(book.getBBO()->ask_qty ,1.0);
+    EXPECT_EQ(book.getBBO()->bid_price, 6.0);
+    EXPECT_EQ(book.getBBO()->bid_qty, 2.0);
+}
+
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
