@@ -47,6 +47,7 @@ TEST(BBODoubleBacktesting, Create) {
 }
 
 TEST(OrderBookService, Launch) {
+    fmtlog::setLogLevel(fmtlog::DBG);
     using namespace Trading;
     Exchange::EventLFQueue queue;
     Common::TradingPair trading_pair{2,1};
