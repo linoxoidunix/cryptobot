@@ -18,7 +18,7 @@ class OrdermanagerBacktestingTest : public testing::Test {
 
   protected:
     OrdermanagerBacktestingTest()
-        : trade_engine_(&market_updates_, &klines_, Common::TradingPair{2, 1},
+        : trade_engine_(&klines_, Common::TradingPair{2, 1},
                         pair_, nullptr),
           order_manager_(&trade_engine_) {
         tickers_[1] = "usdt";

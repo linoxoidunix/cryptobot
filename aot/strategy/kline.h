@@ -75,8 +75,7 @@ class KLineService {
   public:
     explicit KLineService(OHLCVGetter *ohlcv_getter,
                           OHLCVILFQueue *internal_kline_lfqueue,
-                          OHLCVILFQueue *external_kline_lfqueue,
-                          Exchange::EventLFQueue *market_updates_lfqueue);
+                          OHLCVILFQueue *external_kline_lfqueue);
 
     ~KLineService() {
         stop();
@@ -113,7 +112,6 @@ class KLineService {
     OHLCVGetter *ohlcv_getter_;
     OHLCVILFQueue *internal_kline_lfqueue_          = nullptr;
     OHLCVILFQueue *external_kline_lfqueue_          = nullptr;
-    Exchange::EventLFQueue *market_updates_lfqueue_ = nullptr;
     volatile bool run_                              = false;
 
   private:

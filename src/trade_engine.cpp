@@ -193,3 +193,25 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
 
 //     algoOnOrderUpdate_(client_response);
 //   }
+
+auto backtesting::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
+    -> void {
+    logi("launch algorithm prediction for {}", new_kline->ToString());
+    order_book_.OnNewKLine(new_kline);
+    //strategy_.OnNewKLine(new_kline);
+}
+
+auto backtesting::TradeEngine::Run() noexcept -> void{
+    logi("TradeEngineService start");
+    OHLCVExt new_klines[50];
+
+    while (run_){
+        size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
+        for (uint i = 0; i < count_new_klines; i++) [[likely]] {
+            OnNewKLine(&new_klines[i]);
+        }
+        if (count_new_klines) {
+            time_manager_.Update();
+        }
+    }
+}

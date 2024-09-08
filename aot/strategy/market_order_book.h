@@ -4,6 +4,7 @@
 #include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/common/mem_pool.h"
+#include "aot/common/thread_utils.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/strategy/market_order.h"
@@ -124,7 +125,6 @@ class MarketOrderBook final {
             else
                 loge("critical error bids_at_price_map_");
         }
-        fmtlog::poll();
         price_orders_at_price_.at(price) = nullptr;
         price_orders_at_price_.erase(price);
 
@@ -178,8 +178,7 @@ class MarketOrderBookDouble {
     }
 
     auto getBBO() noexcept -> const BBODouble * {
-        bbo_double_ =
-            BBODouble(book_.getBBO(), precission_price_, precission_qty_);
+        bbo_double_ = BBODouble(book_.getBBO(), precission_price_, precission_qty_);
         return &bbo_double_;
     }
 
@@ -194,8 +193,8 @@ class MarketOrderBookDouble {
   private:
     Common::TradingPair trading_pair_;
     Common::TradingPairHashMap &pairs_;
-    uint precission_price_;
-    uint precission_qty_;
+    uint8_t precission_price_;
+    uint8_t precission_qty_;
     BBODouble bbo_double_;
     MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;
@@ -204,6 +203,40 @@ class MarketOrderBookDouble {
 /// Hash map from TickerId -> MarketOrderBook.
 using MarketOrderBookHashMap =
     std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
+
+class OrderBookService : public common::ServiceI {
+  public:
+    explicit OrderBookService(MarketOrderBookDouble *ob,
+                              Exchange::EventLFQueue *book_update)
+        : ob_(ob), queue_(book_update) {};
+    ~OrderBookService() override = default;
+    void Start() override {
+        run_    = true;
+        thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
+            -1, "Trading/OrderBookService", [this] { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start OrderBookService thread.");
+    }
+    void StopWaitAllQueue() override {
+        logi("stop Trading/OrderBookService");
+        while (queue_->size_approx()) {
+            logi("Sleeping till all updates are consumed md-size:{}",
+                 queue_->size_approx());
+            using namespace std::literals::chrono_literals;
+            std::this_thread::sleep_for(10ms);
+        }
+        run_ = false;
+    };
+    void StopImmediately() override {run_ = false;};
+
+    void Run();
+
+  private:
+    volatile bool run_ = false;
+    std::unique_ptr<std::jthread> thread_;
+
+    MarketOrderBookDouble *ob_ = nullptr;
+    Exchange::EventLFQueue *queue_ = nullptr;
+};
 }  // namespace Trading
 
 namespace backtesting {
@@ -231,8 +264,7 @@ class MarketOrderBook final {
 
   private:
     backtesting::BBO bbo_;
-
- };
+};
 
 class MarketOrderBookDouble {
   public:
@@ -245,19 +277,13 @@ class MarketOrderBookDouble {
 
     ~MarketOrderBookDouble() = default;
 
-    /// Process market data update and update the limit order book.
-    auto OnMarketUpdate(
-        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
+    auto OnNewKLine(const OHLCVExt *market_update) noexcept -> void;
 
     auto SetTradeEngine(TradeEngine *trade_engine) {
         trade_engine_ = trade_engine;
     }
 
-    auto getBBO() noexcept -> const BBODouble * {
-        bbo_double_ =
-            BBODouble(book_.GetBBO(), precission_price_, precission_qty_);
-        return &bbo_double_;
-    }
+    auto getBBO() noexcept -> const BBODouble * { return &bbo_double_; }
 
     MarketOrderBookDouble(const MarketOrderBook &)             = delete;
 
@@ -273,11 +299,10 @@ class MarketOrderBookDouble {
     uint precission_price_;
     uint precission_qty_;
     BBODouble bbo_double_;
-    backtesting::MarketOrderBook book_;
     TradeEngine *trade_engine_ = nullptr;
 };
 
 /// Hash map from TickerId -> MarketOrderBook.
 using MarketOrderBookHashMap =
     std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
-}  // namespace Trading
+}  // namespace backtesting
