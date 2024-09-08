@@ -7,7 +7,7 @@
 TEST(CrossArbitrageEvent, Create) {
     using namespace strategy::cross_arbitrage;
     using namespace Common;
-    BidUpdated bid_updated(TradingPair{2, 1}, 100.0, 14.0);
+    BBidUpdated bid_updated(TradingPair{2, 1}, 100.0, 14.0);
     EXPECT_EQ(bid_updated.GetType(), EventType::kBidUpdate);
     EXPECT_EQ(bid_updated.price, 100);
     EXPECT_EQ(bid_updated.qty, 14);
@@ -20,13 +20,13 @@ TEST(MemPoolEvents, Using) {
     BUPool pool{10};
     LFQueue queue;
     for (int i = 0; i < 9; i++) {
-        auto ptr = pool.allocate(BidUpdated(TradingPair{2, 1}, 100.0, 14.0));
+        auto ptr = pool.allocate(BBidUpdated(TradingPair{2, 1}, 100.0, 14.0));
         queue.enqueue(ptr);
     }
     Event* event;
     queue.try_dequeue(event);
     if (event->GetType() == EventType::kBidUpdate) {
-        auto bid_event = static_cast<BidUpdated*>(event);
+        auto bid_event = static_cast<BBidUpdated*>(event);
         EXPECT_EQ(bid_event->GetType(), EventType::kBidUpdate);
         EXPECT_EQ(bid_event->price, 100);
         EXPECT_EQ(bid_event->qty, 14);
