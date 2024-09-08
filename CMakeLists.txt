@@ -107,6 +107,7 @@ file(GLOB LIST_H
      "aot/order_gw/*.h"
      "aot/prometheus/*.h"
      "aot/strategy/*.h"
+     "aot/strategy/cross_arbitrage/*.h"
      "aot/third_party/*.h"
      "aot/python/*.h"
 )
