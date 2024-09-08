@@ -64,9 +64,15 @@ TEST(OrderBookService, Launch) {
 
     queue.enqueue(market_update);
     OrderBookService service(&book, &queue);
+    std::cerr << 1 << "\n";
+    fmtlog::poll();
     service.Start();
+    std::cerr << 2 << "\n";
+    fmtlog::poll();
     service.StopWaitAllQueue();
-
+    std::cerr << 3 << "\n";
+    fmtlog::poll();
+    std::cerr << 4 << "\n";
     EXPECT_EQ(book.getBBO()->ask_price,7.0);
     EXPECT_EQ(book.getBBO()->ask_qty ,1.0);
     EXPECT_EQ(book.getBBO()->bid_price, 6.0);
