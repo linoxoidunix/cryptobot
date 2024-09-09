@@ -90,18 +90,18 @@
 \DoxyCodeLine{101     \textcolor{keyword}{class }\mbox{\hyperlink{classbase__strategy_1_1Strategy_1_1Parser}{Parser}} \{}
 \DoxyCodeLine{102       \textcolor{keyword}{public}:}
 \DoxyCodeLine{103         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbase__strategy_1_1Strategy_1_1Parser}{Parser}}() = \textcolor{keywordflow}{default};}
-\DoxyCodeLine{104         Common::TradeAction Parse(\textcolor{keyword}{const} \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy::Result}} \&result)\textcolor{keyword}{ const }\{}
+\DoxyCodeLine{104         common::TradeAction Parse(\textcolor{keyword}{const} \mbox{\hyperlink{structIStrategy_1_1Result}{IStrategy::Result}} \&result)\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{105             \textcolor{comment}{// base on "{}aot/python/my\_types.py"{}}}
 \DoxyCodeLine{106             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}enter\_long"{}})}
-\DoxyCodeLine{107                 \textcolor{keywordflow}{return} Common::TradeAction::kEnterLong;}
+\DoxyCodeLine{107                 \textcolor{keywordflow}{return} common::TradeAction::kEnterLong;}
 \DoxyCodeLine{108             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}enter\_short"{}})}
-\DoxyCodeLine{109                 \textcolor{keywordflow}{return} Common::TradeAction::kEnterShort;}
+\DoxyCodeLine{109                 \textcolor{keywordflow}{return} common::TradeAction::kEnterShort;}
 \DoxyCodeLine{110             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}exit\_long"{}})}
-\DoxyCodeLine{111                 \textcolor{keywordflow}{return} Common::TradeAction::kExitLong;}
+\DoxyCodeLine{111                 \textcolor{keywordflow}{return} common::TradeAction::kExitLong;}
 \DoxyCodeLine{112             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}exit\_short"{}})}
-\DoxyCodeLine{113                 \textcolor{keywordflow}{return} Common::TradeAction::kExitShort;}
-\DoxyCodeLine{114             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}"{}}) \textcolor{keywordflow}{return} Common::TradeAction::kNope;}
-\DoxyCodeLine{115             \textcolor{keywordflow}{return} Common::TradeAction::kNope;}
+\DoxyCodeLine{113                 \textcolor{keywordflow}{return} common::TradeAction::kExitShort;}
+\DoxyCodeLine{114             \textcolor{keywordflow}{if} (result.action == \textcolor{stringliteral}{"{}"{}}) \textcolor{keywordflow}{return} common::TradeAction::kNope;}
+\DoxyCodeLine{115             \textcolor{keywordflow}{return} common::TradeAction::kNope;}
 \DoxyCodeLine{116         \};}
 \DoxyCodeLine{117     \};}
 \DoxyCodeLine{118     \mbox{\hyperlink{classbase__strategy_1_1Strategy}{\string~Strategy}}()\textcolor{keyword}{ override }\{ Py\_DECREF(predictor\_instance\_); \};}

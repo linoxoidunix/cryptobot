@@ -41,24 +41,24 @@
 \DoxyCodeLine{51   \textcolor{keyword}{public}:}
 \DoxyCodeLine{52     \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} type = ClientRequestType::NEW;}
 \DoxyCodeLine{53     std::string ticker;}
-\DoxyCodeLine{54     Common::OrderId order\_id = Common::OrderId\_INVALID;}
-\DoxyCodeLine{55     Common::Side side        = Common::Side::INVALID;}
-\DoxyCodeLine{56     \textcolor{keywordtype}{double} price             = Common::kPRICE\_DOUBLE\_INVALID;}
-\DoxyCodeLine{57     \textcolor{keywordtype}{double} qty               = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{54     common::OrderId order\_id = common::OrderId\_INVALID;}
+\DoxyCodeLine{55     common::Side side        = common::Side::INVALID;}
+\DoxyCodeLine{56     \textcolor{keywordtype}{double} price             = common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{57     \textcolor{keywordtype}{double} qty               = common::kQTY\_DOUBLE\_INVALID;}
 \DoxyCodeLine{58     uint8\_t price\_prec       = 0;}
 \DoxyCodeLine{59     uint8\_t qty\_prec         = 0;}
 \DoxyCodeLine{60     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{61         std::string price\_string =}
-\DoxyCodeLine{62             (price != Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{62             (price != common::kPRICE\_DOUBLE\_INVALID)}
 \DoxyCodeLine{63                 ? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, price, price\_prec)}
 \DoxyCodeLine{64                 : \textcolor{stringliteral}{"{}INVALID"{}};}
-\DoxyCodeLine{65         std::string qty\_string = (qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{65         std::string qty\_string = (qty != common::kQTY\_DOUBLE\_INVALID)}
 \DoxyCodeLine{66                                      ? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, qty, qty\_prec)}
 \DoxyCodeLine{67                                      : \textcolor{stringliteral}{"{}INVALID"{}};}
 \DoxyCodeLine{68         \textcolor{keywordflow}{return} fmt::format(}
 \DoxyCodeLine{69             \textcolor{stringliteral}{"{}RequestNewOrder[type:\{\} ticker:\{\} order\_id:\{\} side:\{\} qty:\{\} price:\{\}]"{}},}
 \DoxyCodeLine{70             ClientRequestTypeToString(type), ticker, order\_id,}
-\DoxyCodeLine{71             Common::sideToString(side), qty\_string, price\_string);}
+\DoxyCodeLine{71             common::sideToString(side), qty\_string, price\_string);}
 \DoxyCodeLine{72     \}}
 \DoxyCodeLine{73 \};}
 \DoxyCodeLine{74 }
@@ -66,7 +66,7 @@
 \DoxyCodeLine{76   \textcolor{keyword}{public}:}
 \DoxyCodeLine{77     \mbox{\hyperlink{client__request_8h_a2573cb45be152f36bcb2bc9d421cdbd0}{ClientRequestType}} type = ClientRequestType::CANCEL;}
 \DoxyCodeLine{78     std::string ticker;}
-\DoxyCodeLine{79     Common::OrderId order\_id = Common::OrderId\_INVALID;}
+\DoxyCodeLine{79     common::OrderId order\_id = common::OrderId\_INVALID;}
 \DoxyCodeLine{80     }
 \DoxyCodeLine{81     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{82         \textcolor{keywordflow}{return} fmt::format(}

@@ -57,4 +57,4 @@ class TimeManager {
     common::Nanos last_  = start_;
 };
 
-}  // namespace Common
+}  // namespace common

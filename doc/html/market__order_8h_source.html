@@ -80,21 +80,21 @@ $(function() {
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &quot;aot/third_party/emhash/hash_table7.hpp&quot;</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="preprocessor">#include &quot;boost/intrusive/avltree.hpp&quot;</span></div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="comment">// using namespace Common;</span></div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="comment">// using namespace common;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span>Trading {</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrder.html">   16</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structTrading_1_1MarketOrder.html">MarketOrder</a> {</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    Common::OrderId order_id_ = Common::OrderId_INVALID;</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    Common::Side side_        = Common::Side::INVALID;</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    Common::Price price_      = Common::Price_INVALID;</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    Common::Qty qty_          = Common::Qty_INVALID;</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="comment">// Common::Priority priority_ = Common::Priority_INVALID;</span></div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    common::OrderId order_id_ = common::OrderId_INVALID;</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    common::Side side_        = common::Side::INVALID;</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    common::Price price_      = common::Price_INVALID;</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    common::Qty qty_          = common::Qty_INVALID;</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="comment">// common::Priority priority_ = common::Priority_INVALID;</span></div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrder.html#af44347eb2bb2c2a5a03f667b761787d8">   27</a></span>    <a class="code hl_function" href="structTrading_1_1MarketOrder.html#af44347eb2bb2c2a5a03f667b761787d8">MarketOrder</a>()             = <span class="keywordflow">default</span>;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <a class="code hl_function" href="structTrading_1_1MarketOrder.html#af44347eb2bb2c2a5a03f667b761787d8">MarketOrder</a>(Common::OrderId order_id, Common::Side side,</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>                Common::Price price, Common::Qty qty) noexcept</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <a class="code hl_function" href="structTrading_1_1MarketOrder.html#af44347eb2bb2c2a5a03f667b761787d8">MarketOrder</a>(common::OrderId order_id, common::Side side,</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>                common::Price price, common::Qty qty) noexcept</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>        : order_id_(order_id), side_(side), price_(price), qty_(qty) {}</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span> </div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    <span class="keyword">auto</span> toString() const -&gt; std::<span class="keywordtype">string</span>;</div>
@@ -102,11 +102,11 @@ $(function() {
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment">// typedef std::vector&lt;MarketOrder*&gt; OrderHashMap;</span></div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">// typedef std::array&lt;MarketOrder *, Common::ME_MAX_ORDER_IDS&gt; OrderHashMap;</span></div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">// typedef std::array&lt;MarketOrder *, common::ME_MAX_ORDER_IDS&gt; OrderHashMap;</span></div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrdersAtPrice.html">   43</a></span>struct <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a> {</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    Common::Side side_   = Common::Side::INVALID;</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    Common::Price price_ = Common::Price_INVALID;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    common::Side side_   = common::Side::INVALID;</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    common::Price price_ = common::Price_INVALID;</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    <a class="code hl_struct" href="structTrading_1_1MarketOrder.html">MarketOrder</a> first_mkt_order_;</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
@@ -125,7 +125,7 @@ $(function() {
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    }</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrdersAtPrice.html#ac9dcceaef4bdc83c8b280fd356b4d2b5">   66</a></span>    <a class="code hl_function" href="structTrading_1_1MarketOrdersAtPrice.html#ac9dcceaef4bdc83c8b280fd356b4d2b5">MarketOrdersAtPrice</a>() = <span class="keywordflow">default</span>;</div>
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a>(Common::Side side, Common::Price price,</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a>(common::Side side, common::Price price,</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>                        <span class="keyword">const</span> <a class="code hl_struct" href="structTrading_1_1MarketOrder.html">MarketOrder</a> &amp;first_mkt_order,</div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>                        <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a> *prev_entry,</div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                        <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a> *next_entry)</div>
@@ -137,7 +137,7 @@ $(function() {
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    <span class="keyword">auto</span> toString()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>        std::stringstream ss;</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>        ss &lt;&lt; <span class="stringliteral">&quot;MarketOrdersAtPrice[&quot;</span> &lt;&lt; <span class="stringliteral">&quot;side:&quot;</span> &lt;&lt; sideToString(side_) &lt;&lt; <span class="stringliteral">&quot; &quot;</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>           &lt;&lt; <span class="stringliteral">&quot;price:&quot;</span> &lt;&lt; Common::priceToString(price_) &lt;&lt; <span class="stringliteral">&quot; &quot;</span></div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>           &lt;&lt; <span class="stringliteral">&quot;price:&quot;</span> &lt;&lt; common::priceToString(price_) &lt;&lt; <span class="stringliteral">&quot; &quot;</span></div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>           &lt;&lt; <span class="stringliteral">&quot;first_mkt_order:&quot;</span> &lt;&lt; first_mkt_order_.toString() &lt;&lt; <span class="stringliteral">&quot;]&quot;</span>;</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>        <span class="keywordflow">return</span> ss.str();</div>
@@ -155,25 +155,25 @@ $(function() {
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    boost::intrusive::compare&lt;std::less&lt;MarketOrdersAtPrice&gt;&gt;, MemberOption&gt;;</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="keyword">using </span>OrdersAtPriceHashMap =</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    emhash7::HashMap&lt;Common::Price, MarketOrdersAtPrice *&gt;;</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    emhash7::HashMap&lt;common::Price, MarketOrdersAtPrice *&gt;;</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span> </div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="keyword">struct </span>BBO;</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span> </div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno"><a class="line" href="structTrading_1_1BBODouble.html">  107</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structTrading_1_1BBODouble.html">BBODouble</a> {</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    <span class="keywordtype">double</span> bid_price   = Common::kPRICE_DOUBLE_INVALID;</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>    <span class="keywordtype">double</span> ask_price   = Common::kPRICE_DOUBLE_INVALID;</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    <span class="keywordtype">double</span> bid_qty     = Common::kQTY_DOUBLE_INVALID;</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>    <span class="keywordtype">double</span> ask_qty     = Common::kQTY_DOUBLE_INVALID;</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    <span class="keywordtype">double</span> bid_price   = common::kPRICE_DOUBLE_INVALID;</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>    <span class="keywordtype">double</span> ask_price   = common::kPRICE_DOUBLE_INVALID;</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    <span class="keywordtype">double</span> bid_qty     = common::kQTY_DOUBLE_INVALID;</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>    <span class="keywordtype">double</span> ask_qty     = common::kQTY_DOUBLE_INVALID;</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    uint8_t price_prec = 0;</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    uint8_t qty_prec   = 0;</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span> </div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>    <span class="keyword">auto</span> ToString()<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        <span class="keyword">auto</span> bid_qty_string = (bid_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, bid_qty, qty_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>        <span class="keyword">auto</span> ask_qty_string = (ask_qty != Common::kQTY_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, ask_qty, qty_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>        <span class="keyword">auto</span> bid_price_string = (bid_price != Common::kPRICE_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, bid_price, price_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>        <span class="keyword">auto</span> ask_price_string = (ask_qty != Common::kPRICE_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, ask_price, price_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        <span class="keyword">auto</span> bid_qty_string = (bid_qty != common::kQTY_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, bid_qty, qty_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>        <span class="keyword">auto</span> ask_qty_string = (ask_qty != common::kQTY_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, ask_qty, qty_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>        <span class="keyword">auto</span> bid_price_string = (bid_price != common::kPRICE_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, bid_price, price_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>        <span class="keyword">auto</span> ask_price_string = (ask_qty != common::kPRICE_DOUBLE_INVALID)? fmt::format(<span class="stringliteral">&quot;{:.{}f}&quot;</span>, ask_price, price_prec) : <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>        <span class="keywordflow">return</span> fmt::format(<span class="stringliteral">&quot;BBODouble[{}@{}X{}@{}]&quot;</span>, bid_qty_string, bid_price_string,</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>                           ask_price_string, ask_qty_string);</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>    };</div>
@@ -183,17 +183,17 @@ $(function() {
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>};</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span> </div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="structTrading_1_1BBO.html">  129</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structTrading_1_1BBO.html">BBO</a> {</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    Common::Price bid_price = Common::Price_INVALID;</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    Common::Price ask_price = Common::Price_INVALID;</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    Common::Qty bid_qty     = Common::Qty_INVALID;</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    Common::Qty ask_qty     = Common::Qty_INVALID;</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    common::Price bid_price = common::Price_INVALID;</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    common::Price ask_price = common::Price_INVALID;</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    common::Qty bid_qty     = common::Qty_INVALID;</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    common::Qty ask_qty     = common::Qty_INVALID;</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span> </div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>    <span class="keyword">auto</span> toString()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        std::stringstream ss;</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        ss &lt;&lt; <span class="stringliteral">&quot;BBO{&quot;</span> &lt;&lt; Common::qtyToString(bid_qty) &lt;&lt; <span class="stringliteral">&quot;@&quot;</span></div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>           &lt;&lt; Common::priceToString(bid_price) &lt;&lt; <span class="stringliteral">&quot;X&quot;</span></div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>           &lt;&lt; Common::priceToString(ask_price) &lt;&lt; <span class="stringliteral">&quot;@&quot;</span></div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>           &lt;&lt; Common::qtyToString(ask_qty) &lt;&lt; <span class="stringliteral">&quot;}&quot;</span>;</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        ss &lt;&lt; <span class="stringliteral">&quot;BBO{&quot;</span> &lt;&lt; common::qtyToString(bid_qty) &lt;&lt; <span class="stringliteral">&quot;@&quot;</span></div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>           &lt;&lt; common::priceToString(bid_price) &lt;&lt; <span class="stringliteral">&quot;X&quot;</span></div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>           &lt;&lt; common::priceToString(ask_price) &lt;&lt; <span class="stringliteral">&quot;@&quot;</span></div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>           &lt;&lt; common::qtyToString(ask_qty) &lt;&lt; <span class="stringliteral">&quot;}&quot;</span>;</div>
 <div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span> </div>
 <div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>        <span class="keywordflow">return</span> ss.str();</div>
 <div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>    };</div>

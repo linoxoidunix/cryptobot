@@ -9,7 +9,7 @@
 #include "aot/Bybit.h"
 
 TEST(TradingPairInfo, Access_1) {
-    using namespace Common;
+    using namespace common;
     TickerHashMap tickers;
     tickers[1] = "btc";
     tickers[2] = "usdt";
@@ -23,7 +23,7 @@ TEST(TradingPairInfo, Access_1) {
 }
 
 TEST(TradingPairInfo, Access_2) {
-    using namespace Common;
+    using namespace common;
     TickerHashMap tickers;
     tickers[1] = "btc";
     tickers[2] = "usdt";
@@ -37,7 +37,7 @@ TEST(TradingPairInfo, Access_2) {
 }
 
 TEST(TradingPairInfo, Access_3_bybit) {
-    using namespace Common;
+    using namespace common;
     TickerHashMap tickers;
     tickers[1] = "btc";
     tickers[2] = "usdt";
@@ -53,7 +53,7 @@ TEST(TradingPairInfo, Access_3_bybit) {
 }
 
 TEST(TradingPairInfo, Access_4_binance) {
-    using namespace Common;
+    using namespace common;
     TickerHashMap tickers;
     tickers[1] = "btc";
     tickers[2] = "usdt";
@@ -69,7 +69,7 @@ TEST(TradingPairInfo, Access_4_binance) {
 }
 
 TEST(TradingPairReverseHashMap, compare_with_string_view) {
-    using namespace Common;
+    using namespace common;
     TickerHashMap tickers;
     tickers[1] = "btc";
     tickers[2] = "usdt";

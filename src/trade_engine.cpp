@@ -9,7 +9,7 @@ TradeEngine::TradeEngine(
     Exchange::RequestCancelOrderLFQueue* request_cancel_order,
     Exchange::ClientResponseLFQueue* response, OHLCVILFQueue* klines,
     prometheus::EventLFQueue* latency_event_lfqueue,
-    const Common::TradingPair trading_pair, Common::TradingPairHashMap& pairs,
+    const common::TradingPair trading_pair, common::TradingPairHashMap& pairs,
     base_strategy::Strategy* predictor)
     : incoming_md_updates_(market_updates),
       request_new_order_(request_new_order),
@@ -23,7 +23,7 @@ TradeEngine::TradeEngine(
       order_manager_(this),
       strategy_(predictor, this, &order_manager_, config_, trading_pair,
                 pairs) {
-    Common::TradeEngineCfg btcusdt_cfg;
+    common::TradeEngineCfg btcusdt_cfg;
     btcusdt_cfg.clip      = 0.0001;
     config_[trading_pair] = btcusdt_cfg;
     order_book_.SetTradeEngine(this);
@@ -118,7 +118,7 @@ auto TradeEngine::Run() noexcept -> void {
 }  // namespace Trading
 
 auto Trading::TradeEngine::OnOrderBookUpdate(
-    const Common::TradingPair& trading_pair, PriceD price, Side side,
+    const common::TradingPair& trading_pair, PriceD price, Side side,
     MarketOrderBookDouble* book) noexcept -> void {
     auto bbo = order_book_.getBBO();
     position_keeper_.UpdateBBO(trading_pair, bbo);
@@ -152,9 +152,9 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
 //     logger_.log("%:% %() % ticker:% price:% side:%\n", __FILE__,
 //     __LINE__,
 //     __FUNCTION__,
-//                 Common::getCurrentTimeStr(&time_str_), ticker_id,
-//                 Common::priceToString(price).c_str(),
-//                 Common::sideToString(side).c_str());
+//                 common::getCurrentTimeStr(&time_str_), ticker_id,
+//                 common::priceToString(price).c_str(),
+//                 common::sideToString(side).c_str());
 
 //     auto bbo = book->getBBO();
 
@@ -170,7 +170,7 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
 //   TradeEngine::onTradeUpdate(const Exchange::MEMarketUpdate
 //   *market_update, MarketOrderBook *book) noexcept -> void {
 //     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
-//     Common::getCurrentTimeStr(&time_str_),
+//     common::getCurrentTimeStr(&time_str_),
 //                 market_update->toString().c_str());
 
 //     feature_engine_.onTradeUpdate(market_update, book);
@@ -183,7 +183,7 @@ auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
 //   TradeEngine::onOrderUpdate(const Exchange::MEClientResponse
 //   *client_response) noexcept -> void {
 //     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
-//     Common::getCurrentTimeStr(&time_str_),
+//     common::getCurrentTimeStr(&time_str_),
 //                 client_response->toString().c_str());
 
 //     if (UNLIKELY(client_response->type_ ==

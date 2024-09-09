@@ -398,7 +398,7 @@ class OrderNewLimit : public inner::OrderNewI {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Common::Side side,
+                           TimeInForce time_in_force, common::Side side,
                            Type type)
             : ArgsBody() {
             storage["category"] = "spot";
@@ -409,7 +409,7 @@ class OrderNewLimit : public inner::OrderNewI {
             SetPrice(price);
             SetTimeInForce(time_in_force);
         };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order, Common::TradingPairHashMap& pairs) : ArgsBody() {
+        explicit ArgsOrder(Exchange::RequestNewOrder* new_order, common::TradingPairHashMap& pairs) : ArgsBody() {
             storage["category"] = "spot";
             SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
@@ -424,12 +424,12 @@ class OrderNewLimit : public inner::OrderNewI {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetSide(Common::Side side) {
+        void SetSide(common::Side side) {
             switch (side) {
-                case Common::Side::BUY:
+                case common::Side::BUY:
                     storage["side"] = "Buy";
                     break;
-                case Common::Side::SELL:
+                case common::Side::SELL:
                     storage["side"] = "Sell";
                     break;
             }
@@ -483,7 +483,7 @@ class OrderNewLimit : public inner::OrderNewI {
     };
 
   public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type, Common::TradingPairHashMap& pairs)
+    explicit OrderNewLimit(SignerI* signer, TypeExchange type, common::TradingPairHashMap& pairs)
         : signer_(signer),pairs_(pairs) {
         switch (type) {
             case TypeExchange::MAINNET:
@@ -525,6 +525,6 @@ class OrderNewLimit : public inner::OrderNewI {
     testnet::HttpsExchange testnet_exchange;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
-    Common::TradingPairHashMap& pairs_;
+    common::TradingPairHashMap& pairs_;
 };
 };  // namespace bybit

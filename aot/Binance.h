@@ -293,12 +293,12 @@ class OHLCVI : public OHLCVGetter {
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairReverseHashMap& pairs_reverse)
             : pairs_reverse_(pairs_reverse) {};
         OHLCVExt Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
 
   public:
@@ -337,7 +337,7 @@ class OHLCVI : public OHLCVGetter {
     const Symbol* s_;
     const ChartInterval* chart_interval_;
     TypeExchange type_exchange_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookEventGetter : public BookEventGetterI {
@@ -521,18 +521,18 @@ class OrderNewLimit : public inner::OrderNewI {
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairReverseHashMap& pairs_reverse)
             : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Common::Side side,
+                           TimeInForce time_in_force, common::Side side,
                            Type type)
             : ArgsQuery() {  // TODO UNUSED. NEED USE ONLY CTOR WITH
                              // Exchange::RequestNewOrder*
@@ -544,8 +544,8 @@ class OrderNewLimit : public inner::OrderNewI {
             SetTimeInForce(time_in_force);
         };
         explicit ArgsOrder(Exchange::RequestNewOrder* new_order,
-                           Common::TradingPairHashMap& pairs,
-                           Common::TradingPairReverseHashMap& pairs_reverse)
+                           common::TradingPairHashMap& pairs,
+                           common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
             if (!pairs_reverse.count(
                     pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
@@ -565,9 +565,9 @@ class OrderNewLimit : public inner::OrderNewI {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetSide(Common::Side side) {
+        void SetSide(common::Side side) {
             switch (side) {
-                using enum Common::Side;
+                using enum common::Side;
                 case BUY:
                     storage["side"] = "BUY";
                     break;
@@ -627,9 +627,9 @@ class OrderNewLimit : public inner::OrderNewI {
                     storage["timeInForce"] = "FOK";
             }
         };
-        void SetOrderId(Common::OrderId order_id) {
-            if (order_id != Common::OrderId_INVALID) [[likely]]
-                storage["newClientOrderId"] = Common::orderIdToString(order_id);
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::OrderId_INVALID) [[likely]]
+                storage["newClientOrderId"] = common::orderIdToString(order_id);
         };
 
       private:
@@ -641,7 +641,7 @@ class OrderNewLimit : public inner::OrderNewI {
 
   public:
     explicit OrderNewLimit(SignerI* signer, TypeExchange type,
-                           Common::TradingPairHashMap& pairs)
+                           common::TradingPairHashMap& pairs)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs) {};
@@ -680,8 +680,8 @@ class OrderNewLimit : public inner::OrderNewI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
-    Common::TradingPairHashMap& pairs_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class CancelOrder : public inner::CancelOrderI {
@@ -691,25 +691,25 @@ class CancelOrder : public inner::CancelOrderI {
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairReverseHashMap& pairs_reverse)
             : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
-        explicit ArgsOrder(SymbolType symbol, Common::OrderId order_id)
+        explicit ArgsOrder(SymbolType symbol, common::OrderId order_id)
             : ArgsQuery() {
             SetSymbol(symbol);
             SetOrderId(order_id);
         };
         explicit ArgsOrder(
             const Exchange::RequestCancelOrder* request_cancel_order,
-            Common::TradingPairHashMap& pairs,
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
             if (!pairs_reverse.count(
                     pairs[request_cancel_order->trading_pair].trading_pairs))
@@ -726,10 +726,10 @@ class CancelOrder : public inner::CancelOrderI {
             SymbolUpperCase formatter(symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetOrderId(Common::OrderId order_id) {
-            if (order_id != Common::OrderId_INVALID) [[likely]]
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::OrderId_INVALID) [[likely]]
                 storage["origClientOrderId"] =
-                    Common::orderIdToString(order_id);
+                    common::orderIdToString(order_id);
         };
 
       private:
@@ -738,7 +738,7 @@ class CancelOrder : public inner::CancelOrderI {
 
   public:
     explicit CancelOrder(SignerI* signer, TypeExchange type,
-                         Common::TradingPairHashMap& pairs)
+                         common::TradingPairHashMap& pairs)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs) {};
@@ -777,8 +777,8 @@ class CancelOrder : public inner::CancelOrderI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
-    Common::TradingPairHashMap& pairs_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {

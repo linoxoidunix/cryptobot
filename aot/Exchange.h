@@ -142,7 +142,7 @@ struct OHLCV {
 struct OHLCVExt {
     OHLCV ohlcv;
     Interval interval;
-    Common::TradingPair trading_pair;
+    common::TradingPair trading_pair;
     std::string ToString() const {
         return fmt::format("{} o:{} h:{} l:{} c:{} v:{}", trading_pair.ToString(), ohlcv.open,
                            ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);

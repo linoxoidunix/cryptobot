@@ -16,7 +16,7 @@
 \DoxyCodeLine{12 \textcolor{comment}{// namespace Trading \{}}
 \DoxyCodeLine{13 \textcolor{comment}{//   class MarketDataConsumer \{}}
 \DoxyCodeLine{14 \textcolor{comment}{//   public:}}
-\DoxyCodeLine{15 \textcolor{comment}{//     MarketDataConsumer(Common::ClientId client\_id, Exchange::MEMarketUpdateLFQueue *market\_updates, const std::string \&iface,}}
+\DoxyCodeLine{15 \textcolor{comment}{//     MarketDataConsumer(common::ClientId client\_id, Exchange::MEMarketUpdateLFQueue *market\_updates, const std::string \&iface,}}
 \DoxyCodeLine{16 \textcolor{comment}{//                        const std::string \&snapshot\_ip, int snapshot\_port,}}
 \DoxyCodeLine{17 \textcolor{comment}{//                        const std::string \&incremental\_ip, int incremental\_port);}}
 \DoxyCodeLine{18 }
@@ -29,7 +29,7 @@
 \DoxyCodeLine{25 }
 \DoxyCodeLine{26 \textcolor{comment}{//     auto start() \{}}
 \DoxyCodeLine{27 \textcolor{comment}{//       run\_ = true;}}
-\DoxyCodeLine{28 \textcolor{comment}{//       ASSERT(Common::createAndStartThread(-\/1, "{}Trading/MarketDataConsumer"{}, [this]() \{ run(); \}) != nullptr, "{}Failed to start MarketData thread."{});}}
+\DoxyCodeLine{28 \textcolor{comment}{//       ASSERT(common::createAndStartThread(-\/1, "{}Trading/MarketDataConsumer"{}, [this]() \{ run(); \}) != nullptr, "{}Failed to start MarketData thread."{});}}
 \DoxyCodeLine{29 \textcolor{comment}{//     \}}}
 \DoxyCodeLine{30 }
 \DoxyCodeLine{31 \textcolor{comment}{//     auto stop() -\/> void \{}}
@@ -55,7 +55,7 @@
 \DoxyCodeLine{51 }
 \DoxyCodeLine{52 \textcolor{comment}{//     std::string time\_str\_;}}
 \DoxyCodeLine{53 \textcolor{comment}{//     Logger logger\_;}}
-\DoxyCodeLine{54 \textcolor{comment}{//     Common::McastSocket incremental\_mcast\_socket\_, snapshot\_mcast\_socket\_;}}
+\DoxyCodeLine{54 \textcolor{comment}{//     common::McastSocket incremental\_mcast\_socket\_, snapshot\_mcast\_socket\_;}}
 \DoxyCodeLine{55 }
 \DoxyCodeLine{56 \textcolor{comment}{//     bool in\_recovery\_ = false;}}
 \DoxyCodeLine{57 \textcolor{comment}{//     const std::string iface\_, snapshot\_ip\_;}}

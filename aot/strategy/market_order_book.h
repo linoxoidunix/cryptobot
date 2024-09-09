@@ -34,8 +34,8 @@ class MarketOrderBook final {
                 bbo_.bid_qty =
                     bids_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
-                bbo_.bid_price = Common::Price_INVALID;
-                bbo_.bid_qty   = Common::Qty_INVALID;
+                bbo_.bid_price = common::Price_INVALID;
+                bbo_.bid_qty   = common::Qty_INVALID;
             }
         }
 
@@ -46,8 +46,8 @@ class MarketOrderBook final {
                 bbo_.ask_qty =
                     asks_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
-                bbo_.ask_price = Common::Price_INVALID;
-                bbo_.ask_qty   = Common::Qty_INVALID;
+                bbo_.ask_price = common::Price_INVALID;
+                bbo_.ask_qty   = common::Qty_INVALID;
             }
         }
     }
@@ -84,7 +84,7 @@ class MarketOrderBook final {
   private:
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
     /// price.
-    auto getOrdersAtPrice(Common::Price price) noexcept
+    auto getOrdersAtPrice(common::Price price) noexcept
         -> Trading::MarketOrdersAtPrice * {
         return price_orders_at_price_.at(price);
     }
@@ -95,15 +95,15 @@ class MarketOrderBook final {
         price_orders_at_price_.emplace_unique(new_orders_at_price->price_,
                                               new_orders_at_price);
 
-        if (new_orders_at_price->side_ == Common::Side::BUY)
+        if (new_orders_at_price->side_ == common::Side::BUY)
             asks_at_price_map_.insert_equal(*new_orders_at_price);
-        if (new_orders_at_price->side_ == Common::Side::SELL)
+        if (new_orders_at_price->side_ == common::Side::SELL)
             bids_at_price_map_.insert_equal(*new_orders_at_price);
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
     /// the doubly linked list of price levels.
-    auto removeOrdersAtPrice(Common::Side side, Common::Price price) noexcept {
+    auto removeOrdersAtPrice(common::Side side, common::Price price) noexcept {
         auto order_at_price = price_orders_at_price_.at(price);
         if (!order_at_price) {
             // https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
@@ -113,13 +113,13 @@ class MarketOrderBook final {
             logw("order_book not contain such price");
             return;
         }
-        if (side == Common::Side::BUY) {
+        if (side == common::Side::BUY) {
             if (asks_at_price_map_.count(*order_at_price)) [[likely]]
                 asks_at_price_map_.erase(*order_at_price);
             else
                 loge("critical error asks_at_price_map_");
         }
-        if (side == Common::Side::SELL) {
+        if (side == common::Side::SELL) {
             if (bids_at_price_map_.count(*order_at_price)) [[likely]]
                 bids_at_price_map_.erase(*order_at_price);
             else
@@ -154,8 +154,8 @@ class MarketOrderBook final {
 
 class MarketOrderBookDouble {
   public:
-    explicit MarketOrderBookDouble(Common::TradingPair trading_pair,
-                                   Common::TradingPairHashMap &pairs)
+    explicit MarketOrderBookDouble(common::TradingPair trading_pair,
+                                   common::TradingPairHashMap &pairs)
         : trading_pair_(trading_pair),
           pairs_(pairs),
           precission_price_(pairs[trading_pair].price_precission),
@@ -191,8 +191,8 @@ class MarketOrderBookDouble {
     MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    Common::TradingPair trading_pair_;
-    Common::TradingPairHashMap &pairs_;
+    common::TradingPair trading_pair_;
+    common::TradingPairHashMap &pairs_;
     uint8_t precission_price_;
     uint8_t precission_qty_;
     BBODouble bbo_double_;
@@ -202,7 +202,7 @@ class MarketOrderBookDouble {
 
 /// Hash map from TickerId -> MarketOrderBook.
 using MarketOrderBookHashMap =
-    std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
+    std::array<MarketOrderBook *, common::ME_MAX_TICKERS>;
 
 class OrderBookService : public common::ServiceI {
   public:
@@ -268,8 +268,8 @@ class MarketOrderBook final {
 
 class MarketOrderBookDouble {
   public:
-    explicit MarketOrderBookDouble(Common::TradingPair trading_pair,
-                                   Common::TradingPairHashMap &pairs)
+    explicit MarketOrderBookDouble(common::TradingPair trading_pair,
+                                   common::TradingPairHashMap &pairs)
         : trading_pair_(trading_pair),
           pairs_(pairs),
           precission_price_(pairs[trading_pair].price_precission),
@@ -294,8 +294,8 @@ class MarketOrderBookDouble {
     MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
 
   private:
-    Common::TradingPair trading_pair_;
-    Common::TradingPairHashMap &pairs_;
+    common::TradingPair trading_pair_;
+    common::TradingPairHashMap &pairs_;
     uint precission_price_;
     uint precission_qty_;
     BBODouble bbo_double_;
@@ -304,5 +304,5 @@ class MarketOrderBookDouble {
 
 /// Hash map from TickerId -> MarketOrderBook.
 using MarketOrderBookHashMap =
-    std::array<MarketOrderBook *, Common::ME_MAX_TICKERS>;
+    std::array<MarketOrderBook *, common::ME_MAX_TICKERS>;
 }  // namespace backtesting

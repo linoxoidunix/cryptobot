@@ -12,7 +12,7 @@
 // namespace Trading {
 //   class MarketDataConsumer {
 //   public:
-//     MarketDataConsumer(Common::ClientId client_id, Exchange::MEMarketUpdateLFQueue *market_updates, const std::string &iface,
+//     MarketDataConsumer(common::ClientId client_id, Exchange::MEMarketUpdateLFQueue *market_updates, const std::string &iface,
 //                        const std::string &snapshot_ip, int snapshot_port,
 //                        const std::string &incremental_ip, int incremental_port);
 
@@ -25,7 +25,7 @@
 
 //     auto start() {
 //       run_ = true;
-//       ASSERT(Common::createAndStartThread(-1, "Trading/MarketDataConsumer", [this]() { run(); }) != nullptr, "Failed to start MarketData thread.");
+//       ASSERT(common::createAndStartThread(-1, "Trading/MarketDataConsumer", [this]() { run(); }) != nullptr, "Failed to start MarketData thread.");
 //     }
 
 //     auto stop() -> void {
@@ -51,7 +51,7 @@
 
 //     std::string time_str_;
 //     Logger logger_;
-//     Common::McastSocket incremental_mcast_socket_, snapshot_mcast_socket_;
+//     common::McastSocket incremental_mcast_socket_, snapshot_mcast_socket_;
 
 //     bool in_recovery_ = false;
 //     const std::string iface_, snapshot_ip_;

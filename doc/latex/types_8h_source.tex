@@ -15,7 +15,7 @@
 \DoxyCodeLine{11 \textcolor{preprocessor}{\#include "{}aot/common/macros.h"{}}}
 \DoxyCodeLine{12 \textcolor{preprocessor}{\#include "{}aot/third\_party/emhash/hash\_table7.hpp"{}}}
 \DoxyCodeLine{13 }
-\DoxyCodeLine{14 \textcolor{keyword}{namespace }Common \{}
+\DoxyCodeLine{14 \textcolor{keyword}{namespace }common \{}
 \DoxyCodeLine{15 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_TICKERS        = 8;}
 \DoxyCodeLine{16 }
 \DoxyCodeLine{17 \textcolor{keyword}{constexpr} \textcolor{keywordtype}{size\_t} ME\_MAX\_CLIENT\_UPDATES = 256 * 1024;}
@@ -196,7 +196,7 @@
 \DoxyCodeLine{204 \};}
 \DoxyCodeLine{205 }
 \DoxyCodeLine{206 \textcolor{comment}{//using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME\_MAX\_TICKERS>;}}
-\DoxyCodeLine{207 \textcolor{keyword}{using }TradeEngineCfgHashMap = emhash7::HashMap<Common::TickerS, TradeEngineCfg>;}
+\DoxyCodeLine{207 \textcolor{keyword}{using }TradeEngineCfgHashMap = emhash7::HashMap<common::TickerS, TradeEngineCfg>;}
 \DoxyCodeLine{208 }
 \DoxyCodeLine{209 \textcolor{keyword}{inline} uint32\_t Digits10(uint64\_t v) \{}
 \DoxyCodeLine{210     \textcolor{keywordflow}{return} 1 + (std::uint32\_t)(v >= 10) + (std::uint32\_t)(v >= 100) +}
@@ -274,6 +274,6 @@
 \DoxyCodeLine{282     loge(\textcolor{stringliteral}{"{}presiccion error"{}});}
 \DoxyCodeLine{283     \textcolor{keywordflow}{return} 0;}
 \DoxyCodeLine{284 \};}
-\DoxyCodeLine{285 \}  \textcolor{comment}{// namespace Common}}
+\DoxyCodeLine{285 \}  \textcolor{comment}{// namespace common}}
 
 \end{DoxyCode}

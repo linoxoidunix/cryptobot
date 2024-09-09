@@ -7,7 +7,7 @@ Exchange::MEMarketUpdate::MEMarketUpdate(
     const MEMarketUpdateDouble *market_update_double, uint precission_price,
     uint precission_qty)
     : type(market_update_double->type),
-      order_id(Common::OrderId_INVALID),
+      order_id(common::OrderId_INVALID),
       //ticker_id(market_update_double->ticker_id),
       //ticker(market_update_double->ticker),
 

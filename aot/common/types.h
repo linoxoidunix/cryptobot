@@ -12,7 +12,7 @@
 #include "aot/common/macros.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
 
-namespace Common {
+namespace common {
 constexpr size_t ME_MAX_TICKERS        = 8;
 
 constexpr size_t ME_MAX_CLIENT_UPDATES = 256 * 1024;
@@ -247,14 +247,14 @@ struct StringEqual {
 };
 
 struct TradingPair {
-    Common::TickerId first;
-    Common::TickerId second;
+    common::TickerId first;
+    common::TickerId second;
     friend bool operator==(const TradingPair& left, const TradingPair& right) {
         if (left.first == right.first && left.second == right.second)
             return true;
         return false;
     }
-    // TradingPair(const Common::TradingPair& pair):first(pair.first),
+    // TradingPair(const common::TradingPair& pair):first(pair.first),
     // second(pair.second){} TradingPair(){}
     auto ToString() const {
         return fmt::format("TradingPair[f:{} s:{}]", first, second);
@@ -262,7 +262,7 @@ struct TradingPair {
 };
 
 struct TradingPairInfo {
-    Common::TradingPairS trading_pairs;
+    common::TradingPairS trading_pairs;
     uint8_t price_precission;
     uint8_t qty_precission;
 };
@@ -270,13 +270,13 @@ struct TradingPairInfo {
 struct TradingPairHash {
     using is_transparent = void;
     std::size_t operator()(const TradingPair key) const {
-        std::size_t h1 = std::hash<Common::TickerId>{}(key.first);
-        std::size_t h2 = std::hash<Common::TickerId>{}(key.second);
+        std::size_t h1 = std::hash<common::TickerId>{}(key.first);
+        std::size_t h2 = std::hash<common::TickerId>{}(key.second);
         return h1 ^ (h2 << 1);  // or use boost::hash_combine
     }
     std::size_t operator()(const TradingPair* key) const {
-        std::size_t h1 = std::hash<Common::TickerId>{}(key->first);
-        std::size_t h2 = std::hash<Common::TickerId>{}(key->second);
+        std::size_t h1 = std::hash<common::TickerId>{}(key->first);
+        std::size_t h2 = std::hash<common::TickerId>{}(key->second);
         return h1 ^ (h2 << 1);  // or use boost::hash_combine
     }
 };
@@ -292,12 +292,12 @@ struct TradingPairEqual {
 using TradingPairHashMap = emhash7::HashMap<TradingPair, TradingPairInfo,
                                             TradingPairHash, TradingPairEqual>;
 using TradingPairReverseHashMap =
-    emhash7::HashMap<Common::TickerS, Common::TradingPair, StringHash,
+    emhash7::HashMap<common::TickerS, common::TradingPair, StringHash,
                      StringEqual>;
-using TickerHashMap = emhash7::HashMap<Common::TickerId, Common::TickerS>;
+using TickerHashMap = emhash7::HashMap<common::TickerId, common::TickerS>;
 using TradeEngineCfgHashMap =
-    emhash7::HashMap<Common::TradingPair, Common::TradeEngineCfg,
-                     Common::TradingPairHash, Common::TradingPairEqual>;
+    emhash7::HashMap<common::TradingPair, common::TradeEngineCfg,
+                     common::TradingPairHash, common::TradingPairEqual>;
 
 inline uint32_t Digits10(uint64_t v) {
     return 1 + (std::uint32_t)(v >= 10) + (std::uint32_t)(v >= 100) +
@@ -375,4 +375,4 @@ inline uint32_t LeengthFractionalPart(double v) {
     loge("presiccion error");
     return 0;
 };
-}  // namespace Common
+}  // namespace common

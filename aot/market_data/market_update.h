@@ -29,18 +29,18 @@ struct MEMarketUpdateDouble;
 struct MEMarketUpdate {
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
-    Common::OrderId order_id = Common::OrderId_INVALID;
-    // Common::TickerId ticker_id = Common::TickerId_INVALID;
+    common::OrderId order_id = common::OrderId_INVALID;
+    // common::TickerId ticker_id = common::TickerId_INVALID;
     //std::string ticker;
-    Common::Side side   = Common::Side::INVALID;
-    Common::Price price = Common::Price_INVALID;
-    Common::Qty qty     = Common::Qty_INVALID;
+    common::Side side   = common::Side::INVALID;
+    common::Price price = common::Price_INVALID;
+    common::Qty qty     = common::Qty_INVALID;
 
     auto ToString() const {
         return fmt::format(
             "MEMarketUpdate[oid:{} side:{} qty:{} price:{}]", /*ticker,*/
-            Common::orderIdToString(order_id), sideToString(side),
-            Common::qtyToString(qty), Common::priceToString(price));
+            common::orderIdToString(order_id), sideToString(side),
+            common::qtyToString(qty), common::priceToString(price));
     };
     explicit MEMarketUpdate(const MEMarketUpdateDouble*, uint precission_price,
                             uint precission_qty);
@@ -50,9 +50,9 @@ struct MEMarketUpdate {
 struct MEMarketUpdateDouble {
     MarketUpdateType type = MarketUpdateType::DEFAULT;
 
-    // Common::TickerId ticker_id = Common::TickerId_INVALID;
+    // common::TickerId ticker_id = common::TickerId_INVALID;
     //std::string ticker;
-    Common::Side side = Common::Side::INVALID;
+    common::Side side = common::Side::INVALID;
     double price      = std::numeric_limits<double>::max();
     double qty        = std::numeric_limits<double>::max();
 
@@ -90,7 +90,7 @@ struct BookSnapshot {
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
             //event.ticker = ticker;
-            event.side   = Common::Side::SELL;
+            event.side   = common::Side::SELL;
             event.price  = bid.price;
             event.qty    = bid.qty;
             bulk[i]      = event;
@@ -104,7 +104,7 @@ struct BookSnapshot {
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
             //event.ticker = ticker;
-            event.side   = Common::Side::BUY;
+            event.side   = common::Side::BUY;
             event.price  = ask.price;
             event.qty    = ask.qty;
             bulk[i]      = event;
@@ -130,7 +130,7 @@ struct BookDiffSnapshot {
     void AddToQueue(EventLFQueue& queue) {
         for (auto& bid : bids) {
             MEMarketUpdateDouble event;
-            event.side     = Common::Side::SELL;
+            event.side     = common::Side::SELL;
             event.price    = bid.price;
             event.qty      = bid.qty;
             auto status_op = queue.try_enqueue(event);
@@ -140,7 +140,7 @@ struct BookDiffSnapshot {
         }
         for (auto& ask : asks) {
             MEMarketUpdateDouble event;
-            event.side     = Common::Side::BUY;
+            event.side     = common::Side::BUY;
             event.price    = ask.price;
             event.qty      = ask.qty;
             auto status_op = queue.try_enqueue(event);

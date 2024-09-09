@@ -35,7 +35,7 @@ class FixtureMarketOrderBook : public benchmark::Fixture {
                 if (!_type.has_value()) continue;
                 update.type        = _type.value();
                 update_double.type = _type.value();
-                auto _side         = magic_enum::enum_cast<Common::Side>(
+                auto _side         = magic_enum::enum_cast<common::Side>(
                     std::string(pieces_match[3]));
                 if (!_side.has_value()) continue;
                 update.side         = _side.value();

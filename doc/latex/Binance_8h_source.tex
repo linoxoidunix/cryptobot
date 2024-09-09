@@ -461,7 +461,7 @@
 \DoxyCodeLine{510       \textcolor{keyword}{public}:}
 \DoxyCodeLine{511         \textcolor{keyword}{using }SymbolType = std::string\_view;}
 \DoxyCodeLine{512         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, \textcolor{keywordtype}{double} quantity, \textcolor{keywordtype}{double} price,}
-\DoxyCodeLine{513                            TimeInForce time\_in\_force, Common::Side side,}
+\DoxyCodeLine{513                            TimeInForce time\_in\_force, common::Side side,}
 \DoxyCodeLine{514                            Type type)}
 \DoxyCodeLine{515             : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{  \textcolor{comment}{// TODO UNUSED. NEED USE ONLY CTOR WITH}}
 \DoxyCodeLine{516                              \textcolor{comment}{// Exchange::RequestNewOrder*}}
@@ -487,9 +487,9 @@
 \DoxyCodeLine{536             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
 \DoxyCodeLine{537             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
 \DoxyCodeLine{538         \};}
-\DoxyCodeLine{539         \textcolor{keywordtype}{void} SetSide(Common::Side side) \{}
+\DoxyCodeLine{539         \textcolor{keywordtype}{void} SetSide(common::Side side) \{}
 \DoxyCodeLine{540             \textcolor{keywordflow}{switch} (side) \{}
-\DoxyCodeLine{541                 \textcolor{keyword}{using }enum Common::Side;}
+\DoxyCodeLine{541                 \textcolor{keyword}{using }enum common::Side;}
 \DoxyCodeLine{542                 \textcolor{keywordflow}{case} BUY:}
 \DoxyCodeLine{543                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}BUY"{}};}
 \DoxyCodeLine{544                     \textcolor{keywordflow}{break};}
@@ -549,9 +549,9 @@
 \DoxyCodeLine{598                     storage[\textcolor{stringliteral}{"{}timeInForce"{}}] = \textcolor{stringliteral}{"{}FOK"{}};}
 \DoxyCodeLine{599             \}}
 \DoxyCodeLine{600         \};}
-\DoxyCodeLine{601         \textcolor{keywordtype}{void} SetOrderId(Common::OrderId order\_id) \{}
-\DoxyCodeLine{602             \textcolor{keywordflow}{if} (order\_id != Common::OrderId\_INVALID) [[likely]]}
-\DoxyCodeLine{603                 storage[\textcolor{stringliteral}{"{}newClientOrderId"{}}] = Common::orderIdToString(order\_id);}
+\DoxyCodeLine{601         \textcolor{keywordtype}{void} SetOrderId(common::OrderId order\_id) \{}
+\DoxyCodeLine{602             \textcolor{keywordflow}{if} (order\_id != common::OrderId\_INVALID) [[likely]]}
+\DoxyCodeLine{603                 storage[\textcolor{stringliteral}{"{}newClientOrderId"{}}] = common::orderIdToString(order\_id);}
 \DoxyCodeLine{604         \};}
 \DoxyCodeLine{605 }
 \DoxyCodeLine{606       \textcolor{keyword}{private}:}
@@ -613,7 +613,7 @@
 \DoxyCodeLine{662     \textcolor{keyword}{class }\mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}} : \textcolor{keyword}{public} \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}} \{}
 \DoxyCodeLine{663       \textcolor{keyword}{public}:}
 \DoxyCodeLine{664         \textcolor{keyword}{using }SymbolType = std::string\_view;}
-\DoxyCodeLine{665         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, Common::OrderId order\_id)}
+\DoxyCodeLine{665         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbinance_1_1CancelOrder_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, common::OrderId order\_id)}
 \DoxyCodeLine{666             : \mbox{\hyperlink{classbinance_1_1ArgsQuery}{ArgsQuery}}() \{}
 \DoxyCodeLine{667             SetSymbol(symbol);}
 \DoxyCodeLine{668             SetOrderId(order\_id);}
@@ -630,10 +630,10 @@
 \DoxyCodeLine{679             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
 \DoxyCodeLine{680             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
 \DoxyCodeLine{681         \};}
-\DoxyCodeLine{682         \textcolor{keywordtype}{void} SetOrderId(Common::OrderId order\_id) \{}
-\DoxyCodeLine{683             \textcolor{keywordflow}{if} (order\_id != Common::OrderId\_INVALID) [[likely]]}
+\DoxyCodeLine{682         \textcolor{keywordtype}{void} SetOrderId(common::OrderId order\_id) \{}
+\DoxyCodeLine{683             \textcolor{keywordflow}{if} (order\_id != common::OrderId\_INVALID) [[likely]]}
 \DoxyCodeLine{684                 storage[\textcolor{stringliteral}{"{}origClientOrderId"{}}] =}
-\DoxyCodeLine{685                     Common::orderIdToString(order\_id);}
+\DoxyCodeLine{685                     common::orderIdToString(order\_id);}
 \DoxyCodeLine{686         \};}
 \DoxyCodeLine{687 }
 \DoxyCodeLine{688       \textcolor{keyword}{private}:}

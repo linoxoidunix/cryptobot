@@ -24,12 +24,12 @@ struct BaseEvent : public Event{
  * 
  */
 struct BBidUpdated : public BaseEvent {
-    Common::TradingPair trading_pair;
-    Common::PriceD price;
-    Common::QtyD qty;
+    common::TradingPair trading_pair;
+    common::PriceD price;
+    common::QtyD qty;
     BBidUpdated() = default;
-    BBidUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
-               Common::QtyD _qty)
+    BBidUpdated(common::TradingPair _trading_pair, common::PriceD _price,
+               common::QtyD _qty)
         : trading_pair(_trading_pair), price(_price), qty(_qty) {};
     ~BBidUpdated() override = default;
     EventType GetType() override { return EventType::kBidUpdate; };

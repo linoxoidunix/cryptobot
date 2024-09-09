@@ -46,18 +46,18 @@ TEST(BBODoubleBacktesting, Create) {
 TEST(OrderBookService, Launch) {
     using namespace Trading;
     Exchange::EventLFQueue queue;
-    Common::TradingPair trading_pair{2, 1};
-    Common::TradingPairHashMap pair;
+    common::TradingPair trading_pair{2, 1};
+    common::TradingPairHashMap pair;
     MarketOrderBookDouble book(trading_pair, pair);
     Exchange::MEMarketUpdateDouble market_update;
     market_update.price = 7.0;
     market_update.qty   = 1.0;
-    market_update.side  = Common::Side::BUY;
+    market_update.side  = common::Side::BUY;
 
     queue.enqueue(market_update);
     market_update.price = 6.0;
     market_update.qty   = 2.0;
-    market_update.side  = Common::Side::SELL;
+    market_update.side  = common::Side::SELL;
 
     queue.enqueue(market_update);
 

@@ -1,7 +1,7 @@
 // #include "aot/market_data_consumer.h"
 
 // namespace Trading {
-//   MarketDataConsumer::MarketDataConsumer(Common::ClientId client_id, Exchange::MEMarketUpdateLFQueue *market_updates,
+//   MarketDataConsumer::MarketDataConsumer(common::ClientId client_id, Exchange::MEMarketUpdateLFQueue *market_updates,
 //                                          const std::string &iface,
 //                                          const std::string &snapshot_ip, int snapshot_port,
 //                                          const std::string &incremental_ip, int incremental_port)
@@ -25,7 +25,7 @@
 
 //   /// Main loop for this thread - reads and processes messages from the multicast sockets - the heavy lifting is in the recvCallback() and checkSnapshotSync() methods.
 //   auto MarketDataConsumer::run() noexcept -> void {
-//     logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//     logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 //     while (run_) {
 //       incremental_mcast_socket_.sendAndRecv();
 //       snapshot_mcast_socket_.sendAndRecv();
@@ -52,7 +52,7 @@
 //     const auto &first_snapshot_msg = snapshot_queued_msgs_.begin()->second;
 //     if (first_snapshot_msg.type_ != Exchange::MarketUpdateType::SNAPSHOT_START) {
 //       logger_.log("%:% %() % Returning because have not seen a SNAPSHOT_START yet.\n",
-//                   __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//                   __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 //       snapshot_queued_msgs_.clear();
 //       return;
 //     }
@@ -63,11 +63,11 @@
 //     size_t next_snapshot_seq = 0;
 //     for (auto &snapshot_itr: snapshot_queued_msgs_) {
 //       logger_.log("%:% %() % % => %\n", __FILE__, __LINE__, __FUNCTION__,
-//                   Common::getCurrentTimeStr(&time_str_), snapshot_itr.first, snapshot_itr.second.toString());
+//                   common::getCurrentTimeStr(&time_str_), snapshot_itr.first, snapshot_itr.second.toString());
 //       if (snapshot_itr.first != next_snapshot_seq) {
 //         have_complete_snapshot = false;
 //         logger_.log("%:% %() % Detected gap in snapshot stream expected:% found:% %.\n", __FILE__, __LINE__, __FUNCTION__,
-//                     Common::getCurrentTimeStr(&time_str_), next_snapshot_seq, snapshot_itr.first, snapshot_itr.second.toString());
+//                     common::getCurrentTimeStr(&time_str_), next_snapshot_seq, snapshot_itr.first, snapshot_itr.second.toString());
 //         break;
 //       }
 
@@ -80,7 +80,7 @@
 
 //     if (!have_complete_snapshot) {
 //       logger_.log("%:% %() % Returning because found gaps in snapshot stream.\n",
-//                   __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//                   __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 //       snapshot_queued_msgs_.clear();
 //       return;
 //     }
@@ -88,7 +88,7 @@
 //     const auto &last_snapshot_msg = snapshot_queued_msgs_.rbegin()->second;
 //     if (last_snapshot_msg.type_ != Exchange::MarketUpdateType::SNAPSHOT_END) {
 //       logger_.log("%:% %() % Returning because have not seen a SNAPSHOT_END yet.\n",
-//                   __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//                   __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 //       return;
 //     }
 
@@ -97,20 +97,20 @@
 //     next_exp_inc_seq_num_ = last_snapshot_msg.order_id_ + 1;
 //     for (auto inc_itr = incremental_queued_msgs_.begin(); inc_itr != incremental_queued_msgs_.end(); ++inc_itr) {
 //       logger_.log("%:% %() % Checking next_exp:% vs. seq:% %.\n", __FILE__, __LINE__, __FUNCTION__,
-//                   Common::getCurrentTimeStr(&time_str_), next_exp_inc_seq_num_, inc_itr->first, inc_itr->second.toString());
+//                   common::getCurrentTimeStr(&time_str_), next_exp_inc_seq_num_, inc_itr->first, inc_itr->second.toString());
 
 //       if (inc_itr->first < next_exp_inc_seq_num_)
 //         continue;
 
 //       if (inc_itr->first != next_exp_inc_seq_num_) {
 //         logger_.log("%:% %() % Detected gap in incremental stream expected:% found:% %.\n", __FILE__, __LINE__, __FUNCTION__,
-//                     Common::getCurrentTimeStr(&time_str_), next_exp_inc_seq_num_, inc_itr->first, inc_itr->second.toString());
+//                     common::getCurrentTimeStr(&time_str_), next_exp_inc_seq_num_, inc_itr->first, inc_itr->second.toString());
 //         have_complete_incremental = false;
 //         break;
 //       }
 
 //       logger_.log("%:% %() % % => %\n", __FILE__, __LINE__, __FUNCTION__,
-//                   Common::getCurrentTimeStr(&time_str_), inc_itr->first, inc_itr->second.toString());
+//                   common::getCurrentTimeStr(&time_str_), inc_itr->first, inc_itr->second.toString());
 
 //       if (inc_itr->second.type_ != Exchange::MarketUpdateType::SNAPSHOT_START &&
 //           inc_itr->second.type_ != Exchange::MarketUpdateType::SNAPSHOT_END)
@@ -122,7 +122,7 @@
 
 //     if (!have_complete_incremental) {
 //       logger_.log("%:% %() % Returning because have gaps in queued incrementals.\n",
-//                   __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//                   __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 //       snapshot_queued_msgs_.clear();
 //       return;
 //     }
@@ -134,7 +134,7 @@
 //     }
 
 //     logger_.log("%:% %() % Recovered % snapshot and % incremental orders.\n", __FILE__, __LINE__, __FUNCTION__,
-//                 Common::getCurrentTimeStr(&time_str_), snapshot_queued_msgs_.size() - 2, num_incrementals);
+//                 common::getCurrentTimeStr(&time_str_), snapshot_queued_msgs_.size() - 2, num_incrementals);
 
 //     snapshot_queued_msgs_.clear();
 //     incremental_queued_msgs_.clear();
@@ -148,7 +148,7 @@
 //     if (is_snapshot) {
 //       if (snapshot_queued_msgs_.find(request->seq_num_) != snapshot_queued_msgs_.end()) {
 //         logger_.log("%:% %() % Packet drops on snapshot socket. Received for a 2nd time:%\n", __FILE__, __LINE__, __FUNCTION__,
-//                     Common::getCurrentTimeStr(&time_str_), request->toString());
+//                     common::getCurrentTimeStr(&time_str_), request->toString());
 //         snapshot_queued_msgs_.clear();
 //       }
 //       snapshot_queued_msgs_[request->seq_num_] = request->me_market_update_;
@@ -157,7 +157,7 @@
 //     }
 
 //     logger_.log("%:% %() % size snapshot:% incremental:% % => %\n", __FILE__, __LINE__, __FUNCTION__,
-//                 Common::getCurrentTimeStr(&time_str_), snapshot_queued_msgs_.size(), incremental_queued_msgs_.size(), request->seq_num_, request->toString());
+//                 common::getCurrentTimeStr(&time_str_), snapshot_queued_msgs_.size(), incremental_queued_msgs_.size(), request->seq_num_, request->toString());
 
 //     checkSnapshotSync();
 //   }
@@ -169,7 +169,7 @@
 //       socket->next_rcv_valid_index_ = 0;
 
 //       logger_.log("%:% %() % WARN Not expecting snapshot messages.\n",
-//                   __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+//                   __FILE__, __LINE__, __FUNCTION__, common::getCurrentTimeStr(&time_str_));
 
 //       return;
 //     }
@@ -179,7 +179,7 @@
 //       for (; i + sizeof(Exchange::MDPMarketUpdate) <= socket->next_rcv_valid_index_; i += sizeof(Exchange::MDPMarketUpdate)) {
 //         auto request = reinterpret_cast<const Exchange::MDPMarketUpdate *>(socket->inbound_data_.data() + i);
 //         logger_.log("%:% %() % Received % socket len:% %\n", __FILE__, __LINE__, __FUNCTION__,
-//                     Common::getCurrentTimeStr(&time_str_),
+//                     common::getCurrentTimeStr(&time_str_),
 //                     (is_snapshot ? "snapshot" : "incremental"), sizeof(Exchange::MDPMarketUpdate), request->toString());
 
 //         const bool already_in_recovery = in_recovery_;
@@ -188,14 +188,14 @@
 //         if (UNLIKELY(in_recovery_)) {
 //           if (UNLIKELY(!already_in_recovery)) { // if we just entered recovery, start the snapshot synchonization process by subscribing to the snapshot multicast stream.
 //             logger_.log("%:% %() % Packet drops on % socket. SeqNum expected:% received:%\n", __FILE__, __LINE__, __FUNCTION__,
-//                         Common::getCurrentTimeStr(&time_str_), (is_snapshot ? "snapshot" : "incremental"), next_exp_inc_seq_num_, request->seq_num_);
+//                         common::getCurrentTimeStr(&time_str_), (is_snapshot ? "snapshot" : "incremental"), next_exp_inc_seq_num_, request->seq_num_);
 //             startSnapshotSync();
 //           }
 
 //           queueMessage(is_snapshot, request); // queue up the market data update message and check if snapshot recovery / synchronization can be completed successfully.
 //         } else if (!is_snapshot) { // not in recovery and received a packet in the correct order and without gaps, process it.
 //           logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
-//                       Common::getCurrentTimeStr(&time_str_), request->toString());
+//                       common::getCurrentTimeStr(&time_str_), request->toString());
 
 //           ++next_exp_inc_seq_num_;
 

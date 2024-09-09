@@ -236,7 +236,7 @@
 
 // int x = 0;
 // Trading::MarketOrderBook order_book;
-// std::array<Trading::MarketOrder *, Common::ME_MAX_ORDER_IDS> map;
+// std::array<Trading::MarketOrder *, common::ME_MAX_ORDER_IDS> map;
 // std::array<Trading::MarketOrder *, 1'000'000> map;
 //  logi("sizeof market_order ptr ={}byte sizeof map byte={} KByte={} MByte={}
 //  Gbyte={} ", sizeof(Trading::MarketOrder*), sizeof(map), 1.0*
@@ -248,7 +248,7 @@
 // map.fill(nullptr);
 // int x = 0;
 // common::MemPool<Trading::MarketOrdersAtPrice>
-// orders_at_price_pool_(Common::ME_MAX_PRICE_LEVELS);
+// orders_at_price_pool_(common::ME_MAX_PRICE_LEVELS);
 //}
 
 // int main() {
@@ -377,7 +377,7 @@
 //     Exchange::RequestNewOrder request_new_order;
 //     request_new_order.ticker   = "BTCUSDT";
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = Common::Side::BUY;
+//     request_new_order.side     = common::Side::BUY;
 //     request_new_order.price    = 40000;
 //     request_new_order.qty      = 0.001;
 
@@ -427,7 +427,7 @@
 //     Exchange::RequestNewOrder request_new_order;
 //     request_new_order.ticker   = "BTCUSDT";
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = Common::Side::BUY;
+//     request_new_order.side     = common::Side::BUY;
 //     request_new_order.price    = 40000;
 //     request_new_order.qty      = 0.001;
 
@@ -691,7 +691,7 @@
 //         Exchange::MEMarketUpdate market_update;
 //         market_update.order_id = 1;
 //         market_update.ticker = "USDT";
-//         market_update.side = (Common::Side) dist_action(rng);
+//         market_update.side = (common::Side) dist_action(rng);
 //         market_update.price = dist(rng);
 //         market_update.qty = dist_qty(rng);
 //         diffs.push_back(market_update);
@@ -744,7 +744,7 @@
 //             update.type = _type.value();
 //             update_double.type = _type.value();
 //             auto _side =
-//             magic_enum::enum_cast<Common::Side>(std::string(pieces_match[3]));
+//             magic_enum::enum_cast<common::Side>(std::string(pieces_match[3]));
 //             if(!_side.has_value())
 //                 continue;
 //             update.side = _side.value();

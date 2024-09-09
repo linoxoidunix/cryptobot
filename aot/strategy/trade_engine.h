@@ -36,8 +36,8 @@ class TradeEngine {
         Exchange::RequestCancelOrderLFQueue *request_cancel_order,
         Exchange::ClientResponseLFQueue *response, OHLCVILFQueue *klines,
         prometheus::EventLFQueue *latency_event_lfqueue,
-        const Common::TradingPair trading_pair,
-        Common::TradingPairHashMap &pairs, base_strategy::Strategy *predictor);
+        const common::TradingPair trading_pair,
+        common::TradingPairHashMap &pairs, base_strategy::Strategy *predictor);
 
     virtual ~TradeEngine();
 
@@ -86,7 +86,7 @@ class TradeEngine {
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair,
+    auto OnOrderBookUpdate(const common::TradingPair &trading_pair,
                            PriceD price, Side side,
                            MarketOrderBookDouble *book) noexcept -> void;
 
@@ -145,8 +145,8 @@ class TradeEngine : public Trading::TradeEngine {
     backtesting::MarketOrderBookDouble order_book_;
   public:
     explicit TradeEngine(OHLCVILFQueue *klines,
-                         const Common::TradingPair trading_pair,
-                         Common::TradingPairHashMap &pairs,
+                         const common::TradingPair trading_pair,
+                         common::TradingPairHashMap &pairs,
                          base_strategy::Strategy *predictor)
         : Trading::TradeEngine(nullptr, nullptr, nullptr, nullptr,
                                klines, nullptr, trading_pair, pairs,

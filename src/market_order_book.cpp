@@ -9,7 +9,7 @@
 
 namespace Trading {
 MarketOrderBook::MarketOrderBook()
-    : orders_at_price_pool_(Common::ME_MAX_ORDERS_AT_PRICE) {}
+    : orders_at_price_pool_(common::ME_MAX_ORDERS_AT_PRICE) {}
 
 MarketOrderBook::~MarketOrderBook() {
     logi("call ~MarketOrderBook()");
@@ -26,19 +26,19 @@ auto MarketOrderBook::onMarketUpdate(
 
     const auto bid_will_be_updated =
         (!bids_at_price_map_.size() &&
-             market_update->side == Common::Side::SELL ||
+             market_update->side == common::Side::SELL ||
          bids_at_price_map_.size() &&
-             market_update->side == Common::Side::SELL &&
+             market_update->side == common::Side::SELL &&
              market_update->price >= bids_at_price_map_.begin()->price_);
     const auto ask_will_be_updated =
         (!asks_at_price_map_.size() &&
-             market_update->side == Common::Side::BUY ||
+             market_update->side == common::Side::BUY ||
          asks_at_price_map_.size() &&
-             market_update->side == Common::Side::BUY &&
+             market_update->side == common::Side::BUY &&
              market_update->price <= asks_at_price_map_.begin()->price_);
 
     if (market_update->qty != 0) {
-        MarketOrder order(Common::OrderId_INVALID, market_update->side,
+        MarketOrder order(common::OrderId_INVALID, market_update->side,
                           market_update->price, market_update->qty);
         addOrder(&order);
     } else {

@@ -224,8 +224,8 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
         } else {
             std::string_view buy_side  = "BUY";
             std::string_view sell_side = "SELL";
-            if (side == buy_side) output.side = Common::Side::BUY;
-            if (side == sell_side) output.side = Common::Side::SELL;
+            if (side == buy_side) output.side = common::Side::BUY;
+            if (side == sell_side) output.side = common::Side::SELL;
         }
         error = doc["executedQty"].get_double_in_string().get(output.exec_qty);
         if (error != simdjson::SUCCESS) [[unlikely]] {

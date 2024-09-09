@@ -43,8 +43,8 @@ int main(void) {
                                      
     fmtlog::setLogLevel(fmtlog::DBG);
     auto json = R"({"symbol":"BTCUSDT","orderId":14759058,"orderListId":-1,"clientOrderId":"5","transactTime":1717451079806,"price":"40000.00000000","origQty":"0.00100000","executedQty":"0.00000000","cummulativeQuoteQty":"0.00000000","status":"NEW","timeInForce":"GTC","type":"LIMIT","side":"BUY","workingTime":1717451079806,"fills":[],"selfTradePreventionMode":"EXPIRE_MAKER"})"_padded;
-    Common::TradingPairReverseHashMap pairs_reverse;
-    pairs_reverse["btcusdt"]=Common::TradingPair{2,1};
+    common::TradingPairReverseHashMap pairs_reverse;
+    pairs_reverse["btcusdt"]=common::TradingPair{2,1};
     binance::OrderNewLimit::ParserResponse parser(pairs_reverse);
     auto result = parser.Parse(json);
     logd("{}", result.ToString());
