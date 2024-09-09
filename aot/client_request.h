@@ -14,8 +14,8 @@
 #include <sstream>
 
 #include "aot/common/types.h"
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"//if link form source
+// #include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"  //if link form source
 
 namespace Exchange {
 /// Type of the order request sent by the trading client to the exchange.
@@ -35,35 +35,32 @@ inline std::string ClientRequestTypeToString(ClientRequestType type) {
 
 /// These structures go over the wire / network, so the binary structures are
 /// packed to remove system dependent extra padding.
-//#pragma pack(push, 1)
+// #pragma pack(push, 1)
 
 /// Client request structure used internally by the matching engine.
 class Request {
   public:
     ClientRequestType type = ClientRequestType::INVALID;
     auto ToString() const {
-         return fmt::format(
-            "Request[type:{}]",
-            ClientRequestTypeToString(type));
+        return fmt::format("Request[type:{}]", ClientRequestTypeToString(type));
     }
 };
 
-class RequestNewOrder{
+class RequestNewOrder {
   public:
     ClientRequestType type = ClientRequestType::NEW;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::OrderId_INVALID;
     common::Side side        = common::Side::INVALID;
-    double price             = common::kPRICE_DOUBLE_INVALID;
-    double qty               = common::kQTY_DOUBLE_INVALID;
+    common::Price price      = common::kPriceInvalid;
+    common::Qty qty          = common::kQtyInvalid;
     auto ToString() const {
-        std::string price_string =
-            (price != common::kPRICE_DOUBLE_INVALID)
-                ? fmt::format("{:.{}f}", price, 5)
-                : "INVALID";
-        std::string qty_string = (qty != common::kQTY_DOUBLE_INVALID)
-                                     ? fmt::format("{:.{}f}", qty, 5)
-                                     : "INVALID";
+        std::string price_string = (price != common::kPRICE_DOUBLE_INVALID)
+                                       ? fmt::format("{}", price)
+                                       : "INVALID";
+        std::string qty_string   = (qty != common::kQTY_DOUBLE_INVALID)
+                                       ? fmt::format("{}", qty)
+                                       : "INVALID";
         return fmt::format(
             "RequestNewOrder[type:{} {} order_id:{} side:{} qty:{} price:{}]",
             ClientRequestTypeToString(type), trading_pair.ToString(), order_id,
@@ -76,19 +73,21 @@ class RequestCancelOrder {
     ClientRequestType type = ClientRequestType::CANCEL;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::OrderId_INVALID;
-    
+
     auto ToString() const {
         assert(false);
-        return fmt::format(
-            "RequestNewOrder[type:{} ticker:{} id:{}]",
-            ClientRequestTypeToString(type), "", order_id);
+        return fmt::format("RequestNewOrder[type:{} ticker:{} id:{}]",
+                           ClientRequestTypeToString(type), "", order_id);
     }
 };
 
-//#pragma pack(pop)  // Undo the packed binary structure directive moving forward.
+// #pragma pack(pop)  // Undo the packed binary structure directive moving
+// forward.
 
 /// Lock free queues of matching engine client order request messages.
-using RequestNewLimitOrderLFQueue = moodycamel::ConcurrentQueue<RequestNewOrder>;
-using RequestCancelOrderLFQueue = moodycamel::ConcurrentQueue<RequestCancelOrder>;
+using RequestNewLimitOrderLFQueue =
+    moodycamel::ConcurrentQueue<RequestNewOrder>;
+using RequestCancelOrderLFQueue =
+    moodycamel::ConcurrentQueue<RequestCancelOrder>;
 
 }  // namespace Exchange

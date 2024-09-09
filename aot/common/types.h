@@ -31,7 +31,7 @@ constexpr auto OrderId_INVALID       = std::numeric_limits<OrderId>::max();
  * @brief PriceD = price double
  *
  */
-using PriceD                         = double;
+//using PriceD                         = double;
 /**
  * @brief QtyD = qty double
  *

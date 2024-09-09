@@ -86,15 +86,9 @@ class TradeEngine {
 
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
-    auto OnOrderBookUpdate(const common::TradingPair &trading_pair,
-                           PriceD price, Side side,
-                           MarketOrderBookDouble *book) noexcept -> void;
+    auto OnOrderBookUpdate() noexcept -> void;
 
     std::string GetStatistics() const { return position_keeper_.ToString(); }
-    /// Process trade events - updates the  feature engine and informs the
-    /// trading algorithm about the trade event.
-    // auto onTradeUpdate(const Exchange::MEMarketUpdate *market_update,
-    // MarketOrderBook *book) noexcept -> void;
 
     /// Deleted default, copy & move constructors and assignment-operators.
     TradeEngine()                                = delete;
@@ -119,7 +113,7 @@ class TradeEngine {
 
     std::unique_ptr<std::thread> thread_;
     TradeEngineCfgHashMap config_;
-    Trading::MarketOrderBookDouble order_book_;
+    Trading::MarketOrderBook order_book_;
     Trading::OrderManager order_manager_;
     /**
     * Process client responses - updates the position keeper and informs the
@@ -128,10 +122,10 @@ class TradeEngine {
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void;
 
-  protected:    
+  protected:
     volatile bool run_ = false;
     common::TimeManager time_manager_;
-    OHLCVILFQueue *klines_                                     = nullptr;
+    OHLCVILFQueue *klines_ = nullptr;
     Trading::BaseStrategy strategy_;
 
     /// Main loop for this thread - processes incoming client responses and
@@ -142,15 +136,16 @@ class TradeEngine {
 
 namespace backtesting {
 class TradeEngine : public Trading::TradeEngine {
-    backtesting::MarketOrderBookDouble order_book_;
+    backtesting::MarketOrderBook order_book_;
+
   public:
     explicit TradeEngine(OHLCVILFQueue *klines,
                          const common::TradingPair trading_pair,
                          common::TradingPairHashMap &pairs,
                          base_strategy::Strategy *predictor)
-        : Trading::TradeEngine(nullptr, nullptr, nullptr, nullptr,
-                               klines, nullptr, trading_pair, pairs,
-                               predictor),order_book_(trading_pair, pairs) {};
+        : Trading::TradeEngine(nullptr, nullptr, nullptr, nullptr, klines,
+                               nullptr, trading_pair, pairs, predictor),
+          order_book_(trading_pair, pairs) {};
     ~TradeEngine() override = default;
 
   private:

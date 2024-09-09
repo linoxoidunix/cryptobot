@@ -21,7 +21,7 @@ struct PositionInfo {
     double total_pnl  = 0;
     std::array<double, sideToIndex(Side::MAX) + 1> open_vwap;
     double volume                 = 0;
-    const Trading::BBODouble *bbo = nullptr;
+    const Trading::BBO *bbo = nullptr;
 
     auto ToString() const {
         std::stringstream ss;
@@ -102,7 +102,7 @@ struct PositionInfo {
 
     /// Process a change in top-of-book prices (BBO), and update unrealized pnl
     /// if there is an open position.
-    auto updateBBO(const Trading::BBODouble *_bbo) noexcept {
+    auto updateBBO(const Trading::BBO *_bbo) noexcept {
         bbo = _bbo;
 
         if (position && bbo->bid_price != common::kPRICE_DOUBLE_INVALID &&
@@ -156,7 +156,7 @@ class PositionKeeper {
         ticker_position[client_response->trading_pair].addFill(client_response);
     };
 
-    auto UpdateBBO(const common::TradingPair trading_pair, const Trading::BBODouble *bbo) noexcept {
+    auto UpdateBBO(const common::TradingPair trading_pair, const Trading::BBO *bbo) noexcept {
         ticker_position[trading_pair].updateBBO(bbo);
     };
 

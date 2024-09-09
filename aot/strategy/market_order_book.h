@@ -12,14 +12,26 @@
 namespace Trading {
 class TradeEngine;
 
-class MarketOrderBook final {
+class MarketOrderBook {
+    /// Memory pool to manage MarketOrdersAtPrice objects.
+    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
+
+    /// Pointers to beginning / best prices / top of book of buy and sell price
+    /// levels.
+    /// Hash map from Price -> MarketOrdersAtPrice.
+    OrdersAtPriceHashMap price_orders_at_price_;
+    BidsatPriceMap bids_at_price_map_;
+    AsksatPriceMap asks_at_price_map_;
+    BBO bbo_;
+    common::TradingPair trading_pair_;
+    common::TradingPairHashMap& pairs_;
   public:
-    explicit MarketOrderBook();
+    explicit MarketOrderBook(common::TradingPair trading_pair, common::TradingPairHashMap& pairs);
 
     ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
+    auto OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
         -> void;
 
     auto getBBO() const noexcept -> const BBO * { return &bbo_; }
@@ -35,7 +47,7 @@ class MarketOrderBook final {
                     bids_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
                 bbo_.bid_price = common::kPriceInvalid;
-                bbo_.bid_qty   = common::Qty_INVALID;
+                bbo_.bid_qty   = common::kQtyInvalid;
             }
         }
 
@@ -47,7 +59,7 @@ class MarketOrderBook final {
                     asks_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
                 bbo_.ask_price = common::kPriceInvalid;
-                bbo_.ask_qty   = common::Qty_INVALID;
+                bbo_.ask_qty   = common::kQtyInvalid;
             }
         }
     }
@@ -68,18 +80,7 @@ class MarketOrderBook final {
 
     MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
 
-  private:
-    /// Memory pool to manage MarketOrdersAtPrice objects.
-    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_;
 
-    /// Pointers to beginning / best prices / top of book of buy and sell price
-    /// levels.
-    /// Hash map from Price -> MarketOrdersAtPrice.
-    OrdersAtPriceHashMap price_orders_at_price_;
-    BidsatPriceMap bids_at_price_map_;
-    AsksatPriceMap asks_at_price_map_;
-    /// Memory pool to manage MarketOrder objects.
-    BBO bbo_;
 
   private:
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
@@ -152,61 +153,13 @@ class MarketOrderBook final {
     }
 };
 
-class MarketOrderBookDouble {
-  public:
-    explicit MarketOrderBookDouble(common::TradingPair trading_pair,
-                                   common::TradingPairHashMap &pairs)
-        : trading_pair_(trading_pair),
-          pairs_(pairs),
-          precission_price_(pairs[trading_pair].price_precission),
-          precission_qty_(pairs[trading_pair].qty_precission) {};
-
-    ~MarketOrderBookDouble() = default;
-
-    /// Process market data update and update the limit order book.
-    auto OnMarketUpdate(
-        const Exchange::MEMarketUpdateDouble *market_update) noexcept -> void;
-
-    auto SetTradeEngine(TradeEngine *trade_engine) {
-        trade_engine_ = trade_engine;
-    }
-
-    /// Update the BBO abstraction, the two boolean parameters represent if the
-    /// buy or the sekk (or both) sides or both need to be updated.
-    auto updateBBO(bool update_bid, bool update_ask) noexcept {
-        book_.updateBBO(update_bid, update_ask);
-    }
-
-    auto getBBO() noexcept -> const BBODouble * {
-        bbo_double_ = BBODouble(book_.getBBO(), precission_price_, precission_qty_);
-        return &bbo_double_;
-    }
-
-    MarketOrderBookDouble(const MarketOrderBook &)             = delete;
-
-    MarketOrderBookDouble(const MarketOrderBook &&)            = delete;
-
-    MarketOrderBookDouble &operator=(const MarketOrderBook &)  = delete;
-
-    MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
-
-  private:
-    common::TradingPair trading_pair_;
-    common::TradingPairHashMap &pairs_;
-    uint8_t precission_price_;
-    uint8_t precission_qty_;
-    BBODouble bbo_double_;
-    MarketOrderBook book_;
-    TradeEngine *trade_engine_ = nullptr;
-};
-
 /// Hash map from TickerId -> MarketOrderBook.
 using MarketOrderBookHashMap =
     std::array<MarketOrderBook *, common::ME_MAX_TICKERS>;
 
 class OrderBookService : public common::ServiceI {
   public:
-    explicit OrderBookService(MarketOrderBookDouble *ob,
+    explicit OrderBookService(MarketOrderBook *ob,
                               Exchange::EventLFQueue *book_update)
         : ob_(ob), queue_(book_update) {};
     ~OrderBookService() override = default;
@@ -234,7 +187,7 @@ class OrderBookService : public common::ServiceI {
     volatile bool run_ = false;
     std::unique_ptr<std::jthread> thread_;
 
-    MarketOrderBookDouble *ob_ = nullptr;
+    MarketOrderBook *ob_ = nullptr;
     Exchange::EventLFQueue *queue_ = nullptr;
 };
 }  // namespace Trading
@@ -242,15 +195,18 @@ class OrderBookService : public common::ServiceI {
 namespace backtesting {
 class TradeEngine;
 
-class MarketOrderBook final {
+class MarketOrderBook : public Trading::MarketOrderBook {
   public:
-    explicit MarketOrderBook() = default;
+    explicit MarketOrderBook(common::TradingPair trading_pair, common::TradingPairHashMap& pairs): Trading::MarketOrderBook(trading_pair, pairs){};
 
     ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    auto onMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
-        -> void;
+    auto OnNewKLine(const OHLCVExt *new_kline) noexcept
+        -> void{
+            bbo_.price = new_kline->ohlcv.open;
+            bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
+        }
 
     auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 
@@ -264,42 +220,6 @@ class MarketOrderBook final {
 
   private:
     backtesting::BBO bbo_;
-};
-
-class MarketOrderBookDouble {
-  public:
-    explicit MarketOrderBookDouble(common::TradingPair trading_pair,
-                                   common::TradingPairHashMap &pairs)
-        : trading_pair_(trading_pair),
-          pairs_(pairs),
-          precission_price_(pairs[trading_pair].price_precission),
-          precission_qty_(pairs[trading_pair].qty_precission) {};
-
-    ~MarketOrderBookDouble() = default;
-
-    auto OnNewKLine(const OHLCVExt *market_update) noexcept -> void;
-
-    auto SetTradeEngine(TradeEngine *trade_engine) {
-        trade_engine_ = trade_engine;
-    }
-
-    auto getBBO() noexcept -> const BBODouble * { return &bbo_double_; }
-
-    MarketOrderBookDouble(const MarketOrderBook &)             = delete;
-
-    MarketOrderBookDouble(const MarketOrderBook &&)            = delete;
-
-    MarketOrderBookDouble &operator=(const MarketOrderBook &)  = delete;
-
-    MarketOrderBookDouble &operator=(const MarketOrderBook &&) = delete;
-
-  private:
-    common::TradingPair trading_pair_;
-    common::TradingPairHashMap &pairs_;
-    uint precission_price_;
-    uint precission_qty_;
-    BBODouble bbo_double_;
-    TradeEngine *trade_engine_ = nullptr;
 };
 
 /// Hash map from TickerId -> MarketOrderBook.

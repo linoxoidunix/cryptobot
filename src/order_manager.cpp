@@ -1,8 +1,8 @@
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/trade_engine.h"
 
-auto Trading::OrderManager::NewOrder(const common::TradingPair trading_pair, PriceD price, Side side,
-                                     QtyD qty) noexcept -> void {
+auto Trading::OrderManager::NewOrder(const common::TradingPair trading_pair, common::Price price, Side side,
+                                     common::Qty qty) noexcept -> void {
     //auto ticker_as_string = trading_pair.ToString();
     assert(price > 0);
     assert(qty > 0);
@@ -39,8 +39,8 @@ auto Trading::OrderManager::CancelOrder(common::TradingPair trading_pair,
     order->state = OMOrderState::PENDING_CANCEL;
 }
 
-auto backtesting::OrderManager::NewOrder(const common::TradingPair trading_pair, PriceD price, Side side,
-                                     QtyD qty) noexcept -> void {
+auto backtesting::OrderManager::NewOrder(const common::TradingPair trading_pair, common::Price price, Side side,
+                                     common::Qty qty) noexcept -> void {
     assert(price > 0);
     assert(qty > 0);
     auto order = GetOrder(trading_pair, side);

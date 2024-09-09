@@ -1071,6 +1071,7 @@ int main(int argc, char** argv) {
     backtesting::OHLCVI fetcher(
         path_to_history_data,
         &trade_engine_service, TradingPair{2,1});
+        
     backtesting::KLineService kline_service(
         &fetcher, &internal_ohlcv_queue, &external_ohlcv_queue);
 

@@ -62,8 +62,8 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    virtual auto NewOrder(common::TradingPair trading_pair, PriceD price,
-                          Side side, QtyD qty) noexcept -> void;
+    virtual auto NewOrder(common::TradingPair trading_pair, common::Price price,
+                          Side side, common::Qty qty) noexcept -> void;
 
     /**
      * @brief
@@ -113,8 +113,8 @@ class OrderManager : public Trading::OrderManager {
     common::OrderId next_order_id_ = 1;
 
   public:
-    auto NewOrder(common::TradingPair trading_pair, PriceD price, Side side,
-                  QtyD qty) noexcept -> void override;
+    auto NewOrder(common::TradingPair trading_pair, common::Price price, Side side,
+                  common::Qty qty) noexcept -> void override;
     auto CancelOrder(common::TradingPair trading_pair,
                      Side side) noexcept -> void override;
 

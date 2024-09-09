@@ -26,7 +26,6 @@ TradeEngine::TradeEngine(
     common::TradeEngineCfg btcusdt_cfg;
     btcusdt_cfg.clip      = 0.0001;
     config_[trading_pair] = btcusdt_cfg;
-    order_book_.SetTradeEngine(this);
 };
 
 TradeEngine::~TradeEngine() {
@@ -67,25 +66,6 @@ auto TradeEngine::Run() noexcept -> void {
         }
         if (count_responses) time_manager_.Update();
 
-        size_t count = incoming_md_updates_->try_dequeue_bulk(results, 50);
-        // auto start = common::getCurrentNanoS();
-        for (uint i = 0; i < count; i++) [[likely]] {
-            order_book_.OnMarketUpdate(&results[i]);
-        }
-        // auto end = common::getCurrentNanoS();
-        if (count){
-             time_manager_.Update();
-             dequed_mb_elements+=count;
-        }
-        // if(count)[[likely]]
-        // {
-        //     delta += end - start;
-        //     number_messages += count;
-        //     prometheus::LogEvent<kMeasureTForTradeEngine>(prometheus::EventType::kUpdateSpeedOrderBook,
-        //     delta*1.0/number_messages, latency_event_lfqueue_);
-        // }
-        // time_manager_.Update();
-
         size_t count_new_klines = klines_->try_dequeue_bulk(new_klines, 50);
         // logd("{}", count_new_klines);
         // auto begin_on_new_line = common::getCurrentNanoS();
@@ -104,12 +84,6 @@ auto TradeEngine::Run() noexcept -> void {
         //      latency_event_lfqueue_);
         // time_manager_.Update();
 
-        if (count) [[likely]] {
-            auto bbo = order_book_.getBBO();
-            logi("process {} operations {}", count, bbo->ToString());
-        }
-        // fmtlog::poll();
-        // time_manager_.Update();
     }
     logd("dequed klines={}", dequed_elements);
     logd("dequed diffs_mb={}", dequed_mb_elements);
@@ -117,12 +91,9 @@ auto TradeEngine::Run() noexcept -> void {
 }
 }  // namespace Trading
 
-auto Trading::TradeEngine::OnOrderBookUpdate(
-    const common::TradingPair& trading_pair, PriceD price, Side side,
-    MarketOrderBookDouble* book) noexcept -> void {
+auto Trading::TradeEngine::OnOrderBookUpdate() noexcept -> void {
     auto bbo = order_book_.getBBO();
-    position_keeper_.UpdateBBO(trading_pair, bbo);
-    strategy_.OnOrderBookUpdate(trading_pair, price, side, &order_book_);
+    position_keeper_.UpdateBBO(trading_pair_, bbo);
 }
 
 auto Trading::TradeEngine::OnOrderResponse(

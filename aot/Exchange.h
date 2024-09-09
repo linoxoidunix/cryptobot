@@ -124,11 +124,11 @@ class Interval {
 };
 struct OHLCV {
     uint data;
-    double open;
-    double high;
-    double low;
-    double close;
-    double volume;
+    common::Price open;
+    common::Price high;
+    common::Price low;
+    common::Price close;
+    common::Qty volume;
     std::string ToString() const {
         return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close,
                            volume);

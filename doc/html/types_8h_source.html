@@ -149,10 +149,10 @@ $(function() {
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>}</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keyword">using </span>Qty                  = uint64_t;</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="keyword">constexpr</span> <span class="keyword">auto</span> Qty_INVALID = std::numeric_limits&lt;Qty&gt;::max();</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="keyword">constexpr</span> <span class="keyword">auto</span> kQtyInvalid = std::numeric_limits&lt;Qty&gt;::max();</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="keyword">inline</span> <span class="keyword">auto</span> qtyToString(Qty qty) -&gt; std::string {</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="keywordflow">if</span> (UNLIKELY(qty == Qty_INVALID)) {</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="keywordflow">if</span> (UNLIKELY(qty == kQtyInvalid)) {</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>        <span class="keywordflow">return</span> <span class="stringliteral">&quot;INVALID&quot;</span>;</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    }</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span> </div>

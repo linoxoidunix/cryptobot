@@ -96,7 +96,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             (item.last_id >= snapshot_.lastUpdateId + 1);
         if (need_snapshot) [[unlikely]] {
             snapshot_and_diff_was_synced = false;
-            Exchange::MEMarketUpdateDouble event_clear_queue;
+            Exchange::MEMarketUpdate event_clear_queue;
             event_clear_queue.type = Exchange::MarketUpdateType::CLEAR;
             logd("clear order book. try make snapshot");
             event_lfqueue_->enqueue(event_clear_queue);
@@ -296,13 +296,20 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
+    double open;
+    double high;
+    double low;
+    double close;
+    double volume;
+
     try {
         auto error =
-            doc["k"]["o"].get_double_in_string().get(output.ohlcv.open);
+            doc["k"]["o"].get_double_in_string().get(open);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key open in response");
             return output;
         }
+        output.ohlcv.open = open 
         error = doc["k"]["c"].get_double_in_string().get(output.ohlcv.close);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key close in response");

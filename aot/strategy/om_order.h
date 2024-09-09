@@ -56,8 +56,8 @@ namespace Trading {
     common::TradingPair trading_pair;
     common::OrderId order_id = common::OrderId_INVALID;
     common::Side side = common::Side::INVALID;
-    double price = common::kPRICE_DOUBLE_INVALID;
-    double qty = common::kQTY_DOUBLE_INVALID;
+    common::Price price = common::kPriceInvalid;
+    common::Qty qty = common::kQtyInvalid;
     OMOrderState state = OMOrderState::INVALID;
 
     auto ToString() const {

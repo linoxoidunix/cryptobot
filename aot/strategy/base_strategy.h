@@ -26,8 +26,8 @@ class BaseStrategy {
      * Launch OnOrderBookUpdate callback when there are changes in
      * marketorderbookdouble for BaseStrategy is None
      */
-    auto OnOrderBookUpdate(const common::TradingPair &trading_pair, PriceD price, Side side,
-                           Trading::MarketOrderBookDouble *order_book) noexcept
+    auto OnOrderBookUpdate(const common::TradingPair &trading_pair, common::Price price, Side side,
+                           Trading::MarketOrderBook *order_book) noexcept
         -> void {
         if (!order_book_) [[unlikely]]
             order_book_ = order_book;
@@ -67,7 +67,7 @@ class BaseStrategy {
     TradingPair trading_pairs_;
     TradingPairHashMap& pairs_;
     Wallet wallet_;
-    Trading::MarketOrderBookDouble *order_book_ = nullptr;
+    Trading::MarketOrderBook *order_book_ = nullptr;
     std::vector<std::function<void(const common::TradingPair& trading_pair)>> actions_;
     /**
      * @brief if strategy want buy qty asset with price_asset=price it calls
