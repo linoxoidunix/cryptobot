@@ -80,10 +80,10 @@ inline auto clientIdToString(ClientId client_id) -> std::string {
 }
 
 using Price                  = uint64_t;
-constexpr auto Price_INVALID = std::numeric_limits<Price>::max();
+constexpr auto kPriceInvalid = std::numeric_limits<Price>::max();
 
 inline auto priceToString(Price price) -> std::string {
-    if (UNLIKELY(price == Price_INVALID)) {
+    if (UNLIKELY(price == kPriceInvalid)) {
         return "INVALID";
     }
 

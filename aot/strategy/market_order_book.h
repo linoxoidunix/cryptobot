@@ -34,7 +34,7 @@ class MarketOrderBook final {
                 bbo_.bid_qty =
                     bids_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
-                bbo_.bid_price = common::Price_INVALID;
+                bbo_.bid_price = common::kPriceInvalid;
                 bbo_.bid_qty   = common::Qty_INVALID;
             }
         }
@@ -46,7 +46,7 @@ class MarketOrderBook final {
                 bbo_.ask_qty =
                     asks_at_price_map_.begin()->first_mkt_order_.qty_;
             } else {
-                bbo_.ask_price = common::Price_INVALID;
+                bbo_.ask_price = common::kPriceInvalid;
                 bbo_.ask_qty   = common::Qty_INVALID;
             }
         }

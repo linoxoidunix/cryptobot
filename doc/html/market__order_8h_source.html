@@ -86,7 +86,7 @@ $(function() {
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrder.html">   16</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structTrading_1_1MarketOrder.html">MarketOrder</a> {</div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    common::OrderId order_id_ = common::OrderId_INVALID;</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    common::Side side_        = common::Side::INVALID;</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    common::Price price_      = common::Price_INVALID;</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    common::Price price_      = common::kPriceInvalid;</div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    common::Qty qty_          = common::Qty_INVALID;</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="comment">// common::Priority priority_ = common::Priority_INVALID;</span></div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
@@ -106,7 +106,7 @@ $(function() {
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="structTrading_1_1MarketOrdersAtPrice.html">   43</a></span>struct <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">MarketOrdersAtPrice</a> {</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    common::Side side_   = common::Side::INVALID;</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    common::Price price_ = common::Price_INVALID;</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    common::Price price_ = common::kPriceInvalid;</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    <a class="code hl_struct" href="structTrading_1_1MarketOrder.html">MarketOrder</a> first_mkt_order_;</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
@@ -183,8 +183,8 @@ $(function() {
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>};</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span> </div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="structTrading_1_1BBO.html">  129</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structTrading_1_1BBO.html">BBO</a> {</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    common::Price bid_price = common::Price_INVALID;</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    common::Price ask_price = common::Price_INVALID;</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    common::Price bid_price = common::kPriceInvalid;</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    common::Price ask_price = common::kPriceInvalid;</div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    common::Qty bid_qty     = common::Qty_INVALID;</div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    common::Qty ask_qty     = common::Qty_INVALID;</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span> </div>

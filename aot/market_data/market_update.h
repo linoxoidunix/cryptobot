@@ -33,7 +33,7 @@ struct MEMarketUpdate {
     // common::TickerId ticker_id = common::TickerId_INVALID;
     //std::string ticker;
     common::Side side   = common::Side::INVALID;
-    common::Price price = common::Price_INVALID;
+    common::Price price = common::kPriceInvalid;
     common::Qty qty     = common::Qty_INVALID;
 
     auto ToString() const {

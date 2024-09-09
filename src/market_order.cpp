@@ -17,13 +17,13 @@ auto MarketOrder::toString() const -> std::string {
 BBODouble::BBODouble(const BBO* bbo, uint8_t precission_price,
                      uint8_t precission_qty)
     : price_prec(precission_price), qty_prec(precission_qty) {
-    if (bbo->bid_price != common::Price_INVALID) [[likely]]
+    if (bbo->bid_price != common::kPriceInvalid) [[likely]]
         bid_price =
             (double)bbo->bid_price * 1.0 * std::pow(10, -precission_price);
     else
         bid_price = common::kPRICE_DOUBLE_INVALID;
 
-    if (bbo->ask_price != common::Price_INVALID) [[likely]]
+    if (bbo->ask_price != common::kPriceInvalid) [[likely]]
         ask_price =
             (double)bbo->ask_price * 1.0 * std::pow(10, -precission_price);
     else
@@ -55,7 +55,7 @@ namespace backtesting {
 BBODouble::BBODouble(const BBO* bbo, uint8_t precission_price,
                      uint8_t precission_qty)
     : price_prec(precission_price), qty_prec(precission_qty) {
-    if (bbo->price != common::Price_INVALID) [[likely]]
+    if (bbo->price != common::kPriceInvalid) [[likely]]
         price = (double)bbo->price * 1.0 * std::pow(10, -precission_price);
     else
         price = common::kPRICE_DOUBLE_INVALID;

@@ -25,7 +25,7 @@ namespace Trading {
 struct MarketOrder {
     common::OrderId order_id_ = common::OrderId_INVALID;
     common::Side side_        = common::Side::INVALID;
-    common::Price price_      = common::Price_INVALID;
+    common::Price price_      = common::kPriceInvalid;
     common::Qty qty_          = common::Qty_INVALID;
     // common::Priority priority_ = common::Priority_INVALID;
 
@@ -51,7 +51,7 @@ struct MarketOrder {
 /// Internally maintains a list of MarketOrder objects arranged in FIFO order.
 struct MarketOrdersAtPrice {
     common::Side side_   = common::Side::INVALID;
-    common::Price price_ = common::Price_INVALID;
+    common::Price price_ = common::kPriceInvalid;
 
     MarketOrder first_mkt_order_;
 
@@ -145,8 +145,8 @@ struct BBODouble {
 };
 
 struct BBO : BBOI {
-    common::Price bid_price = common::Price_INVALID;
-    common::Price ask_price = common::Price_INVALID;
+    common::Price bid_price = common::kPriceInvalid;
+    common::Price ask_price = common::kPriceInvalid;
     common::Qty bid_qty     = common::Qty_INVALID;
     common::Qty ask_qty     = common::Qty_INVALID;
 
@@ -162,7 +162,7 @@ struct BBO : BBOI {
 
     common::Price GetWeightedPrice() const override {
         if (bid_qty + ask_qty == 0) [[unlikely]]
-            return common::Price_INVALID;
+            return common::kPriceInvalid;
         return bid_price * bid_qty + ask_price * ask_qty / (bid_qty + ask_qty);
     };
 
@@ -198,7 +198,7 @@ struct BBODouble : BBODI{
 };
 
 struct BBO : BBOI{
-    common::Price price = common::Price_INVALID;
+    common::Price price = common::kPriceInvalid;
     common::Qty qty     = common::Qty_INVALID;
 
     auto ToString() const {
