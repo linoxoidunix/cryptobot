@@ -91,10 +91,10 @@ inline auto priceToString(Price price) -> std::string {
 }
 
 using Qty                  = uint64_t;
-constexpr auto Qty_INVALID = std::numeric_limits<Qty>::max();
+constexpr auto kQtyInvalid = std::numeric_limits<Qty>::max();
 
 inline auto qtyToString(Qty qty) -> std::string {
-    if (UNLIKELY(qty == Qty_INVALID)) {
+    if (UNLIKELY(qty == kQtyInvalid)) {
         return "INVALID";
     }
 
