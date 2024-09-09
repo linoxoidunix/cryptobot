@@ -17,7 +17,7 @@ TEST(CrossArbitrageEvent, Create) {
 TEST(MemPoolEvents, Using) {
     using namespace strategy::cross_arbitrage;
     using namespace Common;
-    BUPool pool{10};
+    BBUPool pool{10};
     LFQueue queue;
     for (int i = 0; i < 9; i++) {
         auto ptr = pool.allocate(BBidUpdated(TradingPair{2, 1}, 100.0, 14.0));
@@ -38,7 +38,7 @@ TEST(MemPoolEvents, Using) {
 TEST(MemPoolEvents, UsingInThread) {
     using namespace strategy::cross_arbitrage;
     using namespace Common;
-    BUPool pool{10};
+    BBUPool pool{10};
     LFQueue queue;
     std::jthread t1([&pool, &queue]() {
         for (int i = 0; i < 9; i++) {

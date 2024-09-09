@@ -25,8 +25,8 @@ struct BaseEvent : public Event{
  */
 struct BBidUpdated : public BaseEvent {
     Common::TradingPair trading_pair;
-    Common::PriceD price;
-    Common::QtyD qty;
+    Common::PriceD price = Common::kPRICE_DOUBLE_INVALID;
+    Common::QtyD qty = Common::kQTY_DOUBLE_INVALID;
     BBidUpdated() = default;
     BBidUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
                Common::QtyD _qty)
@@ -34,7 +34,25 @@ struct BBidUpdated : public BaseEvent {
     ~BBidUpdated() override = default;
     EventType GetType() override { return EventType::kBidUpdate; };
 };
+
+struct BAskUpdated : public BaseEvent {
+    Common::TradingPair trading_pair;
+    Common::PriceD price = Common::kPRICE_DOUBLE_INVALID;
+    Common::QtyD qty = Common::kQTY_DOUBLE_INVALID;
+    BAskUpdated() = default;
+    BAskUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
+               Common::QtyD _qty)
+        : trading_pair(_trading_pair), price(_price), qty(_qty) {};
+    ~BAskUpdated() override = default;
+    EventType GetType() override { return EventType::kAskUpdate; };
+};
+
 using LFQueue =  moodycamel::ConcurrentQueue<Event*>;
-using BUPool = common::MemPool<BBidUpdated>;
+
+/**best bid updated pool*/
+using BBUPool = common::MemPool<BBidUpdated>;
+
+/**best ask updated pool*/
+using BAUPool = common::MemPool<BBidUpdated>;
 }  // namespace cross_arbitrage
 }  // namespace strategy
