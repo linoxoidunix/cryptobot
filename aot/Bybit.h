@@ -421,7 +421,8 @@ class OrderNewLimit : public inner::OrderNewI {
 
       private:
         void SetSymbol(SymbolType symbol) {
-            SymbolUpperCase formatter(symbol.data());
+            assert(false);
+            SymbolUpperCase formatter(symbol.data(),symbol.data());
             storage["symbol"] = formatter.ToString();
         };
         void SetSide(common::Side side) {

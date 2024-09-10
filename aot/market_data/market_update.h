@@ -131,8 +131,8 @@ struct BookDiffSnapshot {
             event.qty      = bid.qty;
             auto status_op = queue.try_enqueue(event);
             logi("{}", event.ToString());
-            // if(!status_op)[[unlikely]]
-            //     loge("can't enqueue more elements. my lfqueue is busy");
+            if(!status_op)[[unlikely]]
+                loge("can't enqueue more elements. my lfqueue is busy");
         }
         for (auto& ask : asks) {
             MEMarketUpdate event;
@@ -141,8 +141,8 @@ struct BookDiffSnapshot {
             event.qty      = ask.qty;
             auto status_op = queue.try_enqueue(event);
             logi("{}", event.ToString());
-            // if(!status_op)[[unlikely]]
-            //     loge("can't enqueue more elements. my lfqueue is busy");
+            if(!status_op)[[unlikely]]
+                loge("can't enqueue more elements. my lfqueue is busy");
         }
     }
 };

@@ -13,26 +13,35 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
-
+    auto price_prec = std::pow(10, pair_info_.price_precission);
+    auto qty_prec   = std::pow(10, pair_info_.qty_precission);
     for (auto all : doc["bids"]) {
         simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;
+        std::array<double, 2> pair;  // price + qty
         uint8_t i = 0;
         for (auto number : arr) {
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_snapshot.bids.emplace_back(pair[0], pair[1]);
+        book_snapshot.bids.emplace_back(
+            static_cast<int>(pair[0] *
+                             price_prec),
+            static_cast<int>(pair[1] *
+                             qty_prec));
     }
     for (auto all : doc["asks"]) {
         simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;
+        std::array<double, 2> pair;  // price + qty
         uint8_t i = 0;
         for (auto number : arr) {
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_snapshot.asks.emplace_back(pair[0], pair[1]);
+        book_snapshot.asks.emplace_back(
+            static_cast<int>(pair[0] *
+                             price_prec),
+            static_cast<int>(pair[1] *
+                             qty_prec));
     }
     return book_snapshot;
 }
@@ -45,7 +54,8 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     book_diff_snapshot.first_id      = doc["U"].get_uint64();
     book_diff_snapshot.last_id       = doc["u"].get_uint64();
-
+    auto price_prec = std::pow(10, pair_info_.price_precission);
+    auto qty_prec   = std::pow(10, pair_info_.qty_precission);
     for (auto all : doc["b"]) {
         simdjson::ondemand::array arr = all.get_array();
         std::array<double, 2> pair;
@@ -54,7 +64,9 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_diff_snapshot.bids.emplace_back(pair[0], pair[1]);
+        book_diff_snapshot.bids.emplace_back(
+            static_cast<int>(pair[0] * price_prec),
+            static_cast<int>(pair[1] * qty_prec));
     }
     for (auto all : doc["a"]) {
         simdjson::ondemand::array arr = all.get_array();
@@ -64,7 +76,9 @@ Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_diff_snapshot.asks.emplace_back(pair[0], pair[1]);
+        book_diff_snapshot.asks.emplace_back(
+            static_cast<int>(pair[0] * price_prec),
+            static_cast<int>(pair[1] * qty_prec));
     }
     return book_diff_snapshot;
 }
@@ -83,9 +97,6 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         if (bool found = book_diff_lfqueue_.try_dequeue(item); !found)
             [[unlikely]]
             continue;
-        AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(
-            prometheus::EventType::kDiffMarketOrderBookExchangeIncoming,
-            prometheus_event_lfqueue_);
         logd("fetch diff book event from exchange {}", item.ToString());
         diff_packet_lost =
             !is_first_run && (item.first_id != last_id_diff_book_event + 1);
@@ -102,14 +113,13 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             event_lfqueue_->enqueue(event_clear_queue);
 
             binance::BookSnapshot::ArgsOrder args{
-                ticker_.symbol->ToString(), 1000};  // TODO parametrize 1000
+                ticker_hash_map_[trading_pair_.first],
+                ticker_hash_map_[trading_pair_.second],
+                1000};  // TODO parametrize 1000
             binance::BookSnapshot book_snapshoter(
-                std::move(args), type_exchange_,
-                &snapshot_);  // TODO parametrize 1000
+                std::move(args), type_exchange_, &snapshot_,
+                pair_info_);  // TODO parametrize 1000
             book_snapshoter.Exec();
-            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(
-                prometheus::EventType::kSnapshotMarketOrderBookIncoming,
-                prometheus_event_lfqueue_);
             if (item.last_id <= snapshot_.lastUpdateId) {
                 is_first_run = false;
                 logd(
@@ -136,18 +146,12 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             if (snapshot_and_diff_now_sync) {
                 snapshot_and_diff_was_synced = true;
                 logd("add {} to order book", snapshot_.ToString());
-                AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(
-                    prometheus::EventType::kLFQueuePushNewBidAsksEvents,
-                    prometheus_event_lfqueue_);
                 snapshot_.AddToQueue(*event_lfqueue_);
             }
         }
         if (!diff_packet_lost && snapshot_and_diff_was_synced) [[likely]] {
             logd("add {} to order book. snapshot_.lastUpdateId = {}",
                  item.ToString(), snapshot_.lastUpdateId);
-            AddEventForPrometheus<kMeasureTForGeneratorBidAskService>(
-                prometheus::EventType::kLFQueuePushNewBidAsksEvents,
-                prometheus_event_lfqueue_);
             item.AddToQueue(*event_lfqueue_);
         }
 
@@ -157,12 +161,16 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
 
 binance::GeneratorBidAskService::GeneratorBidAskService(
     Exchange::EventLFQueue* event_lfqueue,
-    prometheus::EventLFQueue* prometheus_event_lfqueue, const Ticker& ticker,
+    prometheus::EventLFQueue* prometheus_event_lfqueue,
+    const common::TradingPairInfo& trading_pair_info,
+    common::TickerHashMap& ticker_hash_map, common::TradingPair trading_pair,
     const DiffDepthStream::StreamIntervalI* interval,
     TypeExchange type_exchange)
     : event_lfqueue_(event_lfqueue),
       prometheus_event_lfqueue_(prometheus_event_lfqueue),
-      ticker_(ticker),
+      pair_info_(trading_pair_info),
+      ticker_hash_map_(ticker_hash_map),
+      trading_pair_(trading_pair),
       interval_(interval),
       type_exchange_(type_exchange) {
     switch (type_exchange_) {
@@ -173,8 +181,8 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
             current_exchange_ = &binance_test_net_;
             break;
     }
-    book_event_getter_ = std::make_unique<BookEventGetter>(
-        ticker.symbol, interval, type_exchange_);
+    book_event_getter_ =
+        std::make_unique<BookEventGetter>(pair_info_, interval, type_exchange_);
 }
 
 Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
@@ -301,35 +309,40 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     double low;
     double close;
     double volume;
+    auto price_prec = std::pow(10, map_[pair_].price_precission);
+    auto qty_prec   = std::pow(10, map_[pair_].qty_precission);
 
     try {
-        auto error =
-            doc["k"]["o"].get_double_in_string().get(open);
+        auto error = doc["k"]["o"].get_double_in_string().get(open);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key open in response");
             return output;
         }
-        output.ohlcv.open = open 
-        error = doc["k"]["c"].get_double_in_string().get(output.ohlcv.close);
+        output.ohlcv.open = static_cast<int>(open * price_prec);
+        error             = doc["k"]["c"].get_double_in_string().get(close);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key close in response");
             return output;
         }
-        error = doc["k"]["h"].get_double_in_string().get(output.ohlcv.high);
+        output.ohlcv.close = static_cast<int>(close * price_prec);
+        error              = doc["k"]["h"].get_double_in_string().get(high);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key high in response");
             return output;
         }
-        error = doc["k"]["l"].get_double_in_string().get(output.ohlcv.low);
+        output.ohlcv.high = static_cast<int>(high * price_prec);
+        error             = doc["k"]["l"].get_double_in_string().get(low);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key low in response");
             return output;
         }
-        error = doc["k"]["v"].get_double_in_string().get(output.ohlcv.volume);
+        output.ohlcv.low = static_cast<int>(low * price_prec);
+        error            = doc["k"]["v"].get_double_in_string().get(volume);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key volume in response");
             return output;
         }
+        output.ohlcv.volume = static_cast<int>(volume * qty_prec);
         std::string_view ticker;
         error = doc["k"]["s"].get_string().get(ticker);
         if (error != simdjson::SUCCESS) [[unlikely]] {

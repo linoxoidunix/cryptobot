@@ -312,43 +312,56 @@
 //  *
 //  * @return int
 //  */
-// int main() {
-//     fmtlog::setLogLevel(fmtlog::DBG);
-//     using namespace binance;
-//     Exchange::EventLFQueue event_queue;
-//     prometheus::EventLFQueue prometheus_event_queue;
-//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
-//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
-//     Exchange::ClientResponseLFQueue response;
-//     OHLCVILFQueue ohlcv_queue;
-//     DiffDepthStream::ms100 interval;
-//     TickerInfo info{2, 5};
-//     Symbol btcusdt("BTC", "USDT");
-//     Ticker ticker(&btcusdt, info);
-//     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-//                                      ticker, &interval,
-//                                      TypeExchange::TESTNET);
-//     generator.Start();
-//     Trading::TradeEngine trade_engine_service(
-//         &event_queue, &request_new_order, &request_cancel_order, &response,
-//         &ohlcv_queue, &prometheus_event_queue, ticker, nullptr);
-//     std::string host  = "localhost";
-//     unsigned int port = 6060;
-//     prometheus::Service prometheus_service(host, port,
-//     &prometheus_event_queue); prometheus_service
-//         .Start();  // launch prometheus server that send data to prometheus
+int main() {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using namespace binance;
+    Exchange::EventLFQueue event_queue;
+    prometheus::EventLFQueue prometheus_event_queue;
+    Exchange::RequestNewLimitOrderLFQueue request_new_order;
+    Exchange::RequestCancelOrderLFQueue request_cancel_order;
+    Exchange::ClientResponseLFQueue response;
+    OHLCVILFQueue ohlcv_queue;
+    DiffDepthStream::ms100 interval;
+    TickerHashMap tickers;
+    tickers[1] = "usdt";
+    tickers[2] = "btc";
+    
+    TradingPairHashMap pair;
+    binance::Symbol symbol(tickers[2], tickers[1]);
+    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    pair[{2, 1}] = pair_info;
 
-//     trade_engine_service.Start();
-//     common::TimeManager time_manager;
-//     while (trade_engine_service.GetDownTimeInS() < 10) {
-//         logd("Waiting till no activity, been silent for {} seconds...",
-//              generator.GetDownTimeInS());
-//         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(1s);
-//     }
-//     generator.Stop();
-//     trade_engine_service.Stop();
-// }
+    GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
+                                     pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
+                                     TypeExchange::TESTNET);
+    generator.Start();
+    // Trading::TradeEngine trade_engine_service(
+    //     &event_queue, &request_new_order, &request_cancel_order, &response,
+    //     &ohlcv_queue, &prometheus_event_queue, ticker, nullptr);
+    // std::string host  = "localhost";
+    // unsigned int port = 6060;
+    // prometheus::Service prometheus_service(host, port,
+    // &prometheus_event_queue); prometheus_service
+    //     .Start();  // launch prometheus server that send data to prometheus
+
+    // trade_engine_service.Start();
+    common::TimeManager time_manager;
+    // while (trade_engine_service.GetDownTimeInS() < 10) {
+    //     logd("Waiting till no activity, been silent for {} seconds...",
+    //          generator.GetDownTimeInS());
+    //     using namespace std::literals::chrono_literals;
+    //     std::this_thread::sleep_for(1s);
+    // }
+    using namespace std::literals::chrono_literals;
+    std::this_thread::sleep_for(5s);
+    generator.Stop();
+    Exchange::MEMarketUpdate market_update[10];
+    auto status = event_queue.try_dequeue_bulk(market_update, 10);
+    //logi("status = {} {}",status, market_update.ToString());
+    fmtlog::poll();
+
+    // trade_engine_service.Stop();
+}
 //-----------------------------------------------------------------------------------
 // /**
 //  * @brief testing binance response for new order
@@ -939,8 +952,8 @@
 //     int x = 0;
 // }
 //----------------------------------------------------------------------------------------
-int main(){
-    return 0;
-}
+// int main(){
+//     return 0;
+// }
 
 

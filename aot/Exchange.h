@@ -242,7 +242,6 @@ class SymbolUpperCase : public SymbolI {
         ticker_ = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(ticker_);
     };
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
     std::string_view ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 
