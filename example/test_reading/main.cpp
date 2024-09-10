@@ -309,8 +309,49 @@
 //     // trade_engine_service.Stop();
 // }
 // //-----------------------------------------------------------------------------------
+// /**
+//  * @brief launch generator bid ask service + market order book
+//  *
+//  * @return int
+//  */
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
+//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
+//     Exchange::ClientResponseLFQueue response;
+//     OHLCVILFQueue ohlcv_queue;
+//     DiffDepthStream::ms100 interval;
+//     TickerHashMap tickers;
+//     tickers[1] = "usdt";
+//     tickers[2] = "btc";
+    
+//     TradingPairHashMap pair;
+//     binance::Symbol symbol(tickers[2], tickers[1]);
+//     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+//     pair[{2, 1}] = pair_info;
+
+//     GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
+//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
+//                                      TypeExchange::TESTNET);
+
+//     Trading::MarketOrderBook ob(TradingPair{2,1}, pair);
+//     Trading::OrderBookService orderbook_service(&ob, &event_queue);
+    
+//     orderbook_service.Start();
+//     generator_bid_ask.Start();
+
+//     using namespace std::literals::chrono_literals;
+//     std::this_thread::sleep_for(5s);
+//     generator_bid_ask.Stop();
+//     orderbook_service.StopWaitAllQueue();
+//     fmtlog::poll();
+// }
+// //-----------------------------------------------------------------------------------
 /**
- * @brief launch generator bid ask service + market order book
+ * @brief launch generator bid ask service + order book, that push event to lfqueu
  *
  * @return int
  */
@@ -336,8 +377,10 @@ int main() {
     GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
                                      TypeExchange::TESTNET);
+    
+    strategy::cross_arbitrage::LFQueue queue;
 
-    Trading::MarketOrderBook ob(TradingPair{2,1}, pair);
+    strategy::cross_arbitrage::OrderBook ob(TradingPair{2,1}, pair, &queue, 1000, 1000);
     Trading::OrderBookService orderbook_service(&ob, &event_queue);
     
     orderbook_service.Start();
@@ -348,8 +391,6 @@ int main() {
     generator_bid_ask.Stop();
     orderbook_service.StopWaitAllQueue();
     fmtlog::poll();
-
-    // trade_engine_service.Stop();
 }
 //-----------------------------------------------------------------------------------
 // /**

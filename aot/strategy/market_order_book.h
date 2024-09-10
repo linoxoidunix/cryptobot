@@ -25,11 +25,13 @@ class MarketOrderBook {
     AsksatPriceMap asks_at_price_map_;
     BBO bbo_;
     common::TradingPair trading_pair_;
-    common::TradingPairHashMap& pairs_;
-  public:
-    explicit MarketOrderBook(common::TradingPair trading_pair, common::TradingPairHashMap& pairs);
+    common::TradingPairHashMap &pairs_;
 
-    ~MarketOrderBook();
+  public:
+    explicit MarketOrderBook(common::TradingPair trading_pair,
+                             common::TradingPairHashMap &pairs);
+
+    virtual ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
     auto OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
@@ -82,8 +84,6 @@ class MarketOrderBook {
     MarketOrderBook &operator=(const MarketOrderBook &)  = delete;
 
     MarketOrderBook &operator=(const MarketOrderBook &&) = delete;
-
-
 
   private:
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
@@ -190,7 +190,7 @@ class OrderBookService : public common::ServiceI {
     volatile bool run_ = false;
     std::unique_ptr<std::jthread> thread_;
 
-    MarketOrderBook *ob_ = nullptr;
+    MarketOrderBook *ob_           = nullptr;
     Exchange::EventLFQueue *queue_ = nullptr;
 };
 }  // namespace Trading
@@ -205,20 +205,40 @@ class OrderBook : public Trading::MarketOrderBook {
     strategy::cross_arbitrage::LFQueue *queue_ = nullptr;
     BBUPool bbu_pool_;
     BAUPool bau_pool_;
+
   public:
-    explicit OrderBook(strategy::cross_arbitrage::LFQueue *queue,
+    explicit OrderBook(common::TradingPair trading_pair,
+                       common::TradingPairHashMap &pairs,
+                       strategy::cross_arbitrage::LFQueue *queue,
                        uint bbu_mempool_size, uint bau_mempool_size)
-        : MarketOrderBook(), queue_(queue), bbu_pool_(bbu_mempool_size),
-         bau_pool_(bau_mempool_size){};
+        : MarketOrderBook(trading_pair, pairs),
+          queue_(queue),
+          bbu_pool_(bbu_mempool_size),
+          bau_pool_(bau_mempool_size) {};
     void updateBBO(bool update_bid, bool update_ask) noexcept override {
+        Trading::MarketOrderBook::updateBBO(update_bid, update_ask);
         if (!queue_) return;
-        if (update_bid)
-        {
+        auto bbo = getBBO();
+        if (update_bid) {
+            logi("push BBidUpdated event");
+            auto ptr = bbu_pool_.allocate(BBidUpdated(common::TradingPair{2, 1}, bbo->bid_price, bbo->bid_qty));
+            auto status = queue_->try_enqueue(ptr);
+            if(!status)
+                loge("can't push new event to queue");
+            return;
         }
-        //    auto ptr = bbu_pool_.allocate(BBidUpdated(TradingPair{2, 1}, 100.0+i, 14.0+i));
-        //     queue.enqueue(ptr); 
-        //     queue_->try_enqueue()
-    }
+        if (update_ask) {
+            logi("push BAskUpdated event");
+            auto ptr = bau_pool_.allocate(BAskUpdated(common::TradingPair{2, 1}, bbo->ask_price, bbo->ask_qty));
+            auto status = queue_->try_enqueue(ptr);
+            if(!status)
+                loge("can't push new event to queue");
+            return;
+        }
+    };
+    ~OrderBook() override{
+        logi("call Order Book d'tor");
+    };
 };
 };  // namespace cross_arbitrage
 };  // namespace strategy
@@ -228,16 +248,17 @@ class TradeEngine;
 
 class MarketOrderBook : public Trading::MarketOrderBook {
   public:
-    explicit MarketOrderBook(common::TradingPair trading_pair, common::TradingPairHashMap& pairs): Trading::MarketOrderBook(trading_pair, pairs){};
+    explicit MarketOrderBook(common::TradingPair trading_pair,
+                             common::TradingPairHashMap &pairs)
+        : Trading::MarketOrderBook(trading_pair, pairs) {};
 
     ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    auto OnNewKLine(const OHLCVExt *new_kline) noexcept
-        -> void{
-            bbo_.price = new_kline->ohlcv.open;
-            bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
-        }
+    auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void {
+        bbo_.price = new_kline->ohlcv.open;
+        bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
+    }
 
     auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 
