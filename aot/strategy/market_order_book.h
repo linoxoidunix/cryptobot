@@ -7,6 +7,7 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
+#include "aot/strategy/cross_arbitrage/signals.h"
 #include "aot/strategy/market_order.h"
 
 namespace Trading {
@@ -38,7 +39,7 @@ class MarketOrderBook {
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
     /// buy or the sekk (or both) sides or both need to be updated.
-    auto updateBBO(bool update_bid, bool update_ask) noexcept {
+    virtual void updateBBO(bool update_bid, bool update_ask) noexcept {
         if (update_bid) {
             if (bids_at_price_map_.size()) {
                 bbo_.bid_price =
@@ -181,7 +182,7 @@ class OrderBookService : public common::ServiceI {
         }
         run_ = false;
     };
-    void StopImmediately() override {run_ = false;};
+    void StopImmediately() override { run_ = false; };
 
     void Run();
 
@@ -193,6 +194,34 @@ class OrderBookService : public common::ServiceI {
     Exchange::EventLFQueue *queue_ = nullptr;
 };
 }  // namespace Trading
+
+namespace strategy {
+namespace cross_arbitrage {
+/**
+ * @brief publish driven event for startegy in lfqueu
+ *
+ */
+class OrderBook : public Trading::MarketOrderBook {
+    strategy::cross_arbitrage::LFQueue *queue_ = nullptr;
+    BBUPool bbu_pool_;
+    BAUPool bau_pool_;
+  public:
+    explicit OrderBook(strategy::cross_arbitrage::LFQueue *queue,
+                       uint bbu_mempool_size, uint bau_mempool_size)
+        : MarketOrderBook(), queue_(queue), bbu_pool_(bbu_mempool_size),
+         bau_pool_(bau_mempool_size){};
+    void updateBBO(bool update_bid, bool update_ask) noexcept override {
+        if (!queue_) return;
+        if (update_bid)
+        {
+        }
+        //    auto ptr = bbu_pool_.allocate(BBidUpdated(TradingPair{2, 1}, 100.0+i, 14.0+i));
+        //     queue.enqueue(ptr); 
+        //     queue_->try_enqueue()
+    }
+};
+};  // namespace cross_arbitrage
+};  // namespace strategy
 
 namespace backtesting {
 class TradeEngine;

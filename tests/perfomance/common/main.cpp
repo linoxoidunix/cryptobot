@@ -76,6 +76,29 @@ static void BM_COPY_INT(benchmark::State& state) {
     }
 }
 
+static void BM_OP_WITH_DOUBLE_WITHOUT_CONV_TO_INT(benchmark::State& state) {
+    double x = 1.1;
+    double y = 0;
+    for (auto _ : state) {
+        for (int i = 0; i < 1000000; i++){
+            benchmark::DoNotOptimize(x*=2);
+        }
+        benchmark::DoNotOptimize(y=x);
+    }
+}
+
+static void BM_OP_WITH_DOUBLE_WITH_CONV_TO_INT(benchmark::State& state) {
+    double x = 1.1;
+    double y = 0;
+    for (auto _ : state) {
+        unsigned int z = 1.1*10;
+        for (int i = 0; i < 1000000; i++){
+            benchmark::DoNotOptimize(z*=2);
+        }
+        benchmark::DoNotOptimize(y=z/10.0);
+    }
+}
+
 // Register the function as a benchmark
 BENCHMARK(BM_INIT_VARIABLE_CONDITION);
 BENCHMARK(BM_INIT_VARIABLE_LIKELY);
@@ -85,6 +108,8 @@ BENCHMARK(BM_INIT_ITERATE_INT);
 BENCHMARK(BM_INIT_ITERATE_DOUBLE);
 BENCHMARK(BM_COPY_DOUBLE);
 BENCHMARK(BM_COPY_INT);
+BENCHMARK(BM_OP_WITH_DOUBLE_WITHOUT_CONV_TO_INT);
+BENCHMARK(BM_OP_WITH_DOUBLE_WITH_CONV_TO_INT);
 
 int main(int argc, char** argv) {
     benchmark::Initialize(&argc, argv);

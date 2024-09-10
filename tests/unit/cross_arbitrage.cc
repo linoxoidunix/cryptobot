@@ -16,6 +16,8 @@ TEST(CrossArbitrageEvent, Create) {
 
 TEST(MemPoolEvents, Using) {
     using namespace strategy::cross_arbitrage;
+    using namespace Common;
+    BBUPool pool{10};
     using namespace common;
     BUPool pool{10};
     LFQueue queue;
@@ -37,8 +39,8 @@ TEST(MemPoolEvents, Using) {
 
 TEST(MemPoolEvents, UsingInThread) {
     using namespace strategy::cross_arbitrage;
-    using namespace common;
-    BUPool pool{10};
+    using namespace Common;
+    BBUPool pool{10};
     LFQueue queue;
     std::jthread t1([&pool, &queue]() {
         for (int i = 0; i < 9; i++) {
