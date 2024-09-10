@@ -65,6 +65,8 @@ class MarketOrderBook {
     }
 
     void ClearOrderBook() {
+        logi("found {} bids in order book", bids_at_price_map_.size());
+        logi("found {} asks in order book", asks_at_price_map_.size());
         bids_at_price_map_.clear();
         asks_at_price_map_.clear();
         for (const auto &order_at_price : price_orders_at_price_)
