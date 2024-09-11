@@ -26,17 +26,17 @@ class OrdermanagerBacktestingTest : public testing::Test {
         binance::Symbol symbol(tickers_[2], tickers_[1]);
         TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
         pair_[{2, 1}] = pair_info;
-        order_manager_.NewOrder(common::TradingPair{2, 1}, 33.1,
-                                common::Side::BUY, 7.2);
+        order_manager_.NewOrder(common::TradingPair{2, 1}, 3300,
+                                common::Side::BUY, 700000);
     };
 };
 
 TEST_F(OrdermanagerBacktestingTest, InsertFirstOrder) {
     auto order = order_manager_.TestGetOrder(common::TradingPair{2, 1},
                                              common::Side::BUY);
-    EXPECT_EQ(order->price, 33.1);
+    EXPECT_EQ(order->price, 3300);
     EXPECT_EQ(order->order_id, 1);
-    EXPECT_EQ(order->qty, 7.2);
+    EXPECT_EQ(order->qty, 700000);
     EXPECT_EQ(order->side, common::Side::BUY);
     EXPECT_EQ(order->trading_pair, (TradingPair{2, 1}));
 }
