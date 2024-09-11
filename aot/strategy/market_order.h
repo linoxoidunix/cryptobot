@@ -127,7 +127,7 @@ struct BBO : BBOI {
     common::Price GetWeightedPrice() const override {
         if (bid_qty + ask_qty == 0) [[unlikely]]
             return common::kPriceInvalid;
-        return bid_price * bid_qty + ask_price * ask_qty / (bid_qty + ask_qty);
+        return std::round(1.0*(bid_price * bid_qty + ask_price * ask_qty) / (bid_qty + ask_qty));
     };
 
     explicit BBO() = default;

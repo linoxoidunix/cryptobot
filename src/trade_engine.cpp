@@ -51,7 +51,7 @@ TradeEngine::~TradeEngine() {
 auto TradeEngine::Run() noexcept -> void {
     logi("TradeEngineService start");
     Exchange::MEClientResponse results_responses[50];
-    Exchange::MEMarketUpdateDouble results[50];
+    Exchange::MEMarketUpdate results[50];
     OHLCVExt new_klines[50];
 
     common::Delta delta          = 0;

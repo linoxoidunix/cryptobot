@@ -80,7 +80,9 @@ inline auto clientIdToString(ClientId client_id) -> std::string {
 }
 
 using Price                  = uint64_t;
+using PriceD                  = double;
 constexpr auto kPriceInvalid = std::numeric_limits<Price>::max();
+constexpr auto kPriceDInvalid = std::numeric_limits<PriceD>::max();
 
 inline auto priceToString(Price price) -> std::string {
     if (UNLIKELY(price == kPriceInvalid)) {

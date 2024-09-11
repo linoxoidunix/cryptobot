@@ -28,9 +28,9 @@ KLineService::KLineService(OHLCVGetter* ohlcv_getter,
 
 auto KLineService::Run() noexcept -> void {
     OHLCVExt o_h_l_c_v_ext[50];
-    Exchange::MEMarketUpdateDouble clear_event;
+    Exchange::MEMarketUpdate clear_event;
     clear_event.type = Exchange::MarketUpdateType::CLEAR;
-    Exchange::MEMarketUpdateDouble new_ohlcv[2];
+    Exchange::MEMarketUpdate new_ohlcv[2];
     bool need_fetch_more = true;
     while (run_) {
         if (need_fetch_more) {

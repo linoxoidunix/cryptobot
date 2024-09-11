@@ -848,11 +848,9 @@ class BookSnapshot : public inner::BookSnapshotI {
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
-            logi("{}", resut);
-            fmtlog::poll();
             ParserResponse parser(pair_info_);
             auto answer   = parser.Parse(resut);
-            answer.ticker = args_["symbol"];
+            //answer.ticker = args_["symbol"];
             *snapshot_    = answer;
         };
         std::make_shared<Https>(ioc, cb)->Run(

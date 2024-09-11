@@ -34,8 +34,7 @@ class MarketOrderBook {
     virtual ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    auto OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept
-        -> void;
+    virtual void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept;
 
     auto getBBO() const noexcept -> const BBO * { return &bbo_; }
 
@@ -252,13 +251,19 @@ class MarketOrderBook : public Trading::MarketOrderBook {
                              common::TradingPairHashMap &pairs)
         : Trading::MarketOrderBook(trading_pair, pairs) {};
 
-    ~MarketOrderBook();
+    ~MarketOrderBook() override;
 
     /// Process market data update and update the limit order book.
     auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void {
         bbo_.price = new_kline->ohlcv.open;
         bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
     }
+
+    void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept override{
+        bbo_.price = market_update->price;
+        bbo_.qty   = market_update->qty;
+    }
+        
 
     auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 

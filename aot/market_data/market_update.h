@@ -25,7 +25,6 @@ inline std::string marketUpdateTypeToString(MarketUpdateType type) {
     return "UNKNOWN";
 };
 
-struct MEMarketUpdateDouble;
 struct MEMarketUpdate {
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
@@ -40,27 +39,7 @@ struct MEMarketUpdate {
             common::orderIdToString(order_id), sideToString(side),
             common::qtyToString(qty), common::priceToString(price));
     };
-    explicit MEMarketUpdate(const MEMarketUpdateDouble*, uint precission_price,
-                            uint precission_qty);
     explicit MEMarketUpdate() = default;
-};
-
-struct MEMarketUpdateDouble {
-    MarketUpdateType type = MarketUpdateType::DEFAULT;
-
-    common::Side side = common::Side::INVALID;
-    double price      = std::numeric_limits<double>::max();
-    double qty        = std::numeric_limits<double>::max();
-
-    auto ToString() const {
-        return fmt::format(
-            "MEMarketUpdateDouble[type:{} side:{} qty:{} price:{}]",
-            marketUpdateTypeToString(type), sideToString(side), qty,
-            price);
-    };
-    explicit MEMarketUpdateDouble(const MEMarketUpdate*, uint precission_price,
-                                  uint precission_qty);
-    explicit MEMarketUpdateDouble() = default;
 };
 
 using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
@@ -75,7 +54,6 @@ struct BookSnapshotElem {
 };
 
 struct BookSnapshot {
-    std::string ticker;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
@@ -83,9 +61,8 @@ struct BookSnapshot {
         std::vector<MEMarketUpdate> bulk;
         bulk.resize(bids.size());
         int i = 0;
-        for (auto& bid : bids) {
+        for (const auto& bid : bids) {
             MEMarketUpdate event;
-            //event.ticker = ticker;
             event.side   = common::Side::SELL;
             event.price  = bid.price;
             event.qty    = bid.qty;
@@ -97,9 +74,8 @@ struct BookSnapshot {
 
         bulk.resize(asks.size());
         i = 0;
-        for (auto& ask : asks) {
+        for (const auto& ask : asks) {
             MEMarketUpdate event;
-            //event.ticker = ticker;
             event.side   = common::Side::BUY;
             event.price  = ask.price;
             event.qty    = ask.qty;
