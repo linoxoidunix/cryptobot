@@ -107,63 +107,9 @@ auto Trading::TradeEngine::OnOrderResponse(
 
 auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
-    // launch algorithm prediction, that generate signals
     logi("launch algorithm prediction for {}", new_kline->ToString());
-    // AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineBefore,
-    // latency_event_lfqueue_);
     strategy_.OnNewKLine(new_kline);
-    // AddEventForPrometheus<kMeasureTForTradeEngine>(prometheus::EventType::kStrategyOnNewKLineAfter,
-    // latency_event_lfqueue_);
 }
-
-//   /// Process changes to the order book - updates the position keeper,
-//   feature engine and informs the trading algorithm about the update. auto
-//   TradeEngine::onOrderBookUpdate(TickerId ticker_id, Price price, Side
-//   side, MarketOrderBook *book) noexcept -> void {
-//     logger_.log("%:% %() % ticker:% price:% side:%\n", __FILE__,
-//     __LINE__,
-//     __FUNCTION__,
-//                 common::getCurrentTimeStr(&time_str_), ticker_id,
-//                 common::priceToString(price).c_str(),
-//                 common::sideToString(side).c_str());
-
-//     auto bbo = book->getBBO();
-
-//     position_keeper_.updateBBO(ticker_id, bbo);
-
-//     feature_engine_.onOrderBookUpdate(ticker_id, price, side, book);
-
-//     algoOnOrderBookUpdate_(ticker_id, price, side, book);
-//   }
-
-//   /// Process trade events - updates the  feature engine and informs the
-//   trading algorithm about the trade event. auto
-//   TradeEngine::onTradeUpdate(const Exchange::MEMarketUpdate
-//   *market_update, MarketOrderBook *book) noexcept -> void {
-//     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
-//     common::getCurrentTimeStr(&time_str_),
-//                 market_update->toString().c_str());
-
-//     feature_engine_.onTradeUpdate(market_update, book);
-
-//     algoOnTradeUpdate_(market_update, book);
-//   }
-
-//   /// Process client responses - updates the position keeper and informs
-//   the trading algorithm about the response. auto
-//   TradeEngine::onOrderUpdate(const Exchange::MEClientResponse
-//   *client_response) noexcept -> void {
-//     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__,
-//     common::getCurrentTimeStr(&time_str_),
-//                 client_response->toString().c_str());
-
-//     if (UNLIKELY(client_response->type_ ==
-//     Exchange::ClientResponseType::FILLED)) {
-//       position_keeper_.addFill(client_response);
-//     }
-
-//     algoOnOrderUpdate_(client_response);
-//   }
 
 auto backtesting::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
