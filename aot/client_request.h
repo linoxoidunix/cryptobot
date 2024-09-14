@@ -50,15 +50,15 @@ class RequestNewOrder {
   public:
     ClientRequestType type = ClientRequestType::NEW;
     common::TradingPair trading_pair;
-    common::OrderId order_id = common::OrderId_INVALID;
+    common::OrderId order_id = common::kOrderIdInvalid;
     common::Side side        = common::Side::INVALID;
     common::Price price      = common::kPriceInvalid;
     common::Qty qty          = common::kQtyInvalid;
     auto ToString() const {
-        std::string price_string = (price != common::kPRICE_DOUBLE_INVALID)
+        std::string price_string = (price != common::kPriceInvalid)
                                        ? fmt::format("{}", price)
                                        : "INVALID";
-        std::string qty_string   = (qty != common::kQTY_DOUBLE_INVALID)
+        std::string qty_string   = (qty != common::kQtyInvalid)
                                        ? fmt::format("{}", qty)
                                        : "INVALID";
         return fmt::format(
@@ -72,7 +72,7 @@ class RequestCancelOrder {
   public:
     ClientRequestType type = ClientRequestType::CANCEL;
     common::TradingPair trading_pair;
-    common::OrderId order_id = common::OrderId_INVALID;
+    common::OrderId order_id = common::kOrderIdInvalid;
 
     auto ToString() const {
         assert(false);

@@ -56,11 +56,11 @@ struct MEClientResponse {
     using PriceQty          = std::pair<double, double>;
     ClientResponseType type = ClientResponseType::INVALID;
     common::TradingPair trading_pair; 
-    common::OrderId order_id = common::OrderId_INVALID;
+    common::OrderId order_id = common::kOrderIdInvalid;
     common::Side side        = common::Side::INVALID;
-    double price             = common::kPRICE_DOUBLE_INVALID;
-    double exec_qty          = common::kQTY_DOUBLE_INVALID;
-    double leaves_qty        = common::kQTY_DOUBLE_INVALID;
+    common::Price price             = common::kPriceInvalid;
+    common::Qty exec_qty          = common::kQtyInvalid;
+    common::Qty leaves_qty        = common::kQtyInvalid;
 
     auto ToString() const {
         auto PrintAsCancelled = [this]()
@@ -74,16 +74,16 @@ struct MEClientResponse {
         if(type == ClientResponseType::CANCELED)
             return PrintAsCancelled();
         std::string price_string =
-            (price != common::kPRICE_DOUBLE_INVALID)
+            (price != common::kPriceInvalid)
                 ? fmt::format("{}", price)
                 : "INVALID";
         std::string exec_qty_string =
-            (exec_qty != common::kQTY_DOUBLE_INVALID)
+            (exec_qty != common::kQtyInvalid)
                 ? fmt::format("{}", exec_qty)
                 : "INVALID";
 
         std::string leaves_qty_string =
-            (leaves_qty != common::kQTY_DOUBLE_INVALID)
+            (leaves_qty != common::kQtyInvalid)
                 ? fmt::format("{}", leaves_qty)
                 : "INVALID";
         return fmt::format(
