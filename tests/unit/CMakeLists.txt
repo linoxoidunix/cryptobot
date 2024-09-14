@@ -21,5 +21,5 @@ cxx_executable(trading_pair ${CMAKE_CURRENT_LIST_DIR} aot gtest_main concurrentq
 cxx_executable(config_backtesting ${CMAKE_CURRENT_LIST_DIR} aot gtest_main tomlplusplus::tomlplusplus)
 cxx_executable(orderbook ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main)
 cxx_executable(order_manager_backtesting ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense::unordered_dense gtest_main)
-cxx_executable(cross_arbitrage ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main)
-cxx_executable(parser_responce_binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main)
+cxx_executable(cross_arbitrage ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense gtest_main)
+cxx_executable(parser_responce_binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense gtest_main)

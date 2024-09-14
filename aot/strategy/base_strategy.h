@@ -59,7 +59,7 @@ class BaseStrategy {
 
     BaseStrategy &operator=(const BaseStrategy &&) = delete;
 
-  private:
+  protected:
     base_strategy::Strategy *strategy_;
     TradeEngine *trade_engine_;
     Trading::OrderManager *order_manager_ = nullptr;

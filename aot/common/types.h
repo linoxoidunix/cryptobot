@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <climits>
 #include <sstream>
@@ -23,6 +22,10 @@ constexpr size_t ME_MAX_ORDER_IDS      = 1024 * 1024;
 constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
+
+using ExchangeId = uint16_t;
+constexpr auto kExchangeIdInvalid       = std::numeric_limits<ExchangeId>::max();
+
 
 using OrderId = uint64_t;
 constexpr auto kOrderIdInvalid       = std::numeric_limits<OrderId>::max();

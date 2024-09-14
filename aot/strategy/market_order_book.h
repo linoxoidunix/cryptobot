@@ -205,16 +205,19 @@ namespace cross_arbitrage {
  *
  */
 class OrderBook : public Trading::MarketOrderBook {
+    common::ExchangeId exchange_;
     strategy::cross_arbitrage::LFQueue *queue_ = nullptr;
     BBUPool bbu_pool_;
     BAUPool bau_pool_;
 
   public:
-    explicit OrderBook(common::TradingPair trading_pair,
+    explicit OrderBook(common::ExchangeId exchange,
+                        common::TradingPair trading_pair,
                        common::TradingPairHashMap &pairs,
                        strategy::cross_arbitrage::LFQueue *queue,
                        uint bbu_mempool_size, uint bau_mempool_size)
         : MarketOrderBook(trading_pair, pairs),
+          exchange_(exchange),
           queue_(queue),
           bbu_pool_(bbu_mempool_size),
           bau_pool_(bau_mempool_size) {};
@@ -224,7 +227,7 @@ class OrderBook : public Trading::MarketOrderBook {
         auto bbo = getBBO();
         if (update_bid) {
             logi("push BBidUpdated event");
-            auto ptr = bbu_pool_.allocate(BBidUpdated(common::TradingPair{2, 1}, bbo->bid_price, bbo->bid_qty));
+            auto ptr = bbu_pool_.allocate(BBidUpdated(exchange_, common::TradingPair{2, 1}, bbo->bid_price, bbo->bid_qty));
             auto status = queue_->try_enqueue(ptr);
             if(!status)
                 loge("can't push new event to queue");
@@ -232,7 +235,7 @@ class OrderBook : public Trading::MarketOrderBook {
         }
         if (update_ask) {
             logi("push BAskUpdated event");
-            auto ptr = bau_pool_.allocate(BAskUpdated(common::TradingPair{2, 1}, bbo->ask_price, bbo->ask_qty));
+            auto ptr = bau_pool_.allocate(BAskUpdated(exchange_,common::TradingPair{2, 1}, bbo->ask_price, bbo->ask_qty));
             auto status = queue_->try_enqueue(ptr);
             if(!status)
                 loge("can't push new event to queue");

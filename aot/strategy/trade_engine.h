@@ -9,18 +9,13 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/prometheus/event.h"
 #include "aot/strategy/base_strategy.h"
 #include "aot/strategy/market_order_book.h"
-// #include "feature_engine.h"
-#include "aot/prometheus/event.h"
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/position_keeper.h"
 
-// #include "order_manager.h"
-// #include "risk_manager.h"
-
-// #include "market_maker.h"
-// #include "liquidity_taker.h"
+#include "aot/strategy/cross_arbitrage/signals.h"
 
 namespace Trading {
 const auto kMeasureTForTradeEngine =
@@ -51,12 +46,13 @@ class TradeEngine {
 
     auto Stop() -> void {
         logi("stop trade engine");
-        while (incoming_md_updates_->size_approx()) {
-            logi("Sleeping till all updates are consumed md-size:{}",
-                 incoming_md_updates_->size_approx());
-            using namespace std::literals::chrono_literals;
-            std::this_thread::sleep_for(10ms);
-        }
+        if(incoming_md_updates_)
+            while (incoming_md_updates_->size_approx()) {
+                logi("Sleeping till all updates are consumed md-size:{}",
+                    incoming_md_updates_->size_approx());
+                using namespace std::literals::chrono_literals;
+                std::this_thread::sleep_for(10ms);
+            }
         run_ = false;
     }
     /**
@@ -101,7 +97,7 @@ class TradeEngine {
 
     TradeEngine &operator=(const TradeEngine &&) = delete;
 
-  private:
+  protected:
     Exchange::EventLFQueue *incoming_md_updates_               = nullptr;
     Exchange::RequestNewLimitOrderLFQueue *request_new_order_  = nullptr;
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
