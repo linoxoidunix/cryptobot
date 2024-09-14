@@ -80,7 +80,6 @@ TEST(TradingPairReverseHashMap, compare_with_string_view) {
     pair[{1, 2}] = pair_info;
     TradingPairReverseHashMap pair_reverse;
     pair_reverse[std::string(symbol.ToString())] = tr_pair;
-    auto trading_pair = TradingPair{1,2};
     std::string_view s_v= "BTCUSDT";
     EXPECT_EQ(tr_pair, (pair_reverse.find(s_v)->second));
 }
