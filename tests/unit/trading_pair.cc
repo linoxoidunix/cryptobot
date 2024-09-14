@@ -65,7 +65,7 @@ TEST(TradingPairInfo, Access_4_binance) {
     auto trading_pair = TradingPair{1,2};
     EXPECT_EQ(2, (pair[trading_pair].price_precission));
     EXPECT_EQ(5, (pair[trading_pair].qty_precission));
-    EXPECT_EQ("btcusdt", (pair[trading_pair].trading_pairs));
+    EXPECT_EQ("BTCUSDT", (pair[trading_pair].trading_pairs));
 }
 
 TEST(TradingPairReverseHashMap, compare_with_string_view) {
@@ -81,7 +81,7 @@ TEST(TradingPairReverseHashMap, compare_with_string_view) {
     TradingPairReverseHashMap pair_reverse;
     pair_reverse[std::string(symbol.ToString())] = tr_pair;
     auto trading_pair = TradingPair{1,2};
-    std::string_view s_v= "btcusdt";
+    std::string_view s_v= "BTCUSDT";
     EXPECT_EQ(tr_pair, (pair_reverse.find(s_v)->second));
 }
 

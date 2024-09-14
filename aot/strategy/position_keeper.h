@@ -7,7 +7,6 @@
 #include "aot/common/macros.h"
 #include "aot/common/types.h"
 #include "aot/strategy/market_order.h"
-// #include "market_order_book.h"
 
 using namespace common;
 

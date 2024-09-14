@@ -33,11 +33,6 @@ inline std::string ClientRequestTypeToString(ClientRequestType type) {
     return "UNKNOWN";
 }
 
-/// These structures go over the wire / network, so the binary structures are
-/// packed to remove system dependent extra padding.
-// #pragma pack(push, 1)
-
-/// Client request structure used internally by the matching engine.
 class Request {
   public:
     ClientRequestType type = ClientRequestType::INVALID;
@@ -80,9 +75,6 @@ class RequestCancelOrder {
                            ClientRequestTypeToString(type), "", order_id);
     }
 };
-
-// #pragma pack(pop)  // Undo the packed binary structure directive moving
-// forward.
 
 /// Lock free queues of matching engine client order request messages.
 using RequestNewLimitOrderLFQueue =
