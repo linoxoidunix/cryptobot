@@ -1,7 +1,7 @@
 #pragma once
  
 //#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"//if link form source
+#include "concurrentqueue.h"
 
 namespace prometheus{
     enum class EventType{

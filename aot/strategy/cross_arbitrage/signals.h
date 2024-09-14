@@ -1,7 +1,8 @@
 #pragma once
 
 #include "boost/noncopyable.hpp"
-#include "concurrentqueue.h"//if link form source
+//if link form source
+#include "concurrentqueue.h"
 
 #include "aot/common/mem_pool.h"
 

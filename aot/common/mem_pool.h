@@ -55,10 +55,10 @@ namespace common {
       const auto initial_free_index = next_free_index_;
       while (!store_[next_free_index_].is_free_) {
         ++next_free_index_;
-        if (UNLIKELY(next_free_index_ == store_.size())) { // hardware branch predictor should almost always predict this to be false any ways.
+        if (next_free_index_ == store_.size())[[unlikely]] { // hardware branch predictor should almost always predict this to be false any ways.
           next_free_index_ = 0;
         }
-        if (UNLIKELY(initial_free_index == next_free_index_)) {
+        if (initial_free_index == next_free_index_)[[unlikely]] {
           ASSERT(initial_free_index != next_free_index_, "Memory Pool out of space.");
         }
       }

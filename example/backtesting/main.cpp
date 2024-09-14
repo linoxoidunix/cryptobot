@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
     OHLCVILFQueue external_ohlcv_queue;
     
 
-    auto type = TypeExchange::TESTNET;
     //fmtlog::setLogFile("888.txt");
     
     //init python predictor

@@ -18,7 +18,7 @@ namespace Trading {
 /// Used by the trade engine to represent a single order in the limit order
 /// book.
 struct MarketOrder {
-    common::OrderId order_id_ = common::OrderId_INVALID;
+    common::OrderId order_id_ = common::kOrderIdInvalid;
     common::Side side_        = common::Side::INVALID;
     common::Price price_      = common::kPriceInvalid;
     common::Qty qty_          = common::kQtyInvalid;

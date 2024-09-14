@@ -15,7 +15,7 @@ namespace Trading {
 /// PositionInfo tracks the position, pnl (realized and unrealized) and volume
 /// for a single trading instrument.
 struct PositionInfo {
-    double position   = 0;
+    int position   = 0;
     double real_pnl   = 0;
     double unreal_pnl = 0;
     double total_pnl  = 0;
@@ -66,7 +66,7 @@ struct PositionInfo {
                 open_vwap[opp_side_index] / std::abs(old_position);
             open_vwap[opp_side_index] = opp_side_vwap * std::abs(position);
             real_pnl +=
-                std::min(client_response->exec_qty,
+                std::min(static_cast<int>(client_response->exec_qty),
                          std::abs(old_position)) *
                 (opp_side_vwap - client_response->price) *
                 sideToValue(client_response->side);
@@ -105,8 +105,8 @@ struct PositionInfo {
     auto updateBBO(const Trading::BBO *_bbo) noexcept {
         bbo = _bbo;
 
-        if (position && bbo->bid_price != common::kPRICE_DOUBLE_INVALID &&
-            bbo->ask_price != common::kPRICE_DOUBLE_INVALID) {
+        if (position && bbo->bid_price != common::kPriceInvalid &&
+            bbo->ask_price != common::kPriceInvalid) {
             const auto mid_price = (bbo->bid_price + bbo->ask_price) * 0.5;
             if (position > 0)
                 unreal_pnl =

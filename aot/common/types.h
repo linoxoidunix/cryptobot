@@ -3,7 +3,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <limits>
+#include <climits>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -25,7 +25,7 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
                 // for ask is 5000.
 
 using OrderId = uint64_t;
-constexpr auto OrderId_INVALID       = std::numeric_limits<OrderId>::max();
+constexpr auto kOrderIdInvalid       = std::numeric_limits<OrderId>::max();
 
 /**
  * @brief PriceD = price double
@@ -44,11 +44,8 @@ using QtyD                           = double;
 using TickerS                        = std::string;
 using TradingPairS                   = std::string;
 
-constexpr auto kPRICE_DOUBLE_INVALID = std::numeric_limits<double>::max();
-constexpr auto kQTY_DOUBLE_INVALID   = std::numeric_limits<double>::max();
-
 inline auto orderIdToString(OrderId order_id) -> std::string {
-    if (UNLIKELY(order_id == OrderId_INVALID)) {
+    if (UNLIKELY(order_id == common::kOrderIdInvalid)) {
         return "INVALID";
     }
 
@@ -81,8 +78,8 @@ inline auto clientIdToString(ClientId client_id) -> std::string {
 
 using Price                  = uint64_t;
 using PriceD                  = double;
-constexpr auto kPriceInvalid = std::numeric_limits<Price>::max();
-constexpr auto kPriceDInvalid = std::numeric_limits<PriceD>::max();
+constexpr Price kPriceInvalid = std::numeric_limits<Price>::max();
+constexpr PriceD kPriceDInvalid = std::numeric_limits<PriceD>::max();
 
 inline auto priceToString(Price price) -> std::string {
     if (price == kPriceInvalid)[[unlikely]] {

@@ -38,7 +38,7 @@ auto MarketOrderBook::OnMarketUpdate(
              market_update->price <= asks_at_price_map_.begin()->price_);
 
     if (market_update->qty != 0) {
-        MarketOrder order(common::OrderId_INVALID, market_update->side,
+        MarketOrder order(common::kOrderIdInvalid, market_update->side,
                           market_update->price, market_update->qty);
         addOrder(&order);
     } else {

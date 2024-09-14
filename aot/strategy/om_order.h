@@ -54,7 +54,7 @@ namespace Trading {
   /// Internal structure used by the order manager to represent a single strategy order.
   struct OMOrder {
     common::TradingPair trading_pair;
-    common::OrderId order_id = common::OrderId_INVALID;
+    common::OrderId order_id = common::kOrderIdInvalid;
     common::Side side = common::Side::INVALID;
     common::Price price = common::kPriceInvalid;
     common::Qty qty = common::kQtyInvalid;

@@ -23,11 +23,8 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_snapshot.bids.emplace_back(
-            static_cast<int>(pair[0] *
-                             price_prec),
-            static_cast<int>(pair[1] *
-                             qty_prec));
+        book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                        static_cast<int>(pair[1] * qty_prec));
     }
     for (auto all : doc["asks"]) {
         simdjson::ondemand::array arr = all.get_array();
@@ -37,11 +34,8 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
             pair[i] = number.get_double_in_string();
             i++;
         }
-        book_snapshot.asks.emplace_back(
-            static_cast<int>(pair[0] *
-                             price_prec),
-            static_cast<int>(pair[1] *
-                             qty_prec));
+        book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                        static_cast<int>(pair[1] * qty_prec));
     }
     return book_snapshot;
 }
@@ -187,11 +181,25 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
 
 Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     std::string_view response) {
+    Exchange::MEClientResponse empty;
     Exchange::MEClientResponse output;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     try {
+        std::string_view ticker;
+        auto error_symbol = doc["symbol"].get_string().get(ticker);
+        if (error_symbol != simdjson::SUCCESS) [[unlikely]] {
+            loge("no key symbol in response");
+            return empty;
+        }
+        if (pairs_reverse_.count(ticker)) [[likely]]
+            output.trading_pair = pairs_reverse_.find(ticker)->second;
+        else {
+            loge("pairs_reverse not contain {}", ticker);
+            return empty;
+        }
+
         output.order_id =
             doc["clientOrderId"]
                 .get_uint64_in_string();  // TODO check this is uint64
@@ -199,20 +207,24 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
         if (auto error_status = doc["status"].get_string().get(status);
             error_status != simdjson::SUCCESS) {
             loge("no key status in response");
-            return output;
+            return empty;
         }
 
         if (std::unordered_set<std::string_view> success_status{
                 "NEW", "PARTIALLY_FILLED", "FILLED"};
             !success_status.contains(status))
-            return output;
+            return empty;
+
+        double price = 0;
         if (std::unordered_set<std::string_view> accepted_status{"NEW"};
             accepted_status.contains(status)) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
-            auto error  = doc["price"].get_double_in_string().get(output.price);
+            auto error  = doc["price"].get_double_in_string().get(price);
             if (error != simdjson::SUCCESS) [[unlikely]] {
                 loge("no key price in response");
+                return empty;
             }
+            output.price = price * std::pow(10, pairs_[output.trading_pair].price_precission);
         }
 
         if (std::unordered_set<std::string_view> filled_status{
@@ -220,11 +232,14 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
             filled_status.contains(status)) {
             output.type = Exchange::ClientResponseType::FILLED;
             auto error  = doc["cummulativeQuoteQty"].get_double_in_string().get(
-                output.price);
+                price);
             if (error != simdjson::SUCCESS) [[unlikely]] {
                 loge("no key cummulativeQuoteQty in response");
+                return empty;
             }
+            output.price = price * std::pow(10, pairs_[output.trading_pair].price_precission);
         }
+        
         std::string_view side;
         auto error = doc["side"].get_string().get(side);
         if (error != simdjson::SUCCESS) [[unlikely]] {
@@ -235,28 +250,23 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
             if (side == buy_side) output.side = common::Side::BUY;
             if (side == sell_side) output.side = common::Side::SELL;
         }
-        error = doc["executedQty"].get_double_in_string().get(output.exec_qty);
+        double executed_qty = 0;
+        error = doc["executedQty"].get_double_in_string().get(executed_qty);
         if (error != simdjson::SUCCESS) [[unlikely]] {
             loge("no key executedQty in response");
+            return empty;
         } else {
+            output.exec_qty = executed_qty * std::pow(10, pairs_[output.trading_pair].qty_precission);
+
             double orig_qty;
             error = doc["origQty"].get_double_in_string().get(orig_qty);
             if (error != simdjson::SUCCESS) [[unlikely]] {
                 loge("no key origQty in response");
+                return empty;
             } else {
-                output.leaves_qty = orig_qty - output.exec_qty;
+                output.leaves_qty = (orig_qty - executed_qty) * std::pow(10, pairs_[output.trading_pair].qty_precission);
             }
         }
-        std::string_view ticker;
-        auto error_symbol = doc["symbol"].get_string().get(ticker);
-        if (error_symbol != simdjson::SUCCESS) [[unlikely]] {
-            loge("no key symbol in response");
-            return output;
-        }
-        if (pairs_reverse_.count(ticker)) [[likely]]
-            output.trading_pair = pairs_reverse_.find(ticker)->second;
-        else
-            loge("pairs_reverse not contain {}", ticker);
     } catch (simdjson::simdjson_error& error) {
         // std::cerr << "JSON error: " << error.what() <<
         loge("JSON error: {}", error.what());

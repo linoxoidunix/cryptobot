@@ -28,7 +28,7 @@ inline std::string marketUpdateTypeToString(MarketUpdateType type) {
 struct MEMarketUpdate {
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
-    common::OrderId order_id = common::OrderId_INVALID;
+    common::OrderId order_id = common::kOrderIdInvalid;
     common::Side side   = common::Side::INVALID;
     common::Price price = common::kPriceInvalid;
     common::Qty qty     = common::kQtyInvalid;
@@ -100,7 +100,7 @@ struct BookDiffSnapshot {
                            last_id);
     };
     void AddToQueue(EventLFQueue& queue) {
-        for (auto& bid : bids) {
+        for (const auto& bid : bids) {
             MEMarketUpdate event;
             event.side     = common::Side::SELL;
             event.price    = bid.price;
@@ -110,7 +110,7 @@ struct BookDiffSnapshot {
             if(!status_op)[[unlikely]]
                 loge("can't enqueue more elements. my lfqueue is busy");
         }
-        for (auto& ask : asks) {
+        for (const auto& ask : asks) {
             MEMarketUpdate event;
             event.side     = common::Side::BUY;
             event.price    = ask.price;

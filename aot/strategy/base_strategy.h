@@ -87,7 +87,7 @@ class BaseStrategy {
             return;
         }
         auto buy_price = order_book_->getBBO()->ask_price;
-        if(buy_price == common::kPRICE_DOUBLE_INVALID)[[unlikely]]
+        if(buy_price == common::kPriceInvalid)[[unlikely]]
         {
             logw("skip BuySomeAsset. BBO ask_price=INVALID. please wait more time for update BBO");
             return;
@@ -133,7 +133,7 @@ class BaseStrategy {
             return;
         }
         auto sell_price = order_book_->getBBO()->bid_price;
-        if(sell_price == common::kPRICE_DOUBLE_INVALID)
+        if(sell_price == common::kPriceInvalid)
         {
             logw("skip SellSomeAsset. BBO bid_price=INVALID. please wait more time for update BBO");
             return;

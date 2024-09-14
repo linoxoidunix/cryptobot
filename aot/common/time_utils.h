@@ -6,8 +6,8 @@
 #include <stdexcept>
 
 namespace common {
-typedef int64_t Nanos;
-typedef int64_t Delta;
+using Nanos = int64_t;
+using Delta = int64_t;
 constexpr Nanos NANOS_TO_MICROS  = 1000;
 constexpr Nanos MICROS_TO_MILLIS = 1000;
 constexpr Nanos MILLIS_TO_SECS   = 1000;

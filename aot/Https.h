@@ -25,7 +25,7 @@ class Https {
     Https& operator=(const Https&)     = delete;
     Https(Https&&) noexcept            = default;
     Https& operator=(Https&&) noexcept = default;
-    ~Https();
+    ~Https() = default;
 
   private:
     std::shared_ptr<HttpsSession> session_;
