@@ -528,19 +528,7 @@ class OrderNewLimit : public inner::OrderNewI {
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
-        explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, common::Side side,
-                           Type type)
-            : ArgsQuery() {  // TODO UNUSED. NEED USE ONLY CTOR WITH
-                             // Exchange::RequestNewOrder*
-            SetSymbol(symbol);
-            SetSide(side);
-            SetType(type);
-            SetQuantity(quantity, 0);
-            SetPrice(price, 0);
-            SetTimeInForce(time_in_force);
-        };
-        explicit ArgsOrder(Exchange::RequestNewOrder* new_order,
+        explicit ArgsOrder(const Exchange::RequestNewOrder* new_order,
                            common::TradingPairHashMap& pairs,
                            common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
