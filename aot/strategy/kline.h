@@ -129,10 +129,12 @@ class OHLCVI : public OHLCVGetter {
   public:
     explicit OHLCVI(std::string_view path_to_file,
                     Trading::TradeEngine *trade_engine,
-                    Common::TradingPair trading_pair)
+                    common::TradingPair trading_pair, 
+                    const common::TradingPairInfo& trading_pair_info)
         : path_to_file_(path_to_file.data()),
           trade_engine_(trade_engine),
-          trading_pair_(trading_pair) {};
+          trading_pair_(trading_pair),
+          trading_pair_info_(trading_pair_info) {};
     void Init(OHLCVILFQueue &lf_queue) override;
     bool LaunchOne() override {
         if (lf_queue_ == nullptr) [[unlikely]]
@@ -156,7 +158,8 @@ class OHLCVI : public OHLCVGetter {
   private:
     const std::string path_to_file_;
     Trading::TradeEngine *trade_engine_ = nullptr;
-    Common::TradingPair trading_pair_;
+    common::TradingPair trading_pair_;
+    const common::TradingPairInfo& trading_pair_info_;
     std::list<OHLCVExt> ohlcv_history_;
     OHLCVILFQueue *lf_queue_ = nullptr;
     std::list<OHLCVExt>::iterator iterator_ohlcv_history =

@@ -135,7 +135,7 @@ $(function() {
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>        }</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>        <span class="keyword">auto</span> buy_price = order_book_-&gt;getBBO()-&gt;ask_price;</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>        <span class="keywordflow">if</span>(buy_price == Common::kPRICE_DOUBLE_INVALID)[[unlikely]]</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>        <span class="keywordflow">if</span>(buy_price == common::kPRICE_DOUBLE_INVALID)[[unlikely]]</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>        {</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>            logw(<span class="stringliteral">&quot;skip BuySomeAsset. BBO ask_price=INVALID. please wait more time for update BBO&quot;</span>);</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>            <span class="keywordflow">return</span>;</div>
@@ -169,7 +169,7 @@ $(function() {
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        }</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>        <span class="keyword">auto</span> sell_price = order_book_-&gt;getBBO()-&gt;bid_price;</div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>        <span class="keywordflow">if</span>(sell_price == Common::kPRICE_DOUBLE_INVALID)</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>        <span class="keywordflow">if</span>(sell_price == common::kPRICE_DOUBLE_INVALID)</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        {</div>
 <div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>            logw(<span class="stringliteral">&quot;skip SellSomeAsset. BBO bid_price=INVALID. please wait more time for update BBO&quot;</span>);</div>
 <div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>            <span class="keywordflow">return</span>;</div>

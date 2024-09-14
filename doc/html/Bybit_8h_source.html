@@ -399,7 +399,7 @@ $(function() {
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>      <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>        <span class="keyword">using </span>SymbolType = std::string_view;</div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>        <span class="keyword">explicit</span> <a class="code hl_class" href="classbybit_1_1OrderNewLimit_1_1ArgsOrder.html">ArgsOrder</a>(SymbolType symbol, <span class="keywordtype">double</span> quantity, <span class="keywordtype">double</span> price,</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>                           TimeInForce time_in_force, Common::Side side,</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>                           TimeInForce time_in_force, common::Side side,</div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>                           Type type)</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>            : <a class="code hl_class" href="classbybit_1_1ArgsBody.html">ArgsBody</a>() {</div>
 <div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>            storage[<span class="stringliteral">&quot;category&quot;</span>] = <span class="stringliteral">&quot;spot&quot;</span>;</div>
@@ -425,12 +425,12 @@ $(function() {
 <div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>            <a class="code hl_class" href="classSymbolUpperCase.html">SymbolUpperCase</a> formatter(symbol.data());</div>
 <div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>            storage[<span class="stringliteral">&quot;symbol&quot;</span>] = formatter.ToString();</div>
 <div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span>        };</div>
-<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span>        <span class="keywordtype">void</span> SetSide(Common::Side side) {</div>
+<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span>        <span class="keywordtype">void</span> SetSide(common::Side side) {</div>
 <div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span>            <span class="keywordflow">switch</span> (side) {</div>
-<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>                <span class="keywordflow">case</span> Common::Side::BUY:</div>
+<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>                <span class="keywordflow">case</span> common::Side::BUY:</div>
 <div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>                    storage[<span class="stringliteral">&quot;side&quot;</span>] = <span class="stringliteral">&quot;Buy&quot;</span>;</div>
 <div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span>                    <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>                <span class="keywordflow">case</span> Common::Side::SELL:</div>
+<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>                <span class="keywordflow">case</span> common::Side::SELL:</div>
 <div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span>                    storage[<span class="stringliteral">&quot;side&quot;</span>] = <span class="stringliteral">&quot;Sell&quot;</span>;</div>
 <div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span>                    <span class="keywordflow">break</span>;</div>
 <div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span>            }</div>

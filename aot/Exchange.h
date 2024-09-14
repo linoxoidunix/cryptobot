@@ -124,11 +124,11 @@ class Interval {
 };
 struct OHLCV {
     uint data;
-    double open;
-    double high;
-    double low;
-    double close;
-    double volume;
+    common::Price open;
+    common::Price high;
+    common::Price low;
+    common::Price close;
+    common::Qty volume;
     std::string ToString() const {
         return fmt::format("o:{} h:{} l:{} c:{} v:{}", open, high, low, close,
                            volume);
@@ -142,7 +142,7 @@ struct OHLCV {
 struct OHLCVExt {
     OHLCV ohlcv;
     Interval interval;
-    Common::TradingPair trading_pair;
+    common::TradingPair trading_pair;
     std::string ToString() const {
         return fmt::format("{} o:{} h:{} l:{} c:{} v:{}", trading_pair.ToString(), ohlcv.open,
                            ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);
@@ -242,7 +242,6 @@ class SymbolUpperCase : public SymbolI {
         ticker_ = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(ticker_);
     };
-    explicit SymbolUpperCase(std::string_view first) : first_(first.data()) {};
     std::string_view ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 

@@ -102,18 +102,18 @@ class Strategy : public IStrategy {
     class Parser {
       public:
         explicit Parser() = default;
-        Common::TradeAction Parse(const IStrategy::Result &result) const {
+        common::TradeAction Parse(const IStrategy::Result &result) const {
             // base on "aot/python/my_types.py"
             if (result.action == "enter_long")
-                return Common::TradeAction::kEnterLong;
+                return common::TradeAction::kEnterLong;
             if (result.action == "enter_short")
-                return Common::TradeAction::kEnterShort;
+                return common::TradeAction::kEnterShort;
             if (result.action == "exit_long")
-                return Common::TradeAction::kExitLong;
+                return common::TradeAction::kExitLong;
             if (result.action == "exit_short")
-                return Common::TradeAction::kExitShort;
-            if (result.action == "") return Common::TradeAction::kNope;
-            return Common::TradeAction::kNope;
+                return common::TradeAction::kExitShort;
+            if (result.action == "") return common::TradeAction::kNope;
+            return common::TradeAction::kNope;
         };
     };
 

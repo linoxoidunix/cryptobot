@@ -7,8 +7,8 @@ Trading::BaseStrategy::BaseStrategy(base_strategy::Strategy* strategy,
                                     TradeEngine* trade_engine,
                                     OrderManager* order_manager,
                                     const TradeEngineCfgHashMap& ticker_cfg,
-                                    const Common::TradingPair trading_pairs,
-                                    Common::TradingPairHashMap& pairs)
+                                    const common::TradingPair trading_pairs,
+                                    common::TradingPairHashMap& pairs)
     : strategy_(strategy),
       trade_engine_(trade_engine),
       order_manager_(order_manager),

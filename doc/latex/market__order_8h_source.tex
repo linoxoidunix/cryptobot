@@ -12,21 +12,21 @@
 \DoxyCodeLine{8 \textcolor{preprocessor}{\#include "{}aot/third\_party/emhash/hash\_table7.hpp"{}}}
 \DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}boost/intrusive/avltree.hpp"{}}}
 \DoxyCodeLine{10 }
-\DoxyCodeLine{11 \textcolor{comment}{// using namespace Common;}}
+\DoxyCodeLine{11 \textcolor{comment}{// using namespace common;}}
 \DoxyCodeLine{12 }
 \DoxyCodeLine{13 \textcolor{keyword}{namespace }Trading \{}
 \DoxyCodeLine{16 \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1MarketOrder}{MarketOrder}} \{}
-\DoxyCodeLine{17     Common::OrderId order\_id\_ = Common::OrderId\_INVALID;}
-\DoxyCodeLine{18     Common::Side side\_        = Common::Side::INVALID;}
-\DoxyCodeLine{19     Common::Price price\_      = Common::Price\_INVALID;}
-\DoxyCodeLine{20     Common::Qty qty\_          = Common::Qty\_INVALID;}
-\DoxyCodeLine{21     \textcolor{comment}{// Common::Priority priority\_ = Common::Priority\_INVALID;}}
+\DoxyCodeLine{17     common::OrderId order\_id\_ = common::OrderId\_INVALID;}
+\DoxyCodeLine{18     common::Side side\_        = common::Side::INVALID;}
+\DoxyCodeLine{19     common::Price price\_      = common::Price\_INVALID;}
+\DoxyCodeLine{20     common::Qty qty\_          = common::Qty\_INVALID;}
+\DoxyCodeLine{21     \textcolor{comment}{// common::Priority priority\_ = common::Priority\_INVALID;}}
 \DoxyCodeLine{22 }
 \DoxyCodeLine{25 }
 \DoxyCodeLine{27     \mbox{\hyperlink{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}{MarketOrder}}()             = \textcolor{keywordflow}{default};}
 \DoxyCodeLine{28 }
-\DoxyCodeLine{29     \mbox{\hyperlink{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}{MarketOrder}}(Common::OrderId order\_id, Common::Side side,}
-\DoxyCodeLine{30                 Common::Price price, Common::Qty qty) noexcept}
+\DoxyCodeLine{29     \mbox{\hyperlink{structTrading_1_1MarketOrder_af44347eb2bb2c2a5a03f667b761787d8}{MarketOrder}}(common::OrderId order\_id, common::Side side,}
+\DoxyCodeLine{30                 common::Price price, common::Qty qty) noexcept}
 \DoxyCodeLine{31         : order\_id\_(order\_id), side\_(side), price\_(price), qty\_(qty) \{\}}
 \DoxyCodeLine{32 }
 \DoxyCodeLine{33     \textcolor{keyword}{auto} toString() const -\/> std::\textcolor{keywordtype}{string};}
@@ -34,11 +34,11 @@
 \DoxyCodeLine{35 }
 \DoxyCodeLine{37 \textcolor{comment}{// typedef std::vector<MarketOrder*> OrderHashMap;}}
 \DoxyCodeLine{38 }
-\DoxyCodeLine{39 \textcolor{comment}{// typedef std::array<MarketOrder *, Common::ME\_MAX\_ORDER\_IDS> OrderHashMap;}}
+\DoxyCodeLine{39 \textcolor{comment}{// typedef std::array<MarketOrder *, common::ME\_MAX\_ORDER\_IDS> OrderHashMap;}}
 \DoxyCodeLine{40 }
 \DoxyCodeLine{43 struct \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}} \{}
-\DoxyCodeLine{44     Common::Side side\_   = Common::Side::INVALID;}
-\DoxyCodeLine{45     Common::Price price\_ = Common::Price\_INVALID;}
+\DoxyCodeLine{44     common::Side side\_   = common::Side::INVALID;}
+\DoxyCodeLine{45     common::Price price\_ = common::Price\_INVALID;}
 \DoxyCodeLine{46 }
 \DoxyCodeLine{47     \mbox{\hyperlink{structTrading_1_1MarketOrder}{MarketOrder}} first\_mkt\_order\_;}
 \DoxyCodeLine{48 }
@@ -57,7 +57,7 @@
 \DoxyCodeLine{64     \}}
 \DoxyCodeLine{66     \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice_ac9dcceaef4bdc83c8b280fd356b4d2b5}{MarketOrdersAtPrice}}() = \textcolor{keywordflow}{default};}
 \DoxyCodeLine{67 }
-\DoxyCodeLine{68     \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}}(Common::Side side, Common::Price price,}
+\DoxyCodeLine{68     \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}}(common::Side side, common::Price price,}
 \DoxyCodeLine{69                         \textcolor{keyword}{const} \mbox{\hyperlink{structTrading_1_1MarketOrder}{MarketOrder}} \&first\_mkt\_order,}
 \DoxyCodeLine{70                         \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}} *prev\_entry,}
 \DoxyCodeLine{71                         \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{MarketOrdersAtPrice}} *next\_entry)}
@@ -69,7 +69,7 @@
 \DoxyCodeLine{77     \textcolor{keyword}{auto} toString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{78         std::stringstream ss;}
 \DoxyCodeLine{79         ss << \textcolor{stringliteral}{"{}MarketOrdersAtPrice["{}} << \textcolor{stringliteral}{"{}side:"{}} << sideToString(side\_) << \textcolor{stringliteral}{"{} "{}}}
-\DoxyCodeLine{80            << \textcolor{stringliteral}{"{}price:"{}} << Common::priceToString(price\_) << \textcolor{stringliteral}{"{} "{}}}
+\DoxyCodeLine{80            << \textcolor{stringliteral}{"{}price:"{}} << common::priceToString(price\_) << \textcolor{stringliteral}{"{} "{}}}
 \DoxyCodeLine{81            << \textcolor{stringliteral}{"{}first\_mkt\_order:"{}} << first\_mkt\_order\_.toString() << \textcolor{stringliteral}{"{}]"{}};}
 \DoxyCodeLine{82 }
 \DoxyCodeLine{83         \textcolor{keywordflow}{return} ss.str();}
@@ -87,25 +87,25 @@
 \DoxyCodeLine{95     boost::intrusive::compare<std::less<MarketOrdersAtPrice>>, MemberOption>;}
 \DoxyCodeLine{96 }
 \DoxyCodeLine{98 \textcolor{keyword}{using }OrdersAtPriceHashMap =}
-\DoxyCodeLine{99     emhash7::HashMap<Common::Price, MarketOrdersAtPrice *>;}
+\DoxyCodeLine{99     emhash7::HashMap<common::Price, MarketOrdersAtPrice *>;}
 \DoxyCodeLine{100 }
 \DoxyCodeLine{104 }
 \DoxyCodeLine{105 \textcolor{keyword}{struct }BBO;}
 \DoxyCodeLine{106 }
 \DoxyCodeLine{107 \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1BBODouble}{BBODouble}} \{}
 \DoxyCodeLine{108 }
-\DoxyCodeLine{109     \textcolor{keywordtype}{double} bid\_price   = Common::kPRICE\_DOUBLE\_INVALID;}
-\DoxyCodeLine{110     \textcolor{keywordtype}{double} ask\_price   = Common::kPRICE\_DOUBLE\_INVALID;}
-\DoxyCodeLine{111     \textcolor{keywordtype}{double} bid\_qty     = Common::kQTY\_DOUBLE\_INVALID;}
-\DoxyCodeLine{112     \textcolor{keywordtype}{double} ask\_qty     = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{109     \textcolor{keywordtype}{double} bid\_price   = common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{110     \textcolor{keywordtype}{double} ask\_price   = common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{111     \textcolor{keywordtype}{double} bid\_qty     = common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{112     \textcolor{keywordtype}{double} ask\_qty     = common::kQTY\_DOUBLE\_INVALID;}
 \DoxyCodeLine{113     uint8\_t price\_prec = 0;}
 \DoxyCodeLine{114     uint8\_t qty\_prec   = 0;}
 \DoxyCodeLine{115 }
 \DoxyCodeLine{116     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
-\DoxyCodeLine{117         \textcolor{keyword}{auto} bid\_qty\_string = (bid\_qty != Common::kQTY\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, bid\_qty, qty\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
-\DoxyCodeLine{118         \textcolor{keyword}{auto} ask\_qty\_string = (ask\_qty != Common::kQTY\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, ask\_qty, qty\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
-\DoxyCodeLine{119         \textcolor{keyword}{auto} bid\_price\_string = (bid\_price != Common::kPRICE\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, bid\_price, price\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
-\DoxyCodeLine{120         \textcolor{keyword}{auto} ask\_price\_string = (ask\_qty != Common::kPRICE\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, ask\_price, price\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{117         \textcolor{keyword}{auto} bid\_qty\_string = (bid\_qty != common::kQTY\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, bid\_qty, qty\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{118         \textcolor{keyword}{auto} ask\_qty\_string = (ask\_qty != common::kQTY\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, ask\_qty, qty\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{119         \textcolor{keyword}{auto} bid\_price\_string = (bid\_price != common::kPRICE\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, bid\_price, price\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
+\DoxyCodeLine{120         \textcolor{keyword}{auto} ask\_price\_string = (ask\_qty != common::kPRICE\_DOUBLE\_INVALID)? fmt::format(\textcolor{stringliteral}{"{}\{:.\{\}f\}"{}}, ask\_price, price\_prec) : \textcolor{stringliteral}{"{}INVALID"{}};}
 \DoxyCodeLine{121         \textcolor{keywordflow}{return} fmt::format(\textcolor{stringliteral}{"{}BBODouble[\{\}@\{\}X\{\}@\{\}]"{}}, bid\_qty\_string, bid\_price\_string,}
 \DoxyCodeLine{122                            ask\_price\_string, ask\_qty\_string);}
 \DoxyCodeLine{123     \};}
@@ -115,17 +115,17 @@
 \DoxyCodeLine{127 \};}
 \DoxyCodeLine{128 }
 \DoxyCodeLine{129 \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1BBO}{BBO}} \{}
-\DoxyCodeLine{130     Common::Price bid\_price = Common::Price\_INVALID;}
-\DoxyCodeLine{131     Common::Price ask\_price = Common::Price\_INVALID;}
-\DoxyCodeLine{132     Common::Qty bid\_qty     = Common::Qty\_INVALID;}
-\DoxyCodeLine{133     Common::Qty ask\_qty     = Common::Qty\_INVALID;}
+\DoxyCodeLine{130     common::Price bid\_price = common::Price\_INVALID;}
+\DoxyCodeLine{131     common::Price ask\_price = common::Price\_INVALID;}
+\DoxyCodeLine{132     common::Qty bid\_qty     = common::Qty\_INVALID;}
+\DoxyCodeLine{133     common::Qty ask\_qty     = common::Qty\_INVALID;}
 \DoxyCodeLine{134 }
 \DoxyCodeLine{135     \textcolor{keyword}{auto} toString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{136         std::stringstream ss;}
-\DoxyCodeLine{137         ss << \textcolor{stringliteral}{"{}BBO\{"{}} << Common::qtyToString(bid\_qty) << \textcolor{stringliteral}{"{}@"{}}}
-\DoxyCodeLine{138            << Common::priceToString(bid\_price) << \textcolor{stringliteral}{"{}X"{}}}
-\DoxyCodeLine{139            << Common::priceToString(ask\_price) << \textcolor{stringliteral}{"{}@"{}}}
-\DoxyCodeLine{140            << Common::qtyToString(ask\_qty) << \textcolor{stringliteral}{"{}\}"{}};}
+\DoxyCodeLine{137         ss << \textcolor{stringliteral}{"{}BBO\{"{}} << common::qtyToString(bid\_qty) << \textcolor{stringliteral}{"{}@"{}}}
+\DoxyCodeLine{138            << common::priceToString(bid\_price) << \textcolor{stringliteral}{"{}X"{}}}
+\DoxyCodeLine{139            << common::priceToString(ask\_price) << \textcolor{stringliteral}{"{}@"{}}}
+\DoxyCodeLine{140            << common::qtyToString(ask\_qty) << \textcolor{stringliteral}{"{}\}"{}};}
 \DoxyCodeLine{141 }
 \DoxyCodeLine{142         \textcolor{keywordflow}{return} ss.str();}
 \DoxyCodeLine{143     \};}

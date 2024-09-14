@@ -8,10 +8,8 @@ Https::Https(boost::asio::io_context& ioc,
              OnHttpsResponce msg_cb) {
     load_root_certificates(ctx_);
     ctx_.set_verify_mode(ssl::verify_peer);
-    session_ = std::shared_ptr<HttpsSession>(
-        new HttpsSession(ioc, ctx_, msg_cb));
+    session_ = std::make_shared<HttpsSession>(ioc, ctx_, msg_cb);
 }
-Https::~Https() {}
 
 void Https::Run(std::string_view host, std::string_view port,
                 std::string_view endpoint,

@@ -104,8 +104,8 @@ $(function() {
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>                bbo_.bid_qty =</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>                    bids_at_price_map_.begin()-&gt;first_mkt_order_.qty_;</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>            } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>                bbo_.bid_price = Common::Price_INVALID;</div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>                bbo_.bid_qty   = Common::Qty_INVALID;</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>                bbo_.bid_price = common::kPriceInvalid;</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>                bbo_.bid_qty   = common::kQtyInvalid;</div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>            }</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>        }</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
@@ -116,8 +116,8 @@ $(function() {
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>                bbo_.ask_qty =</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>                    asks_at_price_map_.begin()-&gt;first_mkt_order_.qty_;</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>            } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>                bbo_.ask_price = Common::Price_INVALID;</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                bbo_.ask_qty   = Common::Qty_INVALID;</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>                bbo_.ask_price = common::kPriceInvalid;</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                bbo_.ask_qty   = common::kQtyInvalid;</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>            }</div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>        }</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    }</div>
@@ -137,7 +137,7 @@ $(function() {
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <a class="code hl_class" href="classTrading_1_1MarketOrderBook.html">MarketOrderBook</a> &amp;operator=(<span class="keyword">const</span> <a class="code hl_class" href="classTrading_1_1MarketOrderBook.html">MarketOrderBook</a> &amp;&amp;) = <span class="keyword">delete</span>;</div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    <span class="comment">// const Common::TickerId ticker_id_;</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    <span class="comment">// const common::TickerId ticker_id_;</span></div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span> </div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>    <span class="comment">// OrderHashMap oid_to_order_;</span></div>
@@ -150,11 +150,11 @@ $(function() {
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    <a class="code hl_struct" href="structTrading_1_1BBO.html">BBO</a> bbo_;</div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <span class="comment">// auto priceToIndex(Common::Price price) const noexcept {</span></div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    <span class="comment">//     return (price % Common::ME_MAX_PRICE_LEVELS);</span></div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <span class="comment">// auto priceToIndex(common::Price price) const noexcept {</span></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    <span class="comment">//     return (price % common::ME_MAX_PRICE_LEVELS);</span></div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="comment">// }</span></div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    <span class="keyword">auto</span> getOrdersAtPrice(Common::Price price) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    <span class="keyword">auto</span> getOrdersAtPrice(common::Price price) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>        -&gt; <a class="code hl_struct" href="structTrading_1_1MarketOrdersAtPrice.html">Trading::MarketOrdersAtPrice</a> * {</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>        <span class="keywordflow">return</span> price_orders_at_price_.at(price);</div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    }</div>
@@ -163,13 +163,13 @@ $(function() {
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>        price_orders_at_price_.emplace_unique(new_orders_at_price-&gt;price_,</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>                                              new_orders_at_price);</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span> </div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>        <span class="keywordflow">if</span> (new_orders_at_price-&gt;side_ == Common::Side::BUY)</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>        <span class="keywordflow">if</span> (new_orders_at_price-&gt;side_ == common::Side::BUY)</div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>            asks_at_price_map_.insert_unique(*new_orders_at_price);</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>        <span class="keywordflow">if</span> (new_orders_at_price-&gt;side_ == Common::Side::SELL)</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>        <span class="keywordflow">if</span> (new_orders_at_price-&gt;side_ == common::Side::SELL)</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>            bids_at_price_map_.insert_unique(*new_orders_at_price);</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    }</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span> </div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    <span class="keyword">auto</span> removeOrdersAtPrice(Common::Side side, Common::Price price) <span class="keyword">noexcept</span> {</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    <span class="keyword">auto</span> removeOrdersAtPrice(common::Side side, common::Price price) <span class="keyword">noexcept</span> {</div>
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>        <span class="keyword">auto</span> order_at_price = price_orders_at_price_.at(price);</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>        <span class="keywordflow">if</span> (!order_at_price) {</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>            <span class="comment">// https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly</span></div>
@@ -179,9 +179,9 @@ $(function() {
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>            loge(<span class="stringliteral">&quot;order_book not contain such price&quot;</span>);</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>        }</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        <span class="keywordflow">if</span> (side == Common::Side::BUY)</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        <span class="keywordflow">if</span> (side == common::Side::BUY)</div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>            asks_at_price_map_.erase(*order_at_price);</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>        <span class="keywordflow">if</span> (side == Common::Side::SELL)</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>        <span class="keywordflow">if</span> (side == common::Side::SELL)</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>            bids_at_price_map_.erase(*order_at_price);</div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span> </div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        price_orders_at_price_.at(price) = <span class="keyword">nullptr</span>;</div>
@@ -264,7 +264,7 @@ $(function() {
 <div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>};</div>
 <div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span> </div>
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="keyword">using </span>MarketOrderBookHashMap =</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    std::array&lt;MarketOrderBook *, Common::ME_MAX_TICKERS&gt;;</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    std::array&lt;MarketOrderBook *, common::ME_MAX_TICKERS&gt;;</div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>}  <span class="comment">// namespace Trading</span></div>
 <div class="ttc" id="aclassTrading_1_1MarketOrderBookDouble_html"><div class="ttname"><a href="classTrading_1_1MarketOrderBookDouble.html">Trading::MarketOrderBookDouble</a></div><div class="ttdef"><b>Definition:</b> market_order_book.h:168</div></div>
 <div class="ttc" id="aclassTrading_1_1MarketOrderBookDouble_html_a057a28a5e66ff05d062653cc9b60cb4f"><div class="ttname"><a href="classTrading_1_1MarketOrderBookDouble.html#a057a28a5e66ff05d062653cc9b60cb4f">Trading::MarketOrderBookDouble::MarketOrderBookDouble</a></div><div class="ttdeci">MarketOrderBookDouble(const MarketOrderBook &amp;)=delete</div><div class="ttdoc">Deleted default, copy &amp; move constructors and assignment-operators.</div></div>

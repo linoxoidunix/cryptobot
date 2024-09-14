@@ -7,7 +7,7 @@
 #include "aot/strategy/om_order.h"
 // #include "risk_manager.h"
 
-using namespace Common;
+using namespace common;
 
 namespace Trading {
 class TradeEngine;
@@ -62,8 +62,8 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    virtual auto NewOrder(Common::TradingPair trading_pair, PriceD price,
-                          Side side, QtyD qty) noexcept -> void;
+    virtual auto NewOrder(common::TradingPair trading_pair, common::Price price,
+                          Side side, common::Qty qty) noexcept -> void;
 
     /**
      * @brief
@@ -71,7 +71,7 @@ class OrderManager {
      * @param ticker_id
      * @param side
      */
-    virtual auto CancelOrder(Common::TradingPair trading_pair,
+    virtual auto CancelOrder(common::TradingPair trading_pair,
                              Side side) noexcept -> void;
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -93,10 +93,10 @@ class OrderManager {
     OMOrderTickerSideHashMap ticker_side_order_;
 
     /// Used to set OrderIds on outgoing new order requests.
-    Common::OrderId next_order_id_ = 1;
+    common::OrderId next_order_id_ = 1;
 
   protected:
-    Trading::OMOrder *GetOrder(Common::TradingPair trading_pair, Side side) {
+    Trading::OMOrder *GetOrder(common::TradingPair trading_pair, Side side) {
         if (!ticker_side_order_.count(trading_pair)) [[unlikely]]
             ticker_side_order_.insert({trading_pair, {}});
         return &(ticker_side_order_.at(trading_pair).at(sideToIndex(side)));
@@ -110,15 +110,15 @@ class OrderManager : public Trading::OrderManager {
 
     Trading::OMOrderTickerSideHashMap ticker_side_order_;
 
-    Common::OrderId next_order_id_ = 1;
+    common::OrderId next_order_id_ = 1;
 
   public:
-    auto NewOrder(Common::TradingPair trading_pair, PriceD price, Side side,
-                  QtyD qty) noexcept -> void override;
-    auto CancelOrder(Common::TradingPair trading_pair,
+    auto NewOrder(common::TradingPair trading_pair, common::Price price, Side side,
+                  common::Qty qty) noexcept -> void override;
+    auto CancelOrder(common::TradingPair trading_pair,
                      Side side) noexcept -> void override;
 
-    Trading::OMOrder *TestGetOrder(Common::TradingPair trading_pair,
+    Trading::OMOrder *TestGetOrder(common::TradingPair trading_pair,
                                    Side side) {
         return GetOrder(trading_pair, side);
     };

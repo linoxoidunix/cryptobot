@@ -13,7 +13,7 @@
 \DoxyCodeLine{9 \textcolor{preprocessor}{\#include "{}aot/strategy/market\_order.h"{}}}
 \DoxyCodeLine{10 \textcolor{comment}{// \#include "{}market\_order\_book.h"{}}}
 \DoxyCodeLine{11 }
-\DoxyCodeLine{12 \textcolor{keyword}{using namespace }Common;}
+\DoxyCodeLine{12 \textcolor{keyword}{using namespace }common;}
 \DoxyCodeLine{13 }
 \DoxyCodeLine{14 \textcolor{keyword}{namespace }Trading \{}
 \DoxyCodeLine{17 \textcolor{keyword}{struct }\mbox{\hyperlink{structTrading_1_1PositionInfo}{PositionInfo}} \{}
@@ -31,10 +31,10 @@
 \DoxyCodeLine{29            << \textcolor{stringliteral}{"{} r-\/pnl:"{}} << real\_pnl << \textcolor{stringliteral}{"{} t-\/pnl:"{}} << total\_pnl}
 \DoxyCodeLine{30            << \textcolor{stringliteral}{"{} vol:"{}} << volume << \textcolor{stringliteral}{"{} vwaps:["{}}}
 \DoxyCodeLine{31            << (position}
-\DoxyCodeLine{32                    ? open\_vwap.at(Common::sideToIndex(Common::Side::BUY)) / std::abs(position)}
+\DoxyCodeLine{32                    ? open\_vwap.at(common::sideToIndex(common::Side::BUY)) / std::abs(position)}
 \DoxyCodeLine{33                    : 0)}
 \DoxyCodeLine{34            << \textcolor{stringliteral}{"{}X"{}}}
-\DoxyCodeLine{35            << (position ? open\_vwap.at(Common::sideToIndex(Common::Side::SELL)) /}
+\DoxyCodeLine{35            << (position ? open\_vwap.at(common::sideToIndex(common::Side::SELL)) /}
 \DoxyCodeLine{36                                std::abs(position)}
 \DoxyCodeLine{37                          : 0)}
 \DoxyCodeLine{38            << \textcolor{stringliteral}{"{}] "{}} << (bbo ? bbo-\/>ToString() : \textcolor{stringliteral}{"{}"{}}) << \textcolor{stringliteral}{"{}\}"{}};}
@@ -44,10 +44,10 @@
 \DoxyCodeLine{42 }
 \DoxyCodeLine{49     \textcolor{keyword}{auto} \mbox{\hyperlink{structTrading_1_1PositionInfo_ad5e20c88bf2396f68f0b72339b10e90d}{addFill}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEClientResponse}{Exchange::MEClientResponse}} *client\_response) \textcolor{keyword}{noexcept} \{}
 \DoxyCodeLine{50         \textcolor{keyword}{const} \textcolor{keyword}{auto} old\_position   = position;}
-\DoxyCodeLine{51         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_index     = Common::sideToIndex(client\_response-\/>side);}
-\DoxyCodeLine{52         \textcolor{keyword}{const} \textcolor{keyword}{auto} opp\_side\_index = Common::sideToIndex(}
+\DoxyCodeLine{51         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_index     = common::sideToIndex(client\_response-\/>side);}
+\DoxyCodeLine{52         \textcolor{keyword}{const} \textcolor{keyword}{auto} opp\_side\_index = common::sideToIndex(}
 \DoxyCodeLine{53             client\_response-\/>side == Side::BUY ? Side::SELL : Side::BUY);}
-\DoxyCodeLine{54         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_value  = Common::sideToValue(client\_response-\/>side);}
+\DoxyCodeLine{54         \textcolor{keyword}{const} \textcolor{keyword}{auto} side\_value  = common::sideToValue(client\_response-\/>side);}
 \DoxyCodeLine{55         position              += client\_response-\/>exec\_qty * side\_value;}
 \DoxyCodeLine{56         volume                += client\_response-\/>exec\_qty;}
 \DoxyCodeLine{57 }
@@ -74,12 +74,12 @@
 \DoxyCodeLine{78 }
 \DoxyCodeLine{79         \textcolor{keywordflow}{if} (!position) \{  \textcolor{comment}{// flat}}
 \DoxyCodeLine{80             open\_vwap[sideToIndex(Side::BUY)] =}
-\DoxyCodeLine{81                 open\_vwap[sideToIndex(Common::Side::SELL)] = 0;}
+\DoxyCodeLine{81                 open\_vwap[sideToIndex(common::Side::SELL)] = 0;}
 \DoxyCodeLine{82             unreal\_pnl                                     = 0;}
 \DoxyCodeLine{83         \} \textcolor{keywordflow}{else} \{}
 \DoxyCodeLine{84             \textcolor{keywordflow}{if} (position > 0)}
 \DoxyCodeLine{85                 unreal\_pnl = (client\_response-\/>price -\/}
-\DoxyCodeLine{86                               open\_vwap[sideToIndex(Common::Side::BUY)] /}
+\DoxyCodeLine{86                               open\_vwap[sideToIndex(common::Side::BUY)] /}
 \DoxyCodeLine{87                                   std::abs(position)) *}
 \DoxyCodeLine{88                              std::abs(position);}
 \DoxyCodeLine{89             \textcolor{keywordflow}{else}}
@@ -97,18 +97,18 @@
 \DoxyCodeLine{103     \textcolor{keyword}{auto} \mbox{\hyperlink{structTrading_1_1PositionInfo_a6ad0af4d61a0750fc8044a8a5dadea9e}{updateBBO}}(\textcolor{keyword}{const} \mbox{\hyperlink{structTrading_1_1BBODouble}{Trading::BBODouble}} *\_bbo) \textcolor{keyword}{noexcept} \{}
 \DoxyCodeLine{104         bbo = \_bbo;}
 \DoxyCodeLine{105 }
-\DoxyCodeLine{106         \textcolor{keywordflow}{if} (position \&\& bbo-\/>bid\_price != Common::kPRICE\_DOUBLE\_INVALID \&\&}
-\DoxyCodeLine{107             bbo-\/>ask\_price != Common::kPRICE\_DOUBLE\_INVALID) \{}
+\DoxyCodeLine{106         \textcolor{keywordflow}{if} (position \&\& bbo-\/>bid\_price != common::kPRICE\_DOUBLE\_INVALID \&\&}
+\DoxyCodeLine{107             bbo-\/>ask\_price != common::kPRICE\_DOUBLE\_INVALID) \{}
 \DoxyCodeLine{108             \textcolor{keyword}{const} \textcolor{keyword}{auto} mid\_price = (bbo-\/>bid\_price + bbo-\/>ask\_price) * 0.5;}
 \DoxyCodeLine{109             \textcolor{keywordflow}{if} (position > 0)}
 \DoxyCodeLine{110                 unreal\_pnl =}
 \DoxyCodeLine{111                     (mid\_price -\/}
-\DoxyCodeLine{112                      open\_vwap[Common::sideToIndex(Common::Side::BUY)] /}
+\DoxyCodeLine{112                      open\_vwap[common::sideToIndex(common::Side::BUY)] /}
 \DoxyCodeLine{113                          std::abs(position)) *}
 \DoxyCodeLine{114                     std::abs(position);}
 \DoxyCodeLine{115             \textcolor{keywordflow}{else}}
 \DoxyCodeLine{116                 unreal\_pnl =}
-\DoxyCodeLine{117                     (open\_vwap[Common::sideToIndex(Common::Side::SELL)] /}
+\DoxyCodeLine{117                     (open\_vwap[common::sideToIndex(common::Side::SELL)] /}
 \DoxyCodeLine{118                          std::abs(position) -\/}
 \DoxyCodeLine{119                      mid\_price) *}
 \DoxyCodeLine{120                     std::abs(position);}

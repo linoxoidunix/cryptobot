@@ -36,8 +36,8 @@
 \DoxyCodeLine{35                 bbo\_.bid\_qty =}
 \DoxyCodeLine{36                     bids\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.qty\_;}
 \DoxyCodeLine{37             \} \textcolor{keywordflow}{else} \{}
-\DoxyCodeLine{38                 bbo\_.bid\_price = Common::Price\_INVALID;}
-\DoxyCodeLine{39                 bbo\_.bid\_qty   = Common::Qty\_INVALID;}
+\DoxyCodeLine{38                 bbo\_.bid\_price = common::Price\_INVALID;}
+\DoxyCodeLine{39                 bbo\_.bid\_qty   = common::Qty\_INVALID;}
 \DoxyCodeLine{40             \}}
 \DoxyCodeLine{41         \}}
 \DoxyCodeLine{42 }
@@ -48,8 +48,8 @@
 \DoxyCodeLine{47                 bbo\_.ask\_qty =}
 \DoxyCodeLine{48                     asks\_at\_price\_map\_.begin()-\/>first\_mkt\_order\_.qty\_;}
 \DoxyCodeLine{49             \} \textcolor{keywordflow}{else} \{}
-\DoxyCodeLine{50                 bbo\_.ask\_price = Common::Price\_INVALID;}
-\DoxyCodeLine{51                 bbo\_.ask\_qty   = Common::Qty\_INVALID;}
+\DoxyCodeLine{50                 bbo\_.ask\_price = common::Price\_INVALID;}
+\DoxyCodeLine{51                 bbo\_.ask\_qty   = common::Qty\_INVALID;}
 \DoxyCodeLine{52             \}}
 \DoxyCodeLine{53         \}}
 \DoxyCodeLine{54     \}}
@@ -69,7 +69,7 @@
 \DoxyCodeLine{69     \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&operator=(\textcolor{keyword}{const} \mbox{\hyperlink{classTrading_1_1MarketOrderBook}{MarketOrderBook}} \&\&) = \textcolor{keyword}{delete};}
 \DoxyCodeLine{70 }
 \DoxyCodeLine{71   \textcolor{keyword}{private}:}
-\DoxyCodeLine{72     \textcolor{comment}{// const Common::TickerId ticker\_id\_;}}
+\DoxyCodeLine{72     \textcolor{comment}{// const common::TickerId ticker\_id\_;}}
 \DoxyCodeLine{73 }
 \DoxyCodeLine{76 }
 \DoxyCodeLine{78     \textcolor{comment}{// OrderHashMap oid\_to\_order\_;}}
@@ -82,11 +82,11 @@
 \DoxyCodeLine{90     \mbox{\hyperlink{structTrading_1_1BBO}{BBO}} bbo\_;}
 \DoxyCodeLine{91 }
 \DoxyCodeLine{92   \textcolor{keyword}{private}:}
-\DoxyCodeLine{93     \textcolor{comment}{// auto priceToIndex(Common::Price price) const noexcept \{}}
-\DoxyCodeLine{94     \textcolor{comment}{//     return (price \% Common::ME\_MAX\_PRICE\_LEVELS);}}
+\DoxyCodeLine{93     \textcolor{comment}{// auto priceToIndex(common::Price price) const noexcept \{}}
+\DoxyCodeLine{94     \textcolor{comment}{//     return (price \% common::ME\_MAX\_PRICE\_LEVELS);}}
 \DoxyCodeLine{95     \textcolor{comment}{// \}}}
 \DoxyCodeLine{96 }
-\DoxyCodeLine{99     \textcolor{keyword}{auto} getOrdersAtPrice(Common::Price price) \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{99     \textcolor{keyword}{auto} getOrdersAtPrice(common::Price price) \textcolor{keyword}{noexcept}}
 \DoxyCodeLine{100         -\/> \mbox{\hyperlink{structTrading_1_1MarketOrdersAtPrice}{Trading::MarketOrdersAtPrice}} * \{}
 \DoxyCodeLine{101         \textcolor{keywordflow}{return} price\_orders\_at\_price\_.at(price);}
 \DoxyCodeLine{102     \}}
@@ -95,13 +95,13 @@
 \DoxyCodeLine{107         price\_orders\_at\_price\_.emplace\_unique(new\_orders\_at\_price-\/>price\_,}
 \DoxyCodeLine{108                                               new\_orders\_at\_price);}
 \DoxyCodeLine{109 }
-\DoxyCodeLine{110         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == Common::Side::BUY)}
+\DoxyCodeLine{110         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == common::Side::BUY)}
 \DoxyCodeLine{111             asks\_at\_price\_map\_.insert\_unique(*new\_orders\_at\_price);}
-\DoxyCodeLine{112         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == Common::Side::SELL)}
+\DoxyCodeLine{112         \textcolor{keywordflow}{if} (new\_orders\_at\_price-\/>side\_ == common::Side::SELL)}
 \DoxyCodeLine{113             bids\_at\_price\_map\_.insert\_unique(*new\_orders\_at\_price);}
 \DoxyCodeLine{114     \}}
 \DoxyCodeLine{115 }
-\DoxyCodeLine{118     \textcolor{keyword}{auto} removeOrdersAtPrice(Common::Side side, Common::Price price) \textcolor{keyword}{noexcept} \{}
+\DoxyCodeLine{118     \textcolor{keyword}{auto} removeOrdersAtPrice(common::Side side, common::Price price) \textcolor{keyword}{noexcept} \{}
 \DoxyCodeLine{119         \textcolor{keyword}{auto} order\_at\_price = price\_orders\_at\_price\_.at(price);}
 \DoxyCodeLine{120         \textcolor{keywordflow}{if} (!order\_at\_price) \{}
 \DoxyCodeLine{121             \textcolor{comment}{// https://github.com/binance/binance-\/spot-\/api-\/docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-\/socket-\/streams.md\#how-\/to-\/manage-\/a-\/local-\/order-\/book-\/correctly}}
@@ -111,9 +111,9 @@
 \DoxyCodeLine{125             loge(\textcolor{stringliteral}{"{}order\_book not contain such price"{}});}
 \DoxyCodeLine{126             \textcolor{keywordflow}{return};}
 \DoxyCodeLine{127         \}}
-\DoxyCodeLine{128         \textcolor{keywordflow}{if} (side == Common::Side::BUY)}
+\DoxyCodeLine{128         \textcolor{keywordflow}{if} (side == common::Side::BUY)}
 \DoxyCodeLine{129             asks\_at\_price\_map\_.erase(*order\_at\_price);}
-\DoxyCodeLine{130         \textcolor{keywordflow}{if} (side == Common::Side::SELL)}
+\DoxyCodeLine{130         \textcolor{keywordflow}{if} (side == common::Side::SELL)}
 \DoxyCodeLine{131             bids\_at\_price\_map\_.erase(*order\_at\_price);}
 \DoxyCodeLine{132 }
 \DoxyCodeLine{133         price\_orders\_at\_price\_.at(price) = \textcolor{keyword}{nullptr};}
@@ -196,7 +196,7 @@
 \DoxyCodeLine{216 \};}
 \DoxyCodeLine{217 }
 \DoxyCodeLine{219 \textcolor{keyword}{using }MarketOrderBookHashMap =}
-\DoxyCodeLine{220     std::array<MarketOrderBook *, Common::ME\_MAX\_TICKERS>;}
+\DoxyCodeLine{220     std::array<MarketOrderBook *, common::ME\_MAX\_TICKERS>;}
 \DoxyCodeLine{221 \}  \textcolor{comment}{// namespace Trading}}
 
 \end{DoxyCode}

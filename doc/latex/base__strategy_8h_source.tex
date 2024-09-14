@@ -67,7 +67,7 @@
 \DoxyCodeLine{83             \textcolor{keywordflow}{return};}
 \DoxyCodeLine{84         \}}
 \DoxyCodeLine{85         \textcolor{keyword}{auto} buy\_price = order\_book\_-\/>getBBO()-\/>ask\_price;}
-\DoxyCodeLine{86         \textcolor{keywordflow}{if}(buy\_price == Common::kPRICE\_DOUBLE\_INVALID)[[unlikely]]}
+\DoxyCodeLine{86         \textcolor{keywordflow}{if}(buy\_price == common::kPRICE\_DOUBLE\_INVALID)[[unlikely]]}
 \DoxyCodeLine{87         \{}
 \DoxyCodeLine{88             logw(\textcolor{stringliteral}{"{}skip BuySomeAsset. BBO ask\_price=INVALID. please wait more time for update BBO"{}});}
 \DoxyCodeLine{89             \textcolor{keywordflow}{return};}
@@ -101,7 +101,7 @@
 \DoxyCodeLine{132             \textcolor{keywordflow}{return};}
 \DoxyCodeLine{133         \}}
 \DoxyCodeLine{134         \textcolor{keyword}{auto} sell\_price = order\_book\_-\/>getBBO()-\/>bid\_price;}
-\DoxyCodeLine{135         \textcolor{keywordflow}{if}(sell\_price == Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{135         \textcolor{keywordflow}{if}(sell\_price == common::kPRICE\_DOUBLE\_INVALID)}
 \DoxyCodeLine{136         \{}
 \DoxyCodeLine{137             logw(\textcolor{stringliteral}{"{}skip SellSomeAsset. BBO bid\_price=INVALID. please wait more time for update BBO"{}});}
 \DoxyCodeLine{138             \textcolor{keywordflow}{return};}

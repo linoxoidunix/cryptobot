@@ -28,9 +28,9 @@ KLineService::KLineService(OHLCVGetter* ohlcv_getter,
 
 auto KLineService::Run() noexcept -> void {
     OHLCVExt o_h_l_c_v_ext[50];
-    Exchange::MEMarketUpdateDouble clear_event;
+    Exchange::MEMarketUpdate clear_event;
     clear_event.type = Exchange::MarketUpdateType::CLEAR;
-    Exchange::MEMarketUpdateDouble new_ohlcv[2];
+    Exchange::MEMarketUpdate new_ohlcv[2];
     bool need_fetch_more = true;
     while (run_) {
         if (need_fetch_more) {
@@ -66,6 +66,9 @@ void OHLCVI::Init(OHLCVILFQueue& lf_queue) {
     std::ifstream file(path_to_file_);
     unsigned int number_lines         = 0;
     unsigned int parsed_success_lines = 0;
+    unsigned int price_prec = std::pow(10, trading_pair_info_.price_precission);
+    unsigned int qty_prec = std::pow(10, trading_pair_info_.qty_precission);
+ 
     try {
         for (std::string line; std::getline(file, line);) {
             ++number_lines;
@@ -81,11 +84,11 @@ void OHLCVI::Init(OHLCVILFQueue& lf_queue) {
                                "\t(\\d+\\.\\d+)\t(\\d+\\.\\d+)",
                                &open, &high, &low, &close, &volume)) {
                 ++parsed_success_lines;
-                new_line.ohlcv.open   = stod(open);
-                new_line.ohlcv.high   = stod(high);
-                new_line.ohlcv.low    = stod(low);
-                new_line.ohlcv.close  = stod(close);
-                new_line.ohlcv.volume = stod(volume);
+                new_line.ohlcv.open   = static_cast<int>(price_prec * stod(open));
+                new_line.ohlcv.high   = static_cast<int>(price_prec * stod(high));
+                new_line.ohlcv.low    = static_cast<int>(price_prec * stod(low));
+                new_line.ohlcv.close  = static_cast<int>(price_prec * stod(close));
+                new_line.ohlcv.volume = static_cast<int>(qty_prec * stod(volume));
                 new_line.trading_pair = trading_pair_;
                 ohlcv_history_.push_back(new_line);
             }

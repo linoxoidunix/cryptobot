@@ -53,19 +53,19 @@ namespace Trading {
 
   /// Internal structure used by the order manager to represent a single strategy order.
   struct OMOrder {
-    Common::TradingPair trading_pair;
-    Common::OrderId order_id = Common::OrderId_INVALID;
-    Common::Side side = Common::Side::INVALID;
-    double price = Common::kPRICE_DOUBLE_INVALID;
-    double qty = Common::kQTY_DOUBLE_INVALID;
+    common::TradingPair trading_pair;
+    common::OrderId order_id = common::kOrderIdInvalid;
+    common::Side side = common::Side::INVALID;
+    common::Price price = common::kPriceInvalid;
+    common::Qty qty = common::kQtyInvalid;
     OMOrderState state = OMOrderState::INVALID;
 
     auto ToString() const {
       std::stringstream ss;
       ss << "OMOrder" << "["
          << trading_pair.ToString() << " "
-         << "oid:" << Common::orderIdToString(order_id) << " "
-         << "side:" << Common::sideToString(side) << " "
+         << "oid:" << common::orderIdToString(order_id) << " "
+         << "side:" << common::sideToString(side) << " "
          << "price:" << price << " "
          << "qty:" << qty << " "
          << "state:" << OMOrderStateToString(state) << "]";
@@ -75,9 +75,9 @@ namespace Trading {
   };
 
   /// Hash map from Side -> OMOrder.
-  using OMOrderSideHashMap = std::array<Trading::OMOrder, sideToIndex(Common::Side::MAX) + 1>;
+  using OMOrderSideHashMap = std::array<Trading::OMOrder, sideToIndex(common::Side::MAX) + 1>;
 
   /// Hash map from TickerId -> Side -> OMOrder.
-  using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<Common::TradingPair, OMOrderSideHashMap, Common::TradingPairHash, Common::TradingPairEqual>;
-  using OMOrders = ankerl::unordered_dense::map<Common::OrderId, Trading::OMOrder>;
+  using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<common::TradingPair, OMOrderSideHashMap, common::TradingPairHash, common::TradingPairEqual>;
+  using OMOrders = ankerl::unordered_dense::map<common::OrderId, Trading::OMOrder>;
 }

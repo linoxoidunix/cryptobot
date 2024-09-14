@@ -19,15 +19,15 @@ class BaseStrategy {
                           TradeEngine *trade_engine,
                           OrderManager *order_manager,
                           const TradeEngineCfgHashMap &ticker_cfg,
-                          const Common::TradingPair trading_pairs,
-                          Common::TradingPairHashMap& pairs);
+                          const common::TradingPair trading_pairs,
+                          common::TradingPairHashMap& pairs);
 
     /**
      * Launch OnOrderBookUpdate callback when there are changes in
      * marketorderbookdouble for BaseStrategy is None
      */
-    auto OnOrderBookUpdate(const Common::TradingPair &trading_pair, PriceD price, Side side,
-                           Trading::MarketOrderBookDouble *order_book) noexcept
+    auto OnOrderBookUpdate(const common::TradingPair &trading_pair, common::Price price, Side side,
+                           Trading::MarketOrderBook *order_book) noexcept
         -> void {
         if (!order_book_) [[unlikely]]
             order_book_ = order_book;
@@ -67,8 +67,8 @@ class BaseStrategy {
     TradingPair trading_pairs_;
     TradingPairHashMap& pairs_;
     Wallet wallet_;
-    Trading::MarketOrderBookDouble *order_book_ = nullptr;
-    std::vector<std::function<void(const Common::TradingPair& trading_pair)>> actions_;
+    Trading::MarketOrderBook *order_book_ = nullptr;
+    std::vector<std::function<void(const common::TradingPair& trading_pair)>> actions_;
     /**
      * @brief if strategy want buy qty asset with price_asset=price it calls
      * this BuySomeAsset. Used for long operation
@@ -77,7 +77,7 @@ class BaseStrategy {
      * @param price
      * @param qty
      */
-    auto BuySomeAsset(const Common::TradingPair& pair) noexcept -> void {
+    auto BuySomeAsset(const common::TradingPair& pair) noexcept -> void {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
@@ -87,7 +87,7 @@ class BaseStrategy {
             return;
         }
         auto buy_price = order_book_->getBBO()->ask_price;
-        if(buy_price == Common::kPRICE_DOUBLE_INVALID)[[unlikely]]
+        if(buy_price == common::kPriceInvalid)[[unlikely]]
         {
             logw("skip BuySomeAsset. BBO ask_price=INVALID. please wait more time for update BBO");
             return;
@@ -104,7 +104,7 @@ class BaseStrategy {
      * @param trading_pair
      * @param price
      */
-    auto SellAllAsset(const Common::TradingPair& trading_pair) noexcept -> void {
+    auto SellAllAsset(const common::TradingPair& trading_pair) noexcept -> void {
         logi("launch long sell action for {}", trading_pair.ToString());
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
@@ -123,7 +123,7 @@ class BaseStrategy {
      *
      * @param trading_pair
      */
-    auto SellSomeAsset(const Common::TradingPair& trading_pair) noexcept -> void {
+    auto SellSomeAsset(const common::TradingPair& trading_pair) noexcept -> void {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
@@ -133,7 +133,7 @@ class BaseStrategy {
             return;
         }
         auto sell_price = order_book_->getBBO()->bid_price;
-        if(sell_price == Common::kPRICE_DOUBLE_INVALID)
+        if(sell_price == common::kPriceInvalid)
         {
             logw("skip SellSomeAsset. BBO bid_price=INVALID. please wait more time for update BBO");
             return;
@@ -149,7 +149,7 @@ class BaseStrategy {
      *
      * @param trading_pair 
      */
-    auto BuyAllAsset(const Common::TradingPair& trading_pair) noexcept -> void {
+    auto BuyAllAsset(const common::TradingPair& trading_pair) noexcept -> void {
         logi("launch short buy action for {}", trading_pair.ToString());
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
@@ -169,19 +169,19 @@ class BaseStrategy {
      */
     void InitActions() {
         actions_.resize((int)TradeAction::kNope + 1);
-        actions_[(int)TradeAction::kEnterLong] = [this](const Common::TradingPair& trading_pair) {
+        actions_[(int)TradeAction::kEnterLong] = [this](const common::TradingPair& trading_pair) {
             BuySomeAsset(trading_pair);
         };
-        actions_[(int)TradeAction::kEnterShort] = [this](const Common::TradingPair& trading_pair) {
+        actions_[(int)TradeAction::kEnterShort] = [this](const common::TradingPair& trading_pair) {
             SellSomeAsset(trading_pair);
         };
-        actions_[(int)TradeAction::kExitLong] = [this](const Common::TradingPair& trading_pair) {
+        actions_[(int)TradeAction::kExitLong] = [this](const common::TradingPair& trading_pair) {
             SellAllAsset(trading_pair);
         };
-        actions_[(int)TradeAction::kExitShort] = [this](const Common::TradingPair& trading_pair) {
+        actions_[(int)TradeAction::kExitShort] = [this](const common::TradingPair& trading_pair) {
             BuyAllAsset(trading_pair);
         };
-        actions_[(int)TradeAction::kNope] = [this](const Common::TradingPair& trading_pair) {
+        actions_[(int)TradeAction::kNope] = [this](const common::TradingPair& trading_pair) {
         };
     };
 };

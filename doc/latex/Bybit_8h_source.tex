@@ -331,7 +331,7 @@
 \DoxyCodeLine{398       \textcolor{keyword}{public}:}
 \DoxyCodeLine{399         \textcolor{keyword}{using }SymbolType = std::string\_view;}
 \DoxyCodeLine{400         \textcolor{keyword}{explicit} \mbox{\hyperlink{classbybit_1_1OrderNewLimit_1_1ArgsOrder}{ArgsOrder}}(SymbolType symbol, \textcolor{keywordtype}{double} quantity, \textcolor{keywordtype}{double} price,}
-\DoxyCodeLine{401                            TimeInForce time\_in\_force, Common::Side side,}
+\DoxyCodeLine{401                            TimeInForce time\_in\_force, common::Side side,}
 \DoxyCodeLine{402                            Type type)}
 \DoxyCodeLine{403             : \mbox{\hyperlink{classbybit_1_1ArgsBody}{ArgsBody}}() \{}
 \DoxyCodeLine{404             storage[\textcolor{stringliteral}{"{}category"{}}] = \textcolor{stringliteral}{"{}spot"{}};}
@@ -357,12 +357,12 @@
 \DoxyCodeLine{424             \mbox{\hyperlink{classSymbolUpperCase}{SymbolUpperCase}} formatter(symbol.data());}
 \DoxyCodeLine{425             storage[\textcolor{stringliteral}{"{}symbol"{}}] = formatter.ToString();}
 \DoxyCodeLine{426         \};}
-\DoxyCodeLine{427         \textcolor{keywordtype}{void} SetSide(Common::Side side) \{}
+\DoxyCodeLine{427         \textcolor{keywordtype}{void} SetSide(common::Side side) \{}
 \DoxyCodeLine{428             \textcolor{keywordflow}{switch} (side) \{}
-\DoxyCodeLine{429                 \textcolor{keywordflow}{case} Common::Side::BUY:}
+\DoxyCodeLine{429                 \textcolor{keywordflow}{case} common::Side::BUY:}
 \DoxyCodeLine{430                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}Buy"{}};}
 \DoxyCodeLine{431                     \textcolor{keywordflow}{break};}
-\DoxyCodeLine{432                 \textcolor{keywordflow}{case} Common::Side::SELL:}
+\DoxyCodeLine{432                 \textcolor{keywordflow}{case} common::Side::SELL:}
 \DoxyCodeLine{433                     storage[\textcolor{stringliteral}{"{}side"{}}] = \textcolor{stringliteral}{"{}Sell"{}};}
 \DoxyCodeLine{434                     \textcolor{keywordflow}{break};}
 \DoxyCodeLine{435             \}}

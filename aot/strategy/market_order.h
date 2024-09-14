@@ -10,24 +10,19 @@
 #include "boost/intrusive/avltree.hpp"
 
 struct BBOI {
-    virtual Common::Price GetWeightedPrice() const = 0;
+    virtual common::Price GetWeightedPrice() const = 0;
     virtual ~BBOI() = default;
-};
-
-struct BBODI {
-    virtual Common::PriceD GetWeightedPrice() const = 0;
-    virtual ~BBODI() = default;
 };
 
 namespace Trading {
 /// Used by the trade engine to represent a single order in the limit order
 /// book.
 struct MarketOrder {
-    Common::OrderId order_id_ = Common::OrderId_INVALID;
-    Common::Side side_        = Common::Side::INVALID;
-    Common::Price price_      = Common::Price_INVALID;
-    Common::Qty qty_          = Common::Qty_INVALID;
-    // Common::Priority priority_ = Common::Priority_INVALID;
+    common::OrderId order_id_ = common::kOrderIdInvalid;
+    common::Side side_        = common::Side::INVALID;
+    common::Price price_      = common::kPriceInvalid;
+    common::Qty qty_          = common::kQtyInvalid;
+    // common::Priority priority_ = common::Priority_INVALID;
 
     /// MarketOrder also serves as a node in a doubly linked list of all orders
     /// at price level arranged in FIFO order.
@@ -35,8 +30,8 @@ struct MarketOrder {
     /// Only needed for use with MemPool.
     MarketOrder()             = default;
 
-    MarketOrder(Common::OrderId order_id, Common::Side side,
-                Common::Price price, Common::Qty qty) noexcept
+    MarketOrder(common::OrderId order_id, common::Side side,
+                common::Price price, common::Qty qty) noexcept
         : order_id_(order_id), side_(side), price_(price), qty_(qty) {}
 
     auto toString() const -> std::string;
@@ -45,13 +40,13 @@ struct MarketOrder {
 /// Hash map from OrderId -> MarketOrder.
 // typedef std::vector<MarketOrder*> OrderHashMap;
 
-// typedef std::array<MarketOrder *, Common::ME_MAX_ORDER_IDS> OrderHashMap;
+// typedef std::array<MarketOrder *, common::ME_MAX_ORDER_IDS> OrderHashMap;
 
 /// Used by the trade engine to represent a price level in the limit order book.
 /// Internally maintains a list of MarketOrder objects arranged in FIFO order.
 struct MarketOrdersAtPrice {
-    Common::Side side_   = Common::Side::INVALID;
-    Common::Price price_ = Common::Price_INVALID;
+    common::Side side_   = common::Side::INVALID;
+    common::Price price_ = common::kPriceInvalid;
 
     MarketOrder first_mkt_order_;
 
@@ -74,7 +69,7 @@ struct MarketOrdersAtPrice {
     /// Only needed for use with MemPool.
     MarketOrdersAtPrice() = default;
 
-    MarketOrdersAtPrice(Common::Side side, Common::Price price,
+    MarketOrdersAtPrice(common::Side side, common::Price price,
                         const MarketOrder &first_mkt_order,
                         MarketOrdersAtPrice *prev_entry,
                         MarketOrdersAtPrice *next_entry)
@@ -86,7 +81,7 @@ struct MarketOrdersAtPrice {
     auto toString() const {
         std::stringstream ss;
         ss << "MarketOrdersAtPrice[" << "side:" << sideToString(side_) << " "
-           << "price:" << Common::priceToString(price_) << " "
+           << "price:" << common::priceToString(price_) << " "
            << "first_mkt_order:" << first_mkt_order_.toString() << "]";
 
         return ss.str();
@@ -105,7 +100,7 @@ using AsksatPriceMap = boost::intrusive::avltree<
 
 /// Hash map from Price -> MarketOrdersAtPrice.
 using OrdersAtPriceHashMap =
-    emhash7::HashMap<Common::Price, MarketOrdersAtPrice *>;
+    emhash7::HashMap<common::Price, MarketOrdersAtPrice *>;
 
 /// Represents a Best Bid Offer (BBO) abstraction for components which only need
 /// a small summary of top of book price and liquidity instead of the full order
@@ -113,106 +108,48 @@ using OrdersAtPriceHashMap =
 
 struct BBO;
 
-struct BBODouble {
-    double bid_price   = Common::kPRICE_DOUBLE_INVALID;
-    double ask_price   = Common::kPRICE_DOUBLE_INVALID;
-    double bid_qty     = Common::kQTY_DOUBLE_INVALID;
-    double ask_qty     = Common::kQTY_DOUBLE_INVALID;
-    uint8_t price_prec = 0;
-    uint8_t qty_prec   = 0;
+struct BBO : BBOI {
+    common::Price bid_price = common::kPriceInvalid;
+    common::Price ask_price = common::kPriceInvalid;
+    common::Qty bid_qty     = common::kQtyInvalid;
+    common::Qty ask_qty     = common::kQtyInvalid;
 
     auto ToString() const {
-        auto bid_qty_string = (bid_qty != Common::kQTY_DOUBLE_INVALID)
-                                  ? fmt::format("{:.{}f}", bid_qty, qty_prec)
-                                  : "INVALID";
-        auto ask_qty_string = (ask_qty != Common::kQTY_DOUBLE_INVALID)
-                                  ? fmt::format("{:.{}f}", ask_qty, qty_prec)
-                                  : "INVALID";
-        auto bid_price_string =
-            (bid_price != Common::kPRICE_DOUBLE_INVALID)
-                ? fmt::format("{:.{}f}", bid_price, price_prec)
-                : "INVALID";
-        auto ask_price_string =
-            (ask_qty != Common::kPRICE_DOUBLE_INVALID)
-                ? fmt::format("{:.{}f}", ask_price, price_prec)
-                : "INVALID";
-        return fmt::format("BBODouble[{}@{}X{}@{}]", bid_qty_string,
-                           bid_price_string, ask_price_string, ask_qty_string);
-    };
-    explicit BBODouble(const BBO *bbo, uint8_t precission_price,
-                       uint8_t precission_qty);
-    explicit BBODouble() = default;
-};
-
-struct BBO : BBOI {
-    Common::Price bid_price = Common::Price_INVALID;
-    Common::Price ask_price = Common::Price_INVALID;
-    Common::Qty bid_qty     = Common::Qty_INVALID;
-    Common::Qty ask_qty     = Common::Qty_INVALID;
-
-    auto toString() const {
         std::stringstream ss;
-        ss << "BBO{" << Common::qtyToString(bid_qty) << "@"
-           << Common::priceToString(bid_price) << "X"
-           << Common::priceToString(ask_price) << "@"
-           << Common::qtyToString(ask_qty) << "}";
+        ss << "BBO{" << common::qtyToString(bid_qty) << "@"
+           << common::priceToString(bid_price) << "X"
+           << common::priceToString(ask_price) << "@"
+           << common::qtyToString(ask_qty) << "}";
 
         return ss.str();
     };
 
-    Common::Price GetWeightedPrice() const override {
+    common::Price GetWeightedPrice() const override {
         if (bid_qty + ask_qty == 0) [[unlikely]]
-            return Common::Price_INVALID;
-        return bid_price * bid_qty + ask_price * ask_qty / (bid_qty + ask_qty);
+            return common::kPriceInvalid;
+        return std::round(1.0*(bid_price * bid_qty + ask_price * ask_qty) / (bid_qty + ask_qty));
     };
 
-    explicit BBO(const BBODouble *bbo_double, uint8_t precission_price,
-                 uint8_t precission_qty);
     explicit BBO() = default;
 };
 }  // namespace Trading
 
 namespace backtesting {
 
-struct BBO;
-
-struct BBODouble : BBODI{
-
-    double price   = Common::kPRICE_DOUBLE_INVALID;
-    double qty     = Common::kQTY_DOUBLE_INVALID;
-    uint8_t price_prec = 0;
-    uint8_t qty_prec   = 0;
-
-    auto ToString() const {
-        auto bid_qty_string = (qty != Common::kQTY_DOUBLE_INVALID)? fmt::format("{:.{}f}", qty, qty_prec) : "INVALID";
-        auto bid_price_string = (price != Common::kPRICE_DOUBLE_INVALID)? fmt::format("{:.{}f}", price, price_prec) : "INVALID";
-        return fmt::format("BBODouble[{}@{}]", bid_qty_string, bid_price_string);
-    };
-    Common::PriceD GetWeightedPrice() const override{
-        return price;
-    };
-    explicit BBODouble(const BBO *bbo, uint8_t precission_price,
-                       uint8_t precission_qty);
-    explicit BBODouble() = default;
-    ~BBODouble() = default;
-};
-
 struct BBO : BBOI{
-    Common::Price price = Common::Price_INVALID;
-    Common::Qty qty     = Common::Qty_INVALID;
+    common::Price price = common::kPriceInvalid;
+    common::Qty qty     = common::kQtyInvalid;
 
     auto ToString() const {
         std::stringstream ss;
-        ss << "BBO{" << Common::qtyToString(qty) << "@"
-           << Common::priceToString(price) << "}";
+        ss << "BBO{" << common::qtyToString(qty) << "@"
+           << common::priceToString(price) << "}";
 
         return ss.str();
     };
     
-    Common::Price GetWeightedPrice() const override {return price;};
+    common::Price GetWeightedPrice() const override {return price;};
 
-    explicit BBO(const backtesting::BBODouble *bbo_double, uint8_t precission_price,
-                 uint8_t precission_qty);
     explicit BBO() = default;
 };
 }  // namespace backtesting

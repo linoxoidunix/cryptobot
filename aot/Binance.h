@@ -136,7 +136,7 @@ class Symbol : public SymbolI {
         : first_(first.data()),
           second_(second.data()),
           ticker_(fmt::format("{0}{1}", first_, second_)) {
-        boost::algorithm::to_lower(ticker_);
+        boost::algorithm::to_upper(ticker_);
     };
     std::string_view ToString() const override { return ticker_; };
     ~Symbol() override = default;
@@ -244,16 +244,17 @@ class M1 : public ChartInterval {
 };
 class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(const SymbolI* s, const ChartInterval* chart_interval)
-        : symbol_(s), chart_interval_(chart_interval) {};
+    explicit KLineStream(std::string_view trading_pair,
+                         const ChartInterval* chart_interval)
+        : trading_pair_(trading_pair), chart_interval_(chart_interval) {};
     std::string ToString() const override {
-        return fmt::format("{0}@kline_{1}", symbol_->ToString(),
+        return fmt::format("{0}@kline_{1}", trading_pair_,
                            chart_interval_->ToString());
     };
     ~KLineStream() override = default;
 
   private:
-    const SymbolI* symbol_;
+    std::string_view trading_pair_;
     const ChartInterval* chart_interval_;
 };
 
@@ -277,35 +278,42 @@ class DiffDepthStream : public DiffDepthStreamI {
         ~ms100() override = default;
     };
 
-    explicit DiffDepthStream(const SymbolI* s, const StreamIntervalI* interval)
+    explicit DiffDepthStream(const common::TradingPairInfo& s,
+                             const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-        return fmt::format("{0}@depth@{1}", symbol_->ToString(),
+        return fmt::format("{0}@depth@{1}", symbol_.trading_pairs,
                            interval_->ToString());
     };
 
   private:
-    const SymbolI* symbol_;
+    const common::TradingPairInfo& symbol_;
     const StreamIntervalI* interval_;
 };
 
 class OHLCVI : public OHLCVGetter {
+    common::TradingPairHashMap& map_;
+    common::TradingPair pair_;
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
-            : pairs_reverse_(pairs_reverse) {};
+            common::TradingPairReverseHashMap& pairs_reverse,
+            common::TradingPairHashMap& map, common::TradingPair pair)
+            : pairs_reverse_(pairs_reverse), map_(map), pair_(pair) {};
         OHLCVExt Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairHashMap& map_;
+        common::TradingPair pair_;
     };
 
   public:
-    OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
-           TypeExchange type_exchange)
+    OHLCVI(common::TradingPairHashMap& map, common::TradingPair pair,
+           const ChartInterval* chart_interval, TypeExchange type_exchange)
         : current_exchange_(exchange_.Get(type_exchange)),
-          s_(s),
+          map_(map),
+          pair_(pair),
           chart_interval_(chart_interval),
           type_exchange_(type_exchange) {};
     bool LaunchOne() override {
@@ -316,14 +324,12 @@ class OHLCVI : public OHLCVGetter {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&lf_queue, this](boost::beast::flat_buffer& buffer) {
             auto result = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser(pairs_reverse_);
+            ParserResponse parser(pairs_reverse_, map_, pair_);
             lf_queue.try_enqueue(parser.Parse(result));
-            // logi("{}", result);
-            // fmtlog::poll();
         };
         assert(false);
         using kls = KLineStream;
-        kls channel(s_, chart_interval_);
+        kls channel(map_[pair_].trading_pairs, chart_interval_);
         std::string empty_request = "{}";
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
             ->Run(current_exchange_->Host(), current_exchange_->Port(),
@@ -337,32 +343,35 @@ class OHLCVI : public OHLCVGetter {
     const Symbol* s_;
     const ChartInterval* chart_interval_;
     TypeExchange type_exchange_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookEventGetter : public BookEventGetterI {
     class ParserResponse {
+        const common::TradingPairInfo& pair_info_;
+
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(const common::TradingPairInfo& pair_info)
+            : pair_info_(pair_info) {};
         Exchange::BookDiffSnapshot Parse(std::string_view response);
     };
 
   public:
-    BookEventGetter(const SymbolI* s,
+    BookEventGetter(const common::TradingPairInfo& pair_info,
                     const DiffDepthStream::StreamIntervalI* interval,
                     TypeExchange type_exchange)
         : current_exchange_(exchange_.Get(type_exchange)),
-          s_(s),
+          pair_info_(pair_info),
           interval_(interval),
           type_exchange_(type_exchange) {};
     void Get() override {};
     void LaunchOne() override { ioc.run_one(); };
     void Init(Exchange::BookDiffLFQueue& queue) override {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&queue](boost::beast::flat_buffer& buffer) {
+        OnMessageCB = [&queue, this](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
             // logi("{}", resut);
-            ParserResponse parser;
+            ParserResponse parser(pair_info_);
             auto answer    = parser.Parse(resut);
             bool status_op = queue.try_enqueue(answer);
             if (!status_op) [[unlikely]]
@@ -370,7 +379,7 @@ class BookEventGetter : public BookEventGetterI {
         };
 
         using dds = DiffDepthStream;
-        dds channel(s_, interval_);
+        dds channel(pair_info_, interval_);
         std::string empty_request = "{}";
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
             ->Run(current_exchange_->Host(), current_exchange_->Port(),
@@ -383,7 +392,7 @@ class BookEventGetter : public BookEventGetterI {
     boost::asio::io_context ioc;
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
-    const SymbolI* s_;
+    const common::TradingPairInfo& pair_info_;
     const DiffDepthStream::StreamIntervalI* interval_;
     bool callback_execute_ = false;
     TypeExchange type_exchange_;
@@ -497,21 +506,6 @@ class FactoryRequest {
     boost::beast::http::verb action_;
     SignerI* signer_;
 };
-/**
- * @brief in future read property from file
- * now - just copy qty from input
- */
-class FormatterQty {
-  public:
-    explicit FormatterQty() = default;
-    double Format(std::string_view symbol, double qty) { return qty; };
-};
-
-class FormatterPrice {
-  public:
-    explicit FormatterPrice() = default;
-    double Format(std::string_view symbol, double price) { return price; };
-};
 };  // namespace detail
 
 class OrderNewLimit : public inner::OrderNewI {
@@ -521,31 +515,33 @@ class OrderNewLimit : public inner::OrderNewI {
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
-            : pairs_reverse_(pairs_reverse_) {};
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_(pairs), pairs_reverse_(pairs_reverse) {};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairHashMap& pairs_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(SymbolType symbol, double quantity, double price,
-                           TimeInForce time_in_force, Common::Side side,
+                           TimeInForce time_in_force, common::Side side,
                            Type type)
             : ArgsQuery() {  // TODO UNUSED. NEED USE ONLY CTOR WITH
                              // Exchange::RequestNewOrder*
             SetSymbol(symbol);
             SetSide(side);
             SetType(type);
-            SetQuantity(quantity);
-            SetPrice(price);
+            SetQuantity(quantity, 0);
+            SetPrice(price, 0);
             SetTimeInForce(time_in_force);
         };
         explicit ArgsOrder(Exchange::RequestNewOrder* new_order,
-                           Common::TradingPairHashMap& pairs,
-                           Common::TradingPairReverseHashMap& pairs_reverse)
+                           common::TradingPairHashMap& pairs,
+                           common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
             if (!pairs_reverse.count(
                     pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
@@ -554,20 +550,23 @@ class OrderNewLimit : public inner::OrderNewI {
             SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
-            SetQuantity(new_order->qty);
-            SetPrice(new_order->price);
+            auto qty_prec = std::pow(10, -pairs[new_order->trading_pair].qty_precission);
+            SetQuantity(new_order->qty * qty_prec, pairs[new_order->trading_pair].qty_precission);
+            auto price_prec = std::pow(10, -pairs[new_order->trading_pair].price_precission);
+            SetPrice(new_order->price * price_prec, pairs[new_order->trading_pair].price_precission);
             SetTimeInForce(TimeInForce::GTC);
             SetOrderId(new_order->order_id);
         };
 
       private:
         void SetSymbol(SymbolType symbol) {
-            SymbolUpperCase formatter(symbol.data());
+            assert(false);
+            SymbolUpperCase formatter(symbol.data(), symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetSide(Common::Side side) {
+        void SetSide(common::Side side) {
             switch (side) {
-                using enum Common::Side;
+                using enum common::Side;
                 case BUY:
                     storage["side"] = "BUY";
                     break;
@@ -604,13 +603,11 @@ class OrderNewLimit : public inner::OrderNewI {
                     break;
             }
         };
-        void SetQuantity(double quantity) {
-            storage["quantity"] = std::to_string(
-                formatter_qty_.Format(storage["symbol"], quantity));
+        void SetQuantity(double quantity, uint8_t qty_prec) {
+            storage["quantity"] = fmt::format("{:.{}f}", quantity,  qty_prec);
         };
-        void SetPrice(double price) {
-            storage["price"] = std::to_string(
-                formatter_price_.Format(storage["symbol"], price));
+        void SetPrice(double price, uint8_t price_prec) {
+            storage["price"] = fmt::format("{:.{}f}", price,  price_prec);
         };
         void SetTimeInForce(TimeInForce time_in_force) {
             switch (time_in_force) {
@@ -627,21 +624,18 @@ class OrderNewLimit : public inner::OrderNewI {
                     storage["timeInForce"] = "FOK";
             }
         };
-        void SetOrderId(Common::OrderId order_id) {
-            if (order_id != Common::OrderId_INVALID) [[likely]]
-                storage["newClientOrderId"] = Common::orderIdToString(order_id);
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::kOrderIdInvalid) [[likely]]
+                storage["newClientOrderId"] = common::orderIdToString(order_id);
         };
 
       private:
         ArgsOrder& storage = *this;
-
-        detail::FormatterQty formatter_qty_;
-        detail::FormatterPrice formatter_price_;
     };
 
   public:
     explicit OrderNewLimit(SignerI* signer, TypeExchange type,
-                           Common::TradingPairHashMap& pairs)
+                           common::TradingPairHashMap& pairs)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs) {};
@@ -663,7 +657,7 @@ class OrderNewLimit : public inner::OrderNewI {
                      buffer) {
             const auto& resut = buffer.body();
             logi("{}", resut);
-            ParserResponse parser(pairs_reverse_);
+            ParserResponse parser(pairs_, pairs_reverse_);
             auto answer    = parser.Parse(resut);
             bool status_op = response_lfqueue->try_enqueue(answer);
             if (!status_op) [[unlikely]]
@@ -680,8 +674,8 @@ class OrderNewLimit : public inner::OrderNewI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
-    Common::TradingPairHashMap& pairs_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class CancelOrder : public inner::CancelOrderI {
@@ -691,31 +685,31 @@ class CancelOrder : public inner::CancelOrderI {
     class ParserResponse {
       public:
         explicit ParserResponse(
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairReverseHashMap& pairs_reverse)
             : pairs_reverse_(pairs_reverse_) {};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
-        Common::TradingPairReverseHashMap& pairs_reverse_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
-        explicit ArgsOrder(SymbolType symbol, Common::OrderId order_id)
+        explicit ArgsOrder(SymbolType symbol, common::OrderId order_id)
             : ArgsQuery() {
             SetSymbol(symbol);
             SetOrderId(order_id);
         };
         explicit ArgsOrder(
             const Exchange::RequestCancelOrder* request_cancel_order,
-            Common::TradingPairHashMap& pairs,
-            Common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
             if (!pairs_reverse.count(
                     pairs[request_cancel_order->trading_pair].trading_pairs))
                 [[unlikely]]
                 pairs_reverse[pairs[request_cancel_order->trading_pair]
-                                   .trading_pairs] =
+                                  .trading_pairs] =
                     request_cancel_order->trading_pair;
             SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
             SetOrderId(request_cancel_order->order_id);
@@ -723,13 +717,14 @@ class CancelOrder : public inner::CancelOrderI {
 
       private:
         void SetSymbol(SymbolType symbol) {
-            SymbolUpperCase formatter(symbol.data());
+            assert(false);
+            SymbolUpperCase formatter(symbol.data(), symbol.data());
             storage["symbol"] = formatter.ToString();
         };
-        void SetOrderId(Common::OrderId order_id) {
-            if (order_id != Common::OrderId_INVALID) [[likely]]
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::kOrderIdInvalid) [[likely]]
                 storage["origClientOrderId"] =
-                    Common::orderIdToString(order_id);
+                    common::orderIdToString(order_id);
         };
 
       private:
@@ -738,7 +733,7 @@ class CancelOrder : public inner::CancelOrderI {
 
   public:
     explicit CancelOrder(SignerI* signer, TypeExchange type,
-                         Common::TradingPairHashMap& pairs)
+                         common::TradingPairHashMap& pairs)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs) {};
@@ -777,15 +772,18 @@ class CancelOrder : public inner::CancelOrderI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
-    Common::TradingPairHashMap& pairs_;
-    Common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {
     static constexpr std::string_view end_point = "/api/v3/depth";
     class ParserResponse {
+        const common::TradingPairInfo& pair_info_;
+
       public:
-        explicit ParserResponse() = default;
+        explicit ParserResponse(const common::TradingPairInfo& pair_info)
+            : pair_info_(pair_info) {};
         Exchange::BookSnapshot Parse(std::string_view response);
     };
 
@@ -794,13 +792,14 @@ class BookSnapshot : public inner::BookSnapshotI {
       public:
         using SymbolType = std::string_view;
         using Limit      = uint16_t;
-        explicit ArgsOrder(SymbolType symbol, Limit limit) : ArgsQuery() {
-            SetSymbol(symbol);
+        explicit ArgsOrder(SymbolType ticker1, SymbolType ticker2, Limit limit)
+            : ArgsQuery() {
+            SetSymbol(ticker1, ticker2);
             SetLimit(limit);
         };
-        void SetSymbol(SymbolType symbol) {
-            SymbolUpperCase formatter(symbol.data());
-            storage["symbol"] = formatter.ToString();
+        void SetSymbol(SymbolType ticker1, SymbolType ticker2) {
+            SymbolUpperCase formatter(ticker1, ticker2);
+            storage["symbol"] = formatter.ToString().data();
         };
         void SetLimit(Limit limit) {
             /**
@@ -816,8 +815,9 @@ class BookSnapshot : public inner::BookSnapshotI {
         ArgsOrder& storage = *this;
     };
     explicit BookSnapshot(ArgsOrder&& args, TypeExchange type,
-                          Exchange::BookSnapshot* snapshot)
-        : args_(std::move(args)), snapshot_(snapshot) {
+                          Exchange::BookSnapshot* snapshot,
+                          const common::TradingPairInfo& pair_info)
+        : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_main_net_;
@@ -841,11 +841,10 @@ class BookSnapshot : public inner::BookSnapshotI {
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
-            // logi("{}", resut);
-            ParserResponse parser;
-            auto answer   = parser.Parse(resut);
-            answer.ticker = args_["symbol"];
-            *snapshot_    = answer;
+            ParserResponse parser(pair_info_);
+            auto answer = parser.Parse(resut);
+            // answer.ticker = args_["symbol"];
+            *snapshot_  = answer;
         };
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),
@@ -861,6 +860,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
     Exchange::BookSnapshot* snapshot_;
+    const common::TradingPairInfo& pair_info_;
 };
 
 /**
@@ -874,8 +874,10 @@ class GeneratorBidAskService {
     explicit GeneratorBidAskService(
         Exchange::EventLFQueue* event_lfqueue,
         prometheus::EventLFQueue* prometheus_event_lfqueue,
-        const Ticker& ticker, const DiffDepthStream::StreamIntervalI* interval,
-        TypeExchange type);
+        const common::TradingPairInfo& trading_pair_info,
+        common::TickerHashMap& ticker_hash_map,
+        common::TradingPair trading_pair,
+        const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
     auto Start() {
         run_    = true;
         thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
@@ -914,7 +916,9 @@ class GeneratorBidAskService {
     std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
     Exchange::BookDiffLFQueue book_diff_lfqueue_;
     Exchange::BookSnapshot snapshot_;
-    const Ticker& ticker_;
+    const common::TradingPairInfo& pair_info_;
+    common::TickerHashMap& ticker_hash_map_;
+    common::TradingPair trading_pair_;
     const DiffDepthStream::StreamIntervalI* interval_;
     uint64_t last_id_diff_book_event;
     TypeExchange type_exchange_;
@@ -924,20 +928,6 @@ class GeneratorBidAskService {
     https::ExchangeI* current_exchange_;
 
   private:
-    /// Main loop for this thread - reads and processes messages from the
-    /// multicast sockets - the heavy lifting is in the recvCallback() and
-    /// checkSnapshotSync() methods.
     auto Run() noexcept -> void;
-    template <bool need_measure_latency, class LFQueuePtr>
-    void AddEventForPrometheus(prometheus::EventType type, LFQueuePtr queue) {
-        if constexpr (need_measure_latency == true) {
-            if (queue) [[likely]] {
-                bool status_op = queue->try_enqueue(
-                    prometheus::Event(type, common::getCurrentNanoS()));
-                if (!status_op) [[unlikely]]
-                    loge("my queuee is full. need clean my queue");
-            }
-        }
-    }
 };
 };  // namespace binance

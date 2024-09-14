@@ -1,5 +1,5 @@
 
-set (PROJECT_NAME market_order_book)
+set (PROJECT_NAME bch_market_order_book)
 project(${PROJECT_NAME})
 
 

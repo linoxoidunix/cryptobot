@@ -15,7 +15,7 @@
 
 #include "aot/common/types.h"
 //#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"//if link form source
+#include "concurrentqueue.h"
 
 namespace Exchange {
 /// Type of the order response sent by the exchange to the trading client.
@@ -55,12 +55,12 @@ struct MEClientResponse {
      */
     using PriceQty          = std::pair<double, double>;
     ClientResponseType type = ClientResponseType::INVALID;
-    Common::TradingPair trading_pair; 
-    Common::OrderId order_id = Common::OrderId_INVALID;
-    Common::Side side        = Common::Side::INVALID;
-    double price             = Common::kPRICE_DOUBLE_INVALID;
-    double exec_qty          = Common::kQTY_DOUBLE_INVALID;
-    double leaves_qty        = Common::kQTY_DOUBLE_INVALID;
+    common::TradingPair trading_pair; 
+    common::OrderId order_id = common::kOrderIdInvalid;
+    common::Side side        = common::Side::INVALID;
+    common::Price price             = common::kPriceInvalid;
+    common::Qty exec_qty          = common::kQtyInvalid;
+    common::Qty leaves_qty        = common::kQtyInvalid;
 
     auto ToString() const {
         auto PrintAsCancelled = [this]()
@@ -69,21 +69,21 @@ struct MEClientResponse {
             return fmt::format(
                         "MEClientResponse[type:{} ticker:{} order_id:{}]",
                         ClientResponseTypeToString(type), "",
-                        Common::orderIdToString(order_id));
+                        common::orderIdToString(order_id));
         };
         if(type == ClientResponseType::CANCELED)
             return PrintAsCancelled();
         std::string price_string =
-            (price != Common::kPRICE_DOUBLE_INVALID)
+            (price != common::kPriceInvalid)
                 ? fmt::format("{}", price)
                 : "INVALID";
         std::string exec_qty_string =
-            (exec_qty != Common::kQTY_DOUBLE_INVALID)
+            (exec_qty != common::kQtyInvalid)
                 ? fmt::format("{}", exec_qty)
                 : "INVALID";
 
         std::string leaves_qty_string =
-            (leaves_qty != Common::kQTY_DOUBLE_INVALID)
+            (leaves_qty != common::kQtyInvalid)
                 ? fmt::format("{}", leaves_qty)
                 : "INVALID";
         return fmt::format(
@@ -91,7 +91,7 @@ struct MEClientResponse {
             "exec_qty:{} "
             "leaves_qty:{} price:{}]",
             ClientResponseTypeToString(type), trading_pair.ToString(),
-            Common::orderIdToString(order_id), sideToString(side), exec_qty_string,
+            common::orderIdToString(order_id), sideToString(side), exec_qty_string,
             leaves_qty_string, price_string);
     }
 };

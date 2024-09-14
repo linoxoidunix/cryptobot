@@ -1,7 +1,8 @@
 #pragma once
 
 #include "boost/noncopyable.hpp"
-#include "concurrentqueue.h"//if link form source
+//if link form source
+#include "concurrentqueue.h"
 
 #include "aot/common/mem_pool.h"
 
@@ -24,17 +25,35 @@ struct BaseEvent : public Event{
  * 
  */
 struct BBidUpdated : public BaseEvent {
-    Common::TradingPair trading_pair;
-    Common::PriceD price;
-    Common::QtyD qty;
+    common::TradingPair trading_pair;
+    common::Price price = common::kPriceInvalid;
+    common::Qty qty = common::kQtyInvalid;
     BBidUpdated() = default;
-    BBidUpdated(Common::TradingPair _trading_pair, Common::PriceD _price,
-               Common::QtyD _qty)
+    BBidUpdated(common::TradingPair _trading_pair, common::Price _price,
+               common::Qty _qty)
         : trading_pair(_trading_pair), price(_price), qty(_qty) {};
     ~BBidUpdated() override = default;
     EventType GetType() override { return EventType::kBidUpdate; };
 };
+
+struct BAskUpdated : public BaseEvent {
+    common::TradingPair trading_pair;
+    common::Price price = common::kPriceInvalid;
+    common::Qty qty = common::kQtyInvalid;
+    BAskUpdated() = default;
+    BAskUpdated(common::TradingPair _trading_pair, common::Price _price,
+               common::Qty _qty)
+        : trading_pair(_trading_pair), price(_price), qty(_qty) {};
+    ~BAskUpdated() override = default;
+    EventType GetType() override { return EventType::kAskUpdate; };
+};
+
 using LFQueue =  moodycamel::ConcurrentQueue<Event*>;
-using BUPool = common::MemPool<BBidUpdated>;
+
+/**best bid updated pool*/
+using BBUPool = common::MemPool<BBidUpdated>;
+
+/**best ask updated pool*/
+using BAUPool = common::MemPool<BAskUpdated>;
 }  // namespace cross_arbitrage
 }  // namespace strategy

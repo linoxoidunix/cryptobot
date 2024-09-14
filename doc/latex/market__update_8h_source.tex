@@ -30,19 +30,19 @@
 \DoxyCodeLine{26 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}} \{}
 \DoxyCodeLine{27     MarketUpdateType type      = MarketUpdateType::DEFAULT;}
 \DoxyCodeLine{28 }
-\DoxyCodeLine{29     Common::OrderId order\_id   = Common::OrderId\_INVALID;}
-\DoxyCodeLine{30     \textcolor{comment}{//Common::TickerId ticker\_id = Common::TickerId\_INVALID;}}
+\DoxyCodeLine{29     common::OrderId order\_id   = common::OrderId\_INVALID;}
+\DoxyCodeLine{30     \textcolor{comment}{//common::TickerId ticker\_id = common::TickerId\_INVALID;}}
 \DoxyCodeLine{31     std::string ticker;}
-\DoxyCodeLine{32     Common::Side side          = Common::Side::INVALID;}
-\DoxyCodeLine{33     Common::Price price        = Common::Price\_INVALID;}
-\DoxyCodeLine{34     Common::Qty qty            = Common::Qty\_INVALID;}
+\DoxyCodeLine{32     common::Side side          = common::Side::INVALID;}
+\DoxyCodeLine{33     common::Price price        = common::Price\_INVALID;}
+\DoxyCodeLine{34     common::Qty qty            = common::Qty\_INVALID;}
 \DoxyCodeLine{35 }
 \DoxyCodeLine{36     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{37         \textcolor{keywordflow}{return} fmt::format(}
 \DoxyCodeLine{38             \textcolor{stringliteral}{"{}MEMarketUpdate[ticker:\{\} oid:\{\} side:\{\} qty:\{\} price:\{\}]"{}},}
 \DoxyCodeLine{39             ticker,}
-\DoxyCodeLine{40             Common::orderIdToString(order\_id), sideToString(side),}
-\DoxyCodeLine{41             Common::qtyToString(qty), Common::priceToString(price));}
+\DoxyCodeLine{40             common::orderIdToString(order\_id), sideToString(side),}
+\DoxyCodeLine{41             common::qtyToString(qty), common::priceToString(price));}
 \DoxyCodeLine{42     \};}
 \DoxyCodeLine{43     \textcolor{keyword}{explicit} \mbox{\hyperlink{structExchange_1_1MEMarketUpdate}{MEMarketUpdate}}(\textcolor{keyword}{const} \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}}*, uint precission\_price,}
 \DoxyCodeLine{44                             uint precission\_qty);}
@@ -52,9 +52,9 @@
 \DoxyCodeLine{48 \textcolor{keyword}{struct }\mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} \{}
 \DoxyCodeLine{49     MarketUpdateType type      = MarketUpdateType::DEFAULT;}
 \DoxyCodeLine{50 }
-\DoxyCodeLine{51     \textcolor{comment}{//Common::TickerId ticker\_id = Common::TickerId\_INVALID;}}
+\DoxyCodeLine{51     \textcolor{comment}{//common::TickerId ticker\_id = common::TickerId\_INVALID;}}
 \DoxyCodeLine{52     std::string ticker;}
-\DoxyCodeLine{53     Common::Side side          = Common::Side::INVALID;}
+\DoxyCodeLine{53     common::Side side          = common::Side::INVALID;}
 \DoxyCodeLine{54     \textcolor{keywordtype}{double} price               = std::numeric\_limits<double>::max();}
 \DoxyCodeLine{55     \textcolor{keywordtype}{double} qty                 = std::numeric\_limits<double>::max();}
 \DoxyCodeLine{56 }
@@ -92,7 +92,7 @@
 \DoxyCodeLine{88         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& bid : bids) \{}
 \DoxyCodeLine{89             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
 \DoxyCodeLine{90             \textcolor{keyword}{event}.ticker = ticker;}
-\DoxyCodeLine{91             \textcolor{keyword}{event}.side  = Common::Side::SELL;}
+\DoxyCodeLine{91             \textcolor{keyword}{event}.side  = common::Side::SELL;}
 \DoxyCodeLine{92             \textcolor{keyword}{event}.price = bid.price;}
 \DoxyCodeLine{93             \textcolor{keyword}{event}.qty   = bid.qty;}
 \DoxyCodeLine{94             bulk[i] = event;}
@@ -106,7 +106,7 @@
 \DoxyCodeLine{102         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& ask : asks) \{}
 \DoxyCodeLine{103             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
 \DoxyCodeLine{104             \textcolor{keyword}{event}.ticker = ticker;}
-\DoxyCodeLine{105             \textcolor{keyword}{event}.side  = Common::Side::BUY;}
+\DoxyCodeLine{105             \textcolor{keyword}{event}.side  = common::Side::BUY;}
 \DoxyCodeLine{106             \textcolor{keyword}{event}.price = ask.price;}
 \DoxyCodeLine{107             \textcolor{keyword}{event}.qty   = ask.qty;}
 \DoxyCodeLine{108             bulk[i] = event;}
@@ -132,14 +132,14 @@
 \DoxyCodeLine{128     \textcolor{keywordtype}{void} AddToQueue(EventLFQueue\& queue) \{}
 \DoxyCodeLine{129         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& bid : bids) \{}
 \DoxyCodeLine{130             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
-\DoxyCodeLine{131             \textcolor{keyword}{event}.side  = Common::Side::SELL;}
+\DoxyCodeLine{131             \textcolor{keyword}{event}.side  = common::Side::SELL;}
 \DoxyCodeLine{132             \textcolor{keyword}{event}.price = bid.price;}
 \DoxyCodeLine{133             \textcolor{keyword}{event}.qty   = bid.qty;}
 \DoxyCodeLine{134             queue.enqueue(event);}
 \DoxyCodeLine{135         \}}
 \DoxyCodeLine{136         \textcolor{keywordflow}{for} (\textcolor{keyword}{auto}\& ask : asks) \{}
 \DoxyCodeLine{137             \mbox{\hyperlink{structExchange_1_1MEMarketUpdateDouble}{MEMarketUpdateDouble}} event;}
-\DoxyCodeLine{138             \textcolor{keyword}{event}.side  = Common::Side::BUY;}
+\DoxyCodeLine{138             \textcolor{keyword}{event}.side  = common::Side::BUY;}
 \DoxyCodeLine{139             \textcolor{keyword}{event}.price = ask.price;}
 \DoxyCodeLine{140             \textcolor{keyword}{event}.qty   = ask.qty;}
 \DoxyCodeLine{141             queue.enqueue(event);}

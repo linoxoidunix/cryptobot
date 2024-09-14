@@ -21,7 +21,7 @@ multithreaded bot for algo trading on crypto exchanges
 4. Trading::BaseStrategy is entity that can buy or sell asset using enter_long, enter_short, exit_long, exit_short signals.
 5. Trading::OrderManager have 2 public methods NewOrder and CancelOrder and OnOrderResponse callback which must be called when a new Exchange::MEClientResponse* event arrives from the exchange
 6. MarketOrderBook is entity that maintains the local order book based on bid and ask events received from the exchange
-7. Common::TradeEngineCfgHashMap is hashmap that contains clip for each ticker  
+7. common::TradeEngineCfgHashMap is hashmap that contains clip for each ticker  
 8. Trading::PositionKeeper is entity that controls realized or unrealized pnls
 
 # General bot's scheme
@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
     Exchange::RequestNewOrder request_new_order;//start init manual request new order
     request_new_order.ticker   = "BTCUSDT";
     request_new_order.order_id = 6;
-    request_new_order.side     = Common::Side::BUY;
+    request_new_order.side     = common::Side::BUY;
     request_new_order.price    = 40000;
     request_new_order.qty      = 0.001;
 
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
     Exchange::RequestNewOrder request_new_order;
     request_new_order.ticker   = "BTCUSDT";
     request_new_order.order_id = 6;//set manual unique id for new buy order 
-    request_new_order.side     = Common::Side::BUY;
+    request_new_order.side     = common::Side::BUY;
     request_new_order.price    = 40000;
     request_new_order.qty      = 0.001;
 

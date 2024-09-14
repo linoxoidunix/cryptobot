@@ -41,11 +41,11 @@
 \DoxyCodeLine{55     \textcolor{keyword}{using }\mbox{\hyperlink{structExchange_1_1MEClientResponse_a074854ea725c88909e12c5dbec4ca7bf}{PriceQty}}          = std::pair<double, double>;}
 \DoxyCodeLine{56     \mbox{\hyperlink{client__response_8h_ae6fc29ec388207ff02502343ae88e80c}{ClientResponseType}} type = ClientResponseType::INVALID;}
 \DoxyCodeLine{57     std::string ticker;}
-\DoxyCodeLine{58     Common::OrderId order\_id = Common::OrderId\_INVALID;}
-\DoxyCodeLine{59     Common::Side side        = Common::Side::INVALID;}
-\DoxyCodeLine{60     \textcolor{keywordtype}{double} price             = Common::kPRICE\_DOUBLE\_INVALID;}
-\DoxyCodeLine{61     \textcolor{keywordtype}{double} exec\_qty          = Common::kQTY\_DOUBLE\_INVALID;}
-\DoxyCodeLine{62     \textcolor{keywordtype}{double} leaves\_qty        = Common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{58     common::OrderId order\_id = common::OrderId\_INVALID;}
+\DoxyCodeLine{59     common::Side side        = common::Side::INVALID;}
+\DoxyCodeLine{60     \textcolor{keywordtype}{double} price             = common::kPRICE\_DOUBLE\_INVALID;}
+\DoxyCodeLine{61     \textcolor{keywordtype}{double} exec\_qty          = common::kQTY\_DOUBLE\_INVALID;}
+\DoxyCodeLine{62     \textcolor{keywordtype}{double} leaves\_qty        = common::kQTY\_DOUBLE\_INVALID;}
 \DoxyCodeLine{63 }
 \DoxyCodeLine{64     \textcolor{keyword}{auto} ToString()\textcolor{keyword}{ const }\{}
 \DoxyCodeLine{65         \textcolor{keyword}{auto} PrintAsCancelled = [\textcolor{keyword}{this}]()}
@@ -53,21 +53,21 @@
 \DoxyCodeLine{67             \textcolor{keywordflow}{return} fmt::format(}
 \DoxyCodeLine{68                         \textcolor{stringliteral}{"{}MEClientResponse[type:\{\} ticker:\{\} order\_id:\{\}]"{}},}
 \DoxyCodeLine{69                         ClientResponseTypeToString(type), ticker,}
-\DoxyCodeLine{70                         Common::orderIdToString(order\_id));}
+\DoxyCodeLine{70                         common::orderIdToString(order\_id));}
 \DoxyCodeLine{71         \};}
 \DoxyCodeLine{72         \textcolor{keywordflow}{if}(type == ClientResponseType::CANCELED)}
 \DoxyCodeLine{73             \textcolor{keywordflow}{return} PrintAsCancelled();}
 \DoxyCodeLine{74         std::string price\_string =}
-\DoxyCodeLine{75             (price != Common::kPRICE\_DOUBLE\_INVALID)}
+\DoxyCodeLine{75             (price != common::kPRICE\_DOUBLE\_INVALID)}
 \DoxyCodeLine{76                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, price)}
 \DoxyCodeLine{77                 : \textcolor{stringliteral}{"{}INVALID"{}};}
 \DoxyCodeLine{78         std::string exec\_qty\_string =}
-\DoxyCodeLine{79             (exec\_qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{79             (exec\_qty != common::kQTY\_DOUBLE\_INVALID)}
 \DoxyCodeLine{80                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, exec\_qty)}
 \DoxyCodeLine{81                 : \textcolor{stringliteral}{"{}INVALID"{}};}
 \DoxyCodeLine{82 }
 \DoxyCodeLine{83         std::string leaves\_qty\_string =}
-\DoxyCodeLine{84             (leaves\_qty != Common::kQTY\_DOUBLE\_INVALID)}
+\DoxyCodeLine{84             (leaves\_qty != common::kQTY\_DOUBLE\_INVALID)}
 \DoxyCodeLine{85                 ? fmt::format(\textcolor{stringliteral}{"{}\{\}"{}}, leaves\_qty)}
 \DoxyCodeLine{86                 : \textcolor{stringliteral}{"{}INVALID"{}};}
 \DoxyCodeLine{87         \textcolor{keywordflow}{return} fmt::format(}
@@ -75,7 +75,7 @@
 \DoxyCodeLine{89             \textcolor{stringliteral}{"{}exec\_qty:\{\} "{}}}
 \DoxyCodeLine{90             \textcolor{stringliteral}{"{}leaves\_qty:\{\} price:\{\}]"{}},}
 \DoxyCodeLine{91             ClientResponseTypeToString(type), ticker,}
-\DoxyCodeLine{92             Common::orderIdToString(order\_id), sideToString(side), exec\_qty\_string,}
+\DoxyCodeLine{92             common::orderIdToString(order\_id), sideToString(side), exec\_qty\_string,}
 \DoxyCodeLine{93             leaves\_qty\_string, price\_string);}
 \DoxyCodeLine{94     \}}
 \DoxyCodeLine{95 \};}
