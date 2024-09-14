@@ -282,7 +282,9 @@ class DiffDepthStream : public DiffDepthStreamI {
                              const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-        return fmt::format("{0}@depth@{1}", symbol_.trading_pairs,
+      std::string h = symbol_.trading_pairs;
+      boost::algorithm::to_lower(h);
+        return fmt::format("{0}@depth@{1}", h,
                            interval_->ToString());
     };
 
@@ -370,7 +372,6 @@ class BookEventGetter : public BookEventGetterI {
         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
         OnMessageCB = [&queue, this](boost::beast::flat_buffer& buffer) {
             auto resut = boost::beast::buffers_to_string(buffer.data());
-            // logi("{}", resut);
             ParserResponse parser(pair_info_);
             auto answer    = parser.Parse(resut);
             bool status_op = queue.try_enqueue(answer);
@@ -889,7 +890,7 @@ class GeneratorBidAskService {
         Stop();
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(2s);
-        if (thread_) [[likely]]
+        if (thread_ && thread_->joinable()) [[likely]]
             thread_->join();
     }
     auto Stop() -> void { run_ = false; }

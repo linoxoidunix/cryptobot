@@ -390,6 +390,7 @@ int main() {
     std::this_thread::sleep_for(5s);
     generator_bid_ask.Stop();
     orderbook_service.StopWaitAllQueue();
+    //orderbook_service.StopImmediately();
     fmtlog::poll();
 }
 //-----------------------------------------------------------------------------------

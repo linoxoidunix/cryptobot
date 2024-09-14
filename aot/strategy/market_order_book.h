@@ -164,7 +164,11 @@ class OrderBookService : public common::ServiceI {
     explicit OrderBookService(MarketOrderBook *ob,
                               Exchange::EventLFQueue *book_update)
         : ob_(ob), queue_(book_update) {};
-    ~OrderBookService() override = default;
+    ~OrderBookService() override{
+        run_ = false;
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(1s);
+    };
     void Start() override {
         run_    = true;
         thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
