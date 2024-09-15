@@ -11,7 +11,7 @@ using namespace common;
 
 namespace Trading {
 class TradeEngine;
-
+class PositionKeeper;
 /**
  * Manages orders for a trading algorithm, hides the complexity of order
  * management to simplify trading strategies. This OrderManager impl supports
