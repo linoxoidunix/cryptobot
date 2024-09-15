@@ -10,6 +10,11 @@
 #include "aot/strategy/order_manager.h"
 #include "aot/wallet_asset.h"
 
+namespace startegy{
+    namespace cross_arbitrage{
+        class Event;
+    }
+}
 namespace base_strategy {
 class Strategy;
 };
@@ -50,6 +55,10 @@ class BaseStrategy {
      *
      */
     auto OnNewKLine(const OHLCVExt *new_kline) noexcept -> void;
+
+    virtual void OnNewSignal(strategy::cross_arbitrage::Event *signal) {
+       logi("doing nothing");
+    };
 
     /// Deleted default, copy & move constructors and assignment-operators.
     BaseStrategy()                                 = delete;
@@ -221,7 +230,7 @@ class CrossArbitrage : public Trading::BaseStrategy {
         const TradeEngineCfgHashMap &ticker_cfg,
         common::TradingPairHashMap &pairs);
     ~CrossArbitrage() override = default;
-    void OnNewSignal(Event *signal) {
+    void OnNewSignal (strategy::cross_arbitrage::Event *signal) override{
         auto type = signal->GetType();
         if (type == strategy::cross_arbitrage::EventType::kBidUpdate) {
             {

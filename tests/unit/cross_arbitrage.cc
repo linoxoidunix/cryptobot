@@ -93,11 +93,10 @@ protected:
     std::unordered_map<common::ExchangeId, common::TradingPair> working_pairs_;
     common::TradingPairHashMap pairs_;
     std::list<common::ExchangeId> exchanges_;
-    Trading::OrderManager* order_manager_ = nullptr;
+    //Trading::OrderManager* order_manager_ = nullptr;
     TradeEngineCfgHashMap ticker_cfg;
     strategy::cross_arbitrage::CrossArbitrage* strategy_ = nullptr;
-    startegy::cross_arbitrage::TradeEngine* trade_engine_ = nullptr;
-    Wallet* wallet;
+    Trading::TradeEngine* trade_engine_ = nullptr;
     BBUPool bbu_pool{10};
     BAUPool bau_pool{10};
     void SetUp() override {
@@ -109,9 +108,7 @@ protected:
                                                             working_pairs_,
                                                             exchanges_,
                                                             pairs_);
-        order_manager_ = new Trading::OrderManager(trade_engine_);
-        wallet = new Wallet;
-        strategy_ = new strategy::cross_arbitrage::CrossArbitrage(working_pairs_, exchanges_, trade_engine_, order_manager_, ticker_cfg, pairs_);        
+        strategy_ = new strategy::cross_arbitrage::CrossArbitrage(working_pairs_, exchanges_, trade_engine_, trade_engine_->OrderManager(), ticker_cfg, pairs_);        
         trade_engine_->SetStrategy(strategy_);
         common::TradeEngineCfg btcusdt_cfg;
         btcusdt_cfg.clip      = 1;
@@ -120,7 +117,6 @@ protected:
 
     void TearDown() override {
         delete strategy_;
-        delete order_manager_;
        delete trade_engine_;
     }
 };
@@ -140,7 +136,6 @@ TEST_F(TradeEngineTest, RunValidArbitrage) {
     std::this_thread::sleep_for(5s);
     trade_engine_->Stop(); // Run the method
     // Verify expected behavior, state changes, or logs
-    auto wallet = strategy_->GetWallet();
     logd("st:{}",trade_engine_->GetStatistics());
     fmtlog::poll();
 }

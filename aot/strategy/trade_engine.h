@@ -83,7 +83,7 @@ class TradeEngine {
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
     auto OnOrderBookUpdate() noexcept -> void;
-
+    Trading::OrderManager* OrderManager(){return &order_manager_;}
     std::string GetStatistics() const { return position_keeper_.ToString(); }
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -122,7 +122,6 @@ class TradeEngine {
     volatile bool run_ = false;
     common::TimeManager time_manager_;
     OHLCVILFQueue *klines_ = nullptr;
-private:
     Trading::BaseStrategy* strategy_;
 
     /// Main loop for this thread - processes incoming client responses and

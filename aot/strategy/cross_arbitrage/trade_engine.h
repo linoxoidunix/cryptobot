@@ -15,7 +15,7 @@ class TradeEngine : public Trading::TradeEngine {
     strategy::cross_arbitrage::LFQueue *lf_queue_ = nullptr;
     std::unordered_map<common::ExchangeId, common::TradingPair> &working_pairs_;
     std::list<common::ExchangeId>& exchanges_;
-    strategy::cross_arbitrage::CrossArbitrage* ca_strategy_ = nullptr;
+    //strategy::cross_arbitrage::CrossArbitrage* ca_strategy_ = nullptr;
   public:
     TradeEngine(strategy::cross_arbitrage::LFQueue *lf_queue,
                 std::unordered_map<common::ExchangeId, common::TradingPair>
@@ -28,7 +28,6 @@ class TradeEngine : public Trading::TradeEngine {
           working_pairs_(working_pairs),
           exchanges_(exchanges){};
     const Trading::PositionKeeper* PositionKeeper() const{return &position_keeper_;}
-    void SetStrategy(strategy::cross_arbitrage::CrossArbitrage* strategy){ca_strategy_ = strategy;};
 
   private:
     void Run() noexcept override {
@@ -46,7 +45,7 @@ class TradeEngine : public Trading::TradeEngine {
             // Process signals
             for (int i = 0; i < count; i++) {
                 auto signal = new_events[i];
-                ca_strategy_->OnNewSignal(signal);
+                strategy_->OnNewSignal(signal);
             }
         }
     }
