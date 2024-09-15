@@ -187,7 +187,6 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    
     try {
         // Helper function to get a string view from the document
         auto getStringView = [&](const char* key, std::string_view& value) {
@@ -222,12 +221,12 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
 
         if (status == "NEW"sv) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
-            if (!doc["price"].get_double_in_string().get(price)) return {};
+            if (doc["price"].get_double_in_string().get(price)) return {};
             output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
 
         } else if (status == "PARTIALLY_FILLED"sv || status == "FILLED"sv) {
             output.type = Exchange::ClientResponseType::FILLED;
-            if (!doc["cummulativeQuoteQty"].get_double_in_string().get(price)) return {};
+            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price)) return {};
             output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
         }
 
@@ -240,7 +239,7 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
 
         // Getting executed quantity
         double executed_qty = 0;
-        if (!doc["executedQty"].get_double_in_string().get(executed_qty)) return {};
+        if (doc["executedQty"].get_double_in_string().get(executed_qty)) return {};
         output.exec_qty = static_cast<common::Qty>(executed_qty * std::pow(10, pairs_[output.trading_pair].qty_precission));
 
         // Getting original quantity and calculating leaves quantity
