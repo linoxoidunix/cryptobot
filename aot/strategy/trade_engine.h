@@ -35,7 +35,7 @@ class TradeEngine {
         common::TradingPairHashMap &pairs, base_strategy::Strategy *predictor);
 
     virtual ~TradeEngine();
-
+    void SetStrategy(Trading::BaseStrategy* strategy){strategy_ = strategy;};
     /// Start and stop the trade engine main thread.
     auto Start() -> void {
         run_    = true;
@@ -122,7 +122,8 @@ class TradeEngine {
     volatile bool run_ = false;
     common::TimeManager time_manager_;
     OHLCVILFQueue *klines_ = nullptr;
-    Trading::BaseStrategy strategy_;
+private:
+    Trading::BaseStrategy* strategy_;
 
     /// Main loop for this thread - processes incoming client responses and
     /// market data updates which in turn may generate client requests.

@@ -24,7 +24,7 @@ class BaseStrategy {
                           const TradeEngineCfgHashMap &ticker_cfg,
                           const common::TradingPair trading_pairs,
                           common::TradingPairHashMap &pairs);
-
+    virtual ~BaseStrategy() = default;
     /**
      * Launch OnOrderBookUpdate callback when there are changes in
      * marketorderbookdouble for BaseStrategy is None
@@ -69,10 +69,10 @@ class BaseStrategy {
     const TradeEngineCfgHashMap &ticker_cfg_;
     TradingPair trading_pairs_;
     TradingPairHashMap &pairs_;
-    Wallet wallet_;
     Trading::MarketOrderBook *order_book_ = nullptr;
     std::vector<std::function<void(const common::TradingPair &trading_pair)>>
         actions_;
+    Wallet wallet_;
     /**
      * @brief if strategy want buy qty asset with price_asset=price it calls
      * this BuySomeAsset. Used for long operation
@@ -205,28 +205,22 @@ class BaseStrategy {
 namespace strategy {
 namespace cross_arbitrage {
 
-class CrossArbitrageStrategy : public Trading::BaseStrategy {
+class CrossArbitrage : public Trading::BaseStrategy {
     std::unordered_map<common::ExchangeId, Trading::BBO> prices_;
     std::unordered_map<common::ExchangeId, common::TradingPair> &working_pairs_;
     std::list<common::ExchangeId> &exchanges_;
     common::ExchangeId exch1;
     common::ExchangeId exch2;
-
   public:
-    explicit CrossArbitrageStrategy(
+    explicit CrossArbitrage(
         std::unordered_map<common::ExchangeId, common::TradingPair>
             &working_pairs,
         std::list<common::ExchangeId> &exchanges,
         Trading::TradeEngine *trade_engine,
         Trading::OrderManager *order_manager,
         const TradeEngineCfgHashMap &ticker_cfg,
-        const common::TradingPair trading_pairs,
-        common::TradingPairHashMap &pairs)
-        : Trading::BaseStrategy(nullptr, trade_engine, order_manager,
-                                ticker_cfg, trading_pairs, pairs), working_pairs_(working_pairs), exchanges_(exchanges) {
-        exch1 = *exchanges_.begin();
-        exch2 = *exchanges_.rbegin();
-    };
+        common::TradingPairHashMap &pairs);
+    ~CrossArbitrage() override = default;
     void OnNewSignal(Event *signal) {
         auto type = signal->GetType();
         if (type == strategy::cross_arbitrage::EventType::kBidUpdate) {
@@ -250,7 +244,7 @@ class CrossArbitrageStrategy : public Trading::BaseStrategy {
         }
         bool condition1 = prices_[exch2].bid_price == common::kPriceInvalid ||
                           prices_[exch1].ask_price == common::kPriceInvalid;
-        if (condition1)
+        if (!condition1)
             if (prices_[exch2].bid_price - prices_[exch1].ask_price > 0) {
                 logi("buy on exch1 and sell on exch2");
                 return;
@@ -258,7 +252,7 @@ class CrossArbitrageStrategy : public Trading::BaseStrategy {
         bool condition2 = prices_[exch1].bid_price == common::kPriceInvalid ||
                           prices_[exch2].ask_price == common::kPriceInvalid;
 
-        if (condition2)
+        if (!condition2)
             if (prices_[exch1].bid_price - prices_[exch2].ask_price > 0) {
                 logi("buy on exch2 and sell on exch1");
                 return;
@@ -267,6 +261,7 @@ class CrossArbitrageStrategy : public Trading::BaseStrategy {
             logw("there aren't conditions for cross arbitrage");
         }
     };
+    const Wallet* GetWallet() const{return &wallet_;};
 };
 };  // namespace cross_arbitrage
 };  // namespace strategy

@@ -21,9 +21,10 @@ TradeEngine::TradeEngine(
       trading_pair_(trading_pair),
       pairs_(pairs),
       order_book_(trading_pair, pairs),
-      order_manager_(this),
-      strategy_(predictor, this, &order_manager_, config_, trading_pair,
-                pairs) {
+      order_manager_(this)
+    //   strategy_(predictor, this, &order_manager_, config_, trading_pair,
+    //             pairs)
+                 {
     common::TradeEngineCfg btcusdt_cfg;
     btcusdt_cfg.clip      = 1;
     config_[trading_pair] = btcusdt_cfg;
@@ -83,14 +84,14 @@ auto Trading::TradeEngine::OnOrderResponse(
     if (client_response->type == Exchange::ClientResponseType::FILLED)
         [[unlikely]] {
         position_keeper_.AddFill(client_response);
-        strategy_.OnOrderResponse(client_response);
+        strategy_->OnOrderResponse(client_response);
     }
 }
 
 auto Trading::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept
     -> void {
     logi("launch algorithm prediction for {}", new_kline->ToString());
-    strategy_.OnNewKLine(new_kline);
+    strategy_->OnNewKLine(new_kline);
 }
 
 auto backtesting::TradeEngine::OnNewKLine(const OHLCVExt* new_kline) noexcept

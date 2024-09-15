@@ -4,6 +4,7 @@
 #include "aot/common/types.h"
 #include "aot/strategy/cross_arbitrage/signals.h"
 #include "aot/strategy/cross_arbitrage/trade_engine.h"
+#include "aot/wallet_asset.h"
 
 TEST(CrossArbitrageEvent, Create) {
     using namespace strategy::cross_arbitrage;
@@ -92,48 +93,55 @@ protected:
     std::unordered_map<common::ExchangeId, common::TradingPair> working_pairs_;
     common::TradingPairHashMap pairs_;
     std::list<common::ExchangeId> exchanges_;
-    base_strategy::Strategy *predictor_;
-    startegy::cross_arbitrage::TradeEngine* trade_engine_;
-
+    Trading::OrderManager* order_manager_ = nullptr;
+    TradeEngineCfgHashMap ticker_cfg;
+    strategy::cross_arbitrage::CrossArbitrage* strategy_ = nullptr;
+    startegy::cross_arbitrage::TradeEngine* trade_engine_ = nullptr;
+    Wallet* wallet;
+    BBUPool bbu_pool{10};
+    BAUPool bau_pool{10};
     void SetUp() override {
         working_pairs_[1] = common::TradingPair{2,1};
         working_pairs_[2] = common::TradingPair{2,1};
         exchanges_.emplace_back(1);
         exchanges_.emplace_back(2);
-        predictor_ = nullptr; // could also be mocked if necessary
         trade_engine_ = new startegy::cross_arbitrage::TradeEngine(&lf_queue_,
                                                             working_pairs_,
                                                             exchanges_,
-                                                            pairs_,
-                                                            predictor_);
+                                                            pairs_);
+        order_manager_ = new Trading::OrderManager(trade_engine_);
+        wallet = new Wallet;
+        strategy_ = new strategy::cross_arbitrage::CrossArbitrage(working_pairs_, exchanges_, trade_engine_, order_manager_, ticker_cfg, pairs_);        
+        trade_engine_->SetStrategy(strategy_);
+        common::TradeEngineCfg btcusdt_cfg;
+        btcusdt_cfg.clip      = 1;
+        ticker_cfg[{2,1}] = btcusdt_cfg;
     }
 
     void TearDown() override {
+        delete strategy_;
+        delete order_manager_;
        delete trade_engine_;
     }
 };
 
 TEST_F(TradeEngineTest, RunValidArbitrage) {
+    fmtlog::setLogLevel(fmtlog::DBG);
     // Create mock events with valid data
-    strategy::cross_arbitrage::BBidUpdated bid_event;
-    bid_event.exchange = 1;
-    bid_event.price = 100;
-    bid_event.qty = 10;
+    auto bid_event = bbu_pool.allocate(BBidUpdated(1, TradingPair{2, 1}, 100, 14, &bbu_pool));
+    auto ask_event = bau_pool.allocate(BAskUpdated(2, TradingPair{2, 1}, 90, 140, &bau_pool));
 
-    strategy::cross_arbitrage::BAskUpdated ask_event;
-    ask_event.exchange = 2;
-    ask_event.price = 90;
-    ask_event.qty = 10;
 
-    strategy::cross_arbitrage::Event* events[2] = { &bid_event, &ask_event };
-    lf_queue_.enqueue(&bid_event);
-    lf_queue_.enqueue(&ask_event);
+    lf_queue_.enqueue(bid_event);
+    lf_queue_.enqueue(ask_event);
 
     trade_engine_->Start(); // Run the method
     using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(2s);
+    std::this_thread::sleep_for(5s);
     trade_engine_->Stop(); // Run the method
     // Verify expected behavior, state changes, or logs
+    auto wallet = strategy_->GetWallet();
+    logd("st:{}",trade_engine_->GetStatistics());
     fmtlog::poll();
 }
 
