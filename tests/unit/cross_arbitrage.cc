@@ -9,7 +9,7 @@ TEST(CrossArbitrageEvent, Create) {
     using namespace strategy::cross_arbitrage;
     using namespace common;
     common::ExchangeId exchange = 1;
-    BBidUpdated bid_updated(exchange, TradingPair{2, 1}, 100.0, 14.0);
+    BBidUpdated bid_updated(exchange, TradingPair{2, 1}, 100.0, 14.0, nullptr);
     EXPECT_EQ(bid_updated.GetType(), EventType::kBidUpdate);
     EXPECT_EQ(bid_updated.price, 100);
     EXPECT_EQ(bid_updated.qty, 14);
@@ -23,7 +23,7 @@ TEST(MemPoolEvents, Using) {
     BBUPool pool{10};
     LFQueue queue;
     for (int i = 0; i < 9; i++) {
-        auto ptr = pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0, 14.0));
+        auto ptr = pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0, 14.0, &pool));
         queue.enqueue(ptr);
     }
     Event* event;
@@ -35,6 +35,7 @@ TEST(MemPoolEvents, Using) {
         EXPECT_EQ(bid_event->price, 100);
         EXPECT_EQ(bid_event->qty, 14);
         EXPECT_EQ(bid_event->trading_pair, (TradingPair{2, 1}));
+        bid_event->Deallocate();
     } else
     assert(false);
 }
@@ -48,14 +49,14 @@ TEST(MemPoolEvents, UsingInThread) {
     std::jthread t1([&pool, &queue, &exchange]() {
         for (int i = 0; i < 9; i++) {
             auto ptr =
-                pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0+i, 14.0+i));
+                pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0+i, 14.0+i, &pool));
             queue.enqueue(ptr);
         }
         while (queue.size_approx()) {
         };
         for (int i = 0; i < 9; i++) {
             auto ptr =
-                pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0 + 9 + i , 14.0 + 9 + i));
+                pool.allocate(BBidUpdated(exchange, TradingPair{2, 1}, 100.0 + 9 + i , 14.0 + 9 + i, &pool));
             queue.enqueue(ptr);
         }
     });
@@ -75,7 +76,8 @@ TEST(MemPoolEvents, UsingInThread) {
                     EXPECT_EQ(bid_event->qty, 14+number_dequed);
                     EXPECT_EQ(bid_event->trading_pair, (TradingPair{2, 1}));
                     number_dequed++;
-                    pool.deallocate(bid_event);
+                    bid_event->Deallocate();
+                    //pool.deallocate(bid_event);
                 }
         }
     });

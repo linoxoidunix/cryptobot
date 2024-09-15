@@ -185,4 +185,20 @@ class BaseStrategy {
         };
     };
 };
-}  // namespace Trading
+};  // namespace Trading
+
+namespace strategy{
+    namespace cross_arbitrage{
+        class CrossArbitrageStrategy : public Trading::BaseStrategy {
+            public:
+            explicit CrossArbitrageStrategy(base_strategy::Strategy *strategy,
+                                         Trading::TradeEngine *trade_engine,
+                                         Trading::OrderManager *order_manager,
+                                         const TradeEngineCfgHashMap &ticker_cfg,
+                                         const common::TradingPair trading_pairs,
+                                         common::TradingPairHashMap& pairs):
+                                         Trading::BaseStrategy(strategy, trade_engine, order_manager, ticker_cfg, trading_pairs, pairs){};
+            // void OnNewSignal(Event* event)
+        };
+    };
+};
