@@ -93,7 +93,7 @@ protected:
     std::unordered_map<common::ExchangeId, common::TradingPair> working_pairs_;
     common::TradingPairHashMap pairs_;
     std::list<common::ExchangeId> exchanges_;
-    //Trading::OrderManager* order_manager_ = nullptr;
+    Trading::OrderManager* order_manager_ = nullptr;
     TradeEngineCfgHashMap ticker_cfg;
     strategy::cross_arbitrage::CrossArbitrage* strategy_ = nullptr;
     Trading::TradeEngine* trade_engine_ = nullptr;
@@ -108,6 +108,8 @@ protected:
                                                             working_pairs_,
                                                             exchanges_,
                                                             pairs_);
+        order_manager_ = new backtesting::OrderManager(trade_engine_);
+        trade_engine_->SetOrderManager(order_manager_);
         strategy_ = new strategy::cross_arbitrage::CrossArbitrage(working_pairs_, exchanges_, trade_engine_, trade_engine_->OrderManager(), ticker_cfg, pairs_);        
         trade_engine_->SetStrategy(strategy_);
         common::TradeEngineCfg btcusdt_cfg;

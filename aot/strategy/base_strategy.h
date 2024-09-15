@@ -90,7 +90,7 @@ class BaseStrategy {
      * @param price
      * @param qty
      */
-    auto BuySomeAsset(const common::TradingPair &pair) noexcept -> void {
+    virtual void BuySomeAsset(common::ExchangeId exchange_id, const common::TradingPair &pair) noexcept {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
@@ -109,7 +109,7 @@ class BaseStrategy {
         auto qty = ticker_cfg_.at(pair).clip;
         logi("launch long buy action for {} price:{} qty:{}", pair.ToString(),
              buy_price, qty);
-        order_manager_->NewOrder(pair, buy_price, Side::BUY, std::abs(qty));
+        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::BUY, std::abs(qty));
     }
     /**
      * @brief if strategy want sell all asset that early buyed than it calls
@@ -118,7 +118,7 @@ class BaseStrategy {
      * @param trading_pair
      * @param price
      */
-    auto SellAllAsset(const common::TradingPair &trading_pair) noexcept
+    auto SellAllAsset(common::ExchangeId exchange_id, const common::TradingPair &trading_pair) noexcept
         -> void {
         logi("launch long sell action for {}", trading_pair.ToString());
         if (!order_book_) [[unlikely]] {
@@ -128,7 +128,7 @@ class BaseStrategy {
         if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
             number_asset > 0) {
             auto price = order_book_->getBBO()->bid_price;
-            order_manager_->NewOrder(trading_pair, price, Side::SELL,
+            order_manager_->NewOrder(exchange_id, trading_pair, price, Side::SELL,
                                      std::abs(number_asset));
         } else
             logw("fail because number_asset={} <= 0", number_asset);
@@ -139,8 +139,7 @@ class BaseStrategy {
      *
      * @param trading_pair
      */
-    auto SellSomeAsset(const common::TradingPair &trading_pair) noexcept
-        -> void {
+    virtual void SellSomeAsset(common::ExchangeId exchange_id, const common::TradingPair &trading_pair) noexcept {
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
             return;
@@ -160,7 +159,7 @@ class BaseStrategy {
         auto qty = ticker_cfg_.at(trading_pair).clip;
         logi("launch short sell action for {} price:{} qty:{}",
              trading_pair.ToString(), sell_price, qty);
-        order_manager_->NewOrder(trading_pair, sell_price, Side::SELL,
+        order_manager_->NewOrder(exchange_id, trading_pair, sell_price, Side::SELL,
                                  std::abs(qty));
     };
     /**
@@ -169,7 +168,7 @@ class BaseStrategy {
      *
      * @param trading_pair
      */
-    auto BuyAllAsset(const common::TradingPair &trading_pair) noexcept -> void {
+    auto BuyAllAsset(common::ExchangeId exchange_id, const common::TradingPair &trading_pair) noexcept -> void {
         logi("launch short buy action for {}", trading_pair.ToString());
         if (!order_book_) [[unlikely]] {
             logi("order_book_ ptr not updated in strategy");
@@ -178,7 +177,7 @@ class BaseStrategy {
         if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
             number_asset < 0) {
             auto buy_price = order_book_->getBBO()->ask_price;
-            order_manager_->NewOrder(trading_pair, buy_price, Side::BUY,
+            order_manager_->NewOrder(exchange_id, trading_pair, buy_price, Side::BUY,
                                      std::abs(number_asset));
         } else
             logw("fail because number_asset={} >= 0", number_asset);
@@ -191,19 +190,19 @@ class BaseStrategy {
         actions_.resize((int)TradeAction::kNope + 1);
         actions_[(int)TradeAction::kEnterLong] =
             [this](const common::TradingPair &trading_pair) {
-                BuySomeAsset(trading_pair);
+                BuySomeAsset(common::kExchangeIdInvalid, trading_pair);
             };
         actions_[(int)TradeAction::kEnterShort] =
             [this](const common::TradingPair &trading_pair) {
-                SellSomeAsset(trading_pair);
+                SellSomeAsset(common::kExchangeIdInvalid, trading_pair);
             };
         actions_[(int)TradeAction::kExitLong] =
             [this](const common::TradingPair &trading_pair) {
-                SellAllAsset(trading_pair);
+                SellAllAsset(common::kExchangeIdInvalid,trading_pair);
             };
         actions_[(int)TradeAction::kExitShort] =
             [this](const common::TradingPair &trading_pair) {
-                BuyAllAsset(trading_pair);
+                BuyAllAsset(common::kExchangeIdInvalid,trading_pair);
             };
         actions_[(int)TradeAction::kNope] =
             [this](const common::TradingPair &trading_pair) {};
@@ -256,6 +255,8 @@ class CrossArbitrage : public Trading::BaseStrategy {
         if (!condition1)
             if (prices_[exch2].bid_price - prices_[exch1].ask_price > 0) {
                 logi("buy on exch1 and sell on exch2");
+                BuySomeAsset(exch1, working_pairs_[exch1]);
+                SellSomeAsset(exch2, working_pairs_[exch2]);
                 return;
             }
         bool condition2 = prices_[exch1].bid_price == common::kPriceInvalid ||
@@ -264,12 +265,59 @@ class CrossArbitrage : public Trading::BaseStrategy {
         if (!condition2)
             if (prices_[exch1].bid_price - prices_[exch2].ask_price > 0) {
                 logi("buy on exch2 and sell on exch1");
+                BuySomeAsset(exch2, working_pairs_[exch2]);
+                SellSomeAsset(exch1, working_pairs_[exch1]);
                 return;
             }
         if (!condition1 && !condition2) {
             logw("there aren't conditions for cross arbitrage");
         }
     };
+    void BuySomeAsset(common::ExchangeId exchange_id, const common::TradingPair &pair) noexcept override {
+        if (!prices_.count(exchange_id)) {
+            logi("prices_ not contain ExchangeId:{}", exchange_id);
+            return;
+        }
+        if (!ticker_cfg_.count(pair)) {
+            logw("fail buy because tickercfg not contain {}", pair.ToString());
+            return;
+        }
+        auto buy_price = prices_[exchange_id].ask_price;
+        if (buy_price == common::kPriceInvalid) {
+            logw(
+                "skip BuySomeAsset. BBO ask_price=INVALID. please wait more "
+                "time for update BBO");
+            return;
+        }
+        auto qty = ticker_cfg_.at(pair).clip;
+        logi("launch buy action for {} price:{} qty:{}", pair.ToString(),
+             buy_price, qty);
+        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::BUY, std::abs(qty));
+    }    
+    void SellSomeAsset(common::ExchangeId exchange_id, const common::TradingPair &trading_pair) noexcept override{
+        if (!prices_.count(exchange_id)) {
+            logi("prices_ not contain ExchangeId:{}", exchange_id);
+            return;
+        }
+        if (!ticker_cfg_.count(trading_pair)){
+            logw("fail sell because tickercfg not contain {}",
+                 trading_pair.ToString());
+            return;
+        }
+        auto sell_price = prices_[exchange_id].bid_price;
+        if (sell_price == common::kPriceInvalid) {
+            logw(
+                "skip SellSomeAsset. BBO bid_price=INVALID. please wait more "
+                "time for update BBO");
+            return;
+        }
+        auto qty = ticker_cfg_.at(trading_pair).clip;
+        logi("launch sell action for {} price:{} qty:{}",
+             trading_pair.ToString(), sell_price, qty);
+        order_manager_->NewOrder(exchange_id, trading_pair, sell_price, Side::SELL,
+                                 std::abs(qty));
+    };
+    
     const Wallet* GetWallet() const{return &wallet_;};
 };
 };  // namespace cross_arbitrage

@@ -36,6 +36,7 @@ class TradeEngine {
 
     virtual ~TradeEngine();
     void SetStrategy(Trading::BaseStrategy* strategy){strategy_ = strategy;};
+    void SetOrderManager(Trading::OrderManager* om){order_manager_ = om;};
     /// Start and stop the trade engine main thread.
     auto Start() -> void {
         run_    = true;
@@ -83,7 +84,7 @@ class TradeEngine {
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
     auto OnOrderBookUpdate() noexcept -> void;
-    Trading::OrderManager* OrderManager(){return &order_manager_;}
+    Trading::OrderManager* OrderManager(){return order_manager_;}
     std::string GetStatistics() const { return position_keeper_.ToString(); }
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -110,7 +111,7 @@ class TradeEngine {
     std::unique_ptr<std::thread> thread_;
     TradeEngineCfgHashMap config_;
     Trading::MarketOrderBook order_book_;
-    Trading::OrderManager order_manager_;
+    Trading::OrderManager* order_manager_;
     /**
     * Process client responses - updates the position keeper and informs the
     trading algorithm about the response.

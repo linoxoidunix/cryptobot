@@ -6,16 +6,12 @@
 #include "aot/strategy/trade_engine.h"
 #include "aot/strategy/base_strategy.h"
 
-// class Trading{
-//     class BaseStrategy;
-// }
 namespace startegy {
 namespace cross_arbitrage {
 class TradeEngine : public Trading::TradeEngine {
     strategy::cross_arbitrage::LFQueue *lf_queue_ = nullptr;
     std::unordered_map<common::ExchangeId, common::TradingPair> &working_pairs_;
     std::list<common::ExchangeId>& exchanges_;
-    //strategy::cross_arbitrage::CrossArbitrage* ca_strategy_ = nullptr;
   public:
     TradeEngine(strategy::cross_arbitrage::LFQueue *lf_queue,
                 std::unordered_map<common::ExchangeId, common::TradingPair>

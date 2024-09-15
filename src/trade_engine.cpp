@@ -20,8 +20,8 @@ TradeEngine::TradeEngine(
       latency_event_lfqueue_(latency_event_lfqueue),
       trading_pair_(trading_pair),
       pairs_(pairs),
-      order_book_(trading_pair, pairs),
-      order_manager_(this)
+      order_book_(trading_pair, pairs)//,
+      //order_manager_(this)
     //   strategy_(predictor, this, &order_manager_, config_, trading_pair,
     //             pairs)
                  {

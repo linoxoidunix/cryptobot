@@ -14,7 +14,7 @@
 #include <sstream>
 
 #include "aot/common/types.h"
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
+// #include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"
 
 namespace Exchange {
@@ -53,46 +53,41 @@ struct MEClientResponse {
      * @brief PriceQty first - price, second - qty
      *
      */
-    using PriceQty          = std::pair<double, double>;
-    ClientResponseType type = ClientResponseType::INVALID;
-    common::TradingPair trading_pair; 
+    using PriceQty                 = std::pair<double, double>;
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    ClientResponseType type        = ClientResponseType::INVALID;
+    common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;
     common::Side side        = common::Side::INVALID;
-    common::Price price             = common::kPriceInvalid;
-    common::Qty exec_qty          = common::kQtyInvalid;
-    common::Qty leaves_qty        = common::kQtyInvalid;
-
+    common::Price price      = common::kPriceInvalid;
+    common::Qty exec_qty     = common::kQtyInvalid;
+    common::Qty leaves_qty   = common::kQtyInvalid;
     auto ToString() const {
-        auto PrintAsCancelled = [this]()
-        {
+        auto PrintAsCancelled = [this]() {
             assert(false);
             return fmt::format(
-                        "MEClientResponse[type:{} ticker:{} order_id:{}]",
-                        ClientResponseTypeToString(type), "",
-                        common::orderIdToString(order_id));
+                "MEClientResponse[type:{} ticker:{} order_id:{}]",
+                ClientResponseTypeToString(type), "",
+                common::orderIdToString(order_id));
         };
-        if(type == ClientResponseType::CANCELED)
-            return PrintAsCancelled();
-        std::string price_string =
-            (price != common::kPriceInvalid)
-                ? fmt::format("{}", price)
-                : "INVALID";
-        std::string exec_qty_string =
-            (exec_qty != common::kQtyInvalid)
-                ? fmt::format("{}", exec_qty)
-                : "INVALID";
+        if (type == ClientResponseType::CANCELED) return PrintAsCancelled();
+        std::string price_string      = (price != common::kPriceInvalid)
+                                            ? fmt::format("{}", price)
+                                            : "INVALID";
+        std::string exec_qty_string   = (exec_qty != common::kQtyInvalid)
+                                            ? fmt::format("{}", exec_qty)
+                                            : "INVALID";
 
-        std::string leaves_qty_string =
-            (leaves_qty != common::kQtyInvalid)
-                ? fmt::format("{}", leaves_qty)
-                : "INVALID";
+        std::string leaves_qty_string = (leaves_qty != common::kQtyInvalid)
+                                            ? fmt::format("{}", leaves_qty)
+                                            : "INVALID";
         return fmt::format(
             "MEClientResponse[type:{} {} order_id:{} side:{} "
             "exec_qty:{} "
             "leaves_qty:{} price:{}]",
             ClientResponseTypeToString(type), trading_pair.ToString(),
-            common::orderIdToString(order_id), sideToString(side), exec_qty_string,
-            leaves_qty_string, price_string);
+            common::orderIdToString(order_id), sideToString(side),
+            exec_qty_string, leaves_qty_string, price_string);
     }
 };
 
