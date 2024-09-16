@@ -178,6 +178,134 @@ TEST(PositionKeeperTest,
               50000.0);
 }
 
+
+TEST(PositionKeeperTest, ShouldCorrectlyUpdateBBOWhenExchangeIdIsValid) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    common::TradingPair tradingPair{2, 1};
+    Trading::BBO bbo;
+    bbo.bid_price = 50000.0;
+    bbo.ask_price = 50010.0;
+    bbo.bid_qty = 10;
+    bbo.ask_qty = 20;
+
+    positionKeeper.UpdateBBO(1, tradingPair, &bbo);
+
+    auto positionInfo = positionKeeper.GetPositionInfo(1, tradingPair);
+    ASSERT_NE(positionInfo, nullptr);
+    EXPECT_EQ(positionInfo->bbo->bid_price, 50000.0);
+    EXPECT_EQ(positionInfo->bbo->ask_price, 50010.0);
+}
+
+
+TEST(PositionKeeperTest, ShouldNotUpdateBBOIfExchangeIdIsInvalid) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    common::TradingPair tradingPair{2, 1};
+    Trading::BBO bbo;
+    bbo.bid_price = 50000.0;
+    bbo.ask_price = 50010.0;
+    bbo.bid_qty = 10;
+    bbo.ask_qty = 20;
+
+    EXPECT_NO_THROW(positionKeeper.UpdateBBO(static_cast<common::ExchangeId>(-1), tradingPair, &bbo));
+
+    auto positionInfo = positionKeeper.GetPositionInfo(1, tradingPair);
+    ASSERT_NE(positionInfo, nullptr);
+    EXPECT_EQ(positionInfo->bbo, nullptr);
+}
+
+TEST(PositionKeeperTest, ShouldCorrectlyUpdateBBOForMaximumPossibleExchangeId) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{
+        {static_cast<common::ExchangeId>(std::numeric_limits<int>::max() - 1), &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    common::TradingPair tradingPair{2, 1};
+    Trading::BBO bbo;
+    bbo.bid_price = 50000.0;
+    bbo.ask_price = 50010.0;
+    bbo.bid_qty = 10;
+    bbo.ask_qty = 20;
+
+    positionKeeper.UpdateBBO(static_cast<common::ExchangeId>(std::numeric_limits<int>::max() - 1), tradingPair, &bbo);
+
+    auto positionInfo = positionKeeper.GetPositionInfo(
+        static_cast<common::ExchangeId>(std::numeric_limits<int>::max() - 1), tradingPair);
+    ASSERT_NE(positionInfo, nullptr);
+    EXPECT_EQ(positionInfo->bbo->bid_price, 50000.0);
+    EXPECT_EQ(positionInfo->bbo->ask_price, 50010.0);
+}
+
+TEST(PositionKeeperTest, ShouldCorrectlyUpdateBBOForBoundaryValueTradingPair) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    common::TradingPair boundaryTradingPair{std::numeric_limits<int>::max(), 1};
+    Trading::BBO bbo;
+    bbo.bid_price = 50000.0;
+    bbo.ask_price = 50010.0;
+    bbo.bid_qty = 10;
+    bbo.ask_qty = 20;
+
+    positionKeeper.UpdateBBO(1, boundaryTradingPair, &bbo);
+
+    auto positionInfo = positionKeeper.GetPositionInfo(1, boundaryTradingPair);
+    ASSERT_NE(positionInfo, nullptr);
+    EXPECT_EQ(positionInfo->bbo->bid_price, 50000.0);
+    EXPECT_EQ(positionInfo->bbo->ask_price, 50010.0);
+}
+
+TEST(PositionKeeperTest, ShouldHandleBBOUpdateWhenTradingPairIsNull) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    Trading::BBO bbo;
+    bbo.bid_price = 50000.0;
+    bbo.ask_price = 50010.0;
+    bbo.bid_qty = 10;
+    bbo.ask_qty = 20;
+
+    EXPECT_NO_THROW(positionKeeper.UpdateBBO(1, common::TradingPair{}, &bbo));
+
+    auto positionInfo = positionKeeper.GetPositionInfo(1, common::TradingPair{});
+    ASSERT_NE(positionInfo, nullptr);
+    ASSERT_NE(positionInfo->bbo, nullptr);
+}
+
+TEST(PositionKeeperTest, ShouldCorrectlyUpdateBBOWhenBBOHasExtremeValues) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    common::TradingPair tradingPair{2, 1};
+
+    Trading::BBO extremeBBO;
+    extremeBBO.bid_price = std::numeric_limits<common::Price>::max();
+    extremeBBO.ask_price = std::numeric_limits<common::Price>::min();
+    extremeBBO.bid_qty = 10;
+    extremeBBO.ask_qty = 20;
+
+    positionKeeper.UpdateBBO(1, tradingPair, &extremeBBO);
+
+    auto positionInfo = positionKeeper.GetPositionInfo(1, tradingPair);
+    ASSERT_NE(positionInfo, nullptr);
+    EXPECT_EQ(positionInfo->bbo->bid_price, std::numeric_limits<common::Price>::max());
+    EXPECT_EQ(positionInfo->bbo->ask_price, std::numeric_limits<common::Price>::min());
+}
+TEST(PositionKeeperTest, ShouldHandleNullBBOPointerWithoutThrowingException) {
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    EXPECT_NO_THROW(positionKeeper.UpdateBBO(1, common::TradingPair{2, 1}, nullptr));
+}
 TEST(PositionKeeperTest,
      ShouldHandleClientResponseWithMaximumPossibleExchangeIdWithoutOverflow) {
     MockClientResponse mockResponse;

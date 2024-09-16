@@ -211,6 +211,18 @@ class PositionKeeper : public ::Trading::PositionKeeper {
     void UpdateBBO(common::ExchangeId exchange_id,
                    const common::TradingPair trading_pair,
                    const Trading::BBO *bbo) noexcept {
+        if (!bbo) {
+            loge("bbo = nullptr");
+            return;
+        }
+        if (exchange_id == common::kExchangeIdInvalid) {
+            loge("Invalid exchange id");
+            return;
+        }
+        if (!position_.count(exchange_id)) {
+            loge("don't found position keeper");
+            return;
+        }
         position_[exchange_id]->UpdateBBO(trading_pair, bbo);
     };
     Trading::PositionInfo *GetPositionInfo(

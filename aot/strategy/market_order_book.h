@@ -34,7 +34,8 @@ class MarketOrderBook {
     virtual ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    virtual void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept;
+    virtual void OnMarketUpdate(
+        const Exchange::MEMarketUpdate *market_update) noexcept;
 
     auto getBBO() const noexcept -> const BBO * { return &bbo_; }
 
@@ -164,7 +165,7 @@ class OrderBookService : public common::ServiceI {
     explicit OrderBookService(MarketOrderBook *ob,
                               Exchange::EventLFQueue *book_update)
         : ob_(ob), queue_(book_update) {};
-    ~OrderBookService() override{
+    ~OrderBookService() override {
         run_ = false;
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(1s);
@@ -212,7 +213,7 @@ class OrderBook : public Trading::MarketOrderBook {
 
   public:
     explicit OrderBook(common::ExchangeId exchange,
-                        common::TradingPair trading_pair,
+                       common::TradingPair trading_pair,
                        common::TradingPairHashMap &pairs,
                        strategy::cross_arbitrage::LFQueue *queue,
                        uint bbu_mempool_size, uint bau_mempool_size)
@@ -227,24 +228,24 @@ class OrderBook : public Trading::MarketOrderBook {
         auto bbo = getBBO();
         if (update_bid) {
             logi("push BBidUpdated event");
-            auto ptr = bbu_pool_.allocate(BBidUpdated(exchange_, common::TradingPair{2, 1}, bbo->bid_price, bbo->bid_qty, &bbu_pool_));
-            auto status = queue_->try_enqueue(ptr);
-            if(!status)
+            auto ptr = bbu_pool_.allocate(
+                BBidUpdated(exchange_, common::TradingPair{2, 1},
+                            bbo->bid_price, bbo->bid_qty, &bbu_pool_));
+            if (auto status = queue_->try_enqueue(ptr); !status)
                 loge("can't push new event to queue");
             return;
         }
         if (update_ask) {
             logi("push BAskUpdated event");
-            auto ptr = bau_pool_.allocate(BAskUpdated(exchange_,common::TradingPair{2, 1}, bbo->ask_price, bbo->ask_qty, &bau_pool_));
-            auto status = queue_->try_enqueue(ptr);
-            if(!status)
+            auto ptr = bau_pool_.allocate(
+                BAskUpdated(exchange_, common::TradingPair{2, 1},
+                            bbo->ask_price, bbo->ask_qty, &bau_pool_));
+            if (auto status = queue_->try_enqueue(ptr); !status)
                 loge("can't push new event to queue");
             return;
         }
     };
-    ~OrderBook() override{
-        logi("call Order Book d'tor");
-    };
+    ~OrderBook() override { logi("call Order Book d'tor"); };
 };
 };  // namespace cross_arbitrage
 };  // namespace strategy
@@ -266,11 +267,11 @@ class MarketOrderBook : public Trading::MarketOrderBook {
         bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
     }
 
-    void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept override{
+    void OnMarketUpdate(
+        const Exchange::MEMarketUpdate *market_update) noexcept override {
         bbo_.price = market_update->price;
         bbo_.qty   = market_update->qty;
     }
-        
 
     auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 
