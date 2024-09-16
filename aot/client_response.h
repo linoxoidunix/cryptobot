@@ -47,8 +47,20 @@ inline std::string ClientResponseTypeToString(ClientResponseType type) {
 /// packed to remove system dependent extra padding.
 #pragma pack(push, 1)
 
+class IResponse {
+  public:
+    virtual ~IResponse()                  = default;
+
+    virtual common::Side GetSide() const         = 0;
+    virtual common::Qty GetExecQty() const    = 0;
+    virtual common::Price GetPrice() const      = 0;
+    virtual std::string ToString() const = 0;
+    virtual common::TradingPair GetTradingPair() const = 0;
+    virtual common::ExchangeId GetExchangeId() const = 0; 
+};
+
 /// Client response structure used internally by the matching engine.
-struct MEClientResponse {
+struct MEClientResponse : public IResponse {
     /**
      * @brief PriceQty first - price, second - qty
      *
@@ -62,7 +74,7 @@ struct MEClientResponse {
     common::Price price      = common::kPriceInvalid;
     common::Qty exec_qty     = common::kQtyInvalid;
     common::Qty leaves_qty   = common::kQtyInvalid;
-    auto ToString() const {
+    std::string ToString() const override {
         auto PrintAsCancelled = [this]() {
             assert(false);
             return fmt::format(
@@ -89,6 +101,11 @@ struct MEClientResponse {
             common::orderIdToString(order_id), sideToString(side),
             exec_qty_string, leaves_qty_string, price_string);
     }
+    common::Side GetSide() const override {return side;};
+    common::Qty GetExecQty() const override {return exec_qty;};
+    common::Qty GetPrice() const override {return price;};
+    common::TradingPair GetTradingPair() const override{return trading_pair;}; 
+    common::ExchangeId GetExchangeId() const override{return exchange_id;}; 
 };
 
 /// Client response structure published over the network by the order server.
