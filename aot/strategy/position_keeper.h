@@ -5,10 +5,10 @@
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/macros.h"
+#include "aot/common/thread_utils.h"
 #include "aot/common/types.h"
+#include "aot/strategy/cross_arbitrage/signals.h"
 #include "aot/strategy/market_order.h"
-
-using namespace common;
 
 namespace Trading {
 
@@ -19,7 +19,7 @@ struct PositionInfo {
     double real_pnl   = 0;
     double unreal_pnl = 0;
     double total_pnl  = 0;
-    std::array<double, sideToIndex(Side::MAX) + 1> open_vwap;
+    std::array<double, common::sideToIndex(common::Side::MAX) + 1> open_vwap;
     double volume           = 0;
     const Trading::BBO *bbo = nullptr;
 
@@ -55,7 +55,7 @@ struct PositionInfo {
         const auto old_position = position;
         const auto side_index   = common::sideToIndex(side);
         const auto opp_side_index =
-            common::sideToIndex(side == Side::BUY ? Side::SELL : Side::BUY);
+            common::sideToIndex(side == common::Side::BUY ? common::Side::SELL : common::Side::BUY);
         const auto side_value = common::sideToValue(side);
         assert(exec_qty >= 0);
         assert(price >= 0);
@@ -80,7 +80,7 @@ struct PositionInfo {
         }
 
         if (!position) {  // flat
-            open_vwap[sideToIndex(Side::BUY)] =
+            open_vwap[common::sideToIndex(common::Side::BUY)] =
                 open_vwap[sideToIndex(common::Side::SELL)] = 0;
             unreal_pnl                                     = 0;
         } else {
@@ -91,7 +91,7 @@ struct PositionInfo {
                     std::abs(position);
             else
                 unreal_pnl =
-                    (open_vwap[sideToIndex(Side::SELL)] / std::abs(position) -
+                    (open_vwap[common::sideToIndex(common::Side::SELL)] / std::abs(position) -
                      price) *
                     std::abs(position);
         }
@@ -187,11 +187,36 @@ class PositionKeeper {
 };
 };  // namespace Trading
 
+namespace position_keeper {
+enum class EventType { kAddFill, kUpdateBBO, kNoEvent };
+class Event {
+  public:
+    virtual ~Event()            = default;
+    virtual EventType GetType() = 0;
+};
+struct AddFill : public Event {
+    const Exchange::IResponse *client_response = nullptr;
+    ~AddFill() override                        = default;
+    EventType GetType() override { return EventType::kAddFill; };
+};
+
+struct UpdateBBO : public Event {
+    common::ExchangeId exchange_id;
+    const common::TradingPair trading_pair;
+    const Trading::BBO *bbo;
+    ~UpdateBBO() override = default;
+    EventType GetType() override { return EventType::kUpdateBBO; };
+};
+using EventLFQueue = moodycamel::ConcurrentQueue<Event*>;
+};  // namespace position_keeper
 namespace exchange {
+
 class PositionKeeper : public ::Trading::PositionKeeper {
   public:
-    using ExchangePositionKeeper =  std::unordered_map<common::ExchangeId, Trading::PositionKeeper *>;
-    explicit PositionKeeper(ExchangePositionKeeper& position) : Trading::PositionKeeper(), position_(position) {};
+    using ExchangePositionKeeper =
+        std::unordered_map<common::ExchangeId, Trading::PositionKeeper *>;
+    explicit PositionKeeper(ExchangePositionKeeper &position)
+        : Trading::PositionKeeper(), position_(position) {};
     void AddFill(const Exchange::IResponse *client_response) noexcept override {
         if (!client_response) {
             loge("client_response = nullptr");
@@ -230,7 +255,69 @@ class PositionKeeper : public ::Trading::PositionKeeper {
         const common::TradingPair trading_pair) noexcept {
         return position_[exchange_id]->GetPositionInfo(trading_pair);
     };
-private:
-    ExchangePositionKeeper& position_;
+    void OnNewSignal(const position_keeper::Event* event){}
+
+  private:
+    ExchangePositionKeeper &position_;
 };
 }  // namespace exchange
+
+namespace Trading {
+class PositionKeeperService : public common::ServiceI {
+  public:
+    PositionKeeperService(exchange::PositionKeeper *pk) : pk_(pk) {}
+    void Start() override {
+        run_    = true;
+        thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
+            -1, "Trading/OrderBookService", [this] { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start OrderBookService thread.");
+    }
+
+    void StopImmediately() override { run_ = false; }
+
+    void StopWaitAllQueue() override {
+        logi("stop Trading/PositionKeeperService");
+        while (queue_->size_approx()) {
+            logi("Sleeping till all updates are consumed md-size:{}",
+                 queue_->size_approx());
+            using namespace std::literals::chrono_literals;
+            std::this_thread::sleep_for(10ms);
+        }
+        StopImmediately();
+    }
+
+    ~PositionKeeperService() override {
+        StopImmediately();  // Ensure cleanup
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(1s);
+    }
+    void Run() {
+        if (!pk_) {
+            logw("Can't run PositionKeeperService. pk_ = nullptr");
+            return;
+        }
+        if (!queue_) [[unlikely]] {
+            logw("Can't run PositionKeeperService. queue_ = nullptr");
+            return;
+        }
+        logi("Trading::PositionKeeperService start");
+        std::array<position_keeper::Event*, 50> new_events{};
+        while (run_) {
+            auto events_number = queue_->try_dequeue_bulk(new_events.begin(), 50);
+            for (size_t i = 0; i < events_number; i++){
+                auto signal = new_events[i];
+                pk_->OnNewSignal(signal);
+            }
+
+        }
+        logi("Trading/PositionKeeperService stopped");
+    };
+
+  private:
+    volatile bool run_ = false;
+    std::unique_ptr<std::jthread> thread_;
+
+    exchange::PositionKeeper *pk_         = nullptr;
+    position_keeper::EventLFQueue *queue_ = nullptr;
+};
+}  // namespace Trading

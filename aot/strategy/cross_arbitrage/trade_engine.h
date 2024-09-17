@@ -39,7 +39,7 @@ class TradeEngine : public Trading::TradeEngine {
             // Dequeue signals from the queue
             auto count = lf_queue_->try_dequeue_bulk(new_events.begin(), 50);
             // Process signals
-            for (int i = 0; i < count; i++) {
+            for (size_t i = 0; i < count; i++) {
                 auto signal = new_events[i];
                 strategy_->OnNewSignal(signal);
             }
