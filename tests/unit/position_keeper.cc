@@ -389,13 +389,11 @@ TEST(PositionKeeperServiceTest, ShouldCallOnNewSignalForEachEventInRun) {
     EXPECT_EQ(queue.size_approx(), 0);
     EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->position), 1);
     /**
-     * @brief buy for 100/ but new price became (90+80)/2=85. i lost 15 money.
+     * @brief buy for 100. but new price became (90+80)/2=85. i lost 15 money.
      * 
      */
     EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->unreal_pnl), -15);
     EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->total_pnl), -15);
-
-
 }
 
 int main(int argc, char** argv) {

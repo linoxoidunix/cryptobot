@@ -10,6 +10,7 @@ namespace common {
   template<typename T>
   class MemPool final {
   public:
+    using value_type = T;
     explicit MemPool(std::size_t num_elems) :
         store_(num_elems, {T(), true}) /* pre-allocation of vector storage. */ {
       ASSERT(reinterpret_cast<const ObjectBlock *>(&(store_[0].object_)) == &(store_[0]), "T object should be first member of ObjectBlock.");

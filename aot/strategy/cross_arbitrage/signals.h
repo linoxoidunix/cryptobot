@@ -37,7 +37,7 @@ struct BBidUpdated : public BaseEvent {
     common::Qty qty             = common::kQtyInvalid;
     BBUPool* mem_pool           = nullptr;
     BBidUpdated()               = default;
-    BBidUpdated(common::ExchangeId _exchange, common::TradingPair _trading_pair, common::Price _price,
+    explicit BBidUpdated(common::ExchangeId _exchange, common::TradingPair _trading_pair, common::Price _price,
                 common::Qty _qty, BBUPool* pool)
         : exchange(_exchange), trading_pair(_trading_pair), price(_price), qty(_qty), mem_pool(pool) {};
     ~BBidUpdated() override = default;
@@ -66,7 +66,7 @@ struct BAskUpdated : public BaseEvent {
     common::Qty qty             = common::kQtyInvalid;
     BAUPool* mem_pool           = nullptr;
     BAskUpdated()               = default;
-    BAskUpdated(common::ExchangeId _exchange, common::TradingPair _trading_pair, common::Price _price,
+    explicit BAskUpdated(common::ExchangeId _exchange, common::TradingPair _trading_pair, common::Price _price,
                 common::Qty _qty, BAUPool* pool)
         : exchange(_exchange), trading_pair(_trading_pair), price(_price), qty(_qty), mem_pool(pool) {};
     ~BAskUpdated() override = default;
