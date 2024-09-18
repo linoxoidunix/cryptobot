@@ -14,7 +14,7 @@
 #include <sstream>
 
 #include "aot/common/types.h"
-// #include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "aot/common/mem_pool.h"
 #include "concurrentqueue.h"
 
 namespace Exchange {
@@ -49,17 +49,21 @@ inline std::string ClientResponseTypeToString(ClientResponseType type) {
 
 class IResponse {
   public:
-    virtual ~IResponse()                  = default;
+    virtual ~IResponse()                               = default;
 
-    virtual common::Side GetSide() const         = 0;
-    virtual common::Qty GetExecQty() const    = 0;
-    virtual common::Price GetPrice() const      = 0;
-    virtual std::string ToString() const = 0;
+    virtual common::Side GetSide() const               = 0;
+    virtual common::Qty GetExecQty() const             = 0;
+    virtual common::Price GetPrice() const             = 0;
+    virtual std::string ToString() const               = 0;
     virtual common::TradingPair GetTradingPair() const = 0;
-    virtual common::ExchangeId GetExchangeId() const = 0; 
+    virtual common::ExchangeId GetExchangeId() const   = 0;
+    virtual void Deallocate()                           = 0;
 };
 
 /// Client response structure used internally by the matching engine.
+struct MEClientResponse;
+using ResponsePool = common::MemPool<MEClientResponse>;
+
 struct MEClientResponse : public IResponse {
     /**
      * @brief PriceQty first - price, second - qty
@@ -74,6 +78,7 @@ struct MEClientResponse : public IResponse {
     common::Price price      = common::kPriceInvalid;
     common::Qty exec_qty     = common::kQtyInvalid;
     common::Qty leaves_qty   = common::kQtyInvalid;
+    Exchange::ResponsePool* mem_pool = nullptr;
     std::string ToString() const override {
         auto PrintAsCancelled = [this]() {
             assert(false);
@@ -101,11 +106,21 @@ struct MEClientResponse : public IResponse {
             common::orderIdToString(order_id), sideToString(side),
             exec_qty_string, leaves_qty_string, price_string);
     }
-    common::Side GetSide() const override {return side;};
-    common::Qty GetExecQty() const override {return exec_qty;};
-    common::Qty GetPrice() const override {return price;};
-    common::TradingPair GetTradingPair() const override{return trading_pair;}; 
-    common::ExchangeId GetExchangeId() const override{return exchange_id;}; 
+    common::Side GetSide() const override { return side; };
+    common::Qty GetExecQty() const override { return exec_qty; };
+    common::Qty GetPrice() const override { return price; };
+    common::TradingPair GetTradingPair() const override {
+        return trading_pair;
+    };
+    common::ExchangeId GetExchangeId() const override { return exchange_id; };
+    void Deallocate() override {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate MEClientResponse");
+                return;
+        }
+        mem_pool->deallocate(this);
+    }
 };
 
 /// Client response structure published over the network by the order server.

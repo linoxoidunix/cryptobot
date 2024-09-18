@@ -20,6 +20,7 @@ class MockClientResponse : public IResponse {
     MOCK_METHOD(Qty, GetExecQty, (), (const, noexcept, override));
     MOCK_METHOD(Price, GetPrice, (), (const, noexcept, override));
     MOCK_METHOD(std::string, ToString, (), (const, noexcept, override));
+    MOCK_METHOD(void, Deallocate, (), (override));
 };
 
 class PositionKeeperTest : public ::testing::Test {
@@ -336,6 +337,65 @@ TEST(PositionKeeperTest,
     EXPECT_EQ(positionInfo->volume, 1.0);
     EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::BUY)],
               50000.0);
+}
+
+TEST(PositionKeeperServiceTest, ShouldCallOnNewSignalForEachEventInRun) {
+    using ::testing::_;
+    using ::testing::Invoke;
+
+    MockClientResponse mockResponse;
+
+        EXPECT_CALL(mockResponse, GetExchangeId())
+        .WillOnce(testing::Return(
+            static_cast<common::ExchangeId>(1)));
+    EXPECT_CALL(mockResponse, GetTradingPair())
+        .WillOnce(testing::Return(common::TradingPair{2, 1}));
+    EXPECT_CALL(mockResponse, GetSide())
+        .WillOnce(testing::Return(common::Side::BUY));
+    EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(1.0));
+    EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(100.0));
+    EXPECT_CALL(mockResponse, ToString()).Times(testing::AnyNumber());
+
+
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{1, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+
+    position_keeper::EventLFQueue queue;
+    Trading::PositionKeeperService service(&positionKeeper, &queue);
+
+    position_keeper::AddFillPool add_fill_pool(10);
+    auto addFillEvent = add_fill_pool.allocate(position_keeper::AddFill(&mockResponse, &add_fill_pool));
+    queue.enqueue(addFillEvent);
+
+    common::ExchangeId exchange_id = 1; // Create or initialize your exchange ID
+    common::TradingPair trading_pair{2, 1}; // Create or initialize your trading pair
+    Trading::BBO bbo; // Create an instance of BBO
+    bbo.ask_price = 90;
+    bbo.ask_qty = 10;
+    bbo.bid_price = 80;
+    bbo.bid_qty = 20;
+    position_keeper::UpdateBBOPool mem_pool(10); // Create a memory pool instance
+    
+    // Step 2: Create an instance of BBO pointer
+    Trading::BBO* bbo_ptr = &bbo; // Point to your BBO instance
+
+    auto updateBBOEvent = mem_pool.allocate(position_keeper::UpdateBBO(exchange_id, trading_pair, &bbo, &mem_pool));
+    queue.enqueue(updateBBOEvent);
+
+    service.Start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    service.StopWaitAllQueue();
+    EXPECT_EQ(queue.size_approx(), 0);
+    EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->position), 1);
+    /**
+     * @brief buy for 100/ but new price became (90+80)/2=85. i lost 15 money.
+     * 
+     */
+    EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->unreal_pnl), -15);
+    EXPECT_EQ((keeper.GetPositionInfo(TradingPair{2,1})->total_pnl), -15);
+
+
 }
 
 int main(int argc, char** argv) {

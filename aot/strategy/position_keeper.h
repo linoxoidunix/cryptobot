@@ -48,14 +48,14 @@ struct PositionInfo {
      * @return auto
      */
     auto addFill(const Exchange::IResponse *client_response) noexcept {
-        auto side               = client_response->GetSide();
-        auto exec_qty           = client_response->GetExecQty();
-        auto price              = client_response->GetPrice();
+        auto side                 = client_response->GetSide();
+        auto exec_qty             = client_response->GetExecQty();
+        auto price                = client_response->GetPrice();
 
-        const auto old_position = position;
-        const auto side_index   = common::sideToIndex(side);
-        const auto opp_side_index =
-            common::sideToIndex(side == common::Side::BUY ? common::Side::SELL : common::Side::BUY);
+        const auto old_position   = position;
+        const auto side_index     = common::sideToIndex(side);
+        const auto opp_side_index = common::sideToIndex(
+            side == common::Side::BUY ? common::Side::SELL : common::Side::BUY);
         const auto side_value = common::sideToValue(side);
         assert(exec_qty >= 0);
         assert(price >= 0);
@@ -91,7 +91,8 @@ struct PositionInfo {
                     std::abs(position);
             else
                 unreal_pnl =
-                    (open_vwap[common::sideToIndex(common::Side::SELL)] / std::abs(position) -
+                    (open_vwap[common::sideToIndex(common::Side::SELL)] /
+                         std::abs(position) -
                      price) *
                     std::abs(position);
         }
@@ -194,20 +195,48 @@ class Event {
     virtual ~Event()            = default;
     virtual EventType GetType() = 0;
 };
+using EventLFQueue = moodycamel::ConcurrentQueue<Event *>;
+class AddFill;
+using AddFillPool = common::MemPool<AddFill>;
+
 struct AddFill : public Event {
     const Exchange::IResponse *client_response = nullptr;
+    AddFillPool *mem_pool                      = nullptr;
+    AddFill() = default;
+    AddFill(const Exchange::IResponse *_client_response,
+              AddFillPool *_mem_pool):client_response(_client_response), mem_pool(_mem_pool) {};
     ~AddFill() override                        = default;
     EventType GetType() override { return EventType::kAddFill; };
+    void Deallocate() {
+        if (!mem_pool) {
+            loge("mem_pull = nullptr. Can't free BBidUpdated event");
+            return;
+        }
+        mem_pool->deallocate(this);
+    }
 };
-
+class UpdateBBO;
+using UpdateBBOPool = common::MemPool<UpdateBBO>;
 struct UpdateBBO : public Event {
     common::ExchangeId exchange_id;
-    const common::TradingPair trading_pair;
+    common::TradingPair trading_pair;
     const Trading::BBO *bbo;
+    UpdateBBOPool *mem_pool = nullptr;
+    UpdateBBO() = default;
+    UpdateBBO(common::ExchangeId _exchange_id,
+     common::TradingPair _trading_pair,
+      const Trading::BBO* _bbo,
+      UpdateBBOPool *_mem_pool):exchange_id(_exchange_id),trading_pair(_trading_pair), bbo(_bbo), mem_pool(_mem_pool) {};
     ~UpdateBBO() override = default;
     EventType GetType() override { return EventType::kUpdateBBO; };
+    void Deallocate() {
+        if (!mem_pool) {
+            loge("mem_pull = nullptr. can't free BBidUpdated event");
+            return;
+        }
+        mem_pool->deallocate(this);
+    }
 };
-using EventLFQueue = moodycamel::ConcurrentQueue<Event*>;
 };  // namespace position_keeper
 namespace exchange {
 
@@ -255,7 +284,23 @@ class PositionKeeper : public ::Trading::PositionKeeper {
         const common::TradingPair trading_pair) noexcept {
         return position_[exchange_id]->GetPositionInfo(trading_pair);
     };
-    void OnNewSignal(const position_keeper::Event* event){}
+    void OnNewSignal(position_keeper::Event *signal) {
+        auto type = signal->GetType();
+        if (type == position_keeper::EventType::kAddFill) {
+            const auto event = static_cast<position_keeper::AddFill *>(signal);
+            AddFill(event->client_response);
+            event->Deallocate();
+            return;
+        }
+        if (type == position_keeper::EventType::kUpdateBBO) {
+            auto event = static_cast<position_keeper::UpdateBBO *>(signal);
+            UpdateBBO(event->exchange_id, event->trading_pair, event->bbo);
+            event->Deallocate();
+            return;
+        }
+        loge("Unknown signal type");
+        return;
+    }
 
   private:
     ExchangePositionKeeper &position_;
@@ -265,7 +310,9 @@ class PositionKeeper : public ::Trading::PositionKeeper {
 namespace Trading {
 class PositionKeeperService : public common::ServiceI {
   public:
-    PositionKeeperService(exchange::PositionKeeper *pk) : pk_(pk) {}
+    explicit PositionKeeperService(exchange::PositionKeeper *pk,
+                          position_keeper::EventLFQueue *incoming_queue)
+        : pk_(pk), queue_(incoming_queue) {}
     void Start() override {
         run_    = true;
         thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
@@ -301,14 +348,14 @@ class PositionKeeperService : public common::ServiceI {
             return;
         }
         logi("Trading::PositionKeeperService start");
-        std::array<position_keeper::Event*, 50> new_events{};
+        std::array<position_keeper::Event *, 50> new_events{};
         while (run_) {
-            auto events_number = queue_->try_dequeue_bulk(new_events.begin(), 50);
-            for (size_t i = 0; i < events_number; i++){
+            auto events_number =
+                queue_->try_dequeue_bulk(new_events.begin(), 50);
+            for (size_t i = 0; i < events_number; i++) {
                 auto signal = new_events[i];
                 pk_->OnNewSignal(signal);
             }
-
         }
         logi("Trading/PositionKeeperService stopped");
     };
