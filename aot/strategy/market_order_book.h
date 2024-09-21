@@ -224,11 +224,13 @@ class OrderBook : public Trading::MarketOrderBook {
         common::ExchangeId exchange, common::TradingPair trading_pair,
         common::TradingPairHashMap &pairs,
         strategy::cross_arbitrage::LFQueue *orderbook_tradeengine_channel,
+        position_keeper::EventLFQueue *orderbook_positionkeeper_channel,
         uint bbu_mempool_size, uint bau_mempool_size,
         uint updatebbo_mempool_size)
         : MarketOrderBook(trading_pair, pairs),
           exchange_(exchange),
           orderbook_tradeengine_channel_(orderbook_tradeengine_channel),
+          orderbook_positionkeeper_channel_(orderbook_positionkeeper_channel),
           bbu_pool_(bbu_mempool_size),
           bau_pool_(bau_mempool_size),
           update_bbo_pool_(updatebbo_mempool_size) {};
