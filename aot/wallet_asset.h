@@ -27,19 +27,44 @@ class Wallet : public WalletAsset {
     void Update(const Exchange::IResponse* response) {
         auto type = response->GetType();
         if (type == Exchange::ClientResponseType::ACCEPTED) {
-                reserves_.erase(response->GetOrderId());
-            // if (response->side == common::Side::BUY) {
-            //     auto ticker = response->trading_pair.second;
-            //     InitTicker(ticker);
-            //     if(count(ticker))[[likely]]
-            //         at(ticker) += response->exec_qty;
-            // }
-            // if (response->side == common::Side::SELL) {
-            //     InitTicker(response->trading_pair.first);
-            //     if(count(response->trading_pair))[[likely]]
-            //         at(response->trading_pair) -= response->exec_qty;
-            // }
+            reserves_.erase(response->GetOrderId());
+            return;
         }
+        if (type == Exchange::ClientResponseType::CANCEL_REJECTED) {
+            reserves_.erase(response->GetOrderId());
+            return;
+        }
+        if (type == Exchange::ClientResponseType::CANCELED) {
+            auto local_reserved = reserves_[response->GetOrderId()];
+            map_[local_reserved.reserved_ticker] += local_reserved.reserved_qty;
+            reserves_.erase(response->GetOrderId());
+            return;
+        }
+        if (type == Exchange::ClientResponseType::FILLED) {
+            reserves_.erase(response->GetOrderId());
+            if (response->GetSide() == common::Side::BUY) {
+                auto ticker = response->GetTradingPair().first;
+                InitTicker(ticker);
+                if(count(ticker))
+                    map_[ticker] += response->GetExecQty();
+                return;
+            }
+            if (response->GetSide() == common::Side::SELL) {
+                auto ticker = response->GetTradingPair().second;
+                InitTicker(ticker);
+                if(count(ticker))
+                    map_[ticker] += response->GetExecQty();
+                return;
+            }
+            return;
+        }
+        if (type == Exchange::ClientResponseType::INVALID) {
+            auto local_reserved = reserves_[response->GetOrderId()];
+            map_[local_reserved.reserved_ticker] += local_reserved.reserved_qty;
+            reserves_.erase(response->GetOrderId());
+            return;
+        }
+        loge("unknown type of response: {}", type);
     };
     bool CanReserve(common::TickerId ticker, common::Qty qty){
         InitTicker(ticker);
@@ -53,11 +78,6 @@ class Wallet : public WalletAsset {
         map_[ticker] -= qty; 
         return true;
     }
-    // common::QtyD SafetyGetNumberAsset(const common::TickerId ticker) {
-    //     InitTicker(ticker);
-    //     return at(ticker);
-    // };
-
   private:
     void InitTicker(const common::TickerId& ticker) {
         if (!count(ticker)) [[unlikely]]
