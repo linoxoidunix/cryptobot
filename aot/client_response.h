@@ -24,6 +24,10 @@ enum class ClientResponseType : uint8_t {
     ACCEPTED        = 1,
     CANCELED        = 2,
     FILLED          = 3,
+    /**
+     * @brief order can't be canceled
+     * 
+     */
     CANCEL_REJECTED = 4
 };
 
