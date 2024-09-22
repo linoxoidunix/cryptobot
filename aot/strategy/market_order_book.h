@@ -1,4 +1,5 @@
 #pragma once
+#include <typeinfo>
 #include <vector>
 
 #include "aot/Exchange.h"
@@ -9,6 +10,7 @@
 #include "aot/market_data/market_update.h"
 #include "aot/strategy/cross_arbitrage/signals.h"
 #include "aot/strategy/market_order.h"
+#include "aot/strategy/position_keeper.h"
 
 namespace Trading {
 class TradeEngine;
@@ -34,7 +36,8 @@ class MarketOrderBook {
     virtual ~MarketOrderBook();
 
     /// Process market data update and update the limit order book.
-    virtual void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept;
+    virtual void OnMarketUpdate(
+        const Exchange::MEMarketUpdate *market_update) noexcept;
 
     auto getBBO() const noexcept -> const BBO * { return &bbo_; }
 
@@ -65,7 +68,9 @@ class MarketOrderBook {
             }
         }
     }
-
+    const common::TradingPair &GetTradingPair() const noexcept {
+        return trading_pair_;
+    }
     void ClearOrderBook() {
         logi("found {} bids in order book", bids_at_price_map_.size());
         logi("found {} asks in order book", asks_at_price_map_.size());
@@ -164,7 +169,11 @@ class OrderBookService : public common::ServiceI {
     explicit OrderBookService(MarketOrderBook *ob,
                               Exchange::EventLFQueue *book_update)
         : ob_(ob), queue_(book_update) {};
-    ~OrderBookService() override = default;
+    ~OrderBookService() override {
+        run_ = false;
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(1s);
+    };
     void Start() override {
         run_    = true;
         thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
@@ -201,43 +210,75 @@ namespace cross_arbitrage {
  *
  */
 class OrderBook : public Trading::MarketOrderBook {
-    strategy::cross_arbitrage::LFQueue *queue_ = nullptr;
+    common::ExchangeId exchange_;
+    strategy::cross_arbitrage::LFQueue *orderbook_tradeengine_channel_ =
+        nullptr;
+    position_keeper::EventLFQueue *orderbook_positionkeeper_channel_ = nullptr;
+
     BBUPool bbu_pool_;
     BAUPool bau_pool_;
+    position_keeper::UpdateBBOPool update_bbo_pool_;
 
   public:
-    explicit OrderBook(common::TradingPair trading_pair,
-                       common::TradingPairHashMap &pairs,
-                       strategy::cross_arbitrage::LFQueue *queue,
-                       uint bbu_mempool_size, uint bau_mempool_size)
+    explicit OrderBook(
+        common::ExchangeId exchange, common::TradingPair trading_pair,
+        common::TradingPairHashMap &pairs,
+        strategy::cross_arbitrage::LFQueue *orderbook_tradeengine_channel,
+        position_keeper::EventLFQueue *orderbook_positionkeeper_channel,
+        uint bbu_mempool_size, uint bau_mempool_size,
+        uint updatebbo_mempool_size)
         : MarketOrderBook(trading_pair, pairs),
-          queue_(queue),
+          exchange_(exchange),
+          orderbook_tradeengine_channel_(orderbook_tradeengine_channel),
+          orderbook_positionkeeper_channel_(orderbook_positionkeeper_channel),
           bbu_pool_(bbu_mempool_size),
-          bau_pool_(bau_mempool_size) {};
+          bau_pool_(bau_mempool_size),
+          update_bbo_pool_(updatebbo_mempool_size) {};
     void updateBBO(bool update_bid, bool update_ask) noexcept override {
         Trading::MarketOrderBook::updateBBO(update_bid, update_ask);
-        if (!queue_) return;
+        if (!orderbook_tradeengine_channel_) {
+            loge("orderbook_tradeengine_channel_ = nullptr");
+            return;
+        };
+        if (!orderbook_positionkeeper_channel_) {
+            loge("orderbook_positionkeeper_channel_ = nullptr");
+            return;
+        };
         auto bbo = getBBO();
         if (update_bid) {
-            logi("push BBidUpdated event");
-            auto ptr = bbu_pool_.allocate(BBidUpdated(common::TradingPair{2, 1}, bbo->bid_price, bbo->bid_qty));
-            auto status = queue_->try_enqueue(ptr);
-            if(!status)
-                loge("can't push new event to queue");
+            SendMessageToChannel(bbu_pool_, orderbook_tradeengine_channel_,
+                                 exchange_, GetTradingPair(), bbo->bid_price,
+                                 bbo->bid_qty);
+            SendMessageToChannel(update_bbo_pool_,
+                                 orderbook_positionkeeper_channel_, exchange_,
+                                 GetTradingPair(), bbo);
             return;
         }
         if (update_ask) {
-            logi("push BAskUpdated event");
-            auto ptr = bau_pool_.allocate(BAskUpdated(common::TradingPair{2, 1}, bbo->ask_price, bbo->ask_qty));
-            auto status = queue_->try_enqueue(ptr);
-            if(!status)
-                loge("can't push new event to queue");
+            SendMessageToChannel(bau_pool_, orderbook_tradeengine_channel_,
+                                 exchange_, GetTradingPair(), bbo->ask_price,
+                                 bbo->ask_qty);
+            SendMessageToChannel(update_bbo_pool_,
+                                 orderbook_positionkeeper_channel_, exchange_,
+                                 GetTradingPair(), bbo);
             return;
         }
     };
-    ~OrderBook() override{
-        logi("call Order Book d'tor");
-    };
+    ~OrderBook() override { logi("call Order Book d'tor"); };
+
+  private:
+    template <class Pool, class Channel, class... Args>
+    void SendMessageToChannel(Pool &mem_pool, Channel *channel, Args... args) {
+        auto tuple_args =
+            std::forward<std::tuple<Args...>>(std::tuple<Args...>(args...));
+
+        using ValueType = Pool::value_type;
+        logi("push {} event to {} channel", typeid(ValueType).name(),
+             typeid(Pool).name());
+        auto ptr = mem_pool.allocate(ValueType(args..., &mem_pool));
+        if (auto status = channel->try_enqueue(ptr); !status)
+            loge("can't push new event to queue");
+    }
 };
 };  // namespace cross_arbitrage
 };  // namespace strategy
@@ -259,11 +300,11 @@ class MarketOrderBook : public Trading::MarketOrderBook {
         bbo_.qty   = new_kline->ohlcv.volume / bbo_.price;
     }
 
-    void OnMarketUpdate(const Exchange::MEMarketUpdate *market_update) noexcept override{
+    void OnMarketUpdate(
+        const Exchange::MEMarketUpdate *market_update) noexcept override {
         bbo_.price = market_update->price;
         bbo_.qty   = market_update->qty;
     }
-        
 
     auto GetBBO() const noexcept -> const backtesting::BBO * { return &bbo_; }
 

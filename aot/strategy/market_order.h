@@ -131,6 +131,7 @@ struct BBO : BBOI {
     };
 
     explicit BBO() = default;
+    ~BBO() override = default;
 };
 }  // namespace Trading
 

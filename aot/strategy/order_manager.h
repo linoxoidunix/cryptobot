@@ -11,7 +11,7 @@ using namespace common;
 
 namespace Trading {
 class TradeEngine;
-
+class PositionKeeper;
 /**
  * Manages orders for a trading algorithm, hides the complexity of order
  * management to simplify trading strategies. This OrderManager impl supports
@@ -62,7 +62,7 @@ class OrderManager {
      * @param side
      * @param qty
      */
-    virtual auto NewOrder(common::TradingPair trading_pair, common::Price price,
+    virtual auto NewOrder(common::ExchangeId exchange_id, common::TradingPair trading_pair, common::Price price,
                           Side side, common::Qty qty) noexcept -> void;
 
     /**
@@ -71,7 +71,7 @@ class OrderManager {
      * @param ticker_id
      * @param side
      */
-    virtual auto CancelOrder(common::TradingPair trading_pair,
+    virtual auto CancelOrder(common::ExchangeId exchange_id, common::TradingPair trading_pair,
                              Side side) noexcept -> void;
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -106,6 +106,7 @@ class OrderManager {
 
 namespace backtesting {
 class OrderManager : public Trading::OrderManager {
+    Trading::PositionKeeper* keeper_;
     using Trading::OrderManager::OrderManager;
 
     Trading::OMOrderTickerSideHashMap ticker_side_order_;
@@ -113,16 +114,16 @@ class OrderManager : public Trading::OrderManager {
     common::OrderId next_order_id_ = 1;
 
   public:
-    auto NewOrder(common::TradingPair trading_pair, common::Price price, Side side,
+    auto NewOrder(common::ExchangeId exchange_id,  common::TradingPair trading_pair, common::Price price, Side side,
                   common::Qty qty) noexcept -> void override;
-    auto CancelOrder(common::TradingPair trading_pair,
+    auto CancelOrder(common::ExchangeId exchange_id, common::TradingPair trading_pair,
                      Side side) noexcept -> void override;
 
     Trading::OMOrder *TestGetOrder(common::TradingPair trading_pair,
                                    Side side) {
         return GetOrder(trading_pair, side);
     };
-
+    void SetCustomPositionKeeper(Trading::PositionKeeper* keeper){keeper_ = keeper;};
     OrderManager()                                 = delete;
     OrderManager(const OrderManager &)             = delete;
     OrderManager(const OrderManager &&)            = delete;

@@ -43,6 +43,7 @@ class Request {
 
 class RequestNewOrder {
   public:
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     ClientRequestType type = ClientRequestType::NEW;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;
@@ -65,6 +66,7 @@ class RequestNewOrder {
 
 class RequestCancelOrder {
   public:
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     ClientRequestType type = ClientRequestType::CANCEL;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;

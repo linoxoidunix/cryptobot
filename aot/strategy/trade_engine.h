@@ -9,18 +9,13 @@
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
 #include "aot/market_data/market_update.h"
+#include "aot/prometheus/event.h"
 #include "aot/strategy/base_strategy.h"
 #include "aot/strategy/market_order_book.h"
-// #include "feature_engine.h"
-#include "aot/prometheus/event.h"
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/position_keeper.h"
 
-// #include "order_manager.h"
-// #include "risk_manager.h"
-
-// #include "market_maker.h"
-// #include "liquidity_taker.h"
+#include "aot/strategy/cross_arbitrage/signals.h"
 
 namespace Trading {
 const auto kMeasureTForTradeEngine =
@@ -40,7 +35,8 @@ class TradeEngine {
         common::TradingPairHashMap &pairs, base_strategy::Strategy *predictor);
 
     virtual ~TradeEngine();
-
+    void SetStrategy(Trading::BaseStrategy* strategy){strategy_ = strategy;};
+    void SetOrderManager(Trading::OrderManager* om){order_manager_ = om;};
     /// Start and stop the trade engine main thread.
     auto Start() -> void {
         run_    = true;
@@ -51,12 +47,13 @@ class TradeEngine {
 
     auto Stop() -> void {
         logi("stop trade engine");
-        while (incoming_md_updates_->size_approx()) {
-            logi("Sleeping till all updates are consumed md-size:{}",
-                 incoming_md_updates_->size_approx());
-            using namespace std::literals::chrono_literals;
-            std::this_thread::sleep_for(10ms);
-        }
+        if(incoming_md_updates_)
+            while (incoming_md_updates_->size_approx()) {
+                logi("Sleeping till all updates are consumed md-size:{}",
+                    incoming_md_updates_->size_approx());
+                using namespace std::literals::chrono_literals;
+                std::this_thread::sleep_for(10ms);
+            }
         run_ = false;
     }
     /**
@@ -87,7 +84,7 @@ class TradeEngine {
     /// Process changes to the order book - updates the position keeper, feature
     /// engine and informs the trading algorithm about the update.
     auto OnOrderBookUpdate() noexcept -> void;
-
+    Trading::OrderManager* OrderManager(){return order_manager_;}
     std::string GetStatistics() const { return position_keeper_.ToString(); }
 
     /// Deleted default, copy & move constructors and assignment-operators.
@@ -101,7 +98,7 @@ class TradeEngine {
 
     TradeEngine &operator=(const TradeEngine &&) = delete;
 
-  private:
+  protected:
     Exchange::EventLFQueue *incoming_md_updates_               = nullptr;
     Exchange::RequestNewLimitOrderLFQueue *request_new_order_  = nullptr;
     Exchange::RequestCancelOrderLFQueue *request_cancel_order_ = nullptr;
@@ -114,7 +111,7 @@ class TradeEngine {
     std::unique_ptr<std::thread> thread_;
     TradeEngineCfgHashMap config_;
     Trading::MarketOrderBook order_book_;
-    Trading::OrderManager order_manager_;
+    Trading::OrderManager* order_manager_;
     /**
     * Process client responses - updates the position keeper and informs the
     trading algorithm about the response.
@@ -126,7 +123,7 @@ class TradeEngine {
     volatile bool run_ = false;
     common::TimeManager time_manager_;
     OHLCVILFQueue *klines_ = nullptr;
-    Trading::BaseStrategy strategy_;
+    Trading::BaseStrategy* strategy_;
 
     /// Main loop for this thread - processes incoming client responses and
     /// market data updates which in turn may generate client requests.

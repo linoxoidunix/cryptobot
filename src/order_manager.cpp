@@ -1,11 +1,8 @@
 #include "aot/strategy/order_manager.h"
 #include "aot/strategy/trade_engine.h"
 
-auto Trading::OrderManager::NewOrder(const common::TradingPair trading_pair, common::Price price, Side side,
+auto Trading::OrderManager::NewOrder(common::ExchangeId exchange_id, const common::TradingPair trading_pair, common::Price price, Side side,
                                      common::Qty qty) noexcept -> void {
-    //auto ticker_as_string = trading_pair.ToString();
-    assert(price > 0);
-    assert(qty > 0);
     auto order = GetOrder(trading_pair, side);
     auto OrderIsLive = [order](){
         return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
@@ -16,6 +13,7 @@ auto Trading::OrderManager::NewOrder(const common::TradingPair trading_pair, com
         return;
     }
     const Exchange::RequestNewOrder new_request{
+        exchange_id,
         Exchange::ClientRequestType::NEW,
         trading_pair,
         next_order_id_,
@@ -28,10 +26,11 @@ auto Trading::OrderManager::NewOrder(const common::TradingPair trading_pair, com
     ++next_order_id_;
 }
 
-auto Trading::OrderManager::CancelOrder(common::TradingPair trading_pair,
+auto Trading::OrderManager::CancelOrder(common::ExchangeId exchange_id, common::TradingPair trading_pair,
                                         Side side) noexcept -> void {
     auto order = GetOrder(trading_pair, side);
     const Exchange::RequestCancelOrder cancel_request{
+        exchange_id,
         Exchange::ClientRequestType::CANCEL,
         order->trading_pair,
         order->order_id};
@@ -39,10 +38,8 @@ auto Trading::OrderManager::CancelOrder(common::TradingPair trading_pair,
     order->state = OMOrderState::PENDING_CANCEL;
 }
 
-auto backtesting::OrderManager::NewOrder(const common::TradingPair trading_pair, common::Price price, Side side,
+auto backtesting::OrderManager::NewOrder(common::ExchangeId exchange_id, const common::TradingPair trading_pair, common::Price price, Side side,
                                      common::Qty qty) noexcept -> void {
-    assert(price > 0);
-    assert(qty > 0);
     auto order = GetOrder(trading_pair, side);
     auto OrderIsLive = [order](){
         return !(order->state == Trading::OMOrderState::DEAD || order->state == Trading::OMOrderState::INVALID); 
@@ -55,9 +52,10 @@ auto backtesting::OrderManager::NewOrder(const common::TradingPair trading_pair,
     *order = {trading_pair, next_order_id_,           side, price,
               qty,       Trading::OMOrderState::LIVE};
     ++next_order_id_;
+    
 }
 
-auto backtesting::OrderManager::CancelOrder(common::TradingPair trading_pair,
+auto backtesting::OrderManager::CancelOrder(common::ExchangeId exchange_id, common::TradingPair trading_pair,
                                         Side side) noexcept -> void {
     auto order = GetOrder(trading_pair, side);
     order->state = Trading::OMOrderState::DEAD;
