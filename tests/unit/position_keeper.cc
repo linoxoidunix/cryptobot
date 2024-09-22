@@ -21,6 +21,8 @@ class MockClientResponse : public IResponse {
     MOCK_METHOD(Price, GetPrice, (), (const, noexcept, override));
     MOCK_METHOD(std::string, ToString, (), (const, noexcept, override));
     MOCK_METHOD(void, Deallocate, (), (override));
+    MOCK_METHOD(Exchange::ClientResponseType, GetType, (), (const override));
+    MOCK_METHOD(common::OrderId, GetOrderId, (), (const override));
 };
 
 class PositionKeeperTest : public ::testing::Test {

@@ -46,8 +46,8 @@ class BaseStrategy {
      */
     auto OnOrderResponse(
         const Exchange::MEClientResponse *client_response) noexcept -> void {
-        order_manager_->OnOrderResponse(client_response);
-        wallet_.Update(client_response);
+        //order_manager_->OnOrderResponse(client_response);
+        //wallet_.Update(client_response);
     }
 
     /**
@@ -111,7 +111,7 @@ class BaseStrategy {
         logi("launch long buy action for {} price:{} qty:{}", pair.ToString(),
              buy_price, qty);
         order_manager_->NewOrder(exchange_id, pair, buy_price, Side::BUY,
-                                 std::abs(qty));
+                                 qty);
     }
     /**
      * @brief if strategy want sell all asset that early buyed than it calls
@@ -123,18 +123,18 @@ class BaseStrategy {
     auto SellAllAsset(common::ExchangeId exchange_id,
                       const common::TradingPair &trading_pair) noexcept
         -> void {
-        logi("launch long sell action for {}", trading_pair.ToString());
-        if (!order_book_) [[unlikely]] {
-            logi("order_book_ ptr not updated in strategy");
-            return;
-        }
-        if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
-            number_asset > 0) {
-            auto price = order_book_->getBBO()->bid_price;
-            order_manager_->NewOrder(exchange_id, trading_pair, price,
-                                     Side::SELL, std::abs(number_asset));
-        } else
-            logw("fail because number_asset={} <= 0", number_asset);
+        // logi("launch long sell action for {}", trading_pair.ToString());
+        // if (!order_book_) [[unlikely]] {
+        //     logi("order_book_ ptr not updated in strategy");
+        //     return;
+        // }
+        // if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
+        //     number_asset > 0) {
+        //     auto price = order_book_->getBBO()->bid_price;
+        //     order_manager_->NewOrder(exchange_id, trading_pair, price,
+        //                              Side::SELL, std::abs(number_asset));
+        // } else
+        //     logw("fail because number_asset={} <= 0", number_asset);
     };
     /**
      * @brief if strategy want sell qty asset with price_asset=price it calls.
@@ -145,27 +145,27 @@ class BaseStrategy {
     virtual void SellSomeAsset(
         common::ExchangeId exchange_id,
         const common::TradingPair &trading_pair) noexcept {
-        if (!order_book_) [[unlikely]] {
-            logi("order_book_ ptr not updated in strategy");
-            return;
-        }
-        if (!ticker_cfg_.count(trading_pair)) [[unlikely]] {
-            logw("fail sell because tickercfg not contain {}",
-                 trading_pair.ToString());
-            return;
-        }
-        auto sell_price = order_book_->getBBO()->bid_price;
-        if (sell_price == common::kPriceInvalid) {
-            logw(
-                "skip SellSomeAsset. BBO bid_price=INVALID. please wait more "
-                "time for update BBO");
-            return;
-        }
-        auto qty = ticker_cfg_.at(trading_pair).clip;
-        logi("launch short sell action for {} price:{} qty:{}",
-             trading_pair.ToString(), sell_price, qty);
-        order_manager_->NewOrder(exchange_id, trading_pair, sell_price,
-                                 Side::SELL, std::abs(qty));
+        // if (!order_book_) [[unlikely]] {
+        //     logi("order_book_ ptr not updated in strategy");
+        //     return;
+        // }
+        // if (!ticker_cfg_.count(trading_pair)) [[unlikely]] {
+        //     logw("fail sell because tickercfg not contain {}",
+        //          trading_pair.ToString());
+        //     return;
+        // }
+        // auto sell_price = order_book_->getBBO()->bid_price;
+        // if (sell_price == common::kPriceInvalid) {
+        //     logw(
+        //         "skip SellSomeAsset. BBO bid_price=INVALID. please wait more "
+        //         "time for update BBO");
+        //     return;
+        // }
+        // auto qty = ticker_cfg_.at(trading_pair).clip;
+        // logi("launch short sell action for {} price:{} qty:{}",
+        //      trading_pair.ToString(), sell_price, qty);
+        // order_manager_->NewOrder(exchange_id, trading_pair, sell_price,
+        //                          Side::SELL, qty);
     };
     /**
      * @brief if strategy want buy all asset that early sold than it calls
@@ -175,18 +175,18 @@ class BaseStrategy {
      */
     auto BuyAllAsset(common::ExchangeId exchange_id,
                      const common::TradingPair &trading_pair) noexcept -> void {
-        logi("launch short buy action for {}", trading_pair.ToString());
-        if (!order_book_) [[unlikely]] {
-            logi("order_book_ ptr not updated in strategy");
-            return;
-        }
-        if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
-            number_asset < 0) {
-            auto buy_price = order_book_->getBBO()->ask_price;
-            order_manager_->NewOrder(exchange_id, trading_pair, buy_price,
-                                     Side::BUY, std::abs(number_asset));
-        } else
-            logw("fail because number_asset={} >= 0", number_asset);
+        // logi("launch short buy action for {}", trading_pair.ToString());
+        // if (!order_book_) [[unlikely]] {
+        //     logi("order_book_ ptr not updated in strategy");
+        //     return;
+        // }
+        // if (auto number_asset = wallet_.SafetyGetNumberAsset(trading_pair);
+        //     number_asset < 0) {
+        //     auto buy_price = order_book_->getBBO()->ask_price;
+        //     order_manager_->NewOrder(exchange_id, trading_pair, buy_price,
+        //                              Side::BUY, std::abs(number_asset));
+        // } else
+        //     logw("fail because number_asset={} >= 0", number_asset);
     };
     /**
      * @brief init inner variable actions_
@@ -289,7 +289,7 @@ class CrossArbitrage : public Trading::BaseStrategy {
                                  Side::SELL, qty);
     };
 
-    const Wallet *GetWallet() const { return &wallet_; };
+    //const exchange::Wallet *GetWallet() const { return &wallet_; };
 
   private:
     /**

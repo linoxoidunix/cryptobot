@@ -57,7 +57,10 @@ class IResponse {
     virtual std::string ToString() const               = 0;
     virtual common::TradingPair GetTradingPair() const = 0;
     virtual common::ExchangeId GetExchangeId() const   = 0;
+    virtual common::OrderId GetOrderId() const = 0;
     virtual void Deallocate()                           = 0;
+    virtual Exchange::ClientResponseType GetType() const = 0;
+
 };
 
 /// Client response structure used internally by the matching engine.
@@ -120,7 +123,12 @@ struct MEClientResponse : public IResponse {
                 return;
         }
         mem_pool->deallocate(this);
-    }
+    };
+    common::OrderId GetOrderId() const override{
+        return order_id;
+    };
+    Exchange::ClientResponseType GetType() const override {return type;};
+
 };
 
 /// Client response structure published over the network by the order server.

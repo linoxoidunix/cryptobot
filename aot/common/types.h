@@ -1,8 +1,8 @@
 #pragma once
 
 #include <array>
-#include <cstdint>
 #include <climits>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -23,29 +23,28 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
 
-using ExchangeId = uint16_t;
-constexpr auto kExchangeIdInvalid       = std::numeric_limits<ExchangeId>::max();
+using ExchangeId                  = uint16_t;
+constexpr auto kExchangeIdInvalid = std::numeric_limits<ExchangeId>::max();
 
-
-using OrderId = uint64_t;
-constexpr auto kOrderIdInvalid       = std::numeric_limits<OrderId>::max();
+using OrderId                     = uint64_t;
+constexpr auto kOrderIdInvalid    = std::numeric_limits<OrderId>::max();
 
 /**
  * @brief PriceD = price double
  *
  */
-//using PriceD                         = double;
+// using PriceD                         = double;
 /**
  * @brief QtyD = qty double
  *
  */
-using QtyD                           = double;
+using QtyD                        = double;
 /**
  * @brief TickerS = ticker string
  *
  */
-using TickerS                        = std::string;
-using TradingPairS                   = std::string;
+using TickerS                     = std::string;
+using TradingPairS                = std::string;
 
 inline auto orderIdToString(OrderId order_id) -> std::string {
     if (UNLIKELY(order_id == common::kOrderIdInvalid)) {
@@ -57,6 +56,7 @@ inline auto orderIdToString(OrderId order_id) -> std::string {
 
 typedef uint32_t TickerId;
 constexpr auto TickerId_INVALID = std::numeric_limits<TickerId>::max();
+constexpr auto kTickerIdInvalid = std::numeric_limits<TickerId>::max();
 
 inline auto tickerIdToString(TickerId ticker_id) -> std::string {
     if ((ticker_id == TickerId_INVALID)) {
@@ -72,20 +72,20 @@ typedef uint32_t ClientId;
 constexpr auto ClientId_INVALID = std::numeric_limits<ClientId>::max();
 
 inline auto clientIdToString(ClientId client_id) -> std::string {
-    if ((client_id == ClientId_INVALID))[[unlikely]] {
+    if ((client_id == ClientId_INVALID)) [[unlikely]] {
         return "INVALID";
     }
 
     return std::to_string(client_id);
 }
 
-using Price                  = uint64_t;
-using PriceD                  = double;
-constexpr Price kPriceInvalid = std::numeric_limits<Price>::max();
+using Price                     = uint64_t;
+using PriceD                    = double;
+constexpr Price kPriceInvalid   = std::numeric_limits<Price>::max();
 constexpr PriceD kPriceDInvalid = std::numeric_limits<PriceD>::max();
 
 inline auto priceToString(Price price) -> std::string {
-    if (price == kPriceInvalid)[[unlikely]] {
+    if (price == kPriceInvalid) [[unlikely]] {
         return "INVALID";
     }
 
@@ -96,7 +96,7 @@ using Qty                  = uint64_t;
 constexpr auto kQtyInvalid = std::numeric_limits<Qty>::max();
 
 inline auto qtyToString(Qty qty) -> std::string {
-    if (qty == kQtyInvalid)[[unlikely]] {
+    if (qty == kQtyInvalid) [[unlikely]] {
         return "INVALID";
     }
 
@@ -107,7 +107,7 @@ using Priority                  = uint64_t;
 constexpr auto Priority_INVALID = std::numeric_limits<Priority>::max();
 
 inline auto priorityToString(Priority priority) -> std::string {
-    if (priority == Priority_INVALID)[[unlikely]] {
+    if (priority == Priority_INVALID) [[unlikely]] {
         return "INVALID";
     }
 
@@ -199,7 +199,7 @@ struct RiskCfg {
 };
 
 struct TradeEngineCfg {
-    Qty clip        = 0;
+    Qty clip         = 0;
     double threshold = 0;
     RiskCfg risk_cfg;
 
@@ -256,8 +256,10 @@ struct TradingPair {
             return true;
         return false;
     }
-    // TradingPair(const common::TradingPair& pair):first(pair.first),
-    // second(pair.second){} TradingPair(){}
+    TradingPair(const common::TradingPair& pair)
+        : first(pair.first), second(pair.second) {}
+    TradingPair() = default;
+    TradingPair(common::TickerId _first, common::TickerId _second): first(_first), second(_second){};
     auto ToString() const {
         return fmt::format("TradingPair[f:{} s:{}]", first, second);
     }

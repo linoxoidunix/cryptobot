@@ -3,9 +3,6 @@
 
 auto Trading::OrderManager::NewOrder(common::ExchangeId exchange_id, const common::TradingPair trading_pair, common::Price price, Side side,
                                      common::Qty qty) noexcept -> void {
-    //auto ticker_as_string = trading_pair.ToString();
-    assert(price > 0);
-    assert(qty > 0);
     auto order = GetOrder(trading_pair, side);
     auto OrderIsLive = [order](){
         return !(order->state == OMOrderState::DEAD || order->state == OMOrderState::INVALID); 
@@ -43,8 +40,6 @@ auto Trading::OrderManager::CancelOrder(common::ExchangeId exchange_id, common::
 
 auto backtesting::OrderManager::NewOrder(common::ExchangeId exchange_id, const common::TradingPair trading_pair, common::Price price, Side side,
                                      common::Qty qty) noexcept -> void {
-    assert(price > 0);
-    assert(qty > 0);
     auto order = GetOrder(trading_pair, side);
     auto OrderIsLive = [order](){
         return !(order->state == Trading::OMOrderState::DEAD || order->state == Trading::OMOrderState::INVALID); 
