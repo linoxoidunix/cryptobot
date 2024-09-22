@@ -199,7 +199,7 @@ struct RiskCfg {
 };
 
 struct TradeEngineCfg {
-    QtyD clip        = 0;
+    Qty clip        = 0;
     double threshold = 0;
     RiskCfg risk_cfg;
 
