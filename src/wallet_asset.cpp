@@ -16,7 +16,7 @@ void Wallet::Update(const Exchange::IResponse* response){
     if (type == Exchange::ClientResponseType::CANCELED) {
         auto order_id = response->GetOrderId();
         auto local_reserved = reserves_[order_id];
-        map_[local_reserved.reserved_ticker] += local_reserved.reserved_qty;
+        at(local_reserved.reserved_ticker) += local_reserved.reserved_qty;
         reserves_.erase(order_id);
         return;
     }
@@ -27,22 +27,27 @@ void Wallet::Update(const Exchange::IResponse* response){
             auto ticker = response->GetTradingPair().first;
             InitTicker(ticker);
             if(count(ticker))
-                map_[ticker] += executed_qty;
+                at(ticker) += executed_qty;
             return;
         }
         if (side == common::Side::SELL) {
             auto ticker = response->GetTradingPair().second;
             InitTicker(ticker);
             if(count(ticker))
-                map_[ticker] += executed_qty;
+                at(ticker) += executed_qty;
             return;
         }
         return;
     }
     if (type == Exchange::ClientResponseType::INVALID) {
         auto order_id = response->GetOrderId();
+        if(!reserves_.contains(order_id))
+        {
+            loge("reserves_ not contain order id:{} for type:{}", order_id, magic_enum::enum_name(type));
+            return;
+        }
         auto local_reserved = reserves_[order_id];
-        map_[local_reserved.reserved_ticker] += local_reserved.reserved_qty;
+        at(local_reserved.reserved_ticker) += local_reserved.reserved_qty;
         reserves_.erase(order_id);
         return;
     }
