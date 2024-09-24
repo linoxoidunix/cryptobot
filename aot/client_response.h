@@ -21,6 +21,10 @@ namespace Exchange {
 /// Type of the order response sent by the exchange to the trading client.
 enum class ClientResponseType : uint8_t {
     INVALID         = 0,
+    /**
+     * @brief clear reserved money
+     * 
+     */
     ACCEPTED        = 1,
     CANCELED        = 2,
     FILLED          = 3,

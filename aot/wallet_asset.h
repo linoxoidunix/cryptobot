@@ -36,6 +36,7 @@ class Wallet : public WalletAsset {
 
   public:
     explicit Wallet() = default;
+    virtual ~Wallet() = default;
     void Update(const Exchange::IResponse* response);
     bool CanReserve(common::TickerId ticker, common::Qty qty) {
         InitTicker(ticker);
@@ -61,14 +62,34 @@ namespace testing {
 class Wallet : public ::Wallet {
   public:
     Wallet::ReservedForOrder GetReserves() const { return reserves_; }
+    ~Wallet() override = default;
 };
 }
 
 namespace exchange {
 class Wallet : public boost::noncopyable {  // Forbid copying
+    protected:
     std::unordered_map<common::ExchangeId, ::Wallet> wallets_;
 
   public:
+    virtual ~Wallet() = default;
+    /**
+     * @brief Retrieves the wallet associated with the given exchange ID.
+     *
+     * This function searches for a wallet corresponding to the provided exchange ID.
+     * If found, it returns a pointer to the wallet. If not found, it returns nullptr.
+     *
+     * @param exchange_id The ID of the exchange for which the wallet is being retrieved.
+     * @return ::Wallet* A pointer to the wallet associated with the given exchange ID,
+     *                   or nullptr if no such wallet exists.
+     */
+    ::Wallet* At(common::ExchangeId exchange_id){
+        if(!wallets_.count(exchange_id)){
+            return nullptr;
+        }
+        return &wallets_[exchange_id];  
+    }
+
     void InitWallets(
         const std::unordered_set<common::ExchangeId>& exchange_ids) {
         for (const auto& id : exchange_ids) {
@@ -108,52 +129,13 @@ class Wallet : public boost::noncopyable {  // Forbid copying
 };
 };
 
-// namespace exchange{
-//     class Wallet : public boost::noncopyable  // Forbid copying{
-//         std::unordered_map<common::ExchangeId,  Wallet> wallets_;
-//         public:
-//             explicit Wallet(std::unordered_map<common::ExchangeId,  Wallet>&
-//             wallets):wallets_(wallets){} void Update(const
-//             Exchange::MEClientResponse* response) {
-//                 auto exchange_id = esponse->exchange_id
-//                 if(exchange_id == common::kExchangeIdInvalid){
-//                     logw("response->exchange_id = invalid id")
-//                     return;
-//                 }
-//                 if(!wallets_.count(exchange_id)){
-//                     logw("don't found wallet for exchange_id:{}",
-//                     exchange_id) return;
-//                 }
-//                 wallets_[exchange_id].Update(response);
-//             }
-//             bool CheckBalance(common::ExchangeId exchange_id,
-//             common::TradingPair& pair, common::Side side, common::Price
-//             price, common::Qty qty){
-//                 if(exchange_id == common::kExchangeIdInvalid){
-//                     logw("pair.first = invalid id")
-//                     return;
-//                 }
-//                 if(!wallets_.count(exchange_id)){
-//                     logw("don't found wallet for exchange_id:{}",
-//                     exchange_id) return;
-//                 }
-//                 auto& wallet = wallets_[exchange_id];
-//                 if(side == common::Side::BUY){
-//                     if(wallet.SafetyGetNumberAsset(pair.second) < qty *
-//                     price){
-//                         logw("balance not enough for buy order")
-//                         return false;
-//                     }
-//                     return true;
-//                 }
-//                 if(side == common::Side::SELL){
-//                     if(wallet.SafetyGetNumberAsset(pair.first) < qty *
-//                     price){
-//                         logw("balance not enough for sell order")
-//                         return false;
-//                     }
-//                     return true;
-//                 }
-//                 return false;
-//             }
-// }
+namespace testing {
+    namespace exchange{
+        class Wallet : public ::exchange::Wallet {
+            public:
+                std::unordered_map<common::ExchangeId, ::Wallet> GetWallets() const {
+                    return wallets_;
+                }
+        };
+    };
+};

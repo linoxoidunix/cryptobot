@@ -310,6 +310,163 @@ TEST_F(WalletTest, ShouldHandleResponseWithNonExistentOrderIdInReserves) {
     EXPECT_EQ(wallet.GetReserves().count(order_id), 0);
 }
 
+TEST_F(WalletTest, ShouldCorrectlyReserveTickerWhenWalletIsFoundForExchangeID) {
+    common::ExchangeId exchange_id = 1;
+    common::TickerId ticker = 1;
+    common::Qty qty = 100;
+    common::OrderId order_id = 1;
+
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> exchange_ids = {exchange_id};
+    auto ptr_before = exchange_wallet.At(exchange_id);
+    EXPECT_EQ(ptr_before, nullptr);
+    exchange_wallet.InitWallets(exchange_ids);
+    auto ptr_after = exchange_wallet.At(exchange_id);
+    EXPECT_NE(ptr_after, nullptr);
+    ptr_after->insert({ticker, 300}); // Insert initial quantity
+    bool result = exchange_wallet.Reserve(exchange_id, order_id, ticker, qty);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(exchange_wallet.GetWallets().at(exchange_id).at(ticker), 200); // Check if the quantity is correctly reserved
+}
+
+TEST_F(WalletTest, ShouldHandleReserveCallWithNonExistentExchangeID) {
+    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::TickerId ticker = 1;
+    common::Qty qty = 100;
+    common::OrderId order_id = 1;
+
+    testing::exchange::Wallet exchange_wallet;
+
+    bool result = exchange_wallet.Reserve(non_existent_exchange_id, order_id, ticker, qty);
+
+    EXPECT_FALSE(result); // Reservation should fail
+    EXPECT_EQ(exchange_wallet.GetWallets().size(), 0); // Ensure no wallets are created
+}
+TEST_F(WalletTest, ShouldNotReserveTickerWhenWalletIsNotFoundForExchangeID) {
+    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::TickerId ticker = 1;
+    common::Qty qty = 100;
+    common::OrderId order_id = 1;
+
+    testing::exchange::Wallet exchange_wallet;
+
+    bool result = exchange_wallet.Reserve(non_existent_exchange_id, order_id, ticker, qty);
+
+    EXPECT_FALSE(result); // Reservation should fail
+    EXPECT_EQ(exchange_wallet.GetWallets().size(), 0); // Ensure no wallets are created
+}
+
+TEST_F(WalletTest, ShouldHandleCanReserveCallWithNonExistentExchangeID) {
+    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::TickerId ticker = 1;
+    common::Qty qty = 100;
+
+    testing::exchange::Wallet exchange_wallet;
+
+    bool result = exchange_wallet.CanReserve(non_existent_exchange_id, ticker, qty);
+
+    EXPECT_FALSE(result); // CanReserve should return false
+}
+
+TEST_F(WalletTest, ShouldCorrectlyHandleUpdateWithResponseContainingValidExchangeID) {
+    common::ExchangeId exchange_id = 1;
+    common::TickerId ticker = 1;
+    common::Qty qty = 100;
+    common::OrderId order_id = 1;
+
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> exchange_ids = {exchange_id};
+    exchange_wallet.InitWallets(exchange_ids);
+    auto ptr_after = exchange_wallet.At(exchange_id);
+    EXPECT_NE(ptr_after, nullptr);
+    ptr_after->insert({ticker, 100}); // Insert initial quantity
+    exchange_wallet.Reserve(exchange_id, order_id, ticker, qty);
+
+    NiceMock<MockResponse> mock_response;
+    ON_CALL(mock_response, GetExchangeId()).WillByDefault(Return(exchange_id));
+    ON_CALL(mock_response, GetType()).WillByDefault(Return(Exchange::ClientResponseType::ACCEPTED));
+    ON_CALL(mock_response, GetOrderId()).WillByDefault(Return(order_id));
+
+    exchange_wallet.Update(&mock_response);
+
+    EXPECT_EQ(exchange_wallet.GetWallets().at(exchange_id).at(ticker), 0); // Check if the quantity is correctly updated
+}
+
+TEST_F(WalletTest, ShouldCorrectlyHandleMultipleConsecutiveReserveCallsForDifferentTickers) {
+    common::ExchangeId exchange_id = 1;
+    common::TickerId ticker1 = 1;
+    common::TickerId ticker2 = 2;
+    common::Qty qty1 = 100;
+    common::Qty qty2 = 50;
+    common::OrderId order_id1 = 1;
+    common::OrderId order_id2 = 2;
+
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> exchange_ids = {exchange_id};
+    exchange_wallet.InitWallets(exchange_ids);
+
+    auto ptr_after = exchange_wallet.At(exchange_id);
+    EXPECT_NE(ptr_after, nullptr);
+    //add money for the ticker 1
+    ptr_after->insert({ticker1, qty1}); // Insert initial quantity
+    //add money for the ticker 2
+    ptr_after->insert({ticker2, qty2}); // Insert initial quantity
+
+    bool result1 = exchange_wallet.Reserve(exchange_id, order_id1, ticker1, qty1);
+    bool result2 = exchange_wallet.Reserve(exchange_id, order_id2, ticker2, qty2);
+
+    EXPECT_TRUE(result1);
+    EXPECT_TRUE(result2);
+    EXPECT_EQ(exchange_wallet.GetWallets().at(exchange_id).at(ticker1), 0); // Check if the quantity is correctly reserved for ticker1
+    EXPECT_EQ(exchange_wallet.GetWallets().at(exchange_id).at(ticker2), 0); // Check if the quantity is correctly reserved for ticker2
+}
+
+TEST_F(WalletTest, ShouldLogWarningWhenUpdatingWithInvalidExchangeId) {
+    common::ExchangeId invalid_exchange_id = common::kExchangeIdInvalid;
+    common::TickerId ticker = 1;
+    common::OrderId order_id = 1;
+    common::Qty qty = 100;
+
+    EXPECT_CALL(mockResponse, GetExchangeId())
+        .WillOnce(Return(invalid_exchange_id));
+    EXPECT_CALL(mockResponse, GetOrderId()).Times(0);
+
+    testing::exchange::Wallet exchange_wallet;
+
+    exchange_wallet.Update(&mockResponse);
+
+    // Ensure the wallet remains unchanged
+    EXPECT_EQ(exchange_wallet.GetWallets().size(), 0);
+}
+
+
+TEST_F(WalletTest, ShouldCorrectlyHandleMultipleConsecutiveReserveCallsForTheSameTicker) {
+    common::ExchangeId exchange_id = 1;
+    common::TickerId ticker = 1;
+    common::Qty qty1 = 100;
+    common::Qty qty2 = 50;
+    common::OrderId order_id1 = 1;
+    common::OrderId order_id2 = 2;
+
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> exchange_ids = {exchange_id};
+    exchange_wallet.InitWallets(exchange_ids);
+
+    auto ptr_after = exchange_wallet.At(exchange_id);
+    EXPECT_NE(ptr_after, nullptr);
+    //add money for the ticker
+    ptr_after->insert({ticker, qty1+qty2}); // Insert initial quantity
+
+    bool result1 = exchange_wallet.Reserve(exchange_id, order_id1, ticker, qty1);
+    bool result2 = exchange_wallet.Reserve(exchange_id, order_id2, ticker, qty2);
+
+    EXPECT_TRUE(result1);
+    EXPECT_TRUE(result2);
+    EXPECT_EQ(exchange_wallet.GetWallets().at(exchange_id).at(ticker), 0); // Check if the quantity is correctly reserved
+}
+
+
 TEST_F(WalletTest, ShouldNotModifyWalletWhenResponseTypeIsInvalidAndOrderIdDoesNotExistInReserves) {
     common::TickerId ticker = 1;
     common::OrderId order_id = 999; // Non-existent order ID
@@ -348,6 +505,29 @@ TEST_F(WalletTest, ShouldNotReserveTickerWhenInsufficientQuantityIsAvailable) {
     EXPECT_FALSE(result);
     EXPECT_EQ(wallet.at(ticker), 50); // Check if the quantity remains unchanged
     EXPECT_EQ(wallet.GetReserves().count(order_id), 0); // Ensure no reservation was made
+}
+
+
+TEST_F(WalletTest, ShouldNotInitializeWalletsWhenGivenEmptySetOfExchangeIds) {
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> empty_exchange_ids;
+
+    exchange_wallet.InitWallets(empty_exchange_ids);
+
+    EXPECT_EQ(exchange_wallet.GetWallets().size(), 0); // Ensure no wallets are initialized
+}
+
+
+TEST_F(WalletTest, ShouldCorrectlyInitializeWalletsWithMultipleExchangeIDs) {
+    testing::exchange::Wallet exchange_wallet;
+    std::unordered_set<common::ExchangeId> exchange_ids = {1, 2, 3};
+
+    exchange_wallet.InitWallets(exchange_ids);
+
+    EXPECT_EQ(exchange_wallet.GetWallets().size(), exchange_ids.size()); // Ensure wallets are initialized
+    for (const auto& id : exchange_ids) {
+        EXPECT_TRUE(exchange_wallet.GetWallets().count(id)); // Check if each exchange ID has a wallet
+    }
 }
 
 
