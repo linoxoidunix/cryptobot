@@ -92,10 +92,9 @@ struct MEClientResponse : public IResponse {
     Exchange::ResponsePool* mem_pool = nullptr;
     std::string ToString() const override {
         auto PrintAsCancelled = [this]() {
-            assert(false);
             return fmt::format(
-                "MEClientResponse[type:{} ticker:{} order_id:{}]",
-                ClientResponseTypeToString(type), "",
+                "MEClientResponse[type:{} {} order_id:{}]",
+                ClientResponseTypeToString(type), trading_pair.ToString(),
                 common::orderIdToString(order_id));
         };
         if (type == ClientResponseType::CANCELED) return PrintAsCancelled();

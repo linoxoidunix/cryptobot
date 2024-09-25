@@ -221,12 +221,12 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
 
         if (status == "NEW"sv) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
-            if (doc["price"].get_double_in_string().get(price)) return {};
+            if (doc["price"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
             output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
 
         } else if (status == "PARTIALLY_FILLED"sv || status == "FILLED"sv) {
             output.type = Exchange::ClientResponseType::FILLED;
-            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price)) return {};
+            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
             output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
         }
 
@@ -239,12 +239,12 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
 
         // Getting executed quantity
         double executed_qty = 0;
-        if (doc["executedQty"].get_double_in_string().get(executed_qty)) return {};
+        if (doc["executedQty"].get_double_in_string().get(executed_qty) != simdjson::SUCCESS) return {};
         output.exec_qty = static_cast<common::Qty>(executed_qty * std::pow(10, pairs_[output.trading_pair].qty_precission));
 
         // Getting original quantity and calculating leaves quantity
         double orig_qty;
-        if (doc["origQty"].get_double_in_string().get(orig_qty)) {
+        if (doc["origQty"].get_double_in_string().get(orig_qty) == simdjson::SUCCESS) {
             output.leaves_qty = static_cast<common::Qty>((orig_qty - executed_qty) * std::pow(10, pairs_[output.trading_pair].qty_precission));
         } else {
             loge("no key origQty in response");
@@ -277,7 +277,7 @@ Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
         }
 
         // Check if order is canceled
-        if (status == "CANCELED"sv) return {};
+        if (status != "CANCELED"sv) return {};
         output.type = Exchange::ClientResponseType::CANCELED;
 
         // Check and retrieve ticker

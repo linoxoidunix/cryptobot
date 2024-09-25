@@ -42,17 +42,14 @@ class CurrentTime {
 class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
-    virtual std::string ApiKey()                    = 0;
+    virtual std::string_view ApiKey()                    = 0;
     virtual ~SignerI()                              = default;
 };
 namespace hmac_sha256 {
 struct Keys {
-    std::string api_key;
-    std::string secret_key;
-    Keys(std::string _api_key, std::string _secret_key) {
-        api_key    = _api_key;
-        secret_key = _secret_key;
-    };
+    std::string_view api_key;
+    std::string_view secret_key;
+    Keys(std::string_view _api_key, std::string_view _secret_key): api_key(_api_key), secret_key(_secret_key){};
 };
 class Signer : public SignerI {
   public:
@@ -72,13 +69,13 @@ class Signer : public SignerI {
         std::uint32_t dilen{};
 
         auto p =
-            ::HMAC(::EVP_sha256(), secret_key_.c_str(), secret_key_.length(),
+            ::HMAC(::EVP_sha256(), secret_key_.data(), secret_key_.length(),
                    (std::uint8_t *)data.data(), data.size(), digest, &dilen);
         assert(p);
 
         return B2aHex(digest, dilen);
     };
-    std::string ApiKey() override { return api_key_; }
+    std::string_view ApiKey() override { return api_key_; }
 
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
@@ -96,8 +93,8 @@ class Signer : public SignerI {
     };
 
   private:
-    std::string secret_key_;
-    std::string api_key_;
+    std::string_view secret_key_;
+    std::string_view api_key_;
 };
 };  // namespace hmac_sha256
 struct TickerInfo {

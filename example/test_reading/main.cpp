@@ -13,6 +13,7 @@
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
 #include "aot/common/types.h"
+#include "aot/config/config.h"
 #include "aot/order_gw/order_gw.h"
 #include "aot/prometheus/service.h"
 #include "aot/strategy/kline.h"
@@ -355,45 +356,45 @@
  *
  * @return int
  */
-int main() {
-    fmtlog::setLogLevel(fmtlog::DBG);
-    using namespace binance;
-    Exchange::EventLFQueue event_queue;
-    prometheus::EventLFQueue prometheus_event_queue;
-    Exchange::RequestNewLimitOrderLFQueue request_new_order;
-    Exchange::RequestCancelOrderLFQueue request_cancel_order;
-    Exchange::ClientResponseLFQueue response;
-    OHLCVILFQueue ohlcv_queue;
-    DiffDepthStream::ms100 interval;
-    TickerHashMap tickers;
-    tickers[1] = "usdt";
-    tickers[2] = "btc";
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using namespace binance;
+//     Exchange::EventLFQueue event_queue;
+//     prometheus::EventLFQueue prometheus_event_queue;
+//     Exchange::RequestNewLimitOrderLFQueue request_new_order;
+//     Exchange::RequestCancelOrderLFQueue request_cancel_order;
+//     Exchange::ClientResponseLFQueue response;
+//     OHLCVILFQueue ohlcv_queue;
+//     DiffDepthStream::ms100 interval;
+//     TickerHashMap tickers;
+//     tickers[1] = "usdt";
+//     tickers[2] = "btc";
     
-    TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
-    pair[{2, 1}] = pair_info;
+//     TradingPairHashMap pair;
+//     binance::Symbol symbol(tickers[2], tickers[1]);
+//     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+//     pair[{2, 1}] = pair_info;
 
-    GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
-                                     pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
-                                     TypeExchange::TESTNET);
+//     GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
+//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
+//                                      TypeExchange::TESTNET);
     
-    strategy::cross_arbitrage::LFQueue queue;
-    position_keeper::EventLFQueue orderbook_positionkeeper_channel;
+//     strategy::cross_arbitrage::LFQueue queue;
+//     position_keeper::EventLFQueue orderbook_positionkeeper_channel;
 
-    strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
-    Trading::OrderBookService orderbook_service(&ob, &event_queue);
+//     strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
+//     Trading::OrderBookService orderbook_service(&ob, &event_queue);
     
-    orderbook_service.Start();
-    generator_bid_ask.Start();
+//     orderbook_service.Start();
+//     generator_bid_ask.Start();
 
-    using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(5s);
-    generator_bid_ask.Stop();
-    orderbook_service.StopWaitAllQueue();
-    //orderbook_service.StopImmediately();
-    fmtlog::poll();
-}
+//     using namespace std::literals::chrono_literals;
+//     std::this_thread::sleep_for(5s);
+//     generator_bid_ask.Stop();
+//     orderbook_service.StopWaitAllQueue();
+//     //orderbook_service.StopImmediately();
+//     fmtlog::poll();
+// }
 //-----------------------------------------------------------------------------------
 // /**
 //  * @brief testing trade engine + generator bid ask service + check update BBO
@@ -505,51 +506,80 @@ int main() {
  * @param argv
  * @return int
  */
-// int main(int argc, char** argv) {
-//     hmac_sha256::Keys keys{argv[2], argv[3]};
-//     hmac_sha256::Signer signer(keys);
-//     auto type = TypeExchange::TESTNET;
-//     fmtlog::setLogLevel(fmtlog::DBG);
-//     using namespace binance;
-//     OrderNewLimit new_order(&signer, type);
-//     CancelOrder executor_cancel_order(&signer, type);
-//     using namespace Trading;
-//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
-//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
-//     Exchange::ClientResponseLFQueue client_responses;
+int main(int argc, char** argv) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    config::ApiSecretKey config(argv[1]);
 
-//     Exchange::RequestNewOrder request_new_order;
-//     request_new_order.ticker   = "BTCUSDT";
-//     request_new_order.order_id = 6;
-//     request_new_order.side     = common::Side::BUY;
-//     request_new_order.price    = 40000;
-//     request_new_order.qty      = 0.001;
+    auto [status_api_key, api_key] = config.ApiKey();
+    if(!status_api_key){
+        fmtlog::poll();
+        return 0;
+    }
 
-//     requests_new_order.enqueue(request_new_order);
-//     Exchange::RequestCancelOrder order_for_cancel;
-//     order_for_cancel.ticker   = "BTCUSDT";
-//     order_for_cancel.order_id = 6;
+    auto [status_secret_key, secret_key] = config.SecretKey();
+    if(!status_secret_key)[[unlikely]]{
+        fmtlog::poll();
+        return 0;
+    }
 
-//     requests_cancel_order.enqueue(order_for_cancel);
-//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
-//                     &requests_cancel_order, &client_responses);
-//     gw.start();
-//     while (gw.GetDownTimeInS() < 7) {
-//         logd("Waiting till no activity, been silent for {} seconds...",
-//              gw.GetDownTimeInS());
-//         using namespace std::literals::chrono_literals;
-//         std::this_thread::sleep_for(3s);
-//     }
+    hmac_sha256::Keys keys{api_key, secret_key};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::DBG);
+    using namespace binance;
 
-//     Exchange::MEClientResponse response[50];
+    common::TickerHashMap tickers;
+    tickers[1] = "usdt";
+    tickers[2] = "btc";
+    
+    TradingPairHashMap pair;
+    binance::Symbol symbol(tickers[2], tickers[1]);
+    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    pair[{2, 1}] = pair_info;
 
-//     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
-//     for (int i = 0; i < count_new_order; i++) {
-//         logd("{}", response[i].ToString());
-//     }
+    OrderNewLimit new_order(&signer, type, pair);
+    
 
-//     return 0;
-// }
+    
+    
+    CancelOrder executor_cancel_order(&signer, type, pair);
+    using namespace Trading;
+    Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+    Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+    Exchange::ClientResponseLFQueue client_responses;
+
+    Exchange::RequestNewOrder request_new_order;
+    request_new_order.trading_pair   = {2, 1};
+    request_new_order.order_id = 6;
+    request_new_order.side     = common::Side::BUY;
+    request_new_order.price    = 4000000;
+    request_new_order.qty      = 100;
+
+    requests_new_order.enqueue(request_new_order);
+    Exchange::RequestCancelOrder order_for_cancel;
+    order_for_cancel.trading_pair   = {2, 1};
+    order_for_cancel.order_id = 6;
+
+    requests_cancel_order.enqueue(order_for_cancel);
+    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+                    &requests_cancel_order, &client_responses);
+    gw.Start();
+    while (gw.GetDownTimeInS() < 7) {
+        logd("Waiting till no activity, been silent for {} seconds...",
+             gw.GetDownTimeInS());
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(3s);
+    }
+
+    Exchange::MEClientResponse response[50];
+
+    size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+    for (int i = 0; i < count_new_order; i++) {
+        logd("{}", response[i].ToString());
+    }
+
+    return 0;
+}
 //-----------------------------------------------------------------------------------
 // /**
 //  * @brief testing cpp wrapper for python strategy predict class

@@ -72,9 +72,8 @@ class RequestCancelOrder {
     common::OrderId order_id = common::kOrderIdInvalid;
 
     auto ToString() const {
-        assert(false);
-        return fmt::format("RequestNewOrder[type:{} ticker:{} id:{}]",
-                           ClientRequestTypeToString(type), "", order_id);
+        return fmt::format("RequestCancelOrder[type:{} {} id:{}]",
+                           ClientRequestTypeToString(type), trading_pair.ToString(), order_id);
     }
 };
 

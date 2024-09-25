@@ -549,9 +549,7 @@ class OrderNewLimit : public inner::OrderNewI {
 
       private:
         void SetSymbol(SymbolType symbol) {
-            assert(false);
-            SymbolUpperCase formatter(symbol.data(), symbol.data());
-            storage["symbol"] = formatter.ToString();
+            storage["symbol"] = symbol.data();
         };
         void SetSide(common::Side side) {
             switch (side) {
@@ -675,7 +673,7 @@ class CancelOrder : public inner::CancelOrderI {
       public:
         explicit ParserResponse(
             common::TradingPairReverseHashMap& pairs_reverse)
-            : pairs_reverse_(pairs_reverse_) {};
+            : pairs_reverse_(pairs_reverse) {};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
@@ -694,21 +692,15 @@ class CancelOrder : public inner::CancelOrderI {
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            if (!pairs_reverse.count(
-                    pairs[request_cancel_order->trading_pair].trading_pairs))
-                [[unlikely]]
-                pairs_reverse[pairs[request_cancel_order->trading_pair]
-                                  .trading_pairs] =
-                    request_cancel_order->trading_pair;
+            if (!pairs_reverse.count(pairs[request_cancel_order->trading_pair].trading_pairs))
+                pairs_reverse[pairs[request_cancel_order->trading_pair].trading_pairs] = request_cancel_order->trading_pair;
             SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
             SetOrderId(request_cancel_order->order_id);
         };
 
       private:
         void SetSymbol(SymbolType symbol) {
-            assert(false);
-            SymbolUpperCase formatter(symbol.data(), symbol.data());
-            storage["symbol"] = formatter.ToString();
+            storage["symbol"] = symbol.data();
         };
         void SetOrderId(common::OrderId order_id) {
             if (order_id != common::kOrderIdInvalid) [[likely]]

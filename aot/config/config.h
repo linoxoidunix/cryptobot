@@ -36,6 +36,20 @@ class IPathToHistoryData {
     virtual ~IPathToHistoryData()      = default;
 };
 
+class IApiKey{
+  public:
+    using Answer            = std::pair<bool, std::string_view>;
+    virtual Answer ApiKey() = 0;
+    virtual ~IApiKey()      = default;
+};
+
+class ISecretKey{
+  public:
+    using Answer            = std::pair<bool, std::string_view>;
+    virtual Answer SecretKey() = 0;
+    virtual ~ISecretKey()      = default;
+};
+
 class BackTesting : public IPathToPythonLib,
                     public IPathToPythonModule,
                     public IPathToHistoryData {
@@ -53,10 +67,29 @@ class BackTesting : public IPathToPythonLib,
     IPathToPythonLib::Answer PathToPythonLib() override;
     IPathToPythonModule::Answer PathToPythonModule() override;
     IPathToHistoryData::Answer PathToHistoryData() override;
-
+    ~BackTesting() override = default;
   private:
     BackTesting()                                   = delete;
     BackTesting(const BackTesting& other)           = delete;
     BackTesting operator=(const BackTesting& other) = delete;
+};
+
+class ApiSecretKey : public IApiKey,
+                    public ISecretKey{
+    static constexpr std::string_view kExchangeField    = "exchange";
+    static constexpr std::string_view kApiKey = "api_key";
+    static constexpr std::string_view kSecretKey =  "secret_key";
+
+    toml::table config;
+
+  public:
+    explicit ApiSecretKey(std::string_view path_to_toml);
+    IApiKey::Answer ApiKey() override;
+    ISecretKey::Answer SecretKey() override;
+    ~ApiSecretKey() override = default;
+  private:
+    ApiSecretKey()                                   = delete;
+    ApiSecretKey(const BackTesting& other)           = delete;
+    ApiSecretKey operator=(const BackTesting& other) = delete;
 };
 }  // namespace config
