@@ -471,7 +471,7 @@ class FactoryRequest {
          * header.
          *
          */
-        if (signer_) req.insert("X-MBX-APIKEY", signer_->ApiKey());
+        if (signer_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);

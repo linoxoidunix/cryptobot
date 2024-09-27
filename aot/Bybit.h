@@ -314,7 +314,7 @@ class FactoryRequest {
          * header.
          *
          */
-        req.insert("X-BAPI-API-KEY", signer_->ApiKey());
+        req.insert("X-BAPI-API-KEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
