@@ -164,7 +164,6 @@ target_link_libraries(${PROJECT_NAME}
     absl::base
     re2::re2
     tomlplusplus::tomlplusplus
-    jemalloc
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
