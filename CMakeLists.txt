@@ -164,9 +164,12 @@ target_link_libraries(${PROJECT_NAME}
     absl::base
     re2::re2
     tomlplusplus::tomlplusplus
+    jemalloc
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ROOT_PATH=\"${CMAKE_CURRENT_LIST_DIR}\"")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURRENT_LIST_DIR}/aot/python\"")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=false")

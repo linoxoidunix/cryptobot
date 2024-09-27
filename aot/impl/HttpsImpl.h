@@ -55,15 +55,18 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     void Run(char const* host, char const* port, char const* target,
              http::request<http::string_body>&& req) {
         // Set SNI Hostname (many hosts need this to handshake successfully)
+        logi("start sni host name");
         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
             beast::error_code ec{static_cast<int>(::ERR_get_error()),
                                  net::error::get_ssl_category()};
             std::cerr << ec.message() << "\n";
             return;
         }
+        logi("end sni host name");
 
         // Set up an HTTP GET request message
         req_ = req;
+        logi("start to resolve");
         // Look up the domain name
         resolver_.async_resolve(
             host, port,
@@ -72,11 +75,13 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     }
 
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
+        logi("completed to resolve");
         if (ec) return fail(ec, "resolve");
 
         // Set a timeout on the operation
         beast::get_lowest_layer(stream_).expires_after(
             std::chrono::seconds(30));
+        logi("start connect to exchange");
 
         // Make the connection on the IP address we get from a lookup
         beast::get_lowest_layer(stream_).async_connect(
@@ -86,9 +91,11 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
 
     void on_connect(beast::error_code ec,
                     tcp::resolver::results_type::endpoint_type) {
+        logi("completed connect to exchange");
         if (ec) return fail(ec, "connect");
 
         // Perform the SSL handshake
+        logi("start handshake");
         stream_.async_handshake(
             ssl::stream_base::client,
             beast::bind_front_handler(&HttpsSession::on_handshake,
@@ -96,12 +103,13 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     }
 
     void on_handshake(beast::error_code ec) {
+        logi("completed handshake");
         if (ec) return fail(ec, "handshake");
 
         // Set a timeout on the operation
         beast::get_lowest_layer(stream_).expires_after(
             std::chrono::seconds(30));
-
+        logi("start write operation");
         // Send the HTTP request to the remote host
         http::async_write(stream_, req_,
                           beast::bind_front_handler(&HttpsSession::on_write,
@@ -109,6 +117,7 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     }
 
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
+        logi("finished write to exchange");
         boost::ignore_unused(bytes_transferred);
 
         if (ec) return fail(ec, "write");
@@ -138,13 +147,13 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
             ec = {};
         }
         if (ec) return fail(ec, "cansel");
-        beast::get_lowest_layer(stream_).socket().close(ec);
-        if (ec == net::error::eof) {
-            // Rationale:
-            // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-            ec = {};
-        }
-        if (ec) return fail(ec, "cansel");
+        // beast::get_lowest_layer(stream_).socket().close(ec);
+        // if (ec == net::error::eof) {
+        //     // Rationale:
+        //     // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+        //     ec = {};
+        // }
+        // if (ec) return fail(ec, "cansel");
         // stream_.async_shutdown(beast::bind_front_handler(
         //     &HttpsSession::on_shutdown, shared_from_this()));
     }

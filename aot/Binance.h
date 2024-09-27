@@ -650,10 +650,13 @@ class OrderNewLimit : public inner::OrderNewI {
             if (!status_op) [[unlikely]]
                 loge("my queuee is full. need clean my queue");
         };
+        logi("init memory start");
         std::make_shared<Https>(ioc, cb)->Run(
             factory.Host().data(), factory.Port().data(),
             factory.EndPoint().data(), factory());
+        logi("init memory finished");
         ioc.run();
+        logi("go out from exec");
     };
     ~OrderNewLimit() override = default;
 

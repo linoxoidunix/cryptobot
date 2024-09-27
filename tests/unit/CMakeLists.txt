@@ -25,3 +25,4 @@ cxx_executable(cross_arbitrage ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue uno
 cxx_executable(parser_responce_binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense gtest_main)
 cxx_executable(position_keeper ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense gtest_main gmock_main)
 cxx_executable(wallet_asset ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense gtest_main gmock_main)
+cxx_executable(mempool ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main gmock_main)
