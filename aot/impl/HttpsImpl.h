@@ -29,19 +29,18 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
     http::request<http::string_body> req_;
-    beast::flat_buffer buffer_; // (Must persist between reads)
+    beast::flat_buffer buffer_;  // (Must persist between reads)
     http::response<http::string_body> res_;
     OnHttpsResponce cb_;
     boost::asio::io_context& ioc_;
 
   public:
-    explicit HttpsSession(boost::asio::io_context& ioc,
-                          ssl::context& ctx, OnHttpsResponce cb)
+    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
+                          OnHttpsResponce cb)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
-          cb_(cb) {
-    }
+          cb_(cb) {}
 
     // Start the asynchronous operation
     /**
@@ -134,7 +133,7 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
         if (ec) return fail(ec, "read");
 
         // Write the message to standard out
-        //std::cout << res_ << std::endl;
+        // std::cout << res_ << std::endl;
         cb_(res_);
         // Set a timeout on the operation
         beast::get_lowest_layer(stream_).expires_after(
@@ -150,7 +149,8 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
         // beast::get_lowest_layer(stream_).socket().close(ec);
         // if (ec == net::error::eof) {
         //     // Rationale:
-        //     // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+        //     //
+        //     http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
         //     ec = {};
         // }
         // if (ec) return fail(ec, "cansel");
@@ -168,7 +168,6 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
         }
         if (ec) return fail(ec, "shutdown");
         // If we get here then the connection is closed gracefully
-        //beast::get_lowest_layer(stream_).socket().close(ec);
-
+        // beast::get_lowest_layer(stream_).socket().close(ec);
     }
 };

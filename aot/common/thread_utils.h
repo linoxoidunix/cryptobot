@@ -74,4 +74,21 @@ class ServiceI {
     virtual void StopWaitAllQueue()  = 0;
     virtual ~ServiceI()  = default;
 };
+
+template <typename Derived>
+class Servisable {
+public:
+    void Start() {
+        static_cast<Derived*>(this)->StartImpl();
+    }
+
+    void StopImmediately() {
+        static_cast<Derived*>(this)->StopImmediatelyImpl();
+    }
+
+    void StopWaitAllQueue() {
+        static_cast<Derived*>(this)->StopWaitAllQueueImpl();
+    }
+};
+
 }  // namespace common

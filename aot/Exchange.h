@@ -27,6 +27,15 @@ class ExchangeI {
     virtual std::string_view Port() const    = 0;
     virtual std::uint64_t RecvWindow() const = 0;
 };
+namespace sp{
+template <typename Derived> 
+class ExchangeB {
+  public:
+    std::string_view Host(){return static_cast<Derived*>(this)->HostImpl();}
+    std::string_view Port(){return static_cast<Derived*>(this)->PortImpl();}
+    std::uint64_t RecvWindow(){return static_cast<Derived*>(this)->RecvWindowImpl();}
+};
+};
 };  // namespace https
 
 class CurrentTime {

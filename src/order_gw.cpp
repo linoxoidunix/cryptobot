@@ -17,7 +17,6 @@ auto Trading::OrderGateway::Run() noexcept -> void {
             logd("order gw start exec {}", results_new_orders[i].ToString());
             executor_new_orders_->Exec(&results_new_orders[i],
                                        incoming_responses_);
-            time_manager_.Update();
         }
 
         size_t count_cancel_order = requests_cancel_order_->try_dequeue_bulk(
@@ -27,7 +26,6 @@ auto Trading::OrderGateway::Run() noexcept -> void {
                  requests_cancel_orders[i].ToString());
             executor_canceled_orders_->Exec(&requests_cancel_orders[i],
                                             incoming_responses_);
-            time_manager_.Update();
         }
     }
 }

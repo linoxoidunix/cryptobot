@@ -74,7 +74,6 @@ class OrderGateway {
     /// Callback when an incoming client response is read, we perform some
     /// checks and forward it to the lock free queue connected to the trade
     /// engine.
-    auto RecvCallback() noexcept -> void {};
 };
 }  // namespace Trading
 
@@ -133,9 +132,5 @@ class OrderGateway {
     auto Run() noexcept -> void;
     common::TimeManager time_manager_;
 
-    /// Callback when an incoming client response is read, we perform some
-    /// checks and forward it to the lock free queue connected to the trade
-    /// engine.
-    auto RecvCallback() noexcept -> void {};
 };
 }  // namespace backtesting

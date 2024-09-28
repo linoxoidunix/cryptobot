@@ -651,7 +651,8 @@ class OrderNewLimit : public inner::OrderNewI {
                 loge("my queuee is full. need clean my queue");
         };
         logi("init memory start");
-        std::make_shared<Https>(ioc, cb)->Run(
+        Https http_session(ioc, cb); 
+        http_session.Run(
             factory.Host().data(), factory.Port().data(),
             factory.EndPoint().data(), factory());
         logi("init memory finished");
