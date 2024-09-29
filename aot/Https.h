@@ -270,7 +270,7 @@ class ConnectionPool {
 
     ~ConnectionPool() {
         timeout_thread_.request_stop();
-        f.wait();
+        block_until_helper_thread_finished.wait();
         // Deallocate all HttpsSession objects
         HTTPSessionType* session;
         while (available_connections_.try_dequeue(session)) {

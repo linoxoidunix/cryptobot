@@ -158,7 +158,7 @@ TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
     EXPECT_EQ(connected, true);
 }
 
-TEST_F(ConnectionPoolTest, CheckTimeoutConnection) {
+TEST_F(ConnectionPoolTest, CheckThatSessionPoolReturnActiveSessionEvenPreviousSessionWasExpired) {
     fmtlog::setLogLevel(fmtlog::DBG);
     std::string_view host = "testnet.binance.vision";
     std::string_view port = "443";
