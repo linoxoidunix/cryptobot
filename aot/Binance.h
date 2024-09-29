@@ -63,6 +63,50 @@ class HttpsExchange : public https::ExchangeI {
   private:
     std::uint64_t recv_window_;
 };
+
+namespace sp {
+template <std::uint64_t DefaultRecvWindow = 5000,
+          std::uint64_t MaxRecvWindow     = 60000>
+class HttpsExchange;  // Forward declaration of HttpsExchange
+template <std::uint64_t DefaultRecvWindow, std::uint64_t MaxRecvWindow>
+class HttpsExchange : public https::sp::ExchangeB<
+                          HttpsExchange<DefaultRecvWindow, MaxRecvWindow>> {
+  public:
+    /**
+     * @brief Construct a new Https Exchange object
+     *
+     * @param recv_window
+     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+     * An additional parameter, recvWindow, may be sent to specify the number of
+     * milliseconds after timestamp the request is valid for. If recvWindow is
+     * not sent, it defaults to DefaultRecvWindow.
+     */
+    explicit HttpsExchange(std::uint64_t recv_window = DefaultRecvWindow)
+        : recv_window_((recv_window > MaxRecvWindow) ? MaxRecvWindow
+                                                     : recv_window) {
+        /**
+         * @brief
+         * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+         * It is recommended to use a small recvWindow of 5000 or less! The
+         * max cannot go beyond 60,000!
+         *
+         */
+    };
+
+    // Using static polymorphism to provide behavior
+    constexpr std::string_view HostImpl() const {
+        return "testnet.binance.vision";
+    };
+
+    constexpr std::string_view PortImpl() const { return "443"; };
+
+    constexpr std::uint64_t RecvWindowImpl() const { return recv_window_; };
+
+  private:
+    std::uint64_t recv_window_;
+};
+};  // namespace sp
+
 };  // namespace testnet
 namespace mainnet {
 class HttpsExchange : public https::ExchangeI {
@@ -282,10 +326,9 @@ class DiffDepthStream : public DiffDepthStreamI {
                              const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-      std::string h = symbol_.trading_pairs;
-      boost::algorithm::to_lower(h);
-        return fmt::format("{0}@depth@{1}", h,
-                           interval_->ToString());
+        std::string h = symbol_.trading_pairs;
+        boost::algorithm::to_lower(h);
+        return fmt::format("{0}@depth@{1}", h, interval_->ToString());
     };
 
   private:
@@ -539,10 +582,14 @@ class OrderNewLimit : public inner::OrderNewI {
             SetSymbol(pairs[new_order->trading_pair].trading_pairs);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
-            auto qty_prec = std::pow(10, -pairs[new_order->trading_pair].qty_precission);
-            SetQuantity(new_order->qty * qty_prec, pairs[new_order->trading_pair].qty_precission);
-            auto price_prec = std::pow(10, -pairs[new_order->trading_pair].price_precission);
-            SetPrice(new_order->price * price_prec, pairs[new_order->trading_pair].price_precission);
+            auto qty_prec =
+                std::pow(10, -pairs[new_order->trading_pair].qty_precission);
+            SetQuantity(new_order->qty * qty_prec,
+                        pairs[new_order->trading_pair].qty_precission);
+            auto price_prec =
+                std::pow(10, -pairs[new_order->trading_pair].price_precission);
+            SetPrice(new_order->price * price_prec,
+                     pairs[new_order->trading_pair].price_precission);
             SetTimeInForce(TimeInForce::GTC);
             SetOrderId(new_order->order_id);
         };
@@ -591,10 +638,10 @@ class OrderNewLimit : public inner::OrderNewI {
             }
         };
         void SetQuantity(double quantity, uint8_t qty_prec) {
-            storage["quantity"] = fmt::format("{:.{}f}", quantity,  qty_prec);
+            storage["quantity"] = fmt::format("{:.{}f}", quantity, qty_prec);
         };
         void SetPrice(double price, uint8_t price_prec) {
-            storage["price"] = fmt::format("{:.{}f}", price,  price_prec);
+            storage["price"] = fmt::format("{:.{}f}", price, price_prec);
         };
         void SetTimeInForce(TimeInForce time_in_force) {
             switch (time_in_force) {
@@ -651,10 +698,9 @@ class OrderNewLimit : public inner::OrderNewI {
                 loge("my queuee is full. need clean my queue");
         };
         logi("init memory start");
-        Https http_session(ioc, cb); 
-        http_session.Run(
-            factory.Host().data(), factory.Port().data(),
-            factory.EndPoint().data(), factory());
+        Https http_session(ioc, cb);
+        http_session.Run(factory.Host().data(), factory.Port().data(),
+                         factory.EndPoint().data(), factory());
         logi("init memory finished");
         ioc.run();
         logi("go out from exec");
@@ -696,8 +742,11 @@ class CancelOrder : public inner::CancelOrderI {
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            if (!pairs_reverse.count(pairs[request_cancel_order->trading_pair].trading_pairs))
-                pairs_reverse[pairs[request_cancel_order->trading_pair].trading_pairs] = request_cancel_order->trading_pair;
+            if (!pairs_reverse.count(
+                    pairs[request_cancel_order->trading_pair].trading_pairs))
+                pairs_reverse[pairs[request_cancel_order->trading_pair]
+                                  .trading_pairs] =
+                    request_cancel_order->trading_pair;
             SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
             SetOrderId(request_cancel_order->order_id);
         };

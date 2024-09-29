@@ -88,14 +88,14 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
 class ConnectionPoolTest : public ::testing::Test {
 protected:
     boost::asio::io_context ioc;
-    ssl::context ssl_ctx{ssl::context::sslv23};
+    //ssl::context ssl_ctx{ssl::context::sslv23};
     std::string_view host = "testnet.binance.vision";
     std::string_view port = "443";
     std::size_t pool_size = 5;
     using HTTPSes =  V2::HttpsSession<std::chrono::seconds>;
     V2::ConnectionPool<HTTPSes> pool;
     ConnectionPoolTest() 
-        : pool(ioc, ssl_ctx, host, port, pool_size, HTTPSes::Timeout{30}) {}
+        : pool(ioc, host, port, pool_size, HTTPSes::Timeout{30}) {}
 
     // Helper function to simulate connection usage
 };

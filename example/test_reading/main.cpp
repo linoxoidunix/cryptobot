@@ -12,6 +12,7 @@
 #include "aot/Bybit.h"
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
+#include "aot/Https.h"
 #include "aot/common/types.h"
 #include "aot/config/config.h"
 #include "aot/order_gw/order_gw.h"
@@ -537,11 +538,54 @@ int main(int argc, char** argv) {
     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
     pair[{2, 1}] = pair_info;
 
-    OrderNewLimit new_order(&signer, type, pair);
-    
 
+    binance::testnet::sp::HttpsExchange exchange;
+    using HTTPSesType = V2::HttpsSession<std::chrono::seconds>;
     
+    boost::asio::io_context ioc;
+
+    std::size_t pool_size = 5;
+     std::thread t([&ioc] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
+
+    V2::ConnectionPool<HTTPSesType> pool(ioc, exchange.Host(), exchange.Port(), pool_size, HTTPSesType::Timeout{30});
     
+    bool connected = false;
+    auto host = exchange.Host();
+    auto ggg = pool.AcquireConnection();
+    auto& session = *ggg;
+    std::thread t1([&ioc, &pool, &session, &host, &connected] {
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(5s);
+        http::request<http::string_body> req(http::verb::get, "/", 11);
+
+        req.set(boost::beast::http::field::host, host.data());
+        req.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+        /**
+         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
+         * sent as a query string or in the request body with content type
+         * application/x-www-form-urlencoded. You may mix parameters between
+         * both the query string and request body if you wish to do so.
+         *
+         */
+        req.set(boost::beast::http::field::content_type,
+                "application/x-www-form-urlencoded");
+        auto status = session.AsyncRequest(std::move(req),
+                             [&connected](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
+            const auto& resut = buffer.body();
+            logi("{}", resut);
+            //connected = true;
+        });
+        pool.ReleaseConnection(&session);
+        std::this_thread::sleep_for(5s);
+        ioc.stop();
+    });
+
+    OrderNewLimit new_order(&signer, type, pair);
     CancelOrder executor_cancel_order(&signer, type, pair);
     using namespace Trading;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -577,7 +621,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < count_new_order; i++) {
         logd("{}", response[i].ToString());
     }
-
+    t.join();
+    t1.join();
+    fmtlog::poll();
     return 0;
 }
 //-----------------------------------------------------------------------------------

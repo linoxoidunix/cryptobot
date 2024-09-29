@@ -239,11 +239,11 @@ class OrderBook : public Trading::MarketOrderBook {
         if (!orderbook_tradeengine_channel_) {
             loge("orderbook_tradeengine_channel_ = nullptr");
             return;
-        };
+        }
         if (!orderbook_positionkeeper_channel_) {
             loge("orderbook_positionkeeper_channel_ = nullptr");
             return;
-        };
+        }
         auto bbo = getBBO();
         if (update_bid) {
             SendMessageToChannel(bbu_pool_, orderbook_tradeengine_channel_,

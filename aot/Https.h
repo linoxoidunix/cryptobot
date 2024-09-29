@@ -222,7 +222,8 @@ class HttpsSession {
 
     // Handle session expiration or failure
     void fail(beast::error_code ec, const char* what) {
-        std::cerr << what << ": " << ec.message() << "\n";
+        logi("{}: {}", what, ec.message());
+        //std::cerr << what << ": " << ec.message() << "\n";
         close_session();
     }
 
@@ -241,7 +242,8 @@ class ConnectionPool {
     std::future<void> block_until_helper_thread_finished;
 
     boost::asio::io_context& ioc_;
-    ssl::context& ssl_ctx_;
+    //ssl::context& ssl_ctx_;
+    ssl::context ssl_ctx_{ssl::context::sslv23};
     std::string host_;
     std::string port_;
     size_t pool_size_;
@@ -249,12 +251,12 @@ class ConnectionPool {
     HTTPSessionType::Timeout timeout_;
 
   public:
-    ConnectionPool(boost::asio::io_context& ioc, ssl::context& ssl_ctx,
+    ConnectionPool(boost::asio::io_context& ioc, /*ssl::context& ssl_ctx,*/
                    const std::string_view host, const std::string_view port,
                    std::size_t pool_size, HTTPSessionType::Timeout timeout)
         : block_until_helper_thread_finished(helper_thread_finished.get_future()),
           ioc_(ioc),
-          ssl_ctx_(ssl_ctx),
+          //ssl_ctx_(ssl_ctx),
           host_(host),
           port_(port),
           pool_size_(pool_size),
@@ -273,12 +275,15 @@ class ConnectionPool {
         block_until_helper_thread_finished.wait();
         // Deallocate all HttpsSession objects
         HTTPSessionType* session;
+        logi("dealocate available_connections_ size:{}", available_connections_.size_approx());
         while (available_connections_.try_dequeue(session)) {
             session_pool_.Deallocate(session);
         }
+        logi("dealocate used_connections_ size:{}", used_connections_.size_approx());
         while (used_connections_.try_dequeue(session)) {
             session_pool_.Deallocate(session);
         }
+        logi("dealocate expired_connections_ size:{}", expired_connections_.size_approx());
         while (expired_connections_.try_dequeue(session)) {
             session_pool_.Deallocate(session);
         }

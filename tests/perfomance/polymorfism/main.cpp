@@ -17,10 +17,13 @@ public:
     virtual int add(int a, int b) {
         return a + b;
     }
+    virtual bool GetType(){return true;}
 };
 
 class Derived : public Base {
 public:
+    bool GetType() override{return false;}
+
     int add(int a, int b) override {
         return a + b;
     }
@@ -37,6 +40,7 @@ public:
 
 class StaticDerived : public StaticPolymorphicAdder<StaticDerived> {
 public:
+
     int add_impl(int a, int b) {
         return a + b;
     }
@@ -76,6 +80,29 @@ static void BenchmarkDynamicPolymorphism(benchmark::State& state) {
     delete obj;  // Clean up
 }
 
+static void BenchmarkDynamicPolymorphismWithSTaticOnly(benchmark::State& state) {
+    Base* obj = new Derived();
+    bool type;
+    for (auto _ : state) {
+        benchmark::DoNotOptimize(type = obj->GetType());
+        benchmark::DoNotOptimize(obj->add(1, 2)); 
+    }
+    delete obj;  // Clean up
+}
+
+static void BenchmarkDynamicPolymorphismWithSTatic(benchmark::State& state) {
+    Base* obj = new Derived();
+    bool type;
+    for (auto _ : state) {
+        benchmark::DoNotOptimize(type = obj->GetType());
+        if(type == false)
+            benchmark::DoNotOptimize(static_cast<Derived*>(obj)->add(1, 2));
+        else
+            benchmark::DoNotOptimize(static_cast<Base*>(obj)->add(1, 2));    
+    }
+    delete obj;  // Clean up
+}
+
 static void BenchmarkStaticPolymorphism(benchmark::State& state) {
     StaticDerived obj;
     for (auto _ : state) {
@@ -98,6 +125,8 @@ static void BenchmarkDynamicCast(benchmark::State& state) {
 BENCHMARK(BenchmarkInline);
 BENCHMARK(BenchmarkDirect);
 BENCHMARK(BenchmarkDynamicPolymorphism);
+BENCHMARK(BenchmarkDynamicPolymorphismWithSTaticOnly);
+BENCHMARK(BenchmarkDynamicPolymorphismWithSTatic);
 BENCHMARK(BenchmarkStaticPolymorphism);
 BENCHMARK(BenchmarkDynamicCast);
 
