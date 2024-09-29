@@ -265,7 +265,7 @@ class ConnectionPool {
                 session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
             available_connections_.enqueue(session);
         }
-        timeout_thread_ = std::make_unique<std::jthread>([this](std::stop_token stoken){MonitorConnections(stoken);});
+        timeout_thread_ = std::make_unique<std::jthread>([this](std::stop_token stoken){this->MonitorConnections(stoken);});
     }
 
     ~ConnectionPool() {
