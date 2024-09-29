@@ -236,7 +236,7 @@ class ConnectionPool {
     moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
     moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
 
-    std::jthread timeout_thread_;
+    std::unique_ptr<std::jthread> timeout_thread_;
     std::promise<void> helper_thread_finished;
     std::future<void> block_until_helper_thread_finished;
 
@@ -265,11 +265,11 @@ class ConnectionPool {
                 session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
             available_connections_.enqueue(session);
         }
-        timeout_thread_ = std::jthread(&ConnectionPool::MonitorConnections, this);
+        timeout_thread_ = std::make_unique<std::jthread>([this](std::stop_token stoken){MonitorConnections(stoken);});
     }
 
     ~ConnectionPool() {
-        timeout_thread_.request_stop();
+        timeout_thread_->request_stop();
         block_until_helper_thread_finished.wait();
         // Deallocate all HttpsSession objects
         HTTPSessionType* session;
