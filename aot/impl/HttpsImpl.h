@@ -146,13 +146,6 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
             ec = {};
         }
         if (ec) return fail(ec, "cansel");
-        // beast::get_lowest_layer(stream_).socket().close(ec);
-        // if (ec == net::error::eof) {
-        //     // Rationale:
-        //     //
-        //     http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-        //     ec = {};
-        // }
         // if (ec) return fail(ec, "cansel");
         // stream_.async_shutdown(beast::bind_front_handler(
         //     &HttpsSession::on_shutdown, shared_from_this()));

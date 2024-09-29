@@ -126,7 +126,7 @@ class MemoryPool {
     }
 
     ~MemoryPool(){
-      pool_.purge_memory();
+      Clear();
     }
 
     // Deallocates memory for an object of type T
@@ -144,6 +144,12 @@ class MemoryPool {
         // Mark all objects as free by calling their destructors and returning
         // memory to the pool
         pool_.release_memory();
+    }
+
+    void Clear() {
+        // Mark all objects as free by calling their destructors and returning
+        // memory to the pool
+        pool_.purge_memory();
     }
 
   private:

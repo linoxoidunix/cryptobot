@@ -1,11 +1,5 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <unordered_map>
-
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
@@ -13,13 +7,18 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/noncopyable.hpp>
-
-#include "concurrentqueue.h"
+#include <functional>
+#include <memory>
+#include <future>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 #include "aot/Exchange.h"
 #include "aot/Types.h"
-#include "aot/root_certificates.hpp"
 #include "aot/common/mem_pool.h"
+#include "aot/root_certificates.hpp"
+#include "concurrentqueue.h"
 
 namespace beast = boost::beast;          // from <boost/beast.hpp>
 namespace http  = beast::http;           // from <boost/beast/http.hpp>
@@ -48,123 +47,161 @@ class Https {
 };
 
 namespace V2 {
-template<typename _Timeout>
+template <typename _Timeout>
 class HttpsSession {
   public:
     using Timeout = _Timeout;
-private:
-    bool connected_ = false;
+
+  private:
+    bool is_connected_ = false;
+    bool is_used_       = false;
+    bool is_expired_   = false;
+
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
-    //http::request<http::string_body> req_;
     beast::flat_buffer buffer_;  // (Must persist between reads)
     http::response<http::string_body> res_;
     OnHttpsResponce cb_;
     boost::asio::io_context& ioc_;
     Timeout timeout_;
-public:
-    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx, const std::string_view host, const std::string_view port, _Timeout timeout)
+    boost::asio::steady_timer timer_;  // Timer to track session expiration
+
+  public:
+    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
+                          const std::string_view host,
+                          const std::string_view port, _Timeout timeout)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
-          ioc_(ioc), timeout_(timeout){
-            Run(host.data(), port.data(), nullptr, {});
-          }
+          ioc_(ioc),
+          timeout_(timeout),
+          timer_(ioc)  // Initialize the timer
+    {
+        Run(host.data(), port.data(), nullptr, {});
+    }
 
     template <typename CompletionHandler>
-    bool AsyncRequest(http::request<http::string_body>&& req, CompletionHandler handler) {
-        if(!connected_)
-          return false;
-        // Store the completion handler
-        // handler_ = handler;
-        cb_ = handler;
-        // // Set up the HTTP GET request
-        // http::request<http::string_body> req{http::verb::get, target, 11};
-        // req.set(http::field::host, host_);
-        // req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    bool AsyncRequest(http::request<http::string_body>&& req,
+                      CompletionHandler handler) {
+        if (!IsConnected()) return false;
+        if (IsUsed()) return false;
+
+        is_used_ = true;
+        cb_     = handler;
+
+        // Set up the timer for session expiration
+        start_timer();
 
         // Send the HTTP request asynchronously
-        http::async_write(stream_, req,
+        http::async_write(
+            stream_, req,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
                 this->on_write(ec, bytes_transferred);
             });
+
         return true;
     }
-
+    inline bool IsConnected() const{
+        return is_connected_;
+    }
+    inline bool IsExpired() const{
+        return is_expired_;
+    }
+        inline bool IsUsed() const{
+        return is_used_;
+    }
+  private:
     // Start the asynchronous operation
     void Run(char const* host, char const* port, char const* target,
              http::request<http::string_body>&& req) {
-        // Set SNI Hostname (many hosts need this to handshake successfully)
-        logi("start sni host name");
         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
             beast::error_code ec{static_cast<int>(::ERR_get_error()),
                                  net::error::get_ssl_category()};
             std::cerr << ec.message() << "\n";
             return;
         }
-        logi("end sni host name");
 
-        // Set up the HTTP request
-        //req_ = std::move(req);
-        logi("start to resolve");
-        // Look up the domain name
+        // Start the timer for expiration
+        start_timer();
+
+        // Start the resolver
         resolver_.async_resolve(
             host, port,
-            [this, host, port](beast::error_code ec, tcp::resolver::results_type results) {
+            [this](beast::error_code ec, tcp::resolver::results_type results) {
                 this->on_resolve(ec, results);
             });
     }
 
-private:
+    // Start the session expiration timer
+    void start_timer() {
+        // Set the timer to expire after the specified timeout
+        timer_.expires_after(timeout_);
+
+        // Set up the handler to catch when the timer expires
+        timer_.async_wait([this](beast::error_code ec) {
+            if (ec !=
+                boost::asio::error::operation_aborted) {  // Ignore if the timer
+                                                          // was canceled
+                is_expired_ = true;
+                fail(ec, "session expired");
+                // Handle session expiration (close, notify user, etc.)
+                if (cb_) {
+                    beast::error_code timeout_error{
+                        boost::asio::error::timed_out};
+                    cb_(res_);  // Notify the callback about the timeout
+                }
+                close_session();
+            }
+        });
+    }
+
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
-        logi("completed to resolve");
         if (ec) return fail(ec, "resolve");
 
-        // Set a timeout on the operation
-        beast::get_lowest_layer(stream_).expires_after(timeout_);
-        logi("start connect to exchange");
+        // Reset the timer for the next operation
+        start_timer();
 
-        // Make the connection on the IP address we get from a lookup
         beast::get_lowest_layer(stream_).async_connect(
-            results, [this](beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
+            results, [this](beast::error_code ec,
+                            tcp::resolver::results_type::endpoint_type) {
                 this->on_connect(ec);
             });
     }
 
     void on_connect(beast::error_code ec) {
-        logi("completed connect to exchange");
         if (ec) return fail(ec, "connect");
 
-        // Perform the SSL handshake
-        logi("start handshake");
-        stream_.async_handshake(ssl::stream_base::client,
-            [this](beast::error_code ec) {
-                this->on_handshake(ec);
-            });
+        // Reset the timer for the next operation
+        start_timer();
+
+        stream_.async_handshake(
+            ssl::stream_base::client,
+            [this](beast::error_code ec) { this->on_handshake(ec); });
     }
 
     void on_handshake(beast::error_code ec) {
-        logi("completed handshake");
         if (ec) return fail(ec, "handshake");
 
-        // Set a timeout on the operation
-        beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
-        logi("start write operation");
-        connected_ = true;
-        // Send the HTTP request to the remote host
-        // http::async_write(stream_, req_,
-        //     [this](beast::error_code ec, std::size_t bytes_transferred) {
-        //         this->on_write(ec, bytes_transferred);
-        //     });
+        // Reset the timer for the next operation
+        start_timer();
+
+        // Set the connected flag to true after a successful handshake
+        is_connected_ = true;
+        // Notify that the handshake was successful (you could add a callback
+        // here as well) For example, you might want to notify that the session
+        // is now active.
+
+        // Optionally, you can now send the HTTP request if needed
     }
 
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
-        logi("finished write to exchange");
         boost::ignore_unused(bytes_transferred);
-
         if (ec) return fail(ec, "write");
 
-        // Receive the HTTP response
-        http::async_read(stream_, buffer_, res_,
+        // Reset the timer for the next operation
+        start_timer();
+
+        http::async_read(
+            stream_, buffer_, res_,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
                 this->on_read(ec, bytes_transferred);
             });
@@ -175,50 +212,74 @@ private:
 
         if (ec) return fail(ec, "read");
 
-        // Write the response to the callback
+        // Cancel the timer as the operation is completed successfully
+        timer_.cancel();
+
+        // Call the response callback
         cb_(res_);
-
-        // Set a timeout on the operation
-        beast::get_lowest_layer(stream_).expires_after(std::chrono::seconds(30));
-
-        // Gracefully close the stream
-        beast::get_lowest_layer(stream_).socket().cancel(ec);
-        if (ec == net::error::eof) {
-            ec = {};  // Clear EOF error
-        }
-        if (ec) return fail(ec, "cancel");
-
-        // You can optionally close the stream or perform any further actions here
+        close_session();
     }
 
-    void fail(beast::error_code ec, char const* what) {
+    // Handle session expiration or failure
+    void fail(beast::error_code ec, const char* what) {
         std::cerr << what << ": " << ec.message() << "\n";
-        // Handle failure case, e.g., cleanup, logging, etc.
+        close_session();
     }
+
+    // Close the session gracefully
+    void close_session() { beast::get_lowest_layer(stream_).close(); }
 };
 
-template<typename HTTPSessionType>
+template <typename HTTPSessionType>
 class ConnectionPool {
     moodycamel::ConcurrentQueue<HTTPSessionType*> available_connections_;
+    moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
+    moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
+
+    std::jthread timeout_thread_;
+    std::promise<void> helper_thread_finished;
+    std::future<void> block_until_helper_thread_finished;
+
     boost::asio::io_context& ioc_;
     ssl::context& ssl_ctx_;
     std::string host_;
     std::string port_;
+    size_t pool_size_;
     common::MemoryPool<HTTPSessionType> session_pool_;
     HTTPSessionType::Timeout timeout_;
-public:
-    ConnectionPool(boost::asio::io_context& ioc, ssl::context& ssl_ctx, const std::string_view host, const std::string_view port, std::size_t pool_size, HTTPSessionType::Timeout timeout)
-        : ioc_(ioc), ssl_ctx_(ssl_ctx), host_(host), port_(port), session_pool_(pool_size),timeout_(timeout) {
+
+  public:
+    ConnectionPool(boost::asio::io_context& ioc, ssl::context& ssl_ctx,
+                   const std::string_view host, const std::string_view port,
+                   std::size_t pool_size, HTTPSessionType::Timeout timeout)
+        : block_until_helper_thread_finished(helper_thread_finished.get_future()),
+          ioc_(ioc),
+          ssl_ctx_(ssl_ctx),
+          host_(host),
+          port_(port),
+          pool_size_(pool_size),
+          session_pool_(pool_size),
+          timeout_(timeout) {
         for (std::size_t i = 0; i < pool_size; ++i) {
-            auto session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+            auto session =
+                session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
             available_connections_.enqueue(session);
         }
+        timeout_thread_ = std::jthread(&ConnectionPool::MonitorConnections, this);
     }
 
     ~ConnectionPool() {
+        timeout_thread_.request_stop();
+        f.wait();
         // Deallocate all HttpsSession objects
         HTTPSessionType* session;
         while (available_connections_.try_dequeue(session)) {
+            session_pool_.Deallocate(session);
+        }
+        while (used_connections_.try_dequeue(session)) {
+            session_pool_.Deallocate(session);
+        }
+        while (expired_connections_.try_dequeue(session)) {
             session_pool_.Deallocate(session);
         }
     }
@@ -227,15 +288,66 @@ public:
     HTTPSessionType* AcquireConnection() {
         HTTPSessionType* session = nullptr;
         while (!available_connections_.try_dequeue(session)) {
-            auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);// Spin-wait until a connection becomes available
-            available_connections_.enqueue(new_session);
+            // auto new_session = session_pool_.Allocate(
+            //     ioc_, ssl_ctx_, host_, port_,
+            //     timeout_);  // Spin-wait until a connection becomes available
+            // available_connections_.enqueue(new_session);
         }
         return session;
     }
 
     // Release a connection back to the pool
     void ReleaseConnection(HTTPSessionType* session) {
-        available_connections_.enqueue(session);
+        if(!session)
+            return;
+        used_connections_.enqueue(session);
+    }
+
+  private:
+    void MonitorConnections(std::stop_token stoken) {
+        while (!stoken.stop_requested()) {
+            HTTPSessionType* session[100];
+            size_t count = available_connections_.try_dequeue_bulk(session, 100);
+            for(int i = 0; i < count; i++){
+                if (session[i]->IsExpired()) {
+                    expired_connections_.enqueue(session[i]);  // Enqueue expired or already used connections for
+                } else {
+                    available_connections_.enqueue(session[i]);  // Return active connection back to the available_connections_
+                }
+            }
+
+            // Process expired connections
+            // if expired due to long waiting
+            HTTPSessionType* expired_session = nullptr;
+            while (expired_connections_.try_dequeue(expired_session)) {
+                    ReplaceTimedOutConnection(expired_session);
+            }
+
+            HTTPSessionType* used_session = nullptr;
+            while (used_connections_.try_dequeue(used_session)) {
+                //if task complete
+                if(used_session->IsExpired())
+                    ReplaceTimedOutConnection(used_session);
+            }
+
+            while(available_connections_.size_approx() < pool_size_)
+            {
+                auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+                available_connections_.enqueue(new_session);
+            }
+            // Sleep briefly to avoid busy waiting
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        }
+        helper_thread_finished.set_value();
+    }
+
+    // Replace a timed-out connection by deleting it and adding a new one
+    void ReplaceTimedOutConnection(HTTPSessionType* session) {
+        session_pool_.Deallocate(session);  // Deallocate the old session
+
+        // Create a new session and add it back to the pool
+        auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+        available_connections_.enqueue(new_session);
     }
 };
 };  // namespace V2

@@ -66,12 +66,13 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
          */
         req.set(boost::beast::http::field::content_type,
                 "application/x-www-form-urlencoded");
-        session.AsyncRequest(std::move(req),
+        auto status = session.AsyncRequest(std::move(req),
                              [&connected](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
             //const auto& resut = buffer.body();
             //logi("{}", resut);
             connected = true;
         });
+        EXPECT_EQ(status, true);
         std::this_thread::sleep_for(5s);
         io_context.stop();
     });
@@ -99,6 +100,126 @@ protected:
     // Helper function to simulate connection usage
 };
 
+TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    std::string_view host = "testnet.binance.vision";
+    std::string_view port = "443";
+    //V2::ConnectionPool pool(io_context, ssl_context, host, port, std::chrono::seconds(30));
+    //V2::HttpsSession session(io_context, ssl_context, host, port, std::chrono::seconds(30));
+    auto session_ = pool.AcquireConnection();
+    auto &session = *session_;
+    bool connected = false;
+    // session->Resolve(host.data(), port.data());
+    // Expect the response callback to be called once
+
+    // Start the connection process
+
+    // Run the io_context to process async operations
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
+
+    std::thread t1([this, &session, &host, &connected] {
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(5s);
+        http::request<http::string_body> req(http::verb::get, "/", 11);
+
+        req.set(boost::beast::http::field::host, host.data());
+        req.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+        /**
+         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
+         * sent as a query string or in the request body with content type
+         * application/x-www-form-urlencoded. You may mix parameters between
+         * both the query string and request body if you wish to do so.
+         *
+         */
+        req.set(boost::beast::http::field::content_type,
+                "application/x-www-form-urlencoded");
+        auto status = session.AsyncRequest(std::move(req),
+                             [&connected](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
+            //const auto& resut = buffer.body();
+            //logi("{}", resut);
+            connected = true;
+        });
+        EXPECT_NE(status, false);
+        pool.ReleaseConnection(&session);
+        std::this_thread::sleep_for(5s);
+        ioc.stop();
+    });
+
+    t.join();
+    t1.join();
+    // You can check for connected state here, or any other state you want
+    // For example:
+    fmtlog::poll();
+    EXPECT_EQ(connected, true);
+}
+
+TEST_F(ConnectionPoolTest, CheckTimeoutConnection) {
+    fmtlog::setLogLevel(fmtlog::DBG);
+    std::string_view host = "testnet.binance.vision";
+    std::string_view port = "443";
+    //V2::ConnectionPool pool(io_context, ssl_context, host, port, std::chrono::seconds(30));
+    //V2::HttpsSession session(io_context, ssl_context, host, port, std::chrono::seconds(30));
+    auto session_ = pool.AcquireConnection();
+    auto &session = *session_;
+    bool connected = false;
+    // session->Resolve(host.data(), port.data());
+    // Expect the response callback to be called once
+
+    // Start the connection process
+
+    // Run the io_context to process async operations
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
+    
+    using namespace std::literals::chrono_literals;
+    std::this_thread::sleep_for(31s);
+    pool.ReleaseConnection(session_);
+
+    std::thread t1([this, &session, &host, &connected] {
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(5s);
+        http::request<http::string_body> req(http::verb::get, "/", 11);
+
+        req.set(boost::beast::http::field::host, host.data());
+        req.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+        /**
+         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
+         * sent as a query string or in the request body with content type
+         * application/x-www-form-urlencoded. You may mix parameters between
+         * both the query string and request body if you wish to do so.
+         *
+         */
+        req.set(boost::beast::http::field::content_type,
+                "application/x-www-form-urlencoded");
+        auto status = session.AsyncRequest(std::move(req),
+                             [&connected](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
+            //const auto& resut = buffer.body();
+            //logi("{}", resut);
+            connected = true;
+        });
+        EXPECT_NE(status, false);
+
+        std::this_thread::sleep_for(5s);
+        ioc.stop();
+    });
+
+    t.join();
+    t1.join();
+    // You can check for connected state here, or any other state you want
+    // For example:
+    fmtlog::poll();
+    EXPECT_EQ(connected, true);
+}
+
 // Test that connections can be acquired from the pool
 TEST_F(ConnectionPoolTest, AcquireConnection) {
     auto session = pool.AcquireConnection();
@@ -123,7 +244,7 @@ TEST_F(ConnectionPoolTest, MultipleConnections) {
         sessions.push_back(session);
     }
 
-    // Ensure the pool is empty after acquiring all connections
+    // Ensure that pool can AcquireConnection()
     EXPECT_NE(pool.AcquireConnection(), nullptr); 
 
     // Release all sessions back to the pool
