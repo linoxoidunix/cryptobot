@@ -15,6 +15,8 @@ auto Trading::OrderGateway::Run() noexcept -> void {
             requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
         for (int i = 0; i < count_new_order; i++) {
             logd("order gw start exec {}", results_new_orders[i].ToString());
+            //1)we need chhose suitable executors depends on exchangeid
+            //2)we need launch Exec task
             executor_new_orders_->Exec(&results_new_orders[i],
                                        incoming_responses_);
         }
@@ -111,3 +113,54 @@ OrderGateway::OrderGateway(
       requests_cancel_order_(requests_cancel_order),
       incoming_responses_(client_responses) {}
 }  // namespace backtesting
+
+Trading::OrderGateway2::OrderGateway2(
+    NewLimitOrderExecutors& executor_new_limit_orders,
+    CancelOrderExecutors& executor_canceled_orders,
+    Exchange::RequestNewLimitOrderLFQueue *requests_new_order,
+    Exchange::RequestCancelOrderLFQueue *requests_cancel_order,
+    Exchange::ClientResponseLFQueue *client_responses)
+    : executor_new_limit_orders_(executor_new_limit_orders),
+      executor_canceled_orders_(executor_canceled_orders),
+      requests_new_order_(requests_new_order),
+      requests_cancel_order_(requests_cancel_order),
+      incoming_responses_(client_responses) {}
+
+auto Trading::OrderGateway2::Run() noexcept -> void {
+    Exchange::RequestNewOrder
+        results_new_orders[50];  // Could also be any iterator
+    Exchange::RequestCancelOrder
+        requests_cancel_orders[50];  // Could also be any iterator
+
+    while (run_) {
+        size_t count_new_order =
+            requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
+        for (int i = 0; i < count_new_order; i++) {
+            auto exchange_id = results_new_orders[i].exchange_id;
+            logd("order gw start exec {}", results_new_orders[i].ToString());
+            //1)we need choose suitable executors depends on exchangeid
+            if(!executor_new_limit_orders_.contains(exchange_id)){
+                loge("executor_new_orders_ not contain exchange id:{}", exchange_id);
+                continue;
+            }
+            //2)we need launch Exec task
+            executor_new_limit_orders_[exchange_id]->Exec(&results_new_orders[i],
+                                       incoming_responses_);
+        }
+
+        size_t count_cancel_order = requests_cancel_order_->try_dequeue_bulk(
+            requests_cancel_orders, 50);
+        for (int i = 0; i < count_cancel_order; i++) {
+            auto exchange_id = requests_cancel_orders[i].exchange_id;
+
+            logd("order gw start exec {}",
+                 requests_cancel_orders[i].ToString());
+            if(!executor_canceled_orders_.contains(exchange_id)){
+                loge("executor_canceled_orders_ not contain exchange id:{}", exchange_id);
+                continue;
+            }
+            executor_canceled_orders_[exchange_id]->Exec(&requests_cancel_orders[i],
+                                            incoming_responses_);
+        }
+    }
+}

@@ -53,6 +53,7 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
      */
     void Run(char const* host, char const* port, char const* target,
              http::request<http::string_body>&& req) {
+        target = nullptr;
         // Set SNI Hostname (many hosts need this to handshake successfully)
         logi("start sni host name");
         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
@@ -133,7 +134,6 @@ class HttpsSession : public std::enable_shared_from_this<HttpsSession> {
         if (ec) return fail(ec, "read");
 
         // Write the message to standard out
-        // std::cout << res_ << std::endl;
         cb_(res_);
         // Set a timeout on the operation
         beast::get_lowest_layer(stream_).expires_after(

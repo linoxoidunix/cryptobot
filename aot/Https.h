@@ -14,9 +14,10 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "aot/Exchange.h"
+//#include "aot/Exchange.h"
 #include "aot/Types.h"
 #include "aot/common/mem_pool.h"
+#include "aot/Logger.h"
 #include "aot/root_certificates.hpp"
 #include "concurrentqueue.h"
 
@@ -57,6 +58,13 @@ class HttpsSession {
     bool is_used_       = false;
     bool is_expired_   = false;
 
+    /**
+     * @brief req variable must manage only via SetRequest() method
+     * 
+     */
+    boost::beast::http::request<boost::beast::http::string_body> req_;
+
+
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
     beast::flat_buffer buffer_;  // (Must persist between reads)
@@ -87,13 +95,13 @@ class HttpsSession {
 
         is_used_ = true;
         cb_     = handler;
-
+        req_ = std::move(req);
         // Set up the timer for session expiration
         start_timer();
 
         // Send the HTTP request asynchronously
         http::async_write(
-            stream_, req,
+            stream_, req_,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
                 this->on_write(ec, bytes_transferred);
             });
@@ -141,13 +149,12 @@ class HttpsSession {
             if (ec !=
                 boost::asio::error::operation_aborted) {  // Ignore if the timer
                                                           // was canceled
-                is_expired_ = true;
                 fail(ec, "session expired");
                 // Handle session expiration (close, notify user, etc.)
                 if (cb_) {
                     beast::error_code timeout_error{
                         boost::asio::error::timed_out};
-                    cb_(res_);  // Notify the callback about the timeout
+                    //cb_(res_);  // Notify the callback about the timeout
                 }
                 close_session();
             }
@@ -196,10 +203,10 @@ class HttpsSession {
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
         if (ec) return fail(ec, "write");
-
+        //logi("execute cb on write");
         // Reset the timer for the next operation
         start_timer();
-
+        //fmtlog::poll();
         http::async_read(
             stream_, buffer_, res_,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
@@ -214,7 +221,9 @@ class HttpsSession {
 
         // Cancel the timer as the operation is completed successfully
         timer_.cancel();
+        //logi("execute cb on read");
 
+        //fmtlog::poll();
         // Call the response callback
         cb_(res_);
         close_session();
@@ -228,7 +237,7 @@ class HttpsSession {
     }
 
     // Close the session gracefully
-    void close_session() { beast::get_lowest_layer(stream_).close(); }
+    void close_session() { beast::get_lowest_layer(stream_).close(); is_expired_ = true;}
 };
 
 template <typename HTTPSessionType>
@@ -310,6 +319,7 @@ class ConnectionPool {
 
   private:
     void MonitorConnections(std::stop_token stoken) {
+
         while (!stoken.stop_requested()) {
             HTTPSessionType* session[100];
             size_t count = available_connections_.try_dequeue_bulk(session, 100);
@@ -328,11 +338,14 @@ class ConnectionPool {
                     ReplaceTimedOutConnection(expired_session);
             }
 
-            HTTPSessionType* used_session = nullptr;
-            while (used_connections_.try_dequeue(used_session)) {
-                //if task complete
-                if(used_session->IsExpired())
-                    ReplaceTimedOutConnection(used_session);
+            HTTPSessionType* used_session[100];
+            size_t count_used = used_connections_.try_dequeue_bulk(used_session, 100);
+            for(int i = 0; i < count_used; i++){
+                if (used_session[i]->IsExpired()) {
+                    ReplaceTimedOutConnection(used_session[i]);  // Enqueue expired or already used connections for
+                } else {
+                    used_connections_.enqueue(used_session[i]);  // Return active connection back to the available_connections_
+                }
             }
 
             while(available_connections_.size_approx() < pool_size_)
@@ -348,8 +361,9 @@ class ConnectionPool {
 
     // Replace a timed-out connection by deleting it and adding a new one
     void ReplaceTimedOutConnection(HTTPSessionType* session) {
+        //logi("Replace Timed Out Connection {}", session);
         session_pool_.Deallocate(session);  // Deallocate the old session
-
+        //fmtlog::poll();
         // Create a new session and add it back to the pool
         auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
         available_connections_.enqueue(new_session);

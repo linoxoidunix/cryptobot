@@ -25,6 +25,7 @@
 // wss://stream.binance.com:9443/stream	     wss://testnet.binance.vision/stream
 
 namespace binance {
+
 const auto kMeasureTForGeneratorBidAskService =
     MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;  // MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE
                                               // define in cmakelists.txt
@@ -554,7 +555,6 @@ class FactoryRequest {
 
 class OrderNewLimit : public inner::OrderNewI {
     static constexpr std::string_view end_point = "/api/v3/order";
-
   public:
     class ParserResponse {
       public:
@@ -715,6 +715,185 @@ class OrderNewLimit : public inner::OrderNewI {
     common::TradingPairReverseHashMap pairs_reverse_;
 };
 
+class OrderNewLimit2 : public inner::OrderNewI {
+    static constexpr std::string_view end_point = "/api/v3/order";
+
+  public:
+    class ParserResponse {
+      public:
+        explicit ParserResponse(
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_(pairs), pairs_reverse_(pairs_reverse) {};
+        Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        common::TradingPairHashMap& pairs_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
+    };
+    class ArgsOrder : public ArgsQuery {
+      public:
+        using SymbolType = std::string_view;
+        explicit ArgsOrder(const Exchange::RequestNewOrder* new_order,
+                           common::TradingPairHashMap& pairs,
+                           common::TradingPairReverseHashMap& pairs_reverse)
+            : ArgsQuery() {
+            if (!pairs_reverse.count(
+                    pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
+                pairs_reverse[pairs[new_order->trading_pair].trading_pairs] =
+                    new_order->trading_pair;
+            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
+            SetSide(new_order->side);
+            SetType(Type::LIMIT);
+            auto qty_prec =
+                std::pow(10, -pairs[new_order->trading_pair].qty_precission);
+            SetQuantity(new_order->qty * qty_prec,
+                        pairs[new_order->trading_pair].qty_precission);
+            auto price_prec =
+                std::pow(10, -pairs[new_order->trading_pair].price_precission);
+            SetPrice(new_order->price * price_prec,
+                     pairs[new_order->trading_pair].price_precission);
+            SetTimeInForce(TimeInForce::GTC);
+            SetOrderId(new_order->order_id);
+        };
+
+      private:
+        void SetSymbol(SymbolType symbol) {
+            storage["symbol"] = symbol.data();
+        };
+        void SetSide(common::Side side) {
+            switch (side) {
+                using enum common::Side;
+                case BUY:
+                    storage["side"] = "BUY";
+                    break;
+                case SELL:
+                    storage["side"] = "SELL";
+                    break;
+                default:
+                    loge("side is not SELL or BUY");
+            }
+        };
+        void SetType(Type type) {
+            switch (type) {
+                using enum Type;
+                case LIMIT:
+                    storage["type"] = "LIMIT";
+                    break;
+                case MARKET:
+                    storage["type"] = "MARKET";
+                    break;
+                case STOP_LOSS:
+                    storage["type"] = "STOP_LOSS";
+                    break;
+                case STOP_LOSS_LIMIT:
+                    storage["type"] = "STOP_LOSS_LIMIT";
+                    break;
+                case TAKE_PROFIT:
+                    storage["type"] = "TAKE_PROFIT";
+                    break;
+                case TAKE_PROFIT_LIMIT:
+                    storage["type"] = "TAKE_PROFIT_LIMIT";
+                    break;
+                case LIMIT_MAKER:
+                    storage["type"] = "LIMIT_MAKER";
+                    break;
+            }
+        };
+        void SetQuantity(double quantity, uint8_t qty_prec) {
+            storage["quantity"] = fmt::format("{:.{}f}", quantity, qty_prec);
+        };
+        void SetPrice(double price, uint8_t price_prec) {
+            storage["price"] = fmt::format("{:.{}f}", price, price_prec);
+        };
+        void SetTimeInForce(TimeInForce time_in_force) {
+            switch (time_in_force) {
+                case TimeInForce::FOK:
+                    storage["timeInForce"] = "FOK";
+                    break;
+                case TimeInForce::GTC:
+                    storage["timeInForce"] = "GTC";
+                    break;
+                case TimeInForce::IOC:
+                    storage["timeInForce"] = "IOC";
+                    break;
+                default:
+                    storage["timeInForce"] = "FOK";
+            }
+        };
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::kOrderIdInvalid) [[likely]]
+                storage["newClientOrderId"] = common::orderIdToString(order_id);
+        };
+
+      private:
+        ArgsOrder& storage = *this;
+    };
+
+  public:
+    explicit OrderNewLimit2(SignerI* signer, TypeExchange type,
+                           common::TradingPairHashMap& pairs,
+                            ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs),
+          session_pool_(session_pool) {};
+    void Exec(Exchange::RequestNewOrder* new_order,
+              Exchange::ClientResponseLFQueue* response_lfqueue) override {
+        if(response_lfqueue == nullptr){
+          loge("response_lfqueue == nullptr");
+          return;
+        }
+        if(session_pool_ == nullptr){
+          loge("session_pool_ == nullptr");
+          return;
+        }
+        logd("start exec");
+        ArgsOrder args(new_order, pairs_, pairs_reverse_);
+
+        bool need_sign = true;
+        detail::FactoryRequest factory{current_exchange_,
+                                       OrderNewLimit2::end_point,
+                                       args,
+                                       boost::beast::http::verb::post,
+                                       signer_,
+                                       need_sign};
+        logd("start prepare request");
+        auto req = factory();
+        logd("end prepare request");
+
+        auto cb = [response_lfqueue, this](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
+            const auto& resut = buffer.body();
+            logi("{}", resut);
+            ParserResponse parser(pairs_, pairs_reverse_);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queuee is full. need clean my queue");
+        };
+        auto session = session_pool_->AcquireConnection();
+        logd("start send request");
+
+        if(auto status = session->AsyncRequest(std::move(req), cb); status == false)
+            loge("AsyncRequest wasn't sent in io_context");
+
+        logd("end send request");
+        session_pool_->ReleaseConnection(session);
+        using namespace std::literals::chrono_literals;
+    };
+    ~OrderNewLimit2() override = default;
+
+  private:
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_;
+    SignerI* signer_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
+    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+};
+
 class CancelOrder : public inner::CancelOrderI {
     static constexpr std::string_view end_point = "/api/v3/order";
 
@@ -808,6 +987,121 @@ class CancelOrder : public inner::CancelOrderI {
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
     common::TradingPairReverseHashMap pairs_reverse_;
+};
+
+class CancelOrder2 : public inner::CancelOrderI {
+    static constexpr std::string_view end_point = "/api/v3/order";
+
+  public:
+    class ParserResponse {
+      public:
+        explicit ParserResponse(
+            common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse) {};
+        Exchange::MEClientResponse Parse(std::string_view response);
+
+      private:
+        common::TradingPairReverseHashMap& pairs_reverse_;
+    };
+    class ArgsOrder : public ArgsQuery {
+      public:
+        using SymbolType = std::string_view;
+        explicit ArgsOrder(SymbolType symbol, common::OrderId order_id)
+            : ArgsQuery() {
+            SetSymbol(symbol);
+            SetOrderId(order_id);
+        };
+        explicit ArgsOrder(
+            const Exchange::RequestCancelOrder* request_cancel_order,
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
+            : ArgsQuery() {
+            if (!pairs_reverse.count(
+                    pairs[request_cancel_order->trading_pair].trading_pairs))
+                pairs_reverse[pairs[request_cancel_order->trading_pair]
+                                  .trading_pairs] =
+                    request_cancel_order->trading_pair;
+            SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
+            SetOrderId(request_cancel_order->order_id);
+        };
+
+      private:
+        void SetSymbol(SymbolType symbol) {
+            storage["symbol"] = symbol.data();
+        };
+        void SetOrderId(common::OrderId order_id) {
+            if (order_id != common::kOrderIdInvalid) [[likely]]
+                storage["origClientOrderId"] =
+                    common::orderIdToString(order_id);
+        };
+
+      private:
+        ArgsOrder& storage = *this;
+    };
+
+  public:
+    explicit CancelOrder2(SignerI* signer, TypeExchange type,
+                         common::TradingPairHashMap& pairs, 
+                         ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs),
+          session_pool_(session_pool) {};
+    void Exec(Exchange::RequestCancelOrder* request_cancel_order,
+              Exchange::ClientResponseLFQueue* response_lfqueue) override {
+       if(response_lfqueue == nullptr){
+          loge("response_lfqueue == nullptr");
+          return;
+        }
+        if(session_pool_ == nullptr){
+          loge("session_pool_ == nullptr");
+          return;
+        }
+        logd("start exec");
+        ArgsOrder args(request_cancel_order, pairs_, pairs_reverse_);
+        bool need_sign = true;
+        detail::FactoryRequest factory{current_exchange_,
+                                       CancelOrder2::end_point,
+                                       args,
+                                       boost::beast::http::verb::delete_,
+                                       signer_,
+                                       need_sign};
+        logd("start prepare request");
+        auto req = factory();
+        logd("end prepare request");
+
+
+        auto cb = [response_lfqueue, this](
+                 boost::beast::http::response<boost::beast::http::string_body>&
+                     buffer) {
+            const auto& resut = buffer.body();
+            logi("{}", resut);
+            ParserResponse parser(pairs_reverse_);
+            auto answer    = parser.Parse(resut);
+            bool status_op = response_lfqueue->try_enqueue(answer);
+            if (!status_op) [[unlikely]]
+                loge("my queue is full. need clean my queue");
+        };
+        
+        auto session = session_pool_->AcquireConnection();
+        logd("start send request");
+ 
+        if(auto status = session->AsyncRequest(std::move(req), cb); status == false)
+            loge("AsyncRequest wasn't sent in io_context");
+ 
+        logd("end send request");
+        session_pool_->ReleaseConnection(session);
+        using namespace std::literals::chrono_literals;
+    };
+    ~CancelOrder2() override = default;
+
+  private:
+    ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_;
+    SignerI* signer_;
+    common::TradingPairHashMap& pairs_;
+    common::TradingPairReverseHashMap pairs_reverse_;
+    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {
@@ -964,4 +1258,14 @@ class GeneratorBidAskService {
   private:
     auto Run() noexcept -> void;
 };
+
+class ConnectionPoolFactory : public ::ConnectionPoolFactory{
+public:
+    ~ConnectionPoolFactory() override = default;
+    virtual ::V2::ConnectionPool<HTTPSesionType>* Create(boost::asio::io_context& io_context,
+        https::ExchangeI* exchange, std::size_t pool_size, HTTPSesionType::Timeout timeout) override{
+          return new V2::ConnectionPool<HTTPSesionType>(io_context, exchange->Host(), exchange->Port(), pool_size, timeout);
+        };
+};
+
 };  // namespace binance

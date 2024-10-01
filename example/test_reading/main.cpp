@@ -500,14 +500,122 @@
 // }
 //-----------------------------------------------------------------------------------
 
+// /**
+//  * @brief test add and cancel order for binance without connection pool
+//  *
+//  * @param argc
+//  * @param argv
+//  * @return int
+//  */
+// int main(int argc, char** argv) {
+//     //boost::asio::io_context ioc;
+//     // std::thread t([&ioc] {
+//     //     auto work_guard = boost::asio::make_work_guard(ioc);
+        
+//     //     ioc.run();
+//     // });
+//     binance::testnet::HttpsExchange exchange;
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     config::ApiSecretKey config(argv[1]);
+
+//     auto [status_api_key, api_key] = config.ApiKey();
+//     if(!status_api_key){
+//         fmtlog::poll();
+//         return 0;
+//     }
+
+//     auto [status_secret_key, secret_key] = config.SecretKey();
+//     if(!status_secret_key)[[unlikely]]{
+//         fmtlog::poll();
+//         return 0;
+//     }
+
+//     hmac_sha256::Keys keys{api_key, secret_key};
+//     hmac_sha256::Signer signer(keys);
+//     auto type = TypeExchange::TESTNET;
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     using namespace binance;
+
+//     common::TickerHashMap tickers;
+//     tickers[1] = "usdt";
+//     tickers[2] = "btc";
+    
+//     TradingPairHashMap pairs;
+//     binance::Symbol symbol(tickers[2], tickers[1]);
+//     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+//     pairs[{2, 1}] = pair_info;
+
+//     // HTTPSSessionPool session_pools;
+//     // binance::ConnectionPoolFactory factory;
+//     // auto pool = factory.Create(ioc, &exchange, 15, HTTPSesionType::Timeout{30});
+//     // session_pools[1] = pool;
+    
+
+//     OrderNewLimit new_order(&signer, type, pairs);
+
+//     //NewOrderExecutors new_order_executors;
+//     //new_order_executors[1] = &new_order;  
+
+//     CancelOrder executor_cancel_order(&signer, type, pairs);
+
+
+
+
+
+
+
+//     using namespace Trading;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+
+//     Exchange::RequestNewOrder request_new_order;
+//     request_new_order.exchange_id = 1;
+//     request_new_order.trading_pair   = {2, 1};
+//     request_new_order.order_id = 6;
+//     request_new_order.side     = common::Side::BUY;
+//     request_new_order.price    = 4000000;
+//     request_new_order.qty      = 100;
+
+//     requests_new_order.enqueue(request_new_order);
+//     Exchange::RequestCancelOrder order_for_cancel;
+//     order_for_cancel.exchange_id = 1;
+//     order_for_cancel.trading_pair   = {2, 1};
+//     order_for_cancel.order_id = 6;
+
+//     requests_cancel_order.enqueue(order_for_cancel);
+//     OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+//                     &requests_cancel_order, &client_responses);
+//     gw.Start();
+//     while (gw.GetDownTimeInS() < 7) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              gw.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(3s);
+//     }
+
+//     Exchange::MEClientResponse response[50];
+
+//     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+//     for (int i = 0; i < count_new_order; i++) {
+//         logd("{}", response[i].ToString());
+//     }
+
+//     fmtlog::poll();
+//     return 0;
+// }
+//-----------------------------------------------------------------------------------
 /**
- * @brief test add and cancel order for binance
+ * @brief test add and cancel order for binance with connection pool
  *
  * @param argc
  * @param argv
  * @return int
  */
 int main(int argc, char** argv) {
+    boost::asio::io_context ioc;
+
+    binance::testnet::HttpsExchange exchange;
     fmtlog::setLogLevel(fmtlog::DBG);
     config::ApiSecretKey config(argv[1]);
 
@@ -533,66 +641,48 @@ int main(int argc, char** argv) {
     tickers[1] = "usdt";
     tickers[2] = "btc";
     
-    TradingPairHashMap pair;
+    TradingPairHashMap pairs;
     binance::Symbol symbol(tickers[2], tickers[1]);
     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
-    pair[{2, 1}] = pair_info;
+    pairs[{2, 1}] = pair_info;
 
-
-    binance::testnet::sp::HttpsExchange exchange;
-    using HTTPSesType = V2::HttpsSession<std::chrono::seconds>;
+    HTTPSSessionPool session_pools;
+    binance::ConnectionPoolFactory factory;
+    auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
     
-    boost::asio::io_context ioc;
-
-    std::size_t pool_size = 5;
-     std::thread t([&ioc] {
+    std::thread t([&ioc] {
         auto work_guard = boost::asio::make_work_guard(ioc);
         
         ioc.run();
+        int x = 0;
     });
-
-    V2::ConnectionPool<HTTPSesType> pool(ioc, exchange.Host(), exchange.Port(), pool_size, HTTPSesType::Timeout{30});
+    using namespace std::literals::chrono_literals;
+    std::this_thread::sleep_for(15s);
     
-    bool connected = false;
-    auto host = exchange.Host();
-    auto ggg = pool.AcquireConnection();
-    auto& session = *ggg;
-    std::thread t1([&ioc, &pool, &session, &host, &connected] {
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(5s);
-        http::request<http::string_body> req(http::verb::get, "/", 11);
+    session_pools[1] = pool;
+    
 
-        req.set(boost::beast::http::field::host, host.data());
-        req.set(boost::beast::http::field::user_agent,
-                BOOST_BEAST_VERSION_STRING);
-        /**
-         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
-         * sent as a query string or in the request body with content type
-         * application/x-www-form-urlencoded. You may mix parameters between
-         * both the query string and request body if you wish to do so.
-         *
-         */
-        req.set(boost::beast::http::field::content_type,
-                "application/x-www-form-urlencoded");
-        auto status = session.AsyncRequest(std::move(req),
-                             [&connected](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
-            const auto& resut = buffer.body();
-            logi("{}", resut);
-            //connected = true;
-        });
-        pool.ReleaseConnection(&session);
-        std::this_thread::sleep_for(5s);
-        ioc.stop();
-    });
+    OrderNewLimit2 new_order(&signer, type, pairs, pool);
 
-    OrderNewLimit new_order(&signer, type, pair);
-    CancelOrder executor_cancel_order(&signer, type, pair);
+    NewLimitOrderExecutors new_limit_order_executors;
+    new_limit_order_executors[1] = &new_order;  
+
+    CancelOrder2 executor_cancel_order(&signer, type, pairs, pool);
+
+    CancelOrderExecutors cancel_order_executors;
+    cancel_order_executors[1] = &executor_cancel_order;
+
+
+
+
+
     using namespace Trading;
     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
     Exchange::ClientResponseLFQueue client_responses;
 
     Exchange::RequestNewOrder request_new_order;
+    request_new_order.exchange_id = 1;
     request_new_order.trading_pair   = {2, 1};
     request_new_order.order_id = 6;
     request_new_order.side     = common::Side::BUY;
@@ -601,18 +691,19 @@ int main(int argc, char** argv) {
 
     requests_new_order.enqueue(request_new_order);
     Exchange::RequestCancelOrder order_for_cancel;
+    order_for_cancel.exchange_id = 1;
     order_for_cancel.trading_pair   = {2, 1};
     order_for_cancel.order_id = 6;
 
     requests_cancel_order.enqueue(order_for_cancel);
-    OrderGateway gw(&new_order, &executor_cancel_order, &requests_new_order,
+    OrderGateway2 gw(new_limit_order_executors, cancel_order_executors, &requests_new_order,
                     &requests_cancel_order, &client_responses);
     gw.Start();
-    while (gw.GetDownTimeInS() < 7) {
+    while (gw.GetDownTimeInS() < 30) {
         logd("Waiting till no activity, been silent for {} seconds...",
              gw.GetDownTimeInS());
         using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(3s);
+        std::this_thread::sleep_for(5s);
     }
 
     Exchange::MEClientResponse response[50];
@@ -621,9 +712,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < count_new_order; i++) {
         logd("{}", response[i].ToString());
     }
-    t.join();
-    t1.join();
+    ioc.stop();
     fmtlog::poll();
+    t.join();
     return 0;
 }
 //-----------------------------------------------------------------------------------

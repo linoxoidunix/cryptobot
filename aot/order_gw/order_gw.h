@@ -7,6 +7,7 @@
 #include "aot/common/macros.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/time_utils.h"
+#include "aot/Exchange.h"
 
 namespace inner {
 class OrderNewI;
@@ -75,7 +76,70 @@ class OrderGateway {
     /// checks and forward it to the lock free queue connected to the trade
     /// engine.
 };
-}  // namespace Trading
+
+class OrderGateway2 {
+  public:
+    OrderGateway2(NewLimitOrderExecutors& executor_new_limit_orders,
+                 CancelOrderExecutors& executor_canceled_orders,
+                 Exchange::RequestNewLimitOrderLFQueue *requests_new_order,
+                 Exchange::RequestCancelOrderLFQueue *requests_cancel_order,
+                 Exchange::ClientResponseLFQueue *client_responses);
+
+    ~OrderGateway2() {
+        Stop();
+
+        using namespace std::literals::chrono_literals;
+        std::this_thread::sleep_for(1s);
+        if (thread_) [[likely]]
+            thread_->join();
+    }
+
+    /// Start and stop the order gateway main thread.
+    auto Start() {
+        run_    = true;
+        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
+            -1, "Trading/OrderGateway", [this]() { Run(); }));
+        ASSERT(thread_ != nullptr, "Failed to start OrderGateway thread.");
+    }
+    common::Delta GetDownTimeInS() { return time_manager_.GetDeltaInS(); }
+    auto Stop() -> void { run_ = false; }
+
+    /// Deleted default, copy & move constructors and assignment-operators.
+    OrderGateway2()                                 = delete;
+
+    OrderGateway2(const OrderGateway2 &)             = delete;
+
+    OrderGateway2(const OrderGateway2 &&)            = delete;
+
+    OrderGateway2 &operator=(const OrderGateway2 &)  = delete;
+
+    OrderGateway2 &operator=(const OrderGateway2 &&) = delete;
+
+  private:
+    NewLimitOrderExecutors& executor_new_limit_orders_;
+    CancelOrderExecutors& executor_canceled_orders_;
+
+    /// Lock free queue on which we consume client requests from the trade
+    /// engine and forward them to the exchange's order server.
+    Exchange::RequestNewLimitOrderLFQueue *requests_new_order_  = nullptr;
+    Exchange::RequestCancelOrderLFQueue *requests_cancel_order_ = nullptr;
+    Exchange::ClientResponseLFQueue *incoming_responses_        = nullptr;
+
+    volatile bool run_                                          = false;
+
+  private:
+    std::unique_ptr<std::thread> thread_;
+    /// Main thread loop - sends out client requests to the exchange and reads
+    /// and dispatches incoming client responses.
+    auto Run() noexcept -> void;
+    common::TimeManager time_manager_;
+
+    /// Callback when an incoming client response is read, we perform some
+    /// checks and forward it to the lock free queue connected to the trade
+    /// engine.
+};
+
+};  // namespace Trading
 
 namespace backtesting {
 class OrderGateway {
@@ -133,4 +197,5 @@ class OrderGateway {
     common::TimeManager time_manager_;
 
 };
-}  // namespace backtesting
+};  // namespace backtesting
+

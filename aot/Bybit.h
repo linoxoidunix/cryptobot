@@ -328,7 +328,6 @@ class FactoryRequest {
         req.set(boost::beast::http::field::content_type, "application/json");
         req.body() = args_.Body();
         req.prepare_payload();
-        std::cout << req << "\n";
         return req;
     };
 

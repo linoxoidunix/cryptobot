@@ -5,16 +5,19 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/beast/http.hpp>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+
+#include "concurrentqueue.h"
 
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/types.h"
+#include "aot/Https.h"
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
@@ -328,3 +331,15 @@ class BookSnapshotI {
 };
 
 };  // namespace inner
+
+using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
+using HTTPSSessionPool = std::unordered_map<common::ExchangeId, V2::ConnectionPool<HTTPSesionType>*>;
+using NewLimitOrderExecutors = std::unordered_map<common::ExchangeId, inner::OrderNewI*>;
+using CancelOrderExecutors = std::unordered_map<common::ExchangeId, inner::CancelOrderI*>;
+
+class ConnectionPoolFactory {
+public:
+    virtual ~ConnectionPoolFactory() = default;
+    virtual V2::ConnectionPool<HTTPSesionType>* Create(boost::asio::io_context& io_context,
+        https::ExchangeI*, std::size_t pool_size, HTTPSesionType::Timeout timeout)  = 0;
+};
