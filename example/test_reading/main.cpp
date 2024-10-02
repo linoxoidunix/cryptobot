@@ -636,16 +636,30 @@ int main(int argc, char** argv) {
     hmac_sha256::Signer signer(keys);
     auto type = TypeExchange::TESTNET;
     fmtlog::setLogLevel(fmtlog::DBG);
+    ExchangeTPs exchange_trading_pairs;
+    ExchangeTPsJR exchange_trading_pairs_reverse;
+    
     using namespace binance;
 
     common::TickerHashMap tickers;
     tickers[1] = "usdt";
     tickers[2] = "btc";
-    
+    SymbolLowerCase to_lower(tickers[2], tickers[1]);
+    SymbolUpperCase to_upper(tickers[2], tickers[1]);
+
     TradingPairHashMap pairs;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+
+    TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = to_upper.ToString(),
+        .https_query_request = to_upper.ToString(),
+        .ws_query_request = to_lower.ToString(),
+        .https_query_response = to_upper.ToString()
+        };
     pairs[{2, 1}] = pair_info;
+    exchange_trading_pairs[1] = pairs;
+    exchange_trading_pairs_reverse[1] = common::InitTPsJR(pairs);
 
     HTTPSSessionPool session_pools;
     binance::ConnectionPoolFactory factory;
@@ -663,12 +677,12 @@ int main(int argc, char** argv) {
     session_pools[1] = pool;
     
 
-    OrderNewLimit2 new_order(&signer, type, pairs, pool);
+    OrderNewLimit2 new_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
 
     NewLimitOrderExecutors new_limit_order_executors;
     new_limit_order_executors[1] = &new_order;  
 
-    CancelOrder2 executor_cancel_order(&signer, type, pairs, pool);
+    CancelOrder2 executor_cancel_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
 
     CancelOrderExecutors cancel_order_executors;
     cancel_order_executors[1] = &executor_cancel_order;

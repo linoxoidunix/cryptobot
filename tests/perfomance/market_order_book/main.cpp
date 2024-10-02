@@ -60,8 +60,14 @@ BENCHMARK_DEFINE_F(FixtureMarketOrderBook, TestMarketOrderBook)(benchmark::State
     tickers[2] = "btc";
     
     common::TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    common::TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
     backtesting::MarketOrderBook book(common::TradingPair{2,1}, pair);
     for (auto _ : st) {

@@ -175,22 +175,22 @@ enum class Type {
     TAKE_PROFIT_LIMIT,
     LIMIT_MAKER
 };
-class Symbol : public SymbolI {
-  public:
-    explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()),
-          second_(second.data()),
-          ticker_(fmt::format("{0}{1}", first_, second_)) {
-        boost::algorithm::to_upper(ticker_);
-    };
-    std::string_view ToString() const override { return ticker_; };
-    ~Symbol() override = default;
+// class Symbol : public SymbolI {
+//   public:
+//     explicit Symbol(std::string_view first, std::string_view second)
+//         : first_(first.data()),
+//           second_(second.data()),
+//           ticker_(fmt::format("{0}{1}", first_, second_)) {
+//         boost::algorithm::to_upper(ticker_);
+//     };
+//     std::string_view ToString() const override { return ticker_; };
+//     ~Symbol() override = default;
 
-  private:
-    std::string first_;
-    std::string second_;
-    std::string ticker_;
-};
+//   private:
+//     std::string first_;
+//     std::string second_;
+//     std::string ticker_;
+// };
 class s1 : public ChartInterval {
   public:
     explicit s1() = default;
@@ -327,9 +327,7 @@ class DiffDepthStream : public DiffDepthStreamI {
                              const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-        std::string h = symbol_.trading_pairs;
-        boost::algorithm::to_lower(h);
-        return fmt::format("{0}@depth@{1}", h, interval_->ToString());
+        return fmt::format("{0}@depth@{1}", symbol_.ws_query_request, interval_->ToString());
     };
 
   private:
@@ -375,7 +373,7 @@ class OHLCVI : public OHLCVGetter {
         };
         assert(false);
         using kls = KLineStream;
-        kls channel(map_[pair_].trading_pairs, chart_interval_);
+        kls channel(map_[pair_].ws_query_request, chart_interval_);
         std::string empty_request = "{}";
         std::make_shared<WS>(ioc, empty_request, OnMessageCB)
             ->Run(current_exchange_->Host(), current_exchange_->Port(),
@@ -386,7 +384,6 @@ class OHLCVI : public OHLCVGetter {
     boost::asio::io_context ioc;
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_ = nullptr;
-    const Symbol* s_;
     const ChartInterval* chart_interval_;
     TypeExchange type_exchange_;
     common::TradingPairReverseHashMap pairs_reverse_;
@@ -575,11 +572,7 @@ class OrderNewLimit : public inner::OrderNewI {
                            common::TradingPairHashMap& pairs,
                            common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            if (!pairs_reverse.count(
-                    pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
-                pairs_reverse[pairs[new_order->trading_pair].trading_pairs] =
-                    new_order->trading_pair;
-            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
+            SetSymbol(pairs[new_order->trading_pair].https_query_request);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             auto qty_prec =
@@ -724,7 +717,8 @@ class OrderNewLimit2 : public inner::OrderNewI {
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
-            : pairs_(pairs), pairs_reverse_(pairs_reverse) {};
+            : pairs_(pairs),
+             pairs_reverse_(pairs_reverse){};
         Exchange::MEClientResponse Parse(std::string_view response);
 
       private:
@@ -735,14 +729,9 @@ class OrderNewLimit2 : public inner::OrderNewI {
       public:
         using SymbolType = std::string_view;
         explicit ArgsOrder(const Exchange::RequestNewOrder* new_order,
-                           common::TradingPairHashMap& pairs,
-                           common::TradingPairReverseHashMap& pairs_reverse)
+                           common::TradingPairHashMap& pairs)
             : ArgsQuery() {
-            if (!pairs_reverse.count(
-                    pairs[new_order->trading_pair].trading_pairs)) [[unlikely]]
-                pairs_reverse[pairs[new_order->trading_pair].trading_pairs] =
-                    new_order->trading_pair;
-            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
+            SetSymbol(pairs[new_order->trading_pair].https_query_request);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             auto qty_prec =
@@ -833,10 +822,12 @@ class OrderNewLimit2 : public inner::OrderNewI {
   public:
     explicit OrderNewLimit2(SignerI* signer, TypeExchange type,
                            common::TradingPairHashMap& pairs,
+                           common::TradingPairReverseHashMap& pairs_reverse,
                             ::V2::ConnectionPool<HTTPSesionType>* session_pool)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs),
+          pairs_reverse_(pairs_reverse),
           session_pool_(session_pool) {};
     void Exec(Exchange::RequestNewOrder* new_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
@@ -849,7 +840,7 @@ class OrderNewLimit2 : public inner::OrderNewI {
           return;
         }
         logd("start exec");
-        ArgsOrder args(new_order, pairs_, pairs_reverse_);
+        ArgsOrder args(new_order, pairs_);
 
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
@@ -889,8 +880,10 @@ class OrderNewLimit2 : public inner::OrderNewI {
     ExchangeChooser exchange_;
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
+    //pass pairs_ without const due to i want [] operator
     common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap pairs_reverse_;
+    //pass pairs_reverse_ without const due to i want [] operator
+    common::TradingPairReverseHashMap& pairs_reverse_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
 };
 
@@ -921,12 +914,7 @@ class CancelOrder : public inner::CancelOrderI {
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
             : ArgsQuery() {
-            if (!pairs_reverse.count(
-                    pairs[request_cancel_order->trading_pair].trading_pairs))
-                pairs_reverse[pairs[request_cancel_order->trading_pair]
-                                  .trading_pairs] =
-                    request_cancel_order->trading_pair;
-            SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
+            SetSymbol(pairs[request_cancel_order->trading_pair].https_query_request);
             SetOrderId(request_cancel_order->order_id);
         };
 
@@ -1013,15 +1001,9 @@ class CancelOrder2 : public inner::CancelOrderI {
         };
         explicit ArgsOrder(
             const Exchange::RequestCancelOrder* request_cancel_order,
-            common::TradingPairHashMap& pairs,
-            common::TradingPairReverseHashMap& pairs_reverse)
+            common::TradingPairHashMap& pairs)
             : ArgsQuery() {
-            if (!pairs_reverse.count(
-                    pairs[request_cancel_order->trading_pair].trading_pairs))
-                pairs_reverse[pairs[request_cancel_order->trading_pair]
-                                  .trading_pairs] =
-                    request_cancel_order->trading_pair;
-            SetSymbol(pairs[request_cancel_order->trading_pair].trading_pairs);
+            SetSymbol(pairs[request_cancel_order->trading_pair].https_query_request);
             SetOrderId(request_cancel_order->order_id);
         };
 
@@ -1041,11 +1023,13 @@ class CancelOrder2 : public inner::CancelOrderI {
 
   public:
     explicit CancelOrder2(SignerI* signer, TypeExchange type,
-                         common::TradingPairHashMap& pairs, 
+                         common::TradingPairHashMap& pairs,
+                         common::TradingPairReverseHashMap& pairs_reverse, 
                          ::V2::ConnectionPool<HTTPSesionType>* session_pool)
         : current_exchange_(exchange_.Get(type)),
           signer_(signer),
           pairs_(pairs),
+          pairs_reverse_(pairs_reverse),
           session_pool_(session_pool) {};
     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
               Exchange::ClientResponseLFQueue* response_lfqueue) override {
@@ -1058,7 +1042,7 @@ class CancelOrder2 : public inner::CancelOrderI {
           return;
         }
         logd("start exec");
-        ArgsOrder args(request_cancel_order, pairs_, pairs_reverse_);
+        ArgsOrder args(request_cancel_order, pairs_);
         bool need_sign = true;
         detail::FactoryRequest factory{current_exchange_,
                                        CancelOrder2::end_point,
@@ -1099,7 +1083,7 @@ class CancelOrder2 : public inner::CancelOrderI {
     https::ExchangeI* current_exchange_;
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap pairs_reverse_;
+    common::TradingPairReverseHashMap& pairs_reverse_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
 };
 
@@ -1266,5 +1250,4 @@ public:
           return new V2::ConnectionPool<HTTPSesionType>(io_context, exchange->Host(), exchange->Port(), pool_size, timeout);
         };
 };
-
 };  // namespace binance

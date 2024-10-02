@@ -15,10 +15,16 @@ protected:
         tickers[1] = "usdt";
         tickers[2] = "btc";
         
-        binance::Symbol symbol(tickers[2], tickers[1]);
-        common::TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+        common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
         pairs_[{2, 1}] = pair_info;
-        pairs_reverse_[pair_info.trading_pairs] = common::TradingPair{2,1}; 
+        pairs_reverse_[pair_info.https_json_request] = common::TradingPair{2,1}; 
     }
 
     void TearDown() override {
