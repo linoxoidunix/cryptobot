@@ -15,7 +15,10 @@ TEST(TradingPairInfo, Access_1) {
     tickers[2] = "usdt";
 
     TradingPairHashMap pair;
-    TradingPairInfo pair_info{"BTCUSDT", 2, 5};
+    TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_query_request = "BTCUSDT"};
     pair[{1, 2}] = pair_info;
 
     EXPECT_EQ(2, (pair[{1, 2}].price_precission));
@@ -29,7 +32,10 @@ TEST(TradingPairInfo, Access_2) {
     tickers[2] = "usdt";
 
     TradingPairHashMap pair;
-    TradingPairInfo pair_info{"BTCUSDT", 2, 5};
+    TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_query_request = "BTCUSDT"};
     pair[{1, 2}] = pair_info;
     auto trading_pair = TradingPair{1,2};
     EXPECT_EQ(2, (pair[trading_pair].price_precission));
@@ -43,13 +49,15 @@ TEST(TradingPairInfo, Access_3_bybit) {
     tickers[2] = "usdt";
 
     TradingPairHashMap pair;
-    bybit::Symbol symbol("btc", "usdt");
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_query_request = "BTCUSDT"};
     pair[{1, 2}] = pair_info;
     auto trading_pair = TradingPair{1,2};
     EXPECT_EQ(2, (pair[trading_pair].price_precission));
     EXPECT_EQ(5, (pair[trading_pair].qty_precission));
-    EXPECT_EQ("BTCUSDT", (pair[trading_pair].trading_pairs));
+    EXPECT_EQ("BTCUSDT", (pair[trading_pair].https_query_request));
 }
 
 TEST(TradingPairInfo, Access_4_binance) {
@@ -59,13 +67,16 @@ TEST(TradingPairInfo, Access_4_binance) {
     tickers[2] = "usdt";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol("btc", "usdt");
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    
+     TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_query_request = "BTCUSDT"};
     pair[{1, 2}] = pair_info;
     auto trading_pair = TradingPair{1,2};
     EXPECT_EQ(2, (pair[trading_pair].price_precission));
     EXPECT_EQ(5, (pair[trading_pair].qty_precission));
-    EXPECT_EQ("BTCUSDT", (pair[trading_pair].trading_pairs));
+    EXPECT_EQ("BTCUSDT", (pair[trading_pair].https_query_request));
 }
 
 TEST(TradingPairReverseHashMap, compare_with_string_view) {
@@ -75,11 +86,13 @@ TEST(TradingPairReverseHashMap, compare_with_string_view) {
     tickers[2] = "usdt";
     TradingPair tr_pair{1, 2};
     TradingPairHashMap pair;
-    binance::Symbol symbol("btc", "usdt");
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+        TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_query_request = "BTCUSDT"};
     pair[{1, 2}] = pair_info;
-    TradingPairReverseHashMap pair_reverse;
-    pair_reverse[std::string(symbol.ToString())] = tr_pair;
+    TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pair);
+    pair_reverse["BTCUSDT"] = tr_pair;
     std::string_view s_v= "BTCUSDT";
     EXPECT_EQ(tr_pair, (pair_reverse.find(s_v)->second));
 }

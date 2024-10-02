@@ -5,15 +5,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/beast/http.hpp>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
+#include "aot/Https.h"
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"
 
 enum class TypeExchange { TESTNET, MAINNET };
@@ -26,6 +28,22 @@ class ExchangeI {
     virtual std::string_view Host() const    = 0;
     virtual std::string_view Port() const    = 0;
     virtual std::uint64_t RecvWindow() const = 0;
+};
+
+namespace sp {
+template <typename Derived>
+class ExchangeB {
+  public:
+    std::string_view Host() const {
+        return static_cast<const Derived *>(this)->HostImpl();
+    }
+    std::string_view Port() const {
+        return static_cast<const Derived *>(this)->PortImpl();
+    }
+    std::uint64_t RecvWindow() const {
+        return static_cast<const Derived *>(this)->RecvWindowImpl();
+    }
+};
 };
 };  // namespace https
 
@@ -42,17 +60,15 @@ class CurrentTime {
 class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
-    virtual std::string ApiKey()                    = 0;
+    virtual std::string_view ApiKey()               = 0;
     virtual ~SignerI()                              = default;
 };
 namespace hmac_sha256 {
 struct Keys {
-    std::string api_key;
-    std::string secret_key;
-    Keys(std::string _api_key, std::string _secret_key) {
-        api_key    = _api_key;
-        secret_key = _secret_key;
-    };
+    std::string_view api_key;
+    std::string_view secret_key;
+    Keys(std::string_view _api_key, std::string_view _secret_key)
+        : api_key(_api_key), secret_key(_secret_key) {};
 };
 class Signer : public SignerI {
   public:
@@ -72,13 +88,13 @@ class Signer : public SignerI {
         std::uint32_t dilen{};
 
         auto p =
-            ::HMAC(::EVP_sha256(), secret_key_.c_str(), secret_key_.length(),
+            ::HMAC(::EVP_sha256(), secret_key_.data(), secret_key_.length(),
                    (std::uint8_t *)data.data(), data.size(), digest, &dilen);
         assert(p);
 
         return B2aHex(digest, dilen);
     };
-    std::string ApiKey() override { return api_key_; }
+    std::string_view ApiKey() override { return api_key_; }
 
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
@@ -96,8 +112,8 @@ class Signer : public SignerI {
     };
 
   private:
-    std::string secret_key_;
-    std::string api_key_;
+    std::string_view secret_key_;
+    std::string_view api_key_;
 };
 };  // namespace hmac_sha256
 struct TickerInfo {
@@ -144,8 +160,9 @@ struct OHLCVExt {
     Interval interval;
     common::TradingPair trading_pair;
     std::string ToString() const {
-        return fmt::format("{} o:{} h:{} l:{} c:{} v:{}", trading_pair.ToString(), ohlcv.open,
-                           ohlcv.high, ohlcv.low, ohlcv.close, ohlcv.volume);
+        return fmt::format("{} o:{} h:{} l:{} c:{} v:{}",
+                           trading_pair.ToString(), ohlcv.open, ohlcv.high,
+                           ohlcv.low, ohlcv.close, ohlcv.volume);
     }
 };
 using OHLCVILFQueue = moodycamel::ConcurrentQueue<OHLCVExt>;
@@ -231,8 +248,8 @@ class DiffDepthStreamI {
  */
 class SymbolI {
   public:
-    virtual std::string_view ToString() const = 0;
-    virtual ~SymbolI()                        = default;
+    virtual std::string ToString() const = 0;
+    virtual ~SymbolI()                   = default;
 };
 
 class SymbolUpperCase : public SymbolI {
@@ -242,7 +259,7 @@ class SymbolUpperCase : public SymbolI {
         ticker_ = fmt::format("{0}{1}", first_, second_);
         boost::algorithm::to_upper(ticker_);
     };
-    std::string_view ToString() const override { return ticker_; };
+    std::string ToString() const override { return ticker_; };
     ~SymbolUpperCase() override = default;
 
   private:
@@ -259,7 +276,7 @@ class SymbolLowerCase : public SymbolI {
         boost::algorithm::to_lower(ticker_);
     };
     explicit SymbolLowerCase(std::string_view first) : first_(first.data()) {};
-    std::string_view ToString() const override { return ticker_; };
+    std::string ToString() const override { return ticker_; };
     ~SymbolLowerCase() override = default;
 
   private:
@@ -321,3 +338,20 @@ class BookSnapshotI {
 };
 
 };  // namespace inner
+
+using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
+using HTTPSSessionPool =
+    std::unordered_map<common::ExchangeId,
+                       V2::ConnectionPool<HTTPSesionType> *>;
+using NewLimitOrderExecutors =
+    std::unordered_map<common::ExchangeId, inner::OrderNewI *>;
+using CancelOrderExecutors =
+    std::unordered_map<common::ExchangeId, inner::CancelOrderI *>;
+
+class ConnectionPoolFactory {
+  public:
+    virtual ~ConnectionPoolFactory() = default;
+    virtual V2::ConnectionPool<HTTPSesionType> *Create(
+        boost::asio::io_context &io_context, https::ExchangeI *,
+        std::size_t pool_size, HTTPSesionType::Timeout timeout) = 0;
+};

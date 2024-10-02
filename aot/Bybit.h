@@ -105,21 +105,21 @@ class ExchangeChooser {
     bybit::mainnet::HttpsExchange main_net_;
 };
 
-class Symbol : public SymbolI {
-  public:
-    explicit Symbol(std::string_view first, std::string_view second)
-        : first_(first.data()), second_(second.data()), ticker_(fmt::format("{0}{1}", first_, second_)){
-            boost::algorithm::to_upper(ticker_);
-        };
-    std::string_view ToString() const override {
-        return ticker_;
-    }
+// class Symbol : public SymbolI {
+//   public:
+//     explicit Symbol(std::string_view first, std::string_view second)
+//         : first_(first.data()), second_(second.data()), ticker_(fmt::format("{0}{1}", first_, second_)){
+//             boost::algorithm::to_upper(ticker_);
+//         };
+//     std::string_view ToString() const override {
+//         return ticker_;
+//     }
 
-  private:
-    std::string first_;
-    std::string second_;
-    std::string ticker_;
-};
+//   private:
+//     std::string first_;
+//     std::string second_;
+//     std::string ticker_;
+// };
 class m1 : public ChartInterval {
   public:
     explicit m1() = default;
@@ -195,15 +195,15 @@ class M1 : public ChartInterval {
 
 class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(const Symbol* s, const ChartInterval* chart_interval)
-        : symbol_(s), chart_interval_(chart_interval){};
+    explicit KLineStream(std::string_view trading_pair, const ChartInterval* chart_interval)
+        : trading_pair_(trading_pair), chart_interval_(chart_interval){};
     std::string ToString() const override {
-        return fmt::format("kline.{0}.{1}", chart_interval_->ToString(),
-                           symbol_->ToString());
+        return fmt::format("kline.{0}.{1}", trading_pair_,
+                           chart_interval_->ToString());
     };
-
+  ~KLineStream() override = default;
   private:
-    const Symbol* symbol_;
+    std::string_view trading_pair_;
     const ChartInterval* chart_interval_;
 };
 
@@ -215,43 +215,43 @@ class ParserKLineResponse : public ParserKLineResponseI {
     };
 };
 
-class OHLCVI : public OHLCVGetter {
-  public:
-    OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
-           TypeExchange type_exchange)
-        : s_(s),
-          chart_interval_(chart_interval),
-          type_exchange_(type_exchange) {
-        current_exchange_ = exchange_.Get(type_exchange);
-    };
-    bool LaunchOne() override { ioc.run_one();return true; };
+// class OHLCVI : public OHLCVGetter {
+//   public:
+//     OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
+//            TypeExchange type_exchange)
+//         : s_(s),
+//           chart_interval_(chart_interval),
+//           type_exchange_(type_exchange) {
+//         current_exchange_ = exchange_.Get(type_exchange);
+//     };
+//     bool LaunchOne() override { ioc.run_one();return true; };
 
-    void Init(OHLCVILFQueue& lf_queue) override {
-        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [](boost::beast::flat_buffer& buffer) {
-            auto resut = boost::beast::buffers_to_string(buffer.data());
-            logi("{}", resut);
-        };
+//     void Init(OHLCVILFQueue& lf_queue) override {
+//         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
+//         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+//             auto resut = boost::beast::buffers_to_string(buffer.data());
+//             logi("{}", resut);
+//         };
 
-        using kls = KLineStream;
-        kls channel(s_, chart_interval_);
-        auto request_without_bracket = fmt::format(
-            "\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]",
-            channel.ToString());
-        std::string request = "{" + request_without_bracket + "}";
-        std::make_shared<WS>(ioc, request, OnMessageCB)
-            ->Run("stream-testnet.bybit.com", "443", "/v5/public/spot");
-        ioc.run();
-    };
+//         using kls = KLineStream;
+//         kls channel(s_, chart_interval_);
+//         auto request_without_bracket = fmt::format(
+//             "\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]",
+//             channel.ToString());
+//         std::string request = "{" + request_without_bracket + "}";
+//         std::make_shared<WS>(ioc, request, OnMessageCB)
+//             ->Run("stream-testnet.bybit.com", "443", "/v5/public/spot");
+//         ioc.run();
+//     };
 
-  private:
-    boost::asio::io_context ioc;
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_ = nullptr;
-    const Symbol* s_;
-    const ChartInterval* chart_interval_;
-    TypeExchange type_exchange_;
-};
+//   private:
+//     boost::asio::io_context ioc;
+//     ExchangeChooser exchange_;
+//     https::ExchangeI* current_exchange_ = nullptr;
+//     const Symbol* s_;
+//     const ChartInterval* chart_interval_;
+//     TypeExchange type_exchange_;
+// };
 
 class Args : public std::unordered_map<std::string, std::string> {};
 class ArgsBody : public Args {
@@ -314,7 +314,7 @@ class FactoryRequest {
          * header.
          *
          */
-        req.insert("X-BAPI-API-KEY", signer_->ApiKey());
+        req.insert("X-BAPI-API-KEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -328,7 +328,6 @@ class FactoryRequest {
         req.set(boost::beast::http::field::content_type, "application/json");
         req.body() = args_.Body();
         req.prepare_payload();
-        std::cout << req << "\n";
         return req;
     };
 
@@ -411,7 +410,7 @@ class OrderNewLimit : public inner::OrderNewI {
         };
         explicit ArgsOrder(Exchange::RequestNewOrder* new_order, common::TradingPairHashMap& pairs) : ArgsBody() {
             storage["category"] = "spot";
-            SetSymbol(pairs[new_order->trading_pair].trading_pairs);
+            SetSymbol(pairs[new_order->trading_pair].https_query_request);
             SetSide(new_order->side);
             SetType(Type::LIMIT);
             SetQuantity(new_order->qty);

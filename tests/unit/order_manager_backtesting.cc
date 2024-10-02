@@ -23,8 +23,14 @@ class OrdermanagerBacktestingTest : public testing::Test {
           order_manager_(&trade_engine_) {
         tickers_[1] = "usdt";
         tickers_[2] = "btc";
-        binance::Symbol symbol(tickers_[2], tickers_[1]);
-        TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+        common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
         pair_[{2, 1}] = pair_info;
         order_manager_.NewOrder(1, common::TradingPair{2, 1}, 3300,
                                 common::Side::BUY, 700000);

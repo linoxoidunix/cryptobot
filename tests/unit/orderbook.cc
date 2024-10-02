@@ -13,8 +13,14 @@ TEST(MarketOrderBookBacktesting, INSERT_EVENT) {
     tickers[2] = "btc";
     
     common::TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    common::TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
     MarketOrderBook book(common::TradingPair{2,1}, pair);
     Exchange::MEMarketUpdate market_update;
@@ -35,8 +41,14 @@ TEST(MarketOrderBookBacktesting, UPDATE_BBO) {
     tickers[2] = "btc";
     
     common::TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    common::TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
     MarketOrderBook book(common::TradingPair{2,1}, pair);
     Exchange::MEMarketUpdate market_update;
@@ -59,8 +71,14 @@ TEST(OrderBookService, Launch) {
     common::TickerHashMap tickers;
     tickers[1] = "usdt";
     tickers[2] = "btc";
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    common::TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
     Exchange::MEMarketUpdate market_update;
     market_update.price = 7;
@@ -95,8 +113,14 @@ TEST(OrderBook, ShouldNotSendMessagesIfUpdateBidAndUpdateAskAreFalse) {
     tickers[2] = "btc";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
 
     LFQueue orderbook_tradeengine_channel;
@@ -129,8 +153,14 @@ TEST(OrderBook, ShouldAllocateMemoryFromBAUPoolAndSendAskUpdateMessageToOrderboo
     tickers[2] = "btc";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
 
     LFQueue orderbook_tradeengine_channel;
@@ -179,8 +209,14 @@ TEST(OrderBook, ShouldAllocateMemoryFromBBUPoolAndSendBidUpdateMessageToOrderboo
     tickers[2] = "btc";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
 
     LFQueue orderbook_tradeengine_channel;
@@ -229,8 +265,14 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     tickers[2] = "btc";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
 
     LFQueue orderbook_tradeengine_channel;
@@ -263,8 +305,14 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     tickers[2] = "btc";
 
     TradingPairHashMap pair;
-    binance::Symbol symbol(tickers[2], tickers[1]);
-    TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
+    common::TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = "BTCUSDT",
+        .https_query_request = "BTCUSDT",
+        .ws_query_request = "btcusdt",
+        .https_query_response = "BTCUSDT"
+        };
     pair[{2, 1}] = pair_info;
 
     LFQueue orderbook_tradeengine_channel;

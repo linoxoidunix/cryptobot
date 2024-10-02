@@ -266,9 +266,30 @@ struct TradingPair {
 };
 
 struct TradingPairInfo {
-    common::TradingPairS trading_pairs;
+    //common::TradingPairS trading_pairs;
     uint8_t price_precission;
     uint8_t qty_precission;
+    /**
+     * @brief if you want pass trading pair to https request with query
+     * 
+     */
+    common::TradingPairS https_json_request;
+    /**
+     * @brief if you want pass trading pair to https request with query
+     * 
+     */
+    common::TradingPairS https_query_request;
+    /**
+     * @brief if you want pass trading pair to ws request with query
+     * 
+    */
+    common::TradingPairS ws_query_request;
+    /**
+     * @brief if you want parse trading pair in https response in json
+     * 
+    */
+    common::TradingPairS https_query_response;
+
 };
 
 struct TradingPairHash {
@@ -295,9 +316,26 @@ struct TradingPairEqual {
 
 using TradingPairHashMap = emhash7::HashMap<TradingPair, TradingPairInfo,
                                             TradingPairHash, TradingPairEqual>;
+
+/**
+ * @brief ExchangeTPs = Exchange Trading PairS
+ * 
+ */
+using ExchangeTPs = std::unordered_map<common::ExchangeId, TradingPairHashMap>;
+
 using TradingPairReverseHashMap =
     emhash7::HashMap<common::TickerS, common::TradingPair, StringHash,
                      StringEqual>;
+
+common::TradingPairReverseHashMap InitTPsJR(const common::TradingPairHashMap &pairs);
+
+
+/**
+ * @brief ExchangeTPsR = Exchange Trading PairS Json Reverse used for finding common::TradingPair by std::string
+ * 
+ */
+using ExchangeTPsJR = std::unordered_map<common::ExchangeId, TradingPairReverseHashMap>;
+
 using TickerHashMap = emhash7::HashMap<common::TickerId, common::TickerS>;
 using TradeEngineCfgHashMap =
     emhash7::HashMap<common::TradingPair, common::TradeEngineCfg,
