@@ -617,6 +617,7 @@ int main(int argc, char** argv) {
 
     binance::testnet::HttpsExchange exchange;
     fmtlog::setLogLevel(fmtlog::DBG);
+    fmtlog::setLogFile("888.txt");
     config::ApiSecretKey config(argv[1]);
 
     auto [status_api_key, api_key] = config.ApiKey();
@@ -656,8 +657,8 @@ int main(int argc, char** argv) {
         ioc.run();
         int x = 0;
     });
-    using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(15s);
+    //using namespace std::literals::chrono_literals;
+    //std::this_thread::sleep_for(15s);
     
     session_pools[1] = pool;
     

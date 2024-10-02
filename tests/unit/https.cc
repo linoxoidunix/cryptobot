@@ -101,6 +101,11 @@ protected:
 };
 
 TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
     fmtlog::setLogLevel(fmtlog::DBG);
     std::string_view host = "testnet.binance.vision";
     std::string_view port = "443";
@@ -115,12 +120,6 @@ TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
     // Start the connection process
 
     // Run the io_context to process async operations
-    std::thread t([this] {
-        auto work_guard = boost::asio::make_work_guard(ioc);
-        
-        ioc.run();
-    });
-
     std::thread t1([this, &session, &host, &connected] {
         using namespace std::literals::chrono_literals;
         std::this_thread::sleep_for(5s);
@@ -145,7 +144,7 @@ TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
             connected = true;
         });
         EXPECT_NE(status, false);
-        pool.ReleaseConnection(&session);
+        //pool.ReleaseConnection(&session);
         std::this_thread::sleep_for(5s);
         ioc.stop();
     });
@@ -159,6 +158,11 @@ TEST_F(ConnectionPoolTest, ConnectToBinanceWithConnectionPool) {
 }
 
 TEST_F(ConnectionPoolTest, CheckThatSessionPoolReturnActiveSessionEvenPreviousSessionWasExpired) {
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
     fmtlog::setLogLevel(fmtlog::DBG);
     std::string_view host = "testnet.binance.vision";
     std::string_view port = "443";
@@ -173,15 +177,11 @@ TEST_F(ConnectionPoolTest, CheckThatSessionPoolReturnActiveSessionEvenPreviousSe
     // Start the connection process
 
     // Run the io_context to process async operations
-    std::thread t([this] {
-        auto work_guard = boost::asio::make_work_guard(ioc);
-        
-        ioc.run();
-    });
+
     
     using namespace std::literals::chrono_literals;
     std::this_thread::sleep_for(31s);
-    pool.ReleaseConnection(session_);
+    //pool.ReleaseConnection(session_);
 
     std::thread t1([this, &session, &host, &connected] {
         using namespace std::literals::chrono_literals;
@@ -221,21 +221,13 @@ TEST_F(ConnectionPoolTest, CheckThatSessionPoolReturnActiveSessionEvenPreviousSe
 }
 
 // Test that connections can be acquired from the pool
-TEST_F(ConnectionPoolTest, AcquireConnection) {
-    auto session = pool.AcquireConnection();
-    EXPECT_NE(session, nullptr);
-    pool.ReleaseConnection(session);
-}
-
-// Test that connections can be released back to the pool
-TEST_F(ConnectionPoolTest, ReleaseConnection) {
-    auto session = pool.AcquireConnection();
-    EXPECT_NE(session, nullptr);
-    pool.ReleaseConnection(session); // Release it back
-}
-
 //Test acquiring multiple connections from the pool
 TEST_F(ConnectionPoolTest, MultipleConnections) {
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
     std::vector<HTTPSes*> sessions;
 
     for (std::size_t i = 0; i < pool_size; ++i) {
@@ -248,19 +240,18 @@ TEST_F(ConnectionPoolTest, MultipleConnections) {
     EXPECT_NE(pool.AcquireConnection(), nullptr); 
 
     // Release all sessions back to the pool
-    for (auto session : sessions) {
-        pool.ReleaseConnection(session);
-    }
-}
-
-// Test if the pool can handle releasing a connection that was never acquired
-TEST_F(ConnectionPoolTest, ReleaseUnacquiredConnection) {
-    HTTPSes* session = nullptr; // Simulate an unacquired session
-    EXPECT_NO_THROW(pool.ReleaseConnection(session)); // Should not throw
+    ioc.stop();
+    t.join();
 }
 
 // Test if the pool can handle exceeding the limit of connections
 TEST_F(ConnectionPoolTest, ExceedConnectionLimit) {
+    std::thread t([this] {
+        auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
+
     std::vector<HTTPSes*> sessions;
 
     // Acquire connections up to the limit
@@ -274,9 +265,11 @@ TEST_F(ConnectionPoolTest, ExceedConnectionLimit) {
     EXPECT_NE(pool.AcquireConnection(), nullptr); // Should return nullptr
 
     // Release all sessions back to the pool
-    for (auto session : sessions) {
-        pool.ReleaseConnection(session);
-    }
+    // for (auto session : sessions) {
+    //     pool.ReleaseConnection(session);
+    // }
+    ioc.stop();
+    t.join();
 }
 
 // Main function to run the tests

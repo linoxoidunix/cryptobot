@@ -858,9 +858,9 @@ class OrderNewLimit2 : public inner::OrderNewI {
                                        boost::beast::http::verb::post,
                                        signer_,
                                        need_sign};
-        logd("start prepare request");
+        logd("start prepare new limit order request");
         auto req = factory();
-        logd("end prepare request");
+        logd("end prepare new limit order request");
 
         auto cb = [response_lfqueue, this](
                  boost::beast::http::response<boost::beast::http::string_body>&
@@ -874,13 +874,13 @@ class OrderNewLimit2 : public inner::OrderNewI {
                 loge("my queuee is full. need clean my queue");
         };
         auto session = session_pool_->AcquireConnection();
-        logd("start send request");
+        logd("start send new limit order request");
 
         if(auto status = session->AsyncRequest(std::move(req), cb); status == false)
             loge("AsyncRequest wasn't sent in io_context");
 
-        logd("end send request");
-        session_pool_->ReleaseConnection(session);
+        logd("end send new limit order request");
+        //session_pool_->ReleaseConnection(session);
         using namespace std::literals::chrono_literals;
     };
     ~OrderNewLimit2() override = default;
@@ -1066,9 +1066,9 @@ class CancelOrder2 : public inner::CancelOrderI {
                                        boost::beast::http::verb::delete_,
                                        signer_,
                                        need_sign};
-        logd("start prepare request");
+        logd("start prepare cancel request");
         auto req = factory();
-        logd("end prepare request");
+        logd("end prepare cancel request");
 
 
         auto cb = [response_lfqueue, this](
@@ -1084,14 +1084,13 @@ class CancelOrder2 : public inner::CancelOrderI {
         };
         
         auto session = session_pool_->AcquireConnection();
-        logd("start send request");
+        logd("start send cancel request");
  
         if(auto status = session->AsyncRequest(std::move(req), cb); status == false)
             loge("AsyncRequest wasn't sent in io_context");
  
-        logd("end send request");
-        session_pool_->ReleaseConnection(session);
-        using namespace std::literals::chrono_literals;
+        logd("end send cancel request");
+        //session_pool_->ReleaseConnection(session);
     };
     ~CancelOrder2() override = default;
 

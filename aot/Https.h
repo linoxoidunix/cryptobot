@@ -8,16 +8,16 @@
 #include <boost/beast/version.hpp>
 #include <boost/noncopyable.hpp>
 #include <functional>
-#include <memory>
 #include <future>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
-//#include "aot/Exchange.h"
+// #include "aot/Exchange.h"
+#include "aot/Logger.h"
 #include "aot/Types.h"
 #include "aot/common/mem_pool.h"
-#include "aot/Logger.h"
 #include "aot/root_certificates.hpp"
 #include "concurrentqueue.h"
 
@@ -55,15 +55,14 @@ class HttpsSession {
 
   private:
     bool is_connected_ = false;
-    bool is_used_       = false;
+    bool is_used_      = false;
     bool is_expired_   = false;
 
     /**
      * @brief req variable must manage only via SetRequest() method
-     * 
+     *
      */
     boost::beast::http::request<boost::beast::http::string_body> req_;
-
 
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
@@ -94,8 +93,8 @@ class HttpsSession {
         if (IsUsed()) return false;
 
         is_used_ = true;
-        cb_     = handler;
-        req_ = std::move(req);
+        cb_      = handler;
+        req_     = std::move(req);
         // Set up the timer for session expiration
         start_timer();
 
@@ -108,15 +107,10 @@ class HttpsSession {
 
         return true;
     }
-    inline bool IsConnected() const{
-        return is_connected_;
-    }
-    inline bool IsExpired() const{
-        return is_expired_;
-    }
-        inline bool IsUsed() const{
-        return is_used_;
-    }
+    inline bool IsConnected() const { return is_connected_; }
+    inline bool IsExpired() const { return is_expired_; }
+    inline bool IsUsed() const { return is_used_; }
+
   private:
     // Start the asynchronous operation
     void Run(char const* host, char const* port, char const* target,
@@ -154,7 +148,7 @@ class HttpsSession {
                 if (cb_) {
                     beast::error_code timeout_error{
                         boost::asio::error::timed_out};
-                    //cb_(res_);  // Notify the callback about the timeout
+                    // cb_(res_);  // Notify the callback about the timeout
                 }
                 close_session();
             }
@@ -203,10 +197,10 @@ class HttpsSession {
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
         if (ec) return fail(ec, "write");
-        //logi("execute cb on write");
-        // Reset the timer for the next operation
+        // logi("execute cb on write");
+        //  Reset the timer for the next operation
         start_timer();
-        //fmtlog::poll();
+        // fmtlog::poll();
         http::async_read(
             stream_, buffer_, res_,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
@@ -221,10 +215,10 @@ class HttpsSession {
 
         // Cancel the timer as the operation is completed successfully
         timer_.cancel();
-        //logi("execute cb on read");
+        // logi("execute cb on read");
 
-        //fmtlog::poll();
-        // Call the response callback
+        // fmtlog::poll();
+        //  Call the response callback
         cb_(res_);
         close_session();
     }
@@ -232,17 +226,21 @@ class HttpsSession {
     // Handle session expiration or failure
     void fail(beast::error_code ec, const char* what) {
         logi("{}: {}", what, ec.message());
-        //std::cerr << what << ": " << ec.message() << "\n";
+        // std::cerr << what << ": " << ec.message() << "\n";
         close_session();
     }
 
     // Close the session gracefully
-    void close_session() { beast::get_lowest_layer(stream_).close(); is_expired_ = true;}
+    void close_session() {
+        beast::get_lowest_layer(stream_).close();
+        is_expired_ = true;
+    }
 };
 
 template <typename HTTPSessionType>
 class ConnectionPool {
-    moodycamel::ConcurrentQueue<HTTPSessionType*> available_connections_;
+    moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
+    moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
     moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
     moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
 
@@ -251,7 +249,6 @@ class ConnectionPool {
     std::future<void> block_until_helper_thread_finished;
 
     boost::asio::io_context& ioc_;
-    //ssl::context& ssl_ctx_;
     ssl::context ssl_ctx_{ssl::context::sslv23};
     std::string host_;
     std::string port_;
@@ -263,9 +260,10 @@ class ConnectionPool {
     ConnectionPool(boost::asio::io_context& ioc, /*ssl::context& ssl_ctx,*/
                    const std::string_view host, const std::string_view port,
                    std::size_t pool_size, HTTPSessionType::Timeout timeout)
-        : block_until_helper_thread_finished(helper_thread_finished.get_future()),
+        : block_until_helper_thread_finished(
+              helper_thread_finished.get_future()),
           ioc_(ioc),
-          //ssl_ctx_(ssl_ctx),
+          // ssl_ctx_(ssl_ctx),
           host_(host),
           port_(port),
           pool_size_(pool_size),
@@ -274,84 +272,85 @@ class ConnectionPool {
         for (std::size_t i = 0; i < pool_size; ++i) {
             auto session =
                 session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
-            available_connections_.enqueue(session);
+            until_handshake_connections_.enqueue(session);
         }
-        timeout_thread_ = std::make_unique<std::jthread>([this](std::stop_token stoken){this->MonitorConnections(stoken);});
+        timeout_thread_ =
+            std::make_unique<std::jthread>([this](std::stop_token stoken) {
+                this->MonitorConnections(stoken);
+            });
     }
 
     ~ConnectionPool() {
         timeout_thread_->request_stop();
         block_until_helper_thread_finished.wait();
         // Deallocate all HttpsSession objects
-        HTTPSessionType* session;
-        logi("dealocate available_connections_ size:{}", available_connections_.size_approx());
-        while (available_connections_.try_dequeue(session)) {
-            session_pool_.Deallocate(session);
-        }
-        logi("dealocate used_connections_ size:{}", used_connections_.size_approx());
-        while (used_connections_.try_dequeue(session)) {
-            session_pool_.Deallocate(session);
-        }
-        logi("dealocate expired_connections_ size:{}", expired_connections_.size_approx());
-        while (expired_connections_.try_dequeue(session)) {
-            session_pool_.Deallocate(session);
-        }
+        FreeQueue(until_handshake_connections_);
+        FreeQueue(after_handshake_connections_);
+        FreeQueue(used_connections_);
+        FreeQueue(expired_connections_);
     }
 
     // Acquire a connection from the pool
     HTTPSessionType* AcquireConnection() {
         HTTPSessionType* session = nullptr;
-        while (!available_connections_.try_dequeue(session)) {
-            // auto new_session = session_pool_.Allocate(
-            //     ioc_, ssl_ctx_, host_, port_,
-            //     timeout_);  // Spin-wait until a connection becomes available
-            // available_connections_.enqueue(new_session);
+        while (!after_handshake_connections_.try_dequeue(session)) {
+            //block until get new handshaked connection;
         }
+        ReleaseConnection(session);
         return session;
     }
 
     // Release a connection back to the pool
-    void ReleaseConnection(HTTPSessionType* session) {
-        if(!session)
-            return;
-        used_connections_.enqueue(session);
-    }
+
 
   private:
+      void ReleaseConnection(HTTPSessionType* session) {
+        if (!session) return;
+        // if(!session->IsUsed()){
+        //     if(auto status = after_handshake_connections_.try_enqueue(session); !status)
+        //         loge("can't enqueue session to after_handshake_connections_");
+        //     return;
+        // }
+        if(auto status = used_connections_.try_enqueue(session); !status)
+            loge("can't enque session in used_connections_");
+    }
     void MonitorConnections(std::stop_token stoken) {
+        HTTPSessionType* until_handshake_session[100];
+        HTTPSessionType* after_handshake_session[100];
+        HTTPSessionType* used_session[100];
 
         while (!stoken.stop_requested()) {
-            HTTPSessionType* session[100];
-            size_t count = available_connections_.try_dequeue_bulk(session, 100);
-            for(int i = 0; i < count; i++){
-                if (session[i]->IsExpired()) {
-                    expired_connections_.enqueue(session[i]);  // Enqueue expired or already used connections for
-                } else {
-                    available_connections_.enqueue(session[i]);  // Return active connection back to the available_connections_
-                }
-            }
+            size_t count_until_handshake = until_handshake_connections_.try_dequeue_bulk(until_handshake_session, 100);
+            for (size_t i = 0; i < count_until_handshake; i++)
+                ProcessSessionUntilHandshake(until_handshake_session[i]);
+
+            size_t count_after_handshake = after_handshake_connections_.try_dequeue_bulk(after_handshake_session, 100);
+            for (size_t i = 0; i < count_after_handshake; i++)
+                ProcessSessionAfterHandshake(after_handshake_session[i]);
 
             // Process expired connections
             // if expired due to long waiting
             HTTPSessionType* expired_session = nullptr;
             while (expired_connections_.try_dequeue(expired_session)) {
-                    ReplaceTimedOutConnection(expired_session);
+                ReplaceTimedOutConnection(expired_session);
             }
 
-            HTTPSessionType* used_session[100];
-            size_t count_used = used_connections_.try_dequeue_bulk(used_session, 100);
-            for(int i = 0; i < count_used; i++){
-                if (used_session[i]->IsExpired()) {
-                    ReplaceTimedOutConnection(used_session[i]);  // Enqueue expired or already used connections for
-                } else {
-                    used_connections_.enqueue(used_session[i]);  // Return active connection back to the available_connections_
+            size_t count_used =
+                used_connections_.try_dequeue_bulk(used_session, 100);
+            for (size_t i = 0; i < count_used; i++)
+                ProcessUsedSession(used_session[i]);
+
+            auto ready_connection = after_handshake_connections_.size_approx();
+            auto almost_ready_connection = until_handshake_connections_.size_approx();
+            
+            if(int needed_new_connection = pool_size_ - ready_connection - almost_ready_connection; needed_new_connection > 0){
+                logd("add {} new session where ready:{} almost_ready:{}", needed_new_connection, ready_connection, almost_ready_connection);
+                for(auto k = 0; k < needed_new_connection; k++) {
+                    auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_,
+                                                            port_, timeout_);
+                    if(auto status = until_handshake_connections_.try_enqueue(new_session); !status)
+                        loge("can't enque connection");
                 }
-            }
-
-            while(available_connections_.size_approx() < pool_size_)
-            {
-                auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
-                available_connections_.enqueue(new_session);
             }
             // Sleep briefly to avoid busy waiting
             std::this_thread::sleep_for(std::chrono::microseconds(10));
@@ -361,12 +360,77 @@ class ConnectionPool {
 
     // Replace a timed-out connection by deleting it and adding a new one
     void ReplaceTimedOutConnection(HTTPSessionType* session) {
-        //logi("Replace Timed Out Connection {}", session);
+        // logi("Replace Timed Out Connection {}", session);
         session_pool_.Deallocate(session);  // Deallocate the old session
-        //fmtlog::poll();
-        // Create a new session and add it back to the pool
-        auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
-        available_connections_.enqueue(new_session);
+        // fmtlog::poll();
+        //  Create a new session and add it back to the pool
+        auto new_session =
+            session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+        until_handshake_connections_.enqueue(new_session);
+    }
+
+    template <typename T>
+    void FreeQueue(T& t) {
+        HTTPSessionType* session;
+        logi("dealocate queue size:{}", t.size_approx());
+        while (t.try_dequeue(session)) {
+            session_pool_.Deallocate(session);
+        }
+    };
+
+    inline void ProcessSessionUntilHandshake(HTTPSessionType* session) {
+        if (session->IsExpired()) {
+            if (!expired_connections_.try_enqueue(session)) {
+                loge("loss session");
+            }
+            return;
+        }
+
+        if (session->IsConnected()) {
+            if (!after_handshake_connections_.try_enqueue(session)) {
+                loge("loss session");
+            }
+            return;
+        }
+
+        if (!until_handshake_connections_.try_enqueue(session)) {
+            loge("loss session");
+        }  // Return active connection back to the
+           // available_connections_
+    }
+
+    inline void ProcessSessionAfterHandshake(HTTPSessionType* session) {
+        if (session->IsExpired()) {
+            expired_connections_.enqueue(
+                session);  // Enqueue expired or already used connections
+        } else {
+            // Return active connection back to the
+            // available_connections_
+            if (auto status = after_handshake_connections_.try_enqueue(session);
+                !status) {
+                loge("loss connection");
+            }
+        }
+    }
+
+    inline void ProcessUsedSession(HTTPSessionType* session) {
+        if(!session->IsUsed())
+        {
+            if (auto status = after_handshake_connections_.try_enqueue(session); !status) {
+                loge("can't enque connection to after_handshake_connections_");
+            }
+            return;
+        }
+        if (session->IsExpired()) {
+            ReplaceTimedOutConnection(session);  // Handle expired connections
+            return;
+        }
+        
+            // Return active connection back to the
+            // available_connections_
+        if (auto status = used_connections_.try_enqueue(session); !status) {
+            loge("loss connection");
+        }
     }
 };
 };  // namespace V2

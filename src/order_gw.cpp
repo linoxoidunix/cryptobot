@@ -11,15 +11,15 @@ auto Trading::OrderGateway::Run() noexcept -> void {
         requests_cancel_orders[50];  // Could also be any iterator
 
     while (run_) {
-        size_t count_new_order =
-            requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
-        for (int i = 0; i < count_new_order; i++) {
-            logd("order gw start exec {}", results_new_orders[i].ToString());
-            //1)we need chhose suitable executors depends on exchangeid
-            //2)we need launch Exec task
-            executor_new_orders_->Exec(&results_new_orders[i],
-                                       incoming_responses_);
-        }
+        // size_t count_new_order =
+        //     requests_new_order_->try_dequeue_bulk(results_new_orders, 50);
+        // for (int i = 0; i < count_new_order; i++) {
+        //     logd("order gw start exec {}", results_new_orders[i].ToString());
+        //     //1)we need chhose suitable executors depends on exchangeid
+        //     //2)we need launch Exec task
+        //     executor_new_orders_->Exec(&results_new_orders[i],
+        //                                incoming_responses_);
+        // }
 
         size_t count_cancel_order = requests_cancel_order_->try_dequeue_bulk(
             requests_cancel_orders, 50);
