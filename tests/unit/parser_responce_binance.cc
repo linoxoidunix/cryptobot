@@ -8,7 +8,7 @@ class ParserResponseTests : public ::testing::Test {
 protected:
     common::TradingPairHashMap pairs_;
     common::TradingPairReverseHashMap pairs_reverse_;
-    binance::OrderNewLimit::ParserResponse parser{pairs_, pairs_reverse_}; // The parser object to test
+    binance::detail::FamilyLimitOrder::ParserResponse parser{pairs_, pairs_reverse_}; // The parser object to test
 
     void SetUp() override {
         common::TickerHashMap tickers;
