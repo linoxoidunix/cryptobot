@@ -44,7 +44,7 @@ class ExchangeB {
         return static_cast<const Derived *>(this)->RecvWindowImpl();
     }
 };
-};
+};  // namespace sp
 };  // namespace https
 
 class CurrentTime {
@@ -60,6 +60,8 @@ class CurrentTime {
 class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
+    virtual std::string SignByLowerCase(std::string_view data) = 0;
+
     virtual std::string_view ApiKey()               = 0;
     virtual ~SignerI()                              = default;
 };
@@ -94,8 +96,13 @@ class Signer : public SignerI {
 
         return B2aHex(digest, dilen);
     };
+    std::string SignByLowerCase(std::string_view data) override {
+        auto buffer = Sign(data);
+        boost::algorithm::to_lower(buffer);
+        return buffer;
+    }
     std::string_view ApiKey() override { return api_key_; }
-
+    ~Signer() override = default;
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
         static const char hex[] = "0123456789abcdef";
@@ -203,17 +210,7 @@ class BookEventGetterI {
     virtual ~BookEventGetterI()                         = default;
 };
 
-/**
- * @brief for different exchanges ChartInterval has different format 1m or 1s or
- * 1M or 1d
- *
- */
-class ChartInterval {
-  public:
-    virtual std::string ToString() const = 0;
-    virtual uint Seconds() const         = 0;
-    virtual ~ChartInterval()             = default;
-};
+
 
 /**
  * @brief make stream channel for fetch kline from exchange
@@ -221,6 +218,17 @@ class ChartInterval {
  */
 class KLineStreamI {
   public:
+    /**
+   * @brief for different exchanges ChartInterval has different format 1m or 1s or
+   * 1M or 1d
+   *
+   */
+    class ChartInterval {
+      public:
+        virtual std::string ToString() const = 0;
+        virtual uint Seconds() const         = 0;
+        virtual ~ChartInterval()             = default;
+    };
     /**
      * @brief
      *
