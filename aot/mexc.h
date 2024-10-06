@@ -27,38 +27,34 @@ const auto kMeasureTForGeneratorBidAskService =
 enum class TimeInForce { GTC, IOC, FOK };
 
 namespace mainnet {
-template <std::uint64_t DefaultRecvWindow = 5000,
-          std::uint64_t MaxRecvWindow     = 60000>
-class HttpsExchange;  // Forward declaration of HttpsExchange
-template <std::uint64_t DefaultRecvWindow, std::uint64_t MaxRecvWindow>
-class HttpsExchange : public https::sp::ExchangeB<
-                          HttpsExchange<DefaultRecvWindow, MaxRecvWindow>> {
+class HttpsExchange : public https::ExchangeI {
   public:
     /**
      * @brief Construct a new Https Exchange object
      *
      * @param recv_window
-
+     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+     * An additional parameter, recvWindow, may be sent to specify the number of
+     * milliseconds after timestamp the request is valid for. If recvWindow is
+     * not sent, it defaults to 5000.
      */
-    explicit HttpsExchange(std::uint64_t recv_window = DefaultRecvWindow)
-        : recv_window_((recv_window > MaxRecvWindow) ? MaxRecvWindow
-                                                     : recv_window) {
+    explicit HttpsExchange(std::uint64_t recv_window = 5000)
+        : recv_window_((recv_window > 60000) ? 60000 : recv_window) {
               /**
                * @brief
-               * It is recommended to use a small recvWindow of 5000 or less!
-               * The max cannot go beyond 60,000!
+                https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
+                It is recommended to use a small recvWindow of 5000 or less! The
+               max cannot go beyond 60,000!
                *
                */
           };
 
-    // Using static polymorphism to provide behavior
-    constexpr std::string_view HostImpl() const {
-        return "api.mexc.com";
+    virtual ~HttpsExchange() = default;
+    std::string_view Host() const override {
+        return std::string_view("api.mexc.com");
     };
-
-    constexpr std::string_view PortImpl() const { return "443"; };
-
-    constexpr std::uint64_t RecvWindowImpl() const { return recv_window_; };
+    std::string_view Port() const override { return "443"; };
+    std::uint64_t RecvWindow() const override { return recv_window_; };
 
   private:
     std::uint64_t recv_window_;
@@ -93,7 +89,7 @@ class ExchangeChooser {
  * LIMIT_MAKER (Limit maker order)
  * IMMEDIATE_OR_CANCEL (Immediate or cancel order)
  * FILL_OR_KILL (Fill or kill order)
- * 
+ *
  */
 enum class Type {
     LIMIT,
@@ -103,66 +99,6 @@ enum class Type {
     FILL_OR_KILL
 };
 
-class m1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m1() = default;
-    std::string ToString() const override { return "Min1"; };
-    uint Seconds() const override { return 60; };
-};
-class m5 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m5() = default;
-    std::string ToString() const override { return "Min5"; }
-    uint Seconds() const override { return 300; };
-};
-class m15 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m15() = default;
-    std::string ToString() const override { return "Min15"; }
-    uint Seconds() const override { return 900; };
-};
-class m30 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m30() = default;
-    std::string ToString() const override { return "Min30"; }
-    uint Seconds() const override { return 1800; };
-};
-class h1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m60() = default;
-    std::string ToString() const override { return "Min60"; }
-    uint Seconds() const override { return 3600; };
-};
-class h4 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h4() = default;
-    std::string ToString() const override { return "Hour4"; }
-    uint Seconds() const override { return 14400; };
-};
-class h8 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h4() = default;
-    std::string ToString() const override { return "Hour8"; }
-    uint Seconds() const override { return 28800; };
-};
-class d1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit d1() = default;
-    std::string ToString() const override { return "Day1"; }
-    uint Seconds() const override { return 86400; };
-};
-class w1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit w1() = default;
-    std::string ToString() const override { return "Week1"; }
-    uint Seconds() const override { return 604800; };
-};
-class M1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit M1() = default;
-    std::string ToString() const override { return "Month1"; }
-    uint Seconds() const override { return 2.628e6; };
-};
 class KLineStream : public KLineStreamI {
   public:
     explicit KLineStream(std::string_view trading_pair,
@@ -181,11 +117,87 @@ class KLineStream : public KLineStreamI {
 
 class DiffDepthStream : public DiffDepthStreamI {
   public:
-   explicit DiffDepthStream(const common::TradingPairInfo& s)
+    class StreamIntervalI {
+      public:
+        virtual std::string ToString() const = 0;
+        virtual ~StreamIntervalI()           = default;
+    };
+    class m1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m1() = default;
+        std::string ToString() const override { return "Min1"; };
+        uint Seconds() const override { return 60; };
+        ~m1() override = default;
+    };
+    class m5 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m5() = default;
+        std::string ToString() const override { return "Min5"; }
+        uint Seconds() const override { return 300; };
+        ~m5() override = default;
+    };
+    class m15 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m15() = default;
+        std::string ToString() const override { return "Min15"; }
+        uint Seconds() const override { return 900; };
+        ~m15() override = default;
+    };
+    class m30 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m30() = default;
+        std::string ToString() const override { return "Min30"; }
+        uint Seconds() const override { return 1800; };
+        ~m30() override = default;
+    };
+    class h1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h1() = default;
+        std::string ToString() const override { return "Min60"; }
+        uint Seconds() const override { return 3600; };
+        ~h1() override = default;
+    };
+    class h4 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h4() = default;
+        std::string ToString() const override { return "Hour4"; }
+        uint Seconds() const override { return 14400; };
+        ~h4() override = default;
+    };
+    class h8 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h8() = default;
+        std::string ToString() const override { return "Hour8"; }
+        uint Seconds() const override { return 28800; };
+        ~h8() override = default;
+    };
+    class d1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit d1() = default;
+        std::string ToString() const override { return "Day1"; }
+        uint Seconds() const override { return 86400; };
+        ~d1() override = default;
+    };
+    class w1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit w1() = default;
+        std::string ToString() const override { return "Week1"; }
+        uint Seconds() const override { return 604800; };
+        ~w1() override = default;
+    };
+    class M1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit M1() = default;
+        std::string ToString() const override { return "Month1"; }
+        uint Seconds() const override { return 2.628e6; };
+        ~M1() override = default;
+    };
+
+    explicit DiffDepthStream(const common::TradingPairInfo& s, const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-        return fmt::format("spot@public.increase.depth.v3.api@{}", symbol_.https_json_request,
-                           interval_->ToString());
+        return fmt::format("spot@public.increase.depth.v3.api@{}",
+                           symbol_.https_json_request, interval_->ToString());
     };
 
   private:
@@ -195,7 +207,8 @@ class DiffDepthStream : public DiffDepthStreamI {
 
 // class OHLCVI : public OHLCVGetter {
 //   public:
-//     OHLCVI(const Symbol* s, const KLineStreamI::ChartInterval* chart_interval,
+//     OHLCVI(const Symbol* s, const KLineStreamI::ChartInterval*
+//     chart_interval,
 //            TypeExchange type_exchange)
 //         : s_(s),
 //           chart_interval_(chart_interval),
@@ -340,7 +353,8 @@ class FactoryRequest {
             AddSignParams();
             auto request_args = args_.QueryString();
             /**
-             * @brief https://mexcdevelop.github.io/apidocs/spot_v3_en/#header:~:text=The%20signature%20is%20support%20lowercase%20only. 
+             * @brief
+             * https://mexcdevelop.github.io/apidocs/spot_v3_en/#header:~:text=The%20signature%20is%20support%20lowercase%20only.
              * The signature is support lowercase only.
              */
             auto signature    = signer_->SignByLowerCase(request_args);
@@ -369,8 +383,7 @@ class FactoryRequest {
          * both the query string and request body if you wish to do so.
          *
          */
-        req.set(boost::beast::http::field::content_type,
-                "application/json");
+        req.set(boost::beast::http::field::content_type, "application/json");
         return req;
     };
     std::string_view Host() const { return exchange_->Host(); };
@@ -378,7 +391,7 @@ class FactoryRequest {
     std::string_view EndPoint() const { return end_point_; }
 
   private:
-    inlinevoid AddSignParams() {
+    inline void AddSignParams() {
         CurrentTime time_service;
         args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
         args_["timestamp"]  = std::to_string(time_service.Time());
@@ -503,8 +516,8 @@ class FamilyLimitOrder {
 class FamilyCancelOrder {
   public:
     static constexpr std::string_view end_point = "/api/v3/order";
-    explicit FamilyCancelOrder() = default;
-    virtual ~FamilyCancelOrder() = default;
+    explicit FamilyCancelOrder()                = default;
+    virtual ~FamilyCancelOrder()                = default;
 
     class ParserResponse {
       public:
@@ -622,7 +635,7 @@ class OrderNewLimit2 : public inner::OrderNewI,
 };
 
 class CancelOrder2 : public inner::CancelOrderI,
-                      public detail::FamilyCancelOrder {
+                     public detail::FamilyCancelOrder {
   public:
     explicit CancelOrder2(SignerI* signer, TypeExchange type,
                           common::TradingPairHashMap& pairs,
@@ -734,10 +747,10 @@ class BookSnapshot : public inner::BookSnapshotI {
         : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
         switch (type) {
             case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
+                current_exchange_ = &mexc_main_net_;
                 break;
             default:
-                current_exchange_ = &binance_test_net_;
+                current_exchange_ = &mexc_main_net_;
                 break;
         }
     };
@@ -768,8 +781,7 @@ class BookSnapshot : public inner::BookSnapshotI {
 
   private:
     ArgsOrder args_;
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
+    mainnet::HttpsExchange mexc_main_net_;
 
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
@@ -837,8 +849,8 @@ class GeneratorBidAskService {
     uint64_t last_id_diff_book_event;
     TypeExchange type_exchange_;
 
-    //binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange mecx_main_net_;
+    // binance::testnet::HttpsExchange binance_test_net_;
+    mainnet::HttpsExchange mecx_main_net_;
     https::ExchangeI* current_exchange_;
 
   private:
@@ -855,4 +867,4 @@ class ConnectionPoolFactory : public ::ConnectionPoolFactory {
             io_context, exchange->Host(), exchange->Port(), pool_size, timeout);
     };
 };
-};  // namespace binance
+};  // namespace mexc

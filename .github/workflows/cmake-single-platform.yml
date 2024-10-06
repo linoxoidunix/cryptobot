@@ -30,7 +30,7 @@ jobs:
     - name: Install some developer dependencies
       run: |
           sudo apt update
-          sudo apt-get install -y build-essential libboost-all-dev libssl-dev python3-dev git cmake libcurl4-openssl-dev
+          sudo apt-get install -y build-essential libboost-all-dev libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
 
     # Update references
     - name: Git Submodule Update
