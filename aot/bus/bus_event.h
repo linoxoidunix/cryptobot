@@ -12,7 +12,7 @@ namespace bus{
 namespace bus{
 class Event {
   public:
-    Event() {}  // Initialize reference count
+    Event() = default;  // Initialize reference count
 
     virtual ~Event() = default;
 

@@ -2,7 +2,12 @@
 #include <string>
 #include <unordered_map>
 
+#include "boost/asio/thread_pool.hpp"
+#include "boost/asio/strand.hpp"
+
 #include "aot/Logger.h"
+#include "aot/bus/bus_event.h"
+#include "aot/bus/bus_component.h"
 #include "aot/client_response.h"
 #include "aot/common/macros.h"
 #include "aot/common/thread_utils.h"
@@ -196,7 +201,7 @@ class Event {
     virtual EventType GetType() = 0;
 };
 using EventLFQueue = moodycamel::ConcurrentQueue<Event *>;
-class AddFill;
+struct AddFill;
 using AddFillPool = common::MemPool<AddFill>;
 
 struct AddFill : public Event {
@@ -215,7 +220,16 @@ struct AddFill : public Event {
         mem_pool->deallocate(this);
     }
 };
-class UpdateBBO;
+
+struct BusEventAddFill : public AddFill, public bus::Event{
+    ~BusEventAddFill() override = default;
+    void Accept(bus::Component* comp) override{
+        comp->AsyncHandleEvent(this);
+    }
+};
+
+
+struct UpdateBBO;
 using UpdateBBOPool = common::MemPool<UpdateBBO>;
 struct UpdateBBO : public Event {
     common::ExchangeId exchange_id;
@@ -237,6 +251,14 @@ struct UpdateBBO : public Event {
         mem_pool->deallocate(this);
     }
 };
+
+struct BusEventUpdateBBO : public UpdateBBO, public bus::Event{
+    ~BusEventUpdateBBO() override = default;
+    void Accept(bus::Component* comp) override{
+        comp->AsyncHandleEvent(this);
+    }
+};
+
 };  // namespace position_keeper
 namespace exchange {
 
@@ -367,4 +389,30 @@ class PositionKeeperService : public common::ServiceI {
     exchange::PositionKeeper *pk_         = nullptr;
     position_keeper::EventLFQueue *queue_ = nullptr;
 };
-}  // namespace Trading
+
+class PositionKeeperComponent : public bus::Component{
+    boost::asio::thread_pool& pool_;
+    boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
+
+    exchange::PositionKeeper *pk_         = nullptr;
+  public:
+    explicit PositionKeeperComponent(boost::asio::thread_pool& pool, exchange::PositionKeeper *pk)
+        : pool_(pool), strand_(boost::asio::make_strand(pool_)),pk_(pk) {}
+    
+    ~PositionKeeperComponent() override = default;
+    
+    void AsyncHandleEvent(position_keeper::BusEventAddFill* event) override{
+         boost::asio::post(strand_, [this, event]() {
+            pk_->OnNewSignal(event);
+            event->Release();
+        });
+    }
+    void AsyncHandleEvent(position_keeper::BusEventUpdateBBO* event) override{
+         boost::asio::post(strand_, [this, event]() {
+            pk_->OnNewSignal(event);
+            event->Release();
+        });
+    }
+};
+
+};  // namespace Trading

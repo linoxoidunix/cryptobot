@@ -1,13 +1,42 @@
 #pragma once
 
+#include "boost/asio/thread_pool.hpp"
+#include "boost/asio/strand.hpp"
+
+#include "aot/bus/bus_component.h"
+#include "aot/bus/bus_event.h"
 #include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/client_response.h"
+#include "aot/client_request.h"
 #include "aot/common/macros.h"
+
 #include "aot/strategy/om_order.h"
-// #include "risk_manager.h"
 
 using namespace common;
+
+namespace order_manager{
+    struct BusEventRequestNewLimitOrder : public Exchange::RequestNewOrder,  public bus::Event{
+        ~BusEventRequestNewLimitOrder() override = default;
+        void Accept(bus::Component* comp) override{
+            comp->AsyncHandleEvent(this);
+        }
+    };
+    struct BusEventRequestCancelOrder : public Exchange::RequestCancelOrder,  public bus::Event{
+        ~BusEventRequestCancelOrder() override = default;
+        common::Side side;
+        void Accept(bus::Component* comp) override{
+            comp->AsyncHandleEvent(this);
+        }
+    };
+    struct BusEventResponse : public bus::Event{
+        ~BusEventResponse() override = default;
+        Exchange::IResponse* response;
+        void Accept(bus::Component* comp) override{
+            comp->AsyncHandleEvent(this);
+        }
+    };
+};
 
 namespace Trading {
 class TradeEngine;
@@ -51,6 +80,39 @@ class OrderManager {
             case Exchange::ClientResponseType::INVALID: {
             } break;
         }
+    }
+
+    auto OnOrderResponse(
+        Exchange::IResponse *client_response) noexcept -> void {
+        //logd("{}", client_response->ToString());
+        auto trading_pair = client_response->GetTradingPair();
+        auto side = client_response->GetSide();
+        auto type_order = client_response->GetType();
+        auto leaves_qty = client_response->GetLeavesQty();
+        if (!ticker_side_order_.count(trading_pair))
+            [[unlikely]] {
+            loge("critical error in OrderManager");
+            return;
+        }
+        auto order = &(ticker_side_order_.at(trading_pair)
+                           .at(sideToIndex(side)));
+        switch (type_order) {
+            case Exchange::ClientResponseType::ACCEPTED: {
+                order->state = OMOrderState::LIVE;
+            } break;
+            case Exchange::ClientResponseType::CANCELED: {
+                order->state = OMOrderState::DEAD;
+            } break;
+            case Exchange::ClientResponseType::FILLED: {
+                // if client_response->leaves_qty != 0 order still live
+                order->qty = leaves_qty;
+                if (order->qty == 0) order->state = OMOrderState::DEAD;
+            } break;
+            case Exchange::ClientResponseType::CANCEL_REJECTED:
+            case Exchange::ClientResponseType::INVALID: {
+            } break;
+        }
+        client_response->Deallocate();
     }
 
     /**
@@ -101,6 +163,37 @@ class OrderManager {
             ticker_side_order_.insert({trading_pair, {}});
         return &(ticker_side_order_.at(trading_pair).at(sideToIndex(side)));
     };
+};
+
+class OrderManagerComponent : public bus::Component{
+    boost::asio::thread_pool& pool_;
+    boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
+
+    Trading::OrderManager *om_         = nullptr;
+  public:
+    explicit OrderManagerComponent(boost::asio::thread_pool& pool, Trading::OrderManager *om)
+        : pool_(pool), strand_(boost::asio::make_strand(pool_)),om_(om) {}
+    
+    ~OrderManagerComponent() override = default;
+    
+    void AsyncHandleEvent(order_manager::BusEventRequestNewLimitOrder* event) override{
+         boost::asio::post(strand_, [this, event]() {
+            om_->NewOrder(event->exchange_id, event->trading_pair, event->price, event->side, event->qty);
+            event->Release();
+        });
+    }
+    void AsyncHandleEvent(order_manager::BusEventRequestCancelOrder* event) override{
+         boost::asio::post(strand_, [this, event]() {
+            om_->CancelOrder(event->exchange_id, event->trading_pair, event->side);
+            event->Release();
+        });
+    }
+    void AsyncHandleEvent(order_manager::BusEventResponse* event) override{
+         boost::asio::post(strand_, [this, event]() {
+            om_->OnOrderResponse(event->response);
+            event->Release();
+        });
+    }
 };
 }  // namespace Trading
 
