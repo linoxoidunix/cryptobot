@@ -1217,45 +1217,43 @@
 // }
 //----------------------------------------------------------------------------------------
 #include "aot/bus/bus.h"
-using namespace sp::bus;
-using namespace sp;
 
 
 
 int main() {
-    boost::asio::thread_pool pool(4);
-    Bus bus(pool);
+    // boost::asio::thread_pool pool(4);
+    // Bus bus(pool);
 
-    Component* component_a = new MyComponentA (pool);
-    Component*  component_b = new MyComponentB(pool);
-    Component*  component_c = new MyComponentC(pool);
+    // Component* component_a = new MyComponentA (pool);
+    // Component*  component_b = new MyComponentB(pool);
+    // Component*  component_c = new MyComponentC(pool);
 
-    // Subscribe components to each other for ImplementationEvent
-    std::cout << "Subscribing components..." << std::endl;
-    bus.Subscribe(component_a, component_a);
-    bus.Subscribe(component_a, component_b);
-    bus.Subscribe(component_a, component_b);
-    bus.Subscribe(component_c, component_c);
-    bus.Subscribe(component_b, component_c);
-    bus.Subscribe(component_c, component_a);
-    bus.Subscribe(component_b, component_b);
+    // // Subscribe components to each other for ImplementationEvent
+    // std::cout << "Subscribing components..." << std::endl;
+    // bus.Subscribe(component_a, component_a);
+    // bus.Subscribe(component_a, component_b);
+    // bus.Subscribe(component_a, component_b);
+    // bus.Subscribe(component_c, component_c);
+    // bus.Subscribe(component_b, component_c);
+    // bus.Subscribe(component_c, component_a);
+    // bus.Subscribe(component_b, component_b);
 
-    // Send an event
-    std::cout << "Sending events..." << std::endl;
-    Event* eventA = new ImplementationEventA();
-    Event* eventB = new ImplementationEventB();
-    Event* eventC = new ImplementationEventC();
+    // // Send an event
+    // std::cout << "Sending events..." << std::endl;
+    // Event* eventA = new ImplementationEventA();
+    // Event* eventB = new ImplementationEventB();
+    // Event* eventC = new ImplementationEventC();
     
-    // for (int i = 0; i < 5; ++i) {
-    //     bus.Send(component_a, *event);  // Send event from component_a
-    // }
+    // // for (int i = 0; i < 5; ++i) {
+    // //     bus.Send(component_a, *event);  // Send event from component_a
+    // // }
     
-    bus.Send(component_a, eventA);
-    bus.Send(component_c, eventA);
-    bus.Send(component_b, eventC);
+    // bus.Send(component_a, eventA);
+    // bus.Send(component_c, eventA);
+    // bus.Send(component_b, eventC);
 
-    // Wait for all tasks to complete
-    bus.Join();
+    // // Wait for all tasks to complete
+    // bus.Join();
 
     return 0;
 }
