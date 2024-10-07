@@ -11,6 +11,11 @@ namespace order_manager{
   struct BusEventResponse;
 }
 
+namespace wallet{
+  struct BusEventReserveQty;
+  struct BusEventResponse;
+}
+
 namespace bus{
 class Component {
   public:
@@ -48,6 +53,20 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(order_manager::BusEventResponse*){
+        //it is empty class
+    };
+    /**
+     * @brief wallet reserve qty of ticker
+     * 
+     */
+    virtual void AsyncHandleEvent(wallet::BusEventReserveQty*){
+        //it is empty class
+    };
+    /**
+     * @brief wallet reserve qty of ticker
+     * 
+     */
+    virtual void AsyncHandleEvent(wallet::BusEventResponse*){
         //it is empty class
     };
 };

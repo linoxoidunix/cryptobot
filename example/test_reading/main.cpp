@@ -1217,20 +1217,26 @@
 // }
 //----------------------------------------------------------------------------------------
 #include "aot/bus/bus.h"
-
+#include "aot/strategy/position_keeper.h"
+#include "aot/strategy/order_manager.h"
 
 
 int main() {
-    // boost::asio::thread_pool pool(4);
+    fmtlog::setLogLevel(fmtlog::DBG);
+        logd("my thread");
+
+    boost::asio::thread_pool pool(16);
+    aot::CoBus bus(pool);
+
     // Bus bus(pool);
 
-    // Component* component_a = new MyComponentA (pool);
-    // Component*  component_b = new MyComponentB(pool);
+    bus::Component* component_a = new Trading::PositionKeeperComponent (pool, nullptr);
+    //bus::Component*  component_b = new Trading::OrderManager(pool, nullptr);
     // Component*  component_c = new MyComponentC(pool);
 
     // // Subscribe components to each other for ImplementationEvent
     // std::cout << "Subscribing components..." << std::endl;
-    // bus.Subscribe(component_a, component_a);
+    bus.Subscribe(component_a, component_a);
     // bus.Subscribe(component_a, component_b);
     // bus.Subscribe(component_a, component_b);
     // bus.Subscribe(component_c, component_c);
@@ -1243,8 +1249,10 @@ int main() {
     // Event* eventA = new ImplementationEventA();
     // Event* eventB = new ImplementationEventB();
     // Event* eventC = new ImplementationEventC();
-    
-    // // for (int i = 0; i < 5; ++i) {
+
+    position_keeper::BusEventUpdateBBO event;
+    boost::asio::co_spawn(pool, bus.CoSend(component_a, &event), boost::asio::detached);
+        // // for (int i = 0; i < 5; ++i) {
     // //     bus.Send(component_a, *event);  // Send event from component_a
     // // }
     
@@ -1254,7 +1262,8 @@ int main() {
 
     // // Wait for all tasks to complete
     // bus.Join();
-
+    pool.join();
+    fmtlog::poll();
     return 0;
 }
 

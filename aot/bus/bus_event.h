@@ -1,6 +1,9 @@
 #pragma once
 
+
 #include <atomic>
+
+#include "boost/asio/awaitable.hpp"
 
 #include "aot/Logger.h"
 
@@ -26,8 +29,14 @@ class Event {
         }
     }
 
-    virtual void Accept(bus::Component*) = 0;
-
+    virtual void Accept(bus::Component*){};
+    
+    virtual boost::asio::awaitable<void> CoAccept(bus::Component* component){
+        logd("Accept component");
+        co_await boost::asio::this_coro::executor;
+        Accept(component);
+        co_return; 
+    };
   protected:
     // Method to deallocate resources
     virtual void Deallocate() {

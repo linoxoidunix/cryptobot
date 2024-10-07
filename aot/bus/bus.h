@@ -5,7 +5,10 @@
 
 #include "boost/asio.hpp"
 #include "boost/asio/strand.hpp"
+#include "boost/asio/awaitable.hpp"
 #include "boost/thread.hpp"
+
+#include "aot/Logger.h"
 
 namespace bus{
     class Component;
@@ -18,6 +21,8 @@ class Bus {
     using Subscribers   = std::vector<bus::Component*>;
     using ComponentsMap = std::unordered_map<bus::Component*, Subscribers>;
 
+
+protected:
     ComponentsMap subscribers_;
     boost::asio::thread_pool& pool_;
     boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
@@ -33,8 +38,23 @@ class Bus {
     void AsyncSend(bus::Component* publisher, bus::Event* event);
 
     void Join() { pool_.join(); }
+    virtual ~Bus(){logd("dtor Bus");}
+  protected:
+    void SetNumberCopyEvent(bus::Event* event, size_t number) const;
+};
 
-  private:
-    void SetNumberCopyEvent(bus::Event* event, size_t number);
+class CoBus : public Bus {
+    public:
+    using Bus::Bus;
+    
+    boost::asio::awaitable<void> CoSend(bus::Component* publisher, bus::Event* event) {
+        logi("suspend coroutine");
+        co_await boost::asio::post(strand_, boost::asio::use_awaitable);
+        logi("resume coroutine");
+        AsyncSend(publisher, event);
+        co_return;
+    }
+    
+    ~CoBus() override{logd("dtor CoBus");}
 };
 };  // namespace aot

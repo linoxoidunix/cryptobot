@@ -14,8 +14,9 @@ void aot::Bus::AsyncSend(bus::Component* publisher, bus::Event* event) {
     }
 }
 
-void aot::Bus::SetNumberCopyEvent(bus::Event* event, size_t number) {
+void aot::Bus::SetNumberCopyEvent(bus::Event* event, size_t number) const{
     for (auto i = 0; i < number; i++) {
             event->AddReference();
         }
 }
+
