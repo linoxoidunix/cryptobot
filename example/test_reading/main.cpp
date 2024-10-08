@@ -1230,7 +1230,7 @@ int main() {
 
     // Bus bus(pool);
 
-    bus::Component* component_a = new Trading::PositionKeeperComponent (pool, nullptr);
+    bus::Component* component_a = new Trading::PositionKeeperComponent (boost::asio::make_strand(pool), nullptr);
     //bus::Component*  component_b = new Trading::OrderManager(pool, nullptr);
     // Component*  component_c = new MyComponentC(pool);
 

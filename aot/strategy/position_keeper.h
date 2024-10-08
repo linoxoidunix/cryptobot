@@ -390,25 +390,24 @@ class PositionKeeperService : public common::ServiceI {
     position_keeper::EventLFQueue *queue_ = nullptr;
 };
 
+template<typename Executor>
 class PositionKeeperComponent : public bus::Component{
-    boost::asio::thread_pool& pool_;
-    boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
-
+    Executor executor_;
     exchange::PositionKeeper *pk_         = nullptr;
   public:
-    explicit PositionKeeperComponent(boost::asio::thread_pool& pool, exchange::PositionKeeper *pk)
-        : pool_(pool), strand_(boost::asio::make_strand(pool_)),pk_(pk) {}
-    
+    explicit PositionKeeperComponent(Executor&& executor, exchange::PositionKeeper *pk)
+        : executor_(std::move(executor)),pk_(pk) {}
+
     ~PositionKeeperComponent() override = default;
     
     void AsyncHandleEvent(position_keeper::BusEventAddFill* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             pk_->OnNewSignal(event);
             event->Release();
         });
     }
     void AsyncHandleEvent(position_keeper::BusEventUpdateBBO* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             pk_->OnNewSignal(event);
             event->Release();
         });

@@ -160,26 +160,26 @@ class Wallet : public boost::noncopyable {  // Forbid copying
 };
 };
 
+template<typename Executor>
 class WalletComponent : public bus::Component{
-    boost::asio::thread_pool& pool_;
-    boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
+    Executor executor_;
 
     exchange::Wallet *wallet_         = nullptr;
   public:
-    explicit WalletComponent(boost::asio::thread_pool& pool, exchange::Wallet *wallet)
-        : pool_(pool), strand_(boost::asio::make_strand(pool_)),wallet_(wallet) {}
+    explicit WalletComponent(Executor&& executor, exchange::Wallet *wallet)
+        : executor_(std::move(executor)),wallet_(wallet) {}
     
     ~WalletComponent() override = default;
     
     void AsyncHandleEvent(wallet::BusEventReserveQty* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             wallet_->OnNewSignal(event);
             event->Release();
         });
     }
 
     void AsyncHandleEvent(wallet::BusEventResponse* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             wallet_->Update(event->response);
             event->Release();
         });

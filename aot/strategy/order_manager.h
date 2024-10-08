@@ -165,31 +165,31 @@ class OrderManager {
     };
 };
 
+template<typename Executor>
 class OrderManagerComponent : public bus::Component{
-    boost::asio::thread_pool& pool_;
-    boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
+    Executor executor_;
 
     Trading::OrderManager *om_         = nullptr;
   public:
-    explicit OrderManagerComponent(boost::asio::thread_pool& pool, Trading::OrderManager *om)
-        : pool_(pool), strand_(boost::asio::make_strand(pool_)),om_(om) {}
+    explicit OrderManagerComponent(Executor&& executor, Trading::OrderManager *om)
+        : executor_(executor),om_(om) {}
     
     ~OrderManagerComponent() override = default;
     
     void AsyncHandleEvent(order_manager::BusEventRequestNewLimitOrder* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             om_->NewOrder(event->exchange_id, event->trading_pair, event->price, event->side, event->qty);
             event->Release();
         });
     }
     void AsyncHandleEvent(order_manager::BusEventRequestCancelOrder* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             om_->CancelOrder(event->exchange_id, event->trading_pair, event->side);
             event->Release();
         });
     }
     void AsyncHandleEvent(order_manager::BusEventResponse* event) override{
-         boost::asio::post(strand_, [this, event]() {
+         boost::asio::post(executor_, [this, event]() {
             om_->OnOrderResponse(event->response);
             event->Release();
         });
