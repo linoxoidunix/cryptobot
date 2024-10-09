@@ -1,8 +1,5 @@
 #pragma once
 #include <algorithm>
-#include <boost/beast/http.hpp>
-#include <boost/beast/http/message.hpp>
-#include <boost/beast/version.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -18,6 +15,10 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
+#include "boost/asio.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/http/message.hpp"
+#include "boost/beast/version.hpp"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -355,8 +356,11 @@ class OHLCVI : public OHLCVGetter {
     };
 
   public:
-    OHLCVI(common::TradingPairHashMap& map, common::TradingPairReverseHashMap& pair_reverse, common::TradingPair pair,
-           const KLineStreamI::ChartInterval* chart_interval, TypeExchange type_exchange)
+    OHLCVI(common::TradingPairHashMap& map,
+           common::TradingPairReverseHashMap& pair_reverse,
+           common::TradingPair pair,
+           const KLineStreamI::ChartInterval* chart_interval,
+           TypeExchange type_exchange)
         : current_exchange_(exchange_.Get(type_exchange)),
           map_(map),
           pairs_reverse_(pair_reverse),
@@ -665,8 +669,8 @@ class FamilyLimitOrder {
 class FamilyCancelOrder {
   public:
     static constexpr std::string_view end_point = "/api/v3/order";
-    explicit FamilyCancelOrder() = default;
-    virtual ~FamilyCancelOrder() = default;
+    explicit FamilyCancelOrder()                = default;
+    virtual ~FamilyCancelOrder()                = default;
 
     class ParserResponse {
       public:
@@ -818,20 +822,82 @@ class OrderNewLimit2 : public inner::OrderNewI,
             loge("AsyncRequest wasn't sent in io_context");
 
         logd("end send new limit order request");
-        // session_pool_->ReleaseConnection(session);
-        using namespace std::literals::chrono_literals;
     };
     ~OrderNewLimit2() override = default;
 
   private:
     ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_;
     // pass pairs_ without const due to i want [] operator
-    common::TradingPairHashMap& pairs_;
     // pass pairs_reverse_ without const due to i want [] operator
     common::TradingPairReverseHashMap& pairs_reverse_;
+
+  protected:
+    SignerI* signer_;
+    common::TradingPairHashMap& pairs_;
+    https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+};
+
+template <typename Executor>
+class OrderNewLimit3 : public OrderNewLimit2 {
+    Executor executor_;
+
+  public:
+    explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
+                            TypeExchange type,
+                            common::TradingPairHashMap& pairs,
+                            common::TradingPairReverseHashMap& pairs_reverse,
+                            ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : executor_(std::move(executor)),
+          OrderNewLimit2(signer, type, pairs, pairs_reverse, session_pool) {};
+
+    ~OrderNewLimit3() override = default;
+    boost::asio::awaitable<void> CoExec(
+        Exchange::RequestNewOrder* order,
+        const OnHttpsResponce& callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        boost::asio::co_spawn(
+            executor_,
+            [this, order, &callback]() -> boost::asio::awaitable<void> {
+                // Inside this lambda, we perform the logic
+                // Ensure the callback is valid
+                if (!callback) {
+                    loge("Callback is null");
+                    co_return;  // Exit if no callback is provided
+                }
+
+                logd("Start CoExec");
+
+                ArgsOrder args(order, pairs_);
+
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyLimitOrder::end_point,
+                    args,
+                    boost::beast::http::verb::post,
+                    signer_,
+                    need_sign};
+
+                logd("Start preparing new limit order request");
+                auto req = factory();
+                logd("End preparing new limit order request");
+
+                auto session = session_pool_->AcquireConnection();
+                logd("Start sending new limit order request");
+
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false) {
+                    loge("AsyncRequest wasn't sent in io_context");
+                }
+
+                logd("End sending new limit order request");
+                co_return;  // Exit the coroutine
+            },
+            boost::asio::detached);  // Detach to avoid awaiting here
+        co_return;
+    }
 };
 
 class CancelOrder : public inner::CancelOrderI,
@@ -882,7 +948,7 @@ class CancelOrder : public inner::CancelOrderI,
 };
 
 class CancelOrder2 : public inner::CancelOrderI,
-                      public detail::FamilyCancelOrder {
+                     public detail::FamilyCancelOrder {
   public:
     explicit CancelOrder2(SignerI* signer, TypeExchange type,
                           common::TradingPairHashMap& pairs,

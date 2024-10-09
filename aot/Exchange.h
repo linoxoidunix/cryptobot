@@ -1,14 +1,20 @@
 #pragma once
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/beast/http.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+
+#include "boost/asio/awaitable.hpp"
+#include "boost/algorithm/string.hpp"
+#include "boost/beast/http.hpp"
+
+
+
 
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -324,6 +330,11 @@ class OrderNewI {
      */
     virtual void Exec(Exchange::RequestNewOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
+
+    virtual boost::asio::awaitable<void> CoExec(Exchange::RequestNewOrder* order, 
+                                             const OnHttpsResponce& cb ) {
+    co_return;
+    } 
     virtual ~OrderNewI()                                 = default;
 };
 
