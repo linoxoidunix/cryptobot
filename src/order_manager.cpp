@@ -12,14 +12,14 @@ auto Trading::OrderManager::NewOrder(common::ExchangeId exchange_id, const commo
         logi("there is live order for ticker:{}. can't create new order", trading_pair.ToString());
         return;
     }
-    const Exchange::RequestNewOrder new_request{
+    const Exchange::RequestNewOrder new_request(
         exchange_id,
         Exchange::ClientRequestType::NEW,
         trading_pair,
         next_order_id_,
         side,
         price,
-        qty};
+        qty);
     trade_engine_->SendRequestNewOrder(&new_request);
     *order = {trading_pair, next_order_id_,           side, price,
               qty,       OMOrderState::PENDING_NEW};

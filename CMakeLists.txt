@@ -7,6 +7,8 @@ find_package(OpenSSL)
 add_subdirectory(aot_data)
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
+#find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBUV REQUIRED libuv)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -102,6 +104,7 @@ find_package(concurrentqueue)
 
 file(GLOB LIST_H
      "aot/*.h"
+     "aot/bus/*.h"
      "aot/common/*.h"
      "aot/market_data/*.h"
      "aot/order_gw/*.h"

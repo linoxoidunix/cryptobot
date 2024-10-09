@@ -18,6 +18,7 @@ class MockClientResponse : public IResponse {
     MOCK_METHOD(TradingPair, GetTradingPair, (), (const, noexcept, override));
     MOCK_METHOD(Side, GetSide, (), (const, noexcept, override));
     MOCK_METHOD(Qty, GetExecQty, (), (const, noexcept, override));
+    MOCK_METHOD(Qty, GetLeavesQty, (), (const, noexcept, override));
     MOCK_METHOD(Price, GetPrice, (), (const, noexcept, override));
     MOCK_METHOD(std::string, ToString, (), (const, noexcept, override));
     MOCK_METHOD(void, Deallocate, (), (override));

@@ -72,7 +72,6 @@ class HttpsSession {
     boost::asio::io_context& ioc_;
     Timeout timeout_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
-
   public:
     explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
                           const std::string_view host,
@@ -107,6 +106,22 @@ class HttpsSession {
 
         return true;
     }
+
+    // Close the session gracefully
+    void AsyncCloseSessionGracefully() {
+        // Perform SSL shutdown asynchronously
+        //start_timer();
+        stream_.async_shutdown([this](beast::error_code ec) {
+            if (ec) {
+                // If shutdown fails, log the error but still close the socket
+                logi("SSL shutdown failed: {}", ec.message());
+            }
+
+            // Close the underlying TCP connection
+            close_session();
+        });
+    }
+
     inline bool IsConnected() const { return is_connected_; }
     inline bool IsExpired() const { return is_expired_; }
     inline bool IsUsed() const { return is_used_; }
@@ -301,7 +316,17 @@ class ConnectionPool {
     }
 
     // Release a connection back to the pool
+    void CloseAllSessions() {
+    // Stop the helper thread and wait for it to finish
+        timeout_thread_->request_stop();
+        block_until_helper_thread_finished.wait();
 
+        // Now proceed to close all sessions
+        CloseQueueSessions(until_handshake_connections_);
+        CloseQueueSessions(after_handshake_connections_);
+        CloseQueueSessions(used_connections_);
+        CloseQueueSessions(expired_connections_);
+    }
 
   private:
       void ReleaseConnection(HTTPSessionType* session) {
@@ -432,5 +457,18 @@ class ConnectionPool {
             loge("loss connection");
         }
     }
+
+    template <typename QueueType>
+    void CloseQueueSessions(QueueType& queue) {
+        HTTPSessionType* session = nullptr;
+        while (queue.try_dequeue(session)) {
+            if (session) {
+                // Post the close operation to the strand to ensure thread safety
+                boost::asio::post(ioc_, [session]() {
+                    session->AsyncCloseSessionGracefully();
+                });
+            }
+        }
+}
 };
 };  // namespace V2

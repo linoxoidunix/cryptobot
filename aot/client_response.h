@@ -61,6 +61,7 @@ class IResponse {
 
     virtual common::Side GetSide() const               = 0;
     virtual common::Qty GetExecQty() const             = 0;
+    virtual common::Qty GetLeavesQty() const           = 0;
     virtual common::Price GetPrice() const             = 0;
     virtual std::string ToString() const               = 0;
     virtual common::TradingPair GetTradingPair() const = 0;
@@ -135,6 +136,7 @@ struct MEClientResponse : public IResponse {
         return order_id;
     };
     Exchange::ClientResponseType GetType() const override {return type;};
+    common::Qty GetLeavesQty() const override {return leaves_qty;};
 
 };
 

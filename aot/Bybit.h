@@ -120,73 +120,73 @@ class ExchangeChooser {
 //     std::string second_;
 //     std::string ticker_;
 // };
-class m1 : public ChartInterval {
+class m1 : public KLineStreamI::ChartInterval {
   public:
     explicit m1() = default;
     std::string ToString() const override { return "1"; }
     uint Seconds() const override {return 60;};
 };
-class m3 : public ChartInterval {
+class m3 : public KLineStreamI::ChartInterval {
   public:
     explicit m3() = default;
     std::string ToString() const override { return "3"; }
     uint Seconds() const override {return 180;};
 };
-class m5 : public ChartInterval {
+class m5 : public KLineStreamI::ChartInterval {
   public:
     explicit m5() = default;
     std::string ToString() const override { return "5"; }
     uint Seconds() const override {return 300;};
 };
-class m15 : public ChartInterval {
+class m15 : public KLineStreamI::ChartInterval {
   public:
     explicit m15() = default;
     std::string ToString() const override { return "15"; }
     uint Seconds() const override {return 900;};
 };
-class m60 : public ChartInterval {
+class m60 : public KLineStreamI::ChartInterval {
   public:
     explicit m60() = default;
     std::string ToString() const override { return "30"; }
     uint Seconds() const override {return 3600;};
 };
-class m120 : public ChartInterval {
+class m120 : public KLineStreamI::ChartInterval {
   public:
     explicit m120() = default;
     std::string ToString() const override { return "120"; }
     uint Seconds() const override {return 7200;};
 };
-class m240 : public ChartInterval {
+class m240 : public KLineStreamI::ChartInterval {
   public:
     explicit m240() = default;
     std::string ToString() const override { return "240"; }
     uint Seconds() const override {return 14400;};
 };
-class m360 : public ChartInterval {
+class m360 : public KLineStreamI::ChartInterval {
   public:
     explicit m360() = default;
     std::string ToString() const override { return "360"; }
     uint Seconds() const override {return 21600;};
 };
-class m720 : public ChartInterval {
+class m720 : public KLineStreamI::ChartInterval {
   public:
     explicit m720() = default;
     std::string ToString() const override { return "720"; }
     uint Seconds() const override {return 43200;};
 };
-class D1 : public ChartInterval {
+class D1 : public KLineStreamI::ChartInterval {
   public:
     explicit D1() = default;
     std::string ToString() const override { return "D"; }
     uint Seconds() const override {return 86400;};
 };
-class W1 : public ChartInterval {
+class W1 : public KLineStreamI::ChartInterval {
   public:
     explicit W1() = default;
     std::string ToString() const override { return "W"; }
     uint Seconds() const override {return 604800;};
 };
-class M1 : public ChartInterval {
+class M1 : public KLineStreamI::ChartInterval {
   public:
     explicit M1() = default;
     std::string ToString() const override { return "M"; }
@@ -195,7 +195,7 @@ class M1 : public ChartInterval {
 
 class KLineStream : public KLineStreamI {
   public:
-    explicit KLineStream(std::string_view trading_pair, const ChartInterval* chart_interval)
+    explicit KLineStream(std::string_view trading_pair, const KLineStreamI::ChartInterval* chart_interval)
         : trading_pair_(trading_pair), chart_interval_(chart_interval){};
     std::string ToString() const override {
         return fmt::format("kline.{0}.{1}", trading_pair_,
@@ -204,7 +204,7 @@ class KLineStream : public KLineStreamI {
   ~KLineStream() override = default;
   private:
     std::string_view trading_pair_;
-    const ChartInterval* chart_interval_;
+    const KLineStreamI::ChartInterval* chart_interval_;
 };
 
 class ParserKLineResponse : public ParserKLineResponseI {
@@ -217,7 +217,7 @@ class ParserKLineResponse : public ParserKLineResponseI {
 
 // class OHLCVI : public OHLCVGetter {
 //   public:
-//     OHLCVI(const Symbol* s, const ChartInterval* chart_interval,
+//     OHLCVI(const Symbol* s, const KLineStreamI::ChartInterval* chart_interval,
 //            TypeExchange type_exchange)
 //         : s_(s),
 //           chart_interval_(chart_interval),
@@ -249,7 +249,7 @@ class ParserKLineResponse : public ParserKLineResponseI {
 //     ExchangeChooser exchange_;
 //     https::ExchangeI* current_exchange_ = nullptr;
 //     const Symbol* s_;
-//     const ChartInterval* chart_interval_;
+//     const KLineStreamI::ChartInterval* chart_interval_;
 //     TypeExchange type_exchange_;
 // };
 

@@ -1,7 +1,7 @@
 #include "magic_enum.hpp"
 #include "aot/wallet_asset.h"
 
-void Wallet::Update(const Exchange::IResponse* response){
+void Wallet::Update(Exchange::IResponse* response){
     auto type = response->GetType();
     auto executed_qty = response->GetExecQty();
 
@@ -52,4 +52,5 @@ void Wallet::Update(const Exchange::IResponse* response){
         return;
     }
     loge("unknown type of response:{} with name:{}", static_cast<uint8_t>(type), magic_enum::enum_name(type));
+    response->Deallocate();
 };

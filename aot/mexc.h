@@ -1,5 +1,8 @@
 #pragma once
 #include <algorithm>
+#include <boost/beast/http.hpp>
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/version.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -15,101 +18,14 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
-#include "boost/asio.hpp"
-#include "boost/beast/http.hpp"
-#include "boost/beast/http/message.hpp"
-#include "boost/beast/version.hpp"
 
-// Spot API URL                               Spot Test Network URL
-// https://api.binance.com/api https://testnet.binance.vision/api
-// wss://stream.binance.com:9443/ws	         wss://testnet.binance.vision/ws
-// wss://stream.binance.com:9443/stream	     wss://testnet.binance.vision/stream
-
-namespace binance {
+namespace mexc {
 
 const auto kMeasureTForGeneratorBidAskService =
     MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE;  // MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE
                                               // define in cmakelists.txt
 enum class TimeInForce { GTC, IOC, FOK };
 
-namespace testnet {
-class HttpsExchange : public https::ExchangeI {
-  public:
-    /**
-     * @brief Construct a new Https Exchange object
-     *
-     * @param recv_window
-     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-     * An additional parameter, recvWindow, may be sent to specify the number of
-     * milliseconds after timestamp the request is valid for. If recvWindow is
-     * not sent, it defaults to 5000.
-     */
-    explicit HttpsExchange(std::uint64_t recv_window = 5000)
-        : recv_window_((recv_window > 60000) ? 60000 : recv_window) {
-              /**
-               * @brief
-                https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-                It is recommended to use a small recvWindow of 5000 or less! The
-               max cannot go beyond 60,000!
-               *
-               */
-          };
-
-    ~HttpsExchange() override = default;
-    std::string_view Host() const override {
-        return std::string_view("testnet.binance.vision");
-    };
-    std::string_view Port() const override { return "443"; };
-    std::uint64_t RecvWindow() const override { return recv_window_; };
-
-  private:
-    std::uint64_t recv_window_;
-};
-
-namespace sp {
-template <std::uint64_t DefaultRecvWindow = 5000,
-          std::uint64_t MaxRecvWindow     = 60000>
-class HttpsExchange;  // Forward declaration of HttpsExchange
-template <std::uint64_t DefaultRecvWindow, std::uint64_t MaxRecvWindow>
-class HttpsExchange : public https::sp::ExchangeB<
-                          HttpsExchange<DefaultRecvWindow, MaxRecvWindow>> {
-  public:
-    /**
-     * @brief Construct a new Https Exchange object
-     *
-     * @param recv_window
-     * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-     * An additional parameter, recvWindow, may be sent to specify the number of
-     * milliseconds after timestamp the request is valid for. If recvWindow is
-     * not sent, it defaults to DefaultRecvWindow.
-     */
-    explicit HttpsExchange(std::uint64_t recv_window = DefaultRecvWindow)
-        : recv_window_((recv_window > MaxRecvWindow) ? MaxRecvWindow
-                                                     : recv_window) {
-              /**
-               * @brief
-               * https://binance-docs.github.io/apidocs/spot/en/#endpoint-security-type
-               * It is recommended to use a small recvWindow of 5000 or less!
-               * The max cannot go beyond 60,000!
-               *
-               */
-          };
-
-    // Using static polymorphism to provide behavior
-    constexpr std::string_view HostImpl() const {
-        return "testnet.binance.vision";
-    };
-
-    constexpr std::string_view PortImpl() const { return "443"; };
-
-    constexpr std::uint64_t RecvWindowImpl() const { return recv_window_; };
-
-  private:
-    std::uint64_t recv_window_;
-};
-};  // namespace sp
-
-};  // namespace testnet
 namespace mainnet {
 class HttpsExchange : public https::ExchangeI {
   public:
@@ -135,9 +51,9 @@ class HttpsExchange : public https::ExchangeI {
 
     virtual ~HttpsExchange() = default;
     std::string_view Host() const override {
-        return std::string_view("stream.binance.com");
+        return std::string_view("api.mexc.com");
     };
-    std::string_view Port() const override { return "9443"; };
+    std::string_view Port() const override { return "443"; };
     std::uint64_t RecvWindow() const override { return recv_window_; };
 
   private:
@@ -154,147 +70,42 @@ class ExchangeChooser {
             case TypeExchange::MAINNET:
                 current_exchange = &main_net_;
                 break;
-            case TypeExchange::TESTNET:
             default:
-                current_exchange = &test_net_;
+                current_exchange = &main_net_;
                 break;
         }
         return current_exchange;
     }
 
   private:
-    binance::testnet::HttpsExchange test_net_;
-    binance::mainnet::HttpsExchange main_net_;
+    mainnet::HttpsExchange main_net_;
 };
 
+/**
+ * @brief https://mexcdevelop.github.io/apidocs/spot_v3_en/#enum-definitions
+ * Order type
+ * LIMIT (Limit order)
+ * MARKET (Market order)
+ * LIMIT_MAKER (Limit maker order)
+ * IMMEDIATE_OR_CANCEL (Immediate or cancel order)
+ * FILL_OR_KILL (Fill or kill order)
+ *
+ */
 enum class Type {
     LIMIT,
     MARKET,
-    STOP_LOSS,
-    STOP_LOSS_LIMIT,
-    TAKE_PROFIT,
-    TAKE_PROFIT_LIMIT,
-    LIMIT_MAKER
+    LIMIT_MAKER,
+    IMMEDIATE_OR_CANCEL,
+    FILL_OR_KILL
 };
-// class Symbol : public SymbolI {
-//   public:
-//     explicit Symbol(std::string_view first, std::string_view second)
-//         : first_(first.data()),
-//           second_(second.data()),
-//           ticker_(fmt::format("{0}{1}", first_, second_)) {
-//         boost::algorithm::to_upper(ticker_);
-//     };
-//     std::string_view ToString() const override { return ticker_; };
-//     ~Symbol() override = default;
 
-//   private:
-//     std::string first_;
-//     std::string second_;
-//     std::string ticker_;
-// };
-class s1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit s1() = default;
-    std::string ToString() const override { return "1s"; };
-    uint Seconds() const override { return 1; };
-};
-class m1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m1() = default;
-    std::string ToString() const override { return "1m"; };
-    uint Seconds() const override { return 60; };
-};
-class m3 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m3() = default;
-    std::string ToString() const override { return "3m"; };
-    uint Seconds() const override { return 180; };
-};
-class m5 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m5() = default;
-    std::string ToString() const override { return "5m"; }
-    uint Seconds() const override { return 300; };
-};
-class m15 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m15() = default;
-    std::string ToString() const override { return "15m"; }
-    uint Seconds() const override { return 900; };
-};
-class m30 : public KLineStreamI::ChartInterval {
-  public:
-    explicit m30() = default;
-    std::string ToString() const override { return "30m"; }
-    uint Seconds() const override { return 1800; };
-};
-class h1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h1() = default;
-    std::string ToString() const override { return "1h"; }
-    uint Seconds() const override { return 3600; };
-};
-class h2 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h2() = default;
-    std::string ToString() const override { return "2h"; }
-    uint Seconds() const override { return 7200; };
-};
-class h4 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h4() = default;
-    std::string ToString() const override { return "4h"; }
-    uint Seconds() const override { return 14400; };
-};
-class h6 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h6() = default;
-    std::string ToString() const override { return "6h"; }
-    uint Seconds() const override { return 21600; };
-};
-class h8 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h8() = default;
-    std::string ToString() const override { return "8h"; }
-    uint Seconds() const override { return 28800; };
-};
-class h12 : public KLineStreamI::ChartInterval {
-  public:
-    explicit h12() = default;
-    std::string ToString() const override { return "12h"; }
-    uint Seconds() const override { return 43200; };
-};
-class d1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit d1() = default;
-    std::string ToString() const override { return "1d"; }
-    uint Seconds() const override { return 86400; };
-};
-class d3 : public KLineStreamI::ChartInterval {
-  public:
-    explicit d3() = default;
-    std::string ToString() const override { return "3d"; }
-    uint Seconds() const override { return 259200; };
-};
-class w1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit w1() = default;
-    std::string ToString() const override { return "1w"; }
-    uint Seconds() const override { return 604800; };
-};
-class M1 : public KLineStreamI::ChartInterval {
-  public:
-    explicit M1() = default;
-    std::string ToString() const override { return "1M"; }
-    uint Seconds() const override { return 2.628e6; };
-};
 class KLineStream : public KLineStreamI {
   public:
     explicit KLineStream(std::string_view trading_pair,
                          const KLineStreamI::ChartInterval* chart_interval)
         : trading_pair_(trading_pair), chart_interval_(chart_interval) {};
     std::string ToString() const override {
-        return fmt::format("{0}@kline_{1}", trading_pair_,
+        return fmt::format("spot@public.kline.v3.api@{}@{}", trading_pair_,
                            chart_interval_->ToString());
     };
     ~KLineStream() override = default;
@@ -311,25 +122,82 @@ class DiffDepthStream : public DiffDepthStreamI {
         virtual std::string ToString() const = 0;
         virtual ~StreamIntervalI()           = default;
     };
-    class ms1000 : public StreamIntervalI {
+    class m1 : public KLineStreamI::ChartInterval {
       public:
-        explicit ms1000() = default;
-        std::string ToString() const override { return "1000ms"; };
-        ~ms1000() override = default;
+        explicit m1() = default;
+        std::string ToString() const override { return "Min1"; };
+        uint Seconds() const override { return 60; };
+        ~m1() override = default;
     };
-    class ms100 : public StreamIntervalI {
+    class m5 : public KLineStreamI::ChartInterval {
       public:
-        explicit ms100() = default;
-        std::string ToString() const override { return "100ms"; };
-        ~ms100() override = default;
+        explicit m5() = default;
+        std::string ToString() const override { return "Min5"; }
+        uint Seconds() const override { return 300; };
+        ~m5() override = default;
+    };
+    class m15 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m15() = default;
+        std::string ToString() const override { return "Min15"; }
+        uint Seconds() const override { return 900; };
+        ~m15() override = default;
+    };
+    class m30 : public KLineStreamI::ChartInterval {
+      public:
+        explicit m30() = default;
+        std::string ToString() const override { return "Min30"; }
+        uint Seconds() const override { return 1800; };
+        ~m30() override = default;
+    };
+    class h1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h1() = default;
+        std::string ToString() const override { return "Min60"; }
+        uint Seconds() const override { return 3600; };
+        ~h1() override = default;
+    };
+    class h4 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h4() = default;
+        std::string ToString() const override { return "Hour4"; }
+        uint Seconds() const override { return 14400; };
+        ~h4() override = default;
+    };
+    class h8 : public KLineStreamI::ChartInterval {
+      public:
+        explicit h8() = default;
+        std::string ToString() const override { return "Hour8"; }
+        uint Seconds() const override { return 28800; };
+        ~h8() override = default;
+    };
+    class d1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit d1() = default;
+        std::string ToString() const override { return "Day1"; }
+        uint Seconds() const override { return 86400; };
+        ~d1() override = default;
+    };
+    class w1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit w1() = default;
+        std::string ToString() const override { return "Week1"; }
+        uint Seconds() const override { return 604800; };
+        ~w1() override = default;
+    };
+    class M1 : public KLineStreamI::ChartInterval {
+      public:
+        explicit M1() = default;
+        std::string ToString() const override { return "Month1"; }
+        uint Seconds() const override { return 2.628e6; };
+        ~M1() override = default;
     };
 
-    explicit DiffDepthStream(const common::TradingPairInfo& s,
-                             const StreamIntervalI* interval)
+    explicit DiffDepthStream(const common::TradingPairInfo& s, const StreamIntervalI* interval)
         : symbol_(s), interval_(interval) {};
     std::string ToString() const override {
-        return fmt::format("{0}@depth@{1}", symbol_.ws_query_request,
-                           interval_->ToString());
+        return fmt::format("spot@public.increase.depth.v3.api@{}",
+                           symbol_.https_json_request, interval_->ToString());
     };
 
   private:
@@ -337,63 +205,44 @@ class DiffDepthStream : public DiffDepthStreamI {
     const StreamIntervalI* interval_;
 };
 
-class OHLCVI : public OHLCVGetter {
-    common::TradingPairHashMap& map_;
-    common::TradingPairReverseHashMap pairs_reverse_;
-    common::TradingPair pair_;
-    class ParserResponse {
-      public:
-        explicit ParserResponse(
-            common::TradingPairReverseHashMap& pairs_reverse,
-            common::TradingPairHashMap& map, common::TradingPair pair)
-            : pairs_reverse_(pairs_reverse), map_(map), pair_(pair) {};
-        OHLCVExt Parse(std::string_view response);
+// class OHLCVI : public OHLCVGetter {
+//   public:
+//     OHLCVI(const Symbol* s, const KLineStreamI::ChartInterval*
+//     chart_interval,
+//            TypeExchange type_exchange)
+//         : s_(s),
+//           chart_interval_(chart_interval),
+//           type_exchange_(type_exchange) {
+//         current_exchange_ = exchange_.Get(type_exchange);
+//     };
+//     bool LaunchOne() override { ioc.run_one();return true; };
 
-      private:
-        common::TradingPairReverseHashMap& pairs_reverse_;
-        common::TradingPairHashMap& map_;
-        common::TradingPair pair_;
-    };
+//     void Init(OHLCVILFQueue& lf_queue) override {
+//         std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
+//         OnMessageCB = [](boost::beast::flat_buffer& buffer) {
+//             auto resut = boost::beast::buffers_to_string(buffer.data());
+//             logi("{}", resut);
+//         };
 
-  public:
-    OHLCVI(common::TradingPairHashMap& map,
-           common::TradingPairReverseHashMap& pair_reverse,
-           common::TradingPair pair,
-           const KLineStreamI::ChartInterval* chart_interval,
-           TypeExchange type_exchange)
-        : current_exchange_(exchange_.Get(type_exchange)),
-          map_(map),
-          pairs_reverse_(pair_reverse),
-          pair_(pair),
-          chart_interval_(chart_interval),
-          type_exchange_(type_exchange) {};
-    bool LaunchOne() override {
-        ioc.run_one();
-        return true;
-    };
-    void Init(OHLCVILFQueue& lf_queue) override {
-        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&lf_queue, this](boost::beast::flat_buffer& buffer) {
-            auto result = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser(pairs_reverse_, map_, pair_);
-            lf_queue.try_enqueue(parser.Parse(result));
-        };
-        assert(false);
-        using kls = KLineStream;
-        kls channel(map_[pair_].ws_query_request, chart_interval_);
-        std::string empty_request = "{}";
-        std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run(current_exchange_->Host(), current_exchange_->Port(),
-                  fmt::format("/ws/{0}", channel.ToString()));
-    };
+//         using kls = KLineStream;
+//         kls channel(s_, chart_interval_);
+//         auto request_without_bracket = fmt::format(
+//             "\"req_id\": \"test\",\"op\": \"subscribe\", \"args\": [\"{}\"]",
+//             channel.ToString());
+//         std::string request = "{" + request_without_bracket + "}";
+//         std::make_shared<WS>(ioc, request, OnMessageCB)
+//             ->Run("stream-testnet.bybit.com", "443", "/v5/public/spot");
+//         ioc.run();
+//     };
 
-  private:
-    boost::asio::io_context ioc;
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_ = nullptr;
-    const KLineStreamI::ChartInterval* chart_interval_;
-    TypeExchange type_exchange_;
-};
+//   private:
+//     boost::asio::io_context ioc;
+//     ExchangeChooser exchange_;
+//     https::ExchangeI* current_exchange_ = nullptr;
+//     const Symbol* s_;
+//     const KLineStreamI::ChartInterval* chart_interval_;
+//     TypeExchange type_exchange_;
+// };
 
 class BookEventGetter : public BookEventGetterI {
     class ParserResponse {
@@ -503,7 +352,12 @@ class FactoryRequest {
         if (need_sign) {
             AddSignParams();
             auto request_args = args_.QueryString();
-            auto signature    = signer_->Sign(request_args);
+            /**
+             * @brief
+             * https://mexcdevelop.github.io/apidocs/spot_v3_en/#header:~:text=The%20signature%20is%20support%20lowercase%20only.
+             * The signature is support lowercase only.
+             */
+            auto signature    = signer_->SignByLowerCase(request_args);
             AddSignature(signature);
         }
         end_point_ = end_point.data() + args_.FinalQueryString();
@@ -518,7 +372,7 @@ class FactoryRequest {
          * header.
          *
          */
-        if (signer_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
+        if (signer_) req.insert("X-MEXC-APIKEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -529,8 +383,7 @@ class FactoryRequest {
          * both the query string and request body if you wish to do so.
          *
          */
-        req.set(boost::beast::http::field::content_type,
-                "application/x-www-form-urlencoded");
+        req.set(boost::beast::http::field::content_type, "application/json");
         return req;
     };
     std::string_view Host() const { return exchange_->Host(); };
@@ -538,12 +391,12 @@ class FactoryRequest {
     std::string_view EndPoint() const { return end_point_; }
 
   private:
-    void AddSignParams() {
+    inline void AddSignParams() {
         CurrentTime time_service;
         args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
         args_["timestamp"]  = std::to_string(time_service.Time());
     };
-    void AddSignature(std::string_view signature) {
+    inline void AddSignature(std::string_view signature) {
         args_["signature"] = signature.data();
     };
 
@@ -619,20 +472,14 @@ class FamilyLimitOrder {
                 case MARKET:
                     storage["type"] = "MARKET";
                     break;
-                case STOP_LOSS:
-                    storage["type"] = "STOP_LOSS";
-                    break;
-                case STOP_LOSS_LIMIT:
-                    storage["type"] = "STOP_LOSS_LIMIT";
-                    break;
-                case TAKE_PROFIT:
-                    storage["type"] = "TAKE_PROFIT";
-                    break;
-                case TAKE_PROFIT_LIMIT:
-                    storage["type"] = "TAKE_PROFIT_LIMIT";
-                    break;
                 case LIMIT_MAKER:
                     storage["type"] = "LIMIT_MAKER";
+                    break;
+                case IMMEDIATE_OR_CANCEL:
+                    storage["type"] = "IMMEDIATE_OR_CANCEL";
+                    break;
+                case FILL_OR_KILL:
+                    storage["type"] = "FILL_OR_KILL";
                     break;
             }
         };
@@ -715,57 +562,6 @@ class FamilyCancelOrder {
 };
 };  // namespace detail
 
-class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
-  public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type,
-                           common::TradingPairHashMap& pairs,
-                           common::TradingPairReverseHashMap& pairs_reverse)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs),
-          pairs_reverse_(pairs_reverse) {};
-    void Exec(Exchange::RequestNewOrder* new_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(new_order, pairs_);
-
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyLimitOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::post,
-                                       signer_,
-                                       need_sign};
-        boost::asio::io_context ioc;
-        OnHttpsResponce cb;
-        cb = [response_lfqueue, this](
-                 boost::beast::http::response<boost::beast::http::string_body>&
-                     buffer) {
-            const auto& resut = buffer.body();
-            logi("{}", resut);
-            ParserResponse parser(pairs_, pairs_reverse_);
-            auto answer    = parser.Parse(resut);
-            bool status_op = response_lfqueue->try_enqueue(answer);
-            if (!status_op) [[unlikely]]
-                loge("my queuee is full. need clean my queue");
-        };
-        logi("init memory start");
-        Https http_session(ioc, cb);
-        http_session.Run(factory.Host().data(), factory.Port().data(),
-                         factory.EndPoint().data(), factory());
-        logi("init memory finished");
-        ioc.run();
-        logi("go out from exec");
-    };
-    ~OrderNewLimit() override = default;
-
-  private:
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap& pairs_reverse_;
-};
-
 class OrderNewLimit2 : public inner::OrderNewI,
                        public detail::FamilyLimitOrder {
   public:
@@ -822,151 +618,20 @@ class OrderNewLimit2 : public inner::OrderNewI,
             loge("AsyncRequest wasn't sent in io_context");
 
         logd("end send new limit order request");
+        // session_pool_->ReleaseConnection(session);
+        using namespace std::literals::chrono_literals;
     };
     ~OrderNewLimit2() override = default;
 
   private:
     ExchangeChooser exchange_;
+    https::ExchangeI* current_exchange_;
+    SignerI* signer_;
     // pass pairs_ without const due to i want [] operator
+    common::TradingPairHashMap& pairs_;
     // pass pairs_reverse_ without const due to i want [] operator
     common::TradingPairReverseHashMap& pairs_reverse_;
-
-  protected:
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
-};
-
-template <typename Executor>
-class OrderNewLimit3 : public OrderNewLimit2 {
-    Executor executor_;
-
-  public:
-    explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : executor_(std::move(executor)),
-          OrderNewLimit2(signer, type, pairs, pairs_reverse, session_pool) {};
-
-    ~OrderNewLimit3() override = default;
-    boost::asio::awaitable<void> CoExec(
-        Exchange::RequestNewOrder* order,
-        const OnHttpsResponce& callback) override {
-        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
-        boost::asio::co_spawn(
-            executor_,
-            [this, order, &callback]() -> boost::asio::awaitable<void> {
-                // Inside this lambda, we perform the logic
-                // Ensure the callback is valid
-                if (!callback) {
-                    loge("Callback is null");
-                    co_return;  // Exit if no callback is provided
-                }
-
-                logd("Start CoExec");
-
-                ArgsOrder args(order, pairs_);
-
-                bool need_sign = true;
-                detail::FactoryRequest factory{
-                    current_exchange_,
-                    detail::FamilyLimitOrder::end_point,
-                    args,
-                    boost::beast::http::verb::post,
-                    signer_,
-                    need_sign};
-
-                logd("Start preparing new limit order request");
-                auto req = factory();
-                logd("End preparing new limit order request");
-                order->Deallocate();
-                auto session = session_pool_->AcquireConnection();
-                logd("Start sending new limit order request");
-
-                if (auto status =
-                        session->AsyncRequest(std::move(req), callback);
-                    status == false) {
-                    loge("AsyncRequest wasn't sent in io_context");
-                }
-
-                logd("End sending new limit order request");
-                co_return;  // Exit the coroutine
-            },
-            boost::asio::detached);  // Detach to avoid awaiting here
-        co_return;
-    }
-};
-
-// maybe 2 executor extra
-template <typename Executor, typename ExecutorSendingOrder>
-class OrderNewLimitComponent : public bus::Component,
-                               public OrderNewLimit3<ExecutorSendingOrder> {
-    Executor executor_;
-
-  public:
-    explicit OrderNewLimitComponent(Executor&& executor)
-        : executor_(std::move(executor)) {}
-
-    ~OrderNewLimitComponent() override = default;
-
-    void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
-                          const OnHttpsResponce& cb) override {
-        auto ptr_event = event->request;
-        boost::asio::co_spawn(executor_,
-                              CoExec<ExecutorSendingOrder>(ptr_event, cb),
-                              boost::asio::detached);
-        event->Release();
-    };
-};
-
-class CancelOrder : public inner::CancelOrderI,
-                    public detail::FamilyCancelOrder {
-  public:
-    explicit CancelOrder(SignerI* signer, TypeExchange type,
-                         common::TradingPairHashMap& pairs)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs) {};
-    void Exec(Exchange::RequestCancelOrder* request_cancel_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(request_cancel_order, pairs_);
-
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyCancelOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::delete_,
-                                       signer_,
-                                       need_sign};
-        boost::asio::io_context ioc;
-        OnHttpsResponce cb;
-        cb = [response_lfqueue, this](
-                 boost::beast::http::response<boost::beast::http::string_body>&
-                     buffer) {
-            const auto& resut = buffer.body();
-            logi("{}", resut);
-            ParserResponse parser(pairs_reverse_);
-            auto answer    = parser.Parse(resut);
-            bool status_op = response_lfqueue->try_enqueue(answer);
-            if (!status_op) [[unlikely]]
-                loge("my queue is full. need clean my queue");
-        };
-        std::make_shared<Https>(ioc, cb)->Run(
-            factory.Host().data(), factory.Port().data(),
-            factory.EndPoint().data(), factory());
-        ioc.run();
-    };
-    ~CancelOrder() override = default;
-
-  private:
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap pairs_reverse_;
 };
 
 class CancelOrder2 : public inner::CancelOrderI,
@@ -1082,10 +747,10 @@ class BookSnapshot : public inner::BookSnapshotI {
         : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
         switch (type) {
             case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
+                current_exchange_ = &mexc_main_net_;
                 break;
             default:
-                current_exchange_ = &binance_test_net_;
+                current_exchange_ = &mexc_main_net_;
                 break;
         }
     };
@@ -1116,8 +781,7 @@ class BookSnapshot : public inner::BookSnapshotI {
 
   private:
     ArgsOrder args_;
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
+    mainnet::HttpsExchange mexc_main_net_;
 
     https::ExchangeI* current_exchange_;
     SignerI* signer_ = nullptr;
@@ -1185,8 +849,8 @@ class GeneratorBidAskService {
     uint64_t last_id_diff_book_event;
     TypeExchange type_exchange_;
 
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
+    // binance::testnet::HttpsExchange binance_test_net_;
+    mainnet::HttpsExchange mecx_main_net_;
     https::ExchangeI* current_exchange_;
 
   private:
@@ -1194,17 +858,13 @@ class GeneratorBidAskService {
 };
 
 class ConnectionPoolFactory : public ::ConnectionPoolFactory {
-    common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
-
   public:
-    explicit ConnectionPoolFactory(size_t default_number_session = 10)
-        : pool_(default_number_session) {};
     ~ConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
         boost::asio::io_context& io_context, https::ExchangeI* exchange,
         std::size_t pool_size, HTTPSesionType::Timeout timeout) override {
-        return pool_.Allocate(io_context, exchange->Host(), exchange->Port(),
-                              pool_size, timeout);
+        return new V2::ConnectionPool<HTTPSesionType>(
+            io_context, exchange->Host(), exchange->Port(), pool_size, timeout);
     };
 };
-};  // namespace binance
+};  // namespace mexc
