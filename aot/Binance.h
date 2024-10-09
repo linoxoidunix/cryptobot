@@ -840,7 +840,8 @@ class OrderNewLimit2 : public inner::OrderNewI,
 
 template <typename Executor>
 class OrderNewLimit3 : public OrderNewLimit2 {
-    Executor executor_;
+    protected:
+     Executor executor_;
 
   public:
     explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
@@ -901,22 +902,26 @@ class OrderNewLimit3 : public OrderNewLimit2 {
 };
 
 // maybe 2 executor extra
-template <typename Executor, typename ExecutorSendingOrder>
+template <typename Executor>
 class OrderNewLimitComponent : public bus::Component,
-                               public OrderNewLimit3<ExecutorSendingOrder> {
-    Executor executor_;
+                               public OrderNewLimit3<Executor> {
+    //Executor executor_;
 
   public:
-    explicit OrderNewLimitComponent(Executor&& executor)
-        : executor_(std::move(executor)) {}
-
+    using OrderNewLimit3<Executor>::OrderNewLimit3;
+  explicit  OrderNewLimitComponent (Executor&& executor, SignerI* signer,
+                            TypeExchange type,
+                            common::TradingPairHashMap& pairs,
+                            common::TradingPairReverseHashMap& pairs_reverse,
+                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
+                            OrderNewLimit3<Executor>(executor, signer, type, pairs, pairs, session_pool){}
     ~OrderNewLimitComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
                           const OnHttpsResponce& cb) override {
         auto ptr_event = event->request;
-        boost::asio::co_spawn(executor_,
-                              CoExec<ExecutorSendingOrder>(ptr_event, cb),
+        boost::asio::co_spawn(OrderNewLimit3<Executor>::executor_,
+                              CoExec<Executor>(ptr_event, cb),
                               boost::asio::detached);
         event->Release();
     };
