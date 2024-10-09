@@ -1,5 +1,7 @@
 #pragma once
 
+#include "aot/Types.h"
+
 namespace position_keeper{
   struct BusEventAddFill;
   struct BusEventUpdateBBO;
@@ -14,6 +16,10 @@ namespace order_manager{
 namespace wallet{
   struct BusEventReserveQty;
   struct BusEventResponse;
+}
+
+namespace Exchange{
+  struct BusEventRequestNewLimitOrder;
 }
 
 namespace bus{
@@ -67,6 +73,13 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(wallet::BusEventResponse*){
+        //it is empty class
+    };
+    /**
+     * @brief wallet reserve qty of ticker
+     * 
+     */
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder*, const OnHttpsResponce& cb){
         //it is empty class
     };
 };

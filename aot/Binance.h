@@ -882,7 +882,7 @@ class OrderNewLimit3 : public OrderNewLimit2 {
                 logd("Start preparing new limit order request");
                 auto req = factory();
                 logd("End preparing new limit order request");
-
+                order->Deallocate();
                 auto session = session_pool_->AcquireConnection();
                 logd("Start sending new limit order request");
 
@@ -898,6 +898,28 @@ class OrderNewLimit3 : public OrderNewLimit2 {
             boost::asio::detached);  // Detach to avoid awaiting here
         co_return;
     }
+};
+
+// maybe 2 executor extra
+template <typename Executor, typename ExecutorSendingOrder>
+class OrderNewLimitComponent : public bus::Component,
+                               public OrderNewLimit3<ExecutorSendingOrder> {
+    Executor executor_;
+
+  public:
+    explicit OrderNewLimitComponent(Executor&& executor)
+        : executor_(std::move(executor)) {}
+
+    ~OrderNewLimitComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
+                          const OnHttpsResponce& cb) override {
+        auto ptr_event = event->request;
+        boost::asio::co_spawn(executor_,
+                              CoExec<ExecutorSendingOrder>(ptr_event, cb),
+                              boost::asio::detached);
+        event->Release();
+    };
 };
 
 class CancelOrder : public inner::CancelOrderI,
@@ -1172,14 +1194,17 @@ class GeneratorBidAskService {
 };
 
 class ConnectionPoolFactory : public ::ConnectionPoolFactory {
-  common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
+    common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
+
   public:
-    explicit ConnectionPoolFactory(size_t default_number_session = 10):pool_(default_number_session){};
+    explicit ConnectionPoolFactory(size_t default_number_session = 10)
+        : pool_(default_number_session) {};
     ~ConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
         boost::asio::io_context& io_context, https::ExchangeI* exchange,
         std::size_t pool_size, HTTPSesionType::Timeout timeout) override {
-        return pool_.Allocate( io_context, exchange->Host(), exchange->Port(), pool_size, timeout) ;
+        return pool_.Allocate(io_context, exchange->Host(), exchange->Port(),
+                              pool_size, timeout);
     };
 };
 };  // namespace binance

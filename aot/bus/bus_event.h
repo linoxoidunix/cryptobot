@@ -6,6 +6,7 @@
 #include "boost/asio/awaitable.hpp"
 
 #include "aot/Logger.h"
+#include "aot/Types.h"
 
 
 namespace bus{
@@ -30,7 +31,8 @@ class Event {
     }
 
     virtual void Accept(bus::Component*){};
-    
+    virtual void Accept(bus::Component*, const OnHttpsResponce& cb){};
+
     virtual boost::asio::awaitable<void> CoAccept(bus::Component* component){
         logd("Accept component");
         co_await boost::asio::this_coro::executor;

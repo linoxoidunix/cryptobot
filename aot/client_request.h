@@ -13,10 +13,19 @@
 
 #include <sstream>
 
+#include "aot/bus/bus_event.h"
+#include "aot/bus/bus_component.h"
+
 #include "aot/common/types.h"
+#include "aot/Logger.h"
+#include "aot/common/mem_pool.h"
 // #include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"  //if link form source
 
+
+namespace bus{
+    class BusComponent;
+}
 namespace Exchange {
 /// Type of the order request sent by the trading client to the exchange.
 enum class ClientRequestType : uint8_t { INVALID = 0, NEW = 1, CANCEL = 2 };
@@ -41,6 +50,9 @@ class Request {
     }
 };
 
+class RequestNewOrder;
+using RequestNewLimitOrderPool = common::MemPool<RequestNewOrder>;
+
 class RequestNewOrder {
   public:
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
@@ -50,6 +62,7 @@ class RequestNewOrder {
     common::Side side        = common::Side::INVALID;
     common::Price price      = common::kPriceInvalid;
     common::Qty qty          = common::kQtyInvalid;
+    RequestNewLimitOrderPool* mem_pool = nullptr;
     auto ToString() const {
         std::string price_string = (price != common::kPriceInvalid)
                                        ? fmt::format("{}", price)
@@ -62,6 +75,14 @@ class RequestNewOrder {
             ClientRequestTypeToString(type), trading_pair.ToString(), order_id,
             common::sideToString(side), qty_string, price_string);
     }
+    void Deallocate() {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate RequestNewOrder");
+                return;
+        }
+        mem_pool->deallocate(this);
+    };
     explicit RequestNewOrder(common::ExchangeId _exchange_id,
      ClientRequestType _type,
       common::TradingPair _trading_pair,
@@ -78,6 +99,14 @@ class RequestNewOrder {
          qty(_qty){};
     RequestNewOrder() = default;
     virtual ~RequestNewOrder() = default;
+};
+
+struct BusEventRequestNewLimitOrder : public bus::Event{
+    ~BusEventRequestNewLimitOrder() override = default;
+    RequestNewOrder* request;
+    void Accept(bus::Component* comp, const OnHttpsResponce& cb) override{
+        comp->AsyncHandleEvent(this, cb);
+    };
 };
 
 class RequestCancelOrder {
@@ -109,3 +138,4 @@ using RequestCancelOrderLFQueue =
     moodycamel::ConcurrentQueue<RequestCancelOrder>;
 
 }  // namespace Exchange
+

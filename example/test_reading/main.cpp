@@ -1439,17 +1439,13 @@ int main(int argc, char** argv) {
                 auto& reverse_value = exchange_trading_pairs_reverse[1];
                 binance::detail::FamilyLimitOrder::ParserResponse parser(pairs, reverse_value);
                 auto answer    = parser.Parse(resut);
-                //bool status_op = response_lfqueue->try_enqueue(answer);
-                // if (!status_op) [[unlikely]]
-                //     loge("my queuee is full. need clean my queue");
-                //ioc.stop();
                 session_pools[1]->CloseAllSessions();
-                work_guard.reset();//stop infinum ioc.run. wait untill all close all session tasks will be completed
-                //    using namespace std::literals::chrono_literals;
-
-                //std::this_thread::sleep_for(2s);
-                //fmtlog::poll();
-
+                /**
+                 * @brief stop infinum ioc.run
+                 * wait untill all close all session tasks will be completed
+                 * 
+                 */
+                work_guard.reset();
             };
 
     boost::asio::co_spawn(main_executor, new_order.CoExec(&request_new_order, cb), boost::asio::detached);
