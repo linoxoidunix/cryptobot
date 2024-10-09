@@ -1172,13 +1172,14 @@ class GeneratorBidAskService {
 };
 
 class ConnectionPoolFactory : public ::ConnectionPoolFactory {
+  common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
   public:
+    explicit ConnectionPoolFactory(size_t default_number_session = 10):pool_(default_number_session){};
     ~ConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
         boost::asio::io_context& io_context, https::ExchangeI* exchange,
         std::size_t pool_size, HTTPSesionType::Timeout timeout) override {
-        return new V2::ConnectionPool<HTTPSesionType>(
-            io_context, exchange->Host(), exchange->Port(), pool_size, timeout);
+        return pool_.Allocate( io_context, exchange->Host(), exchange->Port(), pool_size, timeout) ;
     };
 };
 };  // namespace binance

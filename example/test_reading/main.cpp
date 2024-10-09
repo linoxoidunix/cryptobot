@@ -1216,58 +1216,57 @@
 //     int x = 0;
 // }
 //----------------------------------------------------------------------------------------
-#include "aot/bus/bus.h"
-#include "aot/strategy/position_keeper.h"
-#include "aot/strategy/order_manager.h"
+// #include "aot/bus/bus.h"
+// #include "aot/strategy/position_keeper.h"
+// #include "aot/strategy/order_manager.h"
 
 
-int main() {
-    fmtlog::setLogLevel(fmtlog::DBG);
-        logd("my thread");
+// int main() {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//         logd("my thread");
 
-    boost::asio::thread_pool pool(16);
-    aot::CoBus bus(pool);
+//     boost::asio::thread_pool pool(16);
+//     aot::CoBus bus(pool);
 
-    // Bus bus(pool);
+//     // Bus bus(pool);
 
-    bus::Component* component_a = new Trading::PositionKeeperComponent (boost::asio::make_strand(pool), nullptr);
-    //bus::Component*  component_b = new Trading::OrderManager(pool, nullptr);
-    // Component*  component_c = new MyComponentC(pool);
+//     bus::Component* component_a = new Trading::PositionKeeperComponent (boost::asio::make_strand(pool), nullptr);
+//     //bus::Component*  component_b = new Trading::OrderManager(pool, nullptr);
+//     // Component*  component_c = new MyComponentC(pool);
 
-    // // Subscribe components to each other for ImplementationEvent
-    // std::cout << "Subscribing components..." << std::endl;
-    bus.Subscribe(component_a, component_a);
-    // bus.Subscribe(component_a, component_b);
-    // bus.Subscribe(component_a, component_b);
-    // bus.Subscribe(component_c, component_c);
-    // bus.Subscribe(component_b, component_c);
-    // bus.Subscribe(component_c, component_a);
-    // bus.Subscribe(component_b, component_b);
+//     // // Subscribe components to each other for ImplementationEvent
+//     // std::cout << "Subscribing components..." << std::endl;
+//     bus.Subscribe(component_a, component_a);
+//     // bus.Subscribe(component_a, component_b);
+//     // bus.Subscribe(component_a, component_b);
+//     // bus.Subscribe(component_c, component_c);
+//     // bus.Subscribe(component_b, component_c);
+//     // bus.Subscribe(component_c, component_a);
+//     // bus.Subscribe(component_b, component_b);
 
-    // // Send an event
-    // std::cout << "Sending events..." << std::endl;
-    // Event* eventA = new ImplementationEventA();
-    // Event* eventB = new ImplementationEventB();
-    // Event* eventC = new ImplementationEventC();
+//     // // Send an event
+//     // std::cout << "Sending events..." << std::endl;
+//     // Event* eventA = new ImplementationEventA();
+//     // Event* eventB = new ImplementationEventB();
+//     // Event* eventC = new ImplementationEventC();
 
-    position_keeper::BusEventUpdateBBO event;
-    boost::asio::co_spawn(pool, bus.CoSend(component_a, &event), boost::asio::detached);
-        // // for (int i = 0; i < 5; ++i) {
-    // //     bus.Send(component_a, *event);  // Send event from component_a
-    // // }
+//     position_keeper::BusEventUpdateBBO event;
+//     boost::asio::co_spawn(pool, bus.CoSend(component_a, &event), boost::asio::detached);
+//         // // for (int i = 0; i < 5; ++i) {
+//     // //     bus.Send(component_a, *event);  // Send event from component_a
+//     // // }
     
-    // bus.Send(component_a, eventA);
-    // bus.Send(component_c, eventA);
-    // bus.Send(component_b, eventC);
+//     // bus.Send(component_a, eventA);
+//     // bus.Send(component_c, eventA);
+//     // bus.Send(component_b, eventC);
 
-    // // Wait for all tasks to complete
-    // bus.Join();
-    pool.join();
-    fmtlog::poll();
-    return 0;
-}
-
-
+//     // // Wait for all tasks to complete
+//     // bus.Join();
+//     pool.join();
+//     fmtlog::poll();
+//     return 0;
+// }
+//----------------------------------------------------------------------------------------
 // class MyEvent : public bus::Event {
 // public:
 //     MyEvent(int data) : data_(data) {}
@@ -1313,4 +1312,175 @@ int main() {
 //     bus.Join();
 //     return 0;
 // };
+//----------------------------------------------------------------------------------------
+// int main(){
+//     boost::asio::thread_pool pool;
+//     binance::OrderNewLimit3 executor_new_order(boost::asio::make_strand(pool), )
+//     // Create components
+//     bus.Join();
+//     return 0;
+// };
+//----------------------------------------------------------------------------------------
+/**
+ * @brief test OrderNewLimit3
+ *
+ * @param argc
+ * @param argv
+ * @return int
+ */
+#include <memory>
+int main(int argc, char** argv) {
+    boost::asio::io_context ioc;
 
+    binance::testnet::HttpsExchange exchange;
+    fmtlog::setLogLevel(fmtlog::DBG);
+    //fmtlog::setLogFile("888.txt");
+    config::ApiSecretKey config(argv[1]);
+
+    auto [status_api_key, api_key] = config.ApiKey();
+    if(!status_api_key){
+        fmtlog::poll();
+        return 0;
+    }
+
+    auto [status_secret_key, secret_key] = config.SecretKey();
+    if(!status_secret_key)[[unlikely]]{
+        fmtlog::poll();
+        return 0;
+    }
+
+    hmac_sha256::Keys keys{api_key, secret_key};
+    hmac_sha256::Signer signer(keys);
+    auto type = TypeExchange::TESTNET;
+    fmtlog::setLogLevel(fmtlog::DBG);
+    ExchangeTPs exchange_trading_pairs;
+    ExchangeTPsJR exchange_trading_pairs_reverse;
+    
+    using namespace binance;
+
+    common::TickerHashMap tickers;
+    tickers[1] = "usdt";
+    tickers[2] = "btc";
+    SymbolLowerCase to_lower(tickers[2], tickers[1]);
+    SymbolUpperCase to_upper(tickers[2], tickers[1]);
+
+    TradingPairHashMap pairs;
+
+    TradingPairInfo pair_info{
+        .price_precission = 2,
+        .qty_precission = 5,
+        .https_json_request = to_upper.ToString(),
+        .https_query_request = to_upper.ToString(),
+        .ws_query_request = to_lower.ToString(),
+        .https_query_response = to_upper.ToString()
+        };
+    pairs[{2, 1}] = pair_info;
+    exchange_trading_pairs[1] = pairs;
+    exchange_trading_pairs_reverse[1] = common::InitTPsJR(pairs);
+
+    HTTPSSessionPool session_pools;
+    binance::ConnectionPoolFactory factory;
+    
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
+
+    
+    auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
+    //::V2::ConnectionPool<HTTPSesionType>* pool = nullptr;
+    std::thread t([&ioc] {
+        //auto work_guard = boost::asio::make_work_guard(ioc);
+        
+        ioc.run();
+    });
+    
+    using namespace std::literals::chrono_literals;
+
+    std::this_thread::sleep_for(5s);
+    //ioc.stop();
+    session_pools[1] = pool;
+    
+    boost::asio::thread_pool asio_pool;
+
+
+    OrderNewLimit3 new_order(boost::asio::make_strand(asio_pool), &signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+    
+    auto main_executor = boost::asio::make_strand(asio_pool);
+
+    // NewLimitOrderExecutors new_limit_order_executors;
+    // new_limit_order_executors[1] = &new_order;  
+
+    // CancelOrder2 executor_cancel_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+
+    // CancelOrderExecutors cancel_order_executors;
+    // cancel_order_executors[1] = &executor_cancel_order;
+
+
+
+
+
+//     using namespace Trading;
+//     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
+//     Exchange::RequestCancelOrderLFQueue requests_cancel_order;
+//     Exchange::ClientResponseLFQueue client_responses;
+
+    Exchange::RequestNewOrder request_new_order;
+    request_new_order.exchange_id = 1;
+    request_new_order.trading_pair   = {2, 1};
+    request_new_order.order_id = 6;
+    request_new_order.side     = common::Side::BUY;
+    request_new_order.price    = 4000000;
+    request_new_order.qty      = 100;
+    //auto x = std::make_shared<int>(777);
+    OnHttpsResponce cb =
+            [&work_guard, &session_pools, &ioc, &pairs, &exchange_trading_pairs_reverse](
+                boost::beast::http::response<boost::beast::http::string_body>&
+                    buffer) {
+                const auto& resut = buffer.body();
+                logi("{}", resut);
+                auto& reverse_value = exchange_trading_pairs_reverse[1];
+                binance::detail::FamilyLimitOrder::ParserResponse parser(pairs, reverse_value);
+                auto answer    = parser.Parse(resut);
+                //bool status_op = response_lfqueue->try_enqueue(answer);
+                // if (!status_op) [[unlikely]]
+                //     loge("my queuee is full. need clean my queue");
+                //ioc.stop();
+                session_pools[1]->CloseAllSessions();
+                work_guard.reset();//stop infinum ioc.run. wait untill all close all session tasks will be completed
+                //    using namespace std::literals::chrono_literals;
+
+                //std::this_thread::sleep_for(2s);
+                //fmtlog::poll();
+
+            };
+
+    boost::asio::co_spawn(main_executor, new_order.CoExec(&request_new_order, cb), boost::asio::detached);
+    asio_pool.join();
+//     requests_new_order.enqueue(request_new_order);
+//     Exchange::RequestCancelOrder order_for_cancel;
+//     order_for_cancel.exchange_id = 1;
+//     order_for_cancel.trading_pair   = {2, 1};
+//     order_for_cancel.order_id = 6;
+
+//     requests_cancel_order.enqueue(order_for_cancel);
+//     OrderGateway2 gw(new_limit_order_executors, cancel_order_executors, &requests_new_order,
+//                     &requests_cancel_order, &client_responses);
+//     gw.Start();
+//     while (gw.GetDownTimeInS() < 30) {
+//         logd("Waiting till no activity, been silent for {} seconds...",
+//              gw.GetDownTimeInS());
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(5s);
+//     }
+
+//     Exchange::MEClientResponse response[50];
+
+//     size_t count_new_order = client_responses.try_dequeue_bulk(response, 50);
+//     for (int i = 0; i < count_new_order; i++) {
+//         logd("{}", response[i].ToString());
+//     }
+     using namespace std::literals::chrono_literals;
+     //std::this_thread::sleep_for(15s);
+     //ioc.stop();
+     t.join();
+     fmtlog::poll();
+     return 0;
+}
