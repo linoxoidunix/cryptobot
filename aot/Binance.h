@@ -1125,6 +1125,32 @@ class CancelOrder3 : public CancelOrder2 {
     ~CancelOrder3() override = default;
 };
 
+template <typename Executor, typename ... BusEventTypes>
+class CancelOrderComponent : public bus::Component,
+                               public CancelOrder3<Executor> {
+  
+  public:
+    common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
+    common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
+    using OrderNewLimit3<Executor>::OrderNewLimit3;
+  explicit  CancelOrderComponent (Executor&& executor, size_t number_responses, SignerI* signer,
+                            TypeExchange type,
+                            common::TradingPairHashMap& pairs,
+                            common::TradingPairReverseHashMap& pairs_reverse,
+                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
+                            OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
+                            exchange_response_mem_pool_(number_responses),
+                            bus_event_response_mem_pool_(number_responses){}
+    ~CancelOrderComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestCancelOrder* event,
+                          const OnHttpsResponce& cb) override {
+        boost::asio::co_spawn(CancelOrder3<Executor>::executor_,
+                              CancelOrder3<Executor>::CoExec(event, cb),
+                              boost::asio::detached);
+    };
+};
+
 class BookSnapshot : public inner::BookSnapshotI {
     static constexpr std::string_view end_point = "/api/v3/depth";
     class ParserResponse {
