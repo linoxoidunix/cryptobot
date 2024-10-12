@@ -13,9 +13,14 @@
 
 #include <sstream>
 
+#include "aot/bus/bus_event.h"
 #include "aot/common/types.h"
 #include "aot/common/mem_pool.h"
 #include "concurrentqueue.h"
+
+namespace bus{
+    class Component;
+};
 
 namespace Exchange {
 /// Type of the order response sent by the exchange to the trading client.
@@ -145,4 +150,23 @@ struct MEClientResponse : public IResponse {
 
 /// Lock free queues of matching engine client order response messages.
 using ClientResponseLFQueue = moodycamel::ConcurrentQueue<MEClientResponse>;
+
+struct BusEventResponse : public bus::Event{
+    explicit BusEventResponse(Exchange::IResponse* _response) : response(_response){}
+    ~BusEventResponse() override = default;
+    Exchange::IResponse* response;
+    void Accept(bus::Component* comp) override;
+    protected:
+    void Deallocate() override{
+        logd("Deallocating resources");
+        response->Deallocate();
+        response = nullptr;
+        //delete this;  // Deletes the event object
+    }
+
+
+                    //order->Deallocate();
+
+};
+
 }  // namespace Exchange

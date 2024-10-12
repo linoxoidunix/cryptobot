@@ -312,7 +312,7 @@ TEST_F(WalletTest, ShouldHandleResponseWithNonExistentOrderIdInReserves) {
 }
 
 TEST_F(WalletTest, ShouldCorrectlyReserveTickerWhenWalletIsFoundForExchangeID) {
-    common::ExchangeId exchange_id = 1;
+    common::ExchangeId exchange_id = common::ExchangeId::kBinance;
     common::TickerId ticker = 1;
     common::Qty qty = 100;
     common::OrderId order_id = 1;
@@ -332,7 +332,7 @@ TEST_F(WalletTest, ShouldCorrectlyReserveTickerWhenWalletIsFoundForExchangeID) {
 }
 
 TEST_F(WalletTest, ShouldHandleReserveCallWithNonExistentExchangeID) {
-    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::ExchangeId non_existent_exchange_id = common::ExchangeId::kInvalid; // Non-existent exchange ID
     common::TickerId ticker = 1;
     common::Qty qty = 100;
     common::OrderId order_id = 1;
@@ -345,7 +345,7 @@ TEST_F(WalletTest, ShouldHandleReserveCallWithNonExistentExchangeID) {
     EXPECT_EQ(exchange_wallet.GetWallets().size(), 0); // Ensure no wallets are created
 }
 TEST_F(WalletTest, ShouldNotReserveTickerWhenWalletIsNotFoundForExchangeID) {
-    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::ExchangeId non_existent_exchange_id = common::ExchangeId::kInvalid; // Non-existent exchange ID
     common::TickerId ticker = 1;
     common::Qty qty = 100;
     common::OrderId order_id = 1;
@@ -359,7 +359,7 @@ TEST_F(WalletTest, ShouldNotReserveTickerWhenWalletIsNotFoundForExchangeID) {
 }
 
 TEST_F(WalletTest, ShouldHandleCanReserveCallWithNonExistentExchangeID) {
-    common::ExchangeId non_existent_exchange_id = 999; // Non-existent exchange ID
+    common::ExchangeId non_existent_exchange_id = common::ExchangeId::kInvalid; // Non-existent exchange ID
     common::TickerId ticker = 1;
     common::Qty qty = 100;
 
@@ -371,7 +371,7 @@ TEST_F(WalletTest, ShouldHandleCanReserveCallWithNonExistentExchangeID) {
 }
 
 TEST_F(WalletTest, ShouldCorrectlyHandleUpdateWithResponseContainingValidExchangeID) {
-    common::ExchangeId exchange_id = 1;
+    common::ExchangeId exchange_id = common::ExchangeId::kBinance;
     common::TickerId ticker = 1;
     common::Qty qty = 100;
     common::OrderId order_id = 1;
@@ -395,7 +395,7 @@ TEST_F(WalletTest, ShouldCorrectlyHandleUpdateWithResponseContainingValidExchang
 }
 
 TEST_F(WalletTest, ShouldCorrectlyHandleMultipleConsecutiveReserveCallsForDifferentTickers) {
-    common::ExchangeId exchange_id = 1;
+    common::ExchangeId exchange_id = common::ExchangeId::kBinance;
     common::TickerId ticker1 = 1;
     common::TickerId ticker2 = 2;
     common::Qty qty1 = 100;
@@ -443,7 +443,7 @@ TEST_F(WalletTest, ShouldLogWarningWhenUpdatingWithInvalidExchangeId) {
 
 
 TEST_F(WalletTest, ShouldCorrectlyHandleMultipleConsecutiveReserveCallsForTheSameTicker) {
-    common::ExchangeId exchange_id = 1;
+    common::ExchangeId exchange_id = common::ExchangeId::kBinance;
     common::TickerId ticker = 1;
     common::Qty qty1 = 100;
     common::Qty qty2 = 50;
@@ -521,7 +521,7 @@ TEST_F(WalletTest, ShouldNotInitializeWalletsWhenGivenEmptySetOfExchangeIds) {
 
 TEST_F(WalletTest, ShouldCorrectlyInitializeWalletsWithMultipleExchangeIDs) {
     testing::exchange::Wallet exchange_wallet;
-    std::unordered_set<common::ExchangeId> exchange_ids = {1, 2, 3};
+    std::unordered_set<common::ExchangeId> exchange_ids = {common::ExchangeId::kBinance, common::ExchangeId::kBybit, common::ExchangeId::kMexc};
 
     exchange_wallet.InitWallets(exchange_ids);
 

@@ -165,7 +165,6 @@ class PositionKeeper {
         ticker_position[client_response->GetTradingPair()].addFill(
             client_response);
     };
-
     virtual void UpdateBBO(const common::TradingPair trading_pair,
                            const Trading::BBO *bbo) noexcept {
         ticker_position[trading_pair].updateBBO(bbo);
@@ -202,31 +201,31 @@ class Event {
 };
 using EventLFQueue = moodycamel::ConcurrentQueue<Event *>;
 struct AddFill;
-using AddFillPool = common::MemPool<AddFill>;
+using AddFillPool = common::MemoryPool<AddFill>;
 
-struct AddFill : public Event {
-    const Exchange::IResponse *client_response = nullptr;
-    AddFillPool *mem_pool                      = nullptr;
-    AddFill() = default;
-    AddFill(const Exchange::IResponse *_client_response,
-              AddFillPool *_mem_pool):client_response(_client_response), mem_pool(_mem_pool) {};
-    ~AddFill() override                        = default;
-    EventType GetType() override { return EventType::kAddFill; };
-    void Deallocate() {
-        if (!mem_pool) {
-            loge("mem_pull = nullptr. Can't free BBidUpdated event");
-            return;
-        }
-        mem_pool->deallocate(this);
-    }
-};
+// struct AddFill : public Event {
+//     const Exchange::IResponse *client_response = nullptr;
+//     AddFillPool *mem_pool                      = nullptr;
+//     AddFill() = default;
+//     AddFill(const Exchange::IResponse *_client_response,
+//               AddFillPool *_mem_pool):client_response(_client_response), mem_pool(_mem_pool) {};
+//     ~AddFill() override                        = default;
+//     EventType GetType() override { return EventType::kAddFill; };
+//     void Deallocate() {
+//         if (!mem_pool) {
+//             loge("mem_pull = nullptr. Can't free BBidUpdated event");
+//             return;
+//         }
+//         mem_pool->Deallocate(this);
+//     }
+// };
 
-struct BusEventAddFill : public AddFill, public bus::Event{
-    ~BusEventAddFill() override = default;
-    void Accept(bus::Component* comp) override{
-        comp->AsyncHandleEvent(this);
-    }
-};
+// struct BusEventAddFill : public AddFill, public bus::Event{
+//     ~BusEventAddFill() override = default;
+//     void Accept(bus::Component* comp) override{
+//         comp->AsyncHandleEvent(this);
+//     }
+// };
 
 
 struct UpdateBBO;
@@ -284,6 +283,15 @@ class PositionKeeper : public ::Trading::PositionKeeper {
         }
         position_[exchange_id]->AddFill(client_response);
     };
+    void HandleResponse(Exchange::BusEventResponse *client_response) noexcept  {
+        if (!client_response) {
+            loge("client_response = nullptr");
+            return;
+        }
+        auto ptr_response = client_response->response;
+        AddFill(ptr_response);
+        client_response->Release();
+    };
     void UpdateBBO(common::ExchangeId exchange_id,
                    const common::TradingPair trading_pair,
                    const Trading::BBO *bbo) noexcept {
@@ -306,23 +314,23 @@ class PositionKeeper : public ::Trading::PositionKeeper {
         const common::TradingPair trading_pair) noexcept {
         return position_[exchange_id]->GetPositionInfo(trading_pair);
     };
-    void OnNewSignal(position_keeper::Event *signal) {
-        auto type = signal->GetType();
-        if (type == position_keeper::EventType::kAddFill) {
-            const auto event = static_cast<position_keeper::AddFill *>(signal);
-            AddFill(event->client_response);
-            event->Deallocate();
-            return;
-        }
-        if (type == position_keeper::EventType::kUpdateBBO) {
-            auto event = static_cast<position_keeper::UpdateBBO *>(signal);
-            UpdateBBO(event->exchange_id, event->trading_pair, event->bbo);
-            event->Deallocate();
-            return;
-        }
-        loge("Unknown signal type");
-        return;
-    }
+    // void OnNewSignal(Exchange::BusEventResponse *signal) {
+    //     if (type == position_keeper::EventType::kAddFill) {
+    //         const auto event = static_cast<position_keeper::AddFill *>(signal);
+    //         AddFill(event->client_response);
+    //         event->Deallocate();
+    //         return;
+    //     }
+    
+    //     if (type == position_keeper::EventType::kUpdateBBO) {
+    //         auto event = static_cast<position_keeper::UpdateBBO *>(signal);
+    //         UpdateBBO(event->exchange_id, event->trading_pair, event->bbo);
+    //         event->Deallocate();
+    //         return;
+    //     }
+    //     loge("Unknown signal type");
+    //     return;
+    // }
 
   private:
     ExchangePositionKeeper &position_;
@@ -330,65 +338,65 @@ class PositionKeeper : public ::Trading::PositionKeeper {
 }  // namespace exchange
 
 namespace Trading {
-class PositionKeeperService : public common::ServiceI {
-  public:
-    explicit PositionKeeperService(exchange::PositionKeeper *pk,
-                          position_keeper::EventLFQueue *incoming_queue)
-        : pk_(pk), queue_(incoming_queue) {}
-    void Start() override {
-        run_    = true;
-        thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
-            -1, "Trading/OrderBookService", [this] { Run(); }));
-        ASSERT(thread_ != nullptr, "Failed to start OrderBookService thread.");
-    }
+// class PositionKeeperService : public common::ServiceI {
+//   public:
+//     explicit PositionKeeperService(exchange::PositionKeeper *pk,
+//                           position_keeper::EventLFQueue *incoming_queue)
+//         : pk_(pk), queue_(incoming_queue) {}
+//     void Start() override {
+//         run_    = true;
+//         thread_ = std::unique_ptr<std::jthread>(common::createAndStartJThread(
+//             -1, "Trading/OrderBookService", [this] { Run(); }));
+//         ASSERT(thread_ != nullptr, "Failed to start OrderBookService thread.");
+//     }
 
-    void StopImmediately() override { run_ = false; }
+//     void StopImmediately() override { run_ = false; }
 
-    void StopWaitAllQueue() override {
-        logi("stop Trading/PositionKeeperService");
-        while (queue_->size_approx()) {
-            logi("Sleeping till all updates are consumed md-size:{}",
-                 queue_->size_approx());
-            using namespace std::literals::chrono_literals;
-            std::this_thread::sleep_for(10ms);
-        }
-        StopImmediately();
-    }
+//     void StopWaitAllQueue() override {
+//         logi("stop Trading/PositionKeeperService");
+//         while (queue_->size_approx()) {
+//             logi("Sleeping till all updates are consumed md-size:{}",
+//                  queue_->size_approx());
+//             using namespace std::literals::chrono_literals;
+//             std::this_thread::sleep_for(10ms);
+//         }
+//         StopImmediately();
+//     }
 
-    ~PositionKeeperService() override {
-        StopImmediately();  // Ensure cleanup
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(1s);
-    }
-    void Run() {
-        if (!pk_) {
-            logw("Can't run PositionKeeperService. pk_ = nullptr");
-            return;
-        }
-        if (!queue_) [[unlikely]] {
-            logw("Can't run PositionKeeperService. queue_ = nullptr");
-            return;
-        }
-        logi("Trading::PositionKeeperService start");
-        std::array<position_keeper::Event *, 50> new_events{};
-        while (run_) {
-            auto events_number =
-                queue_->try_dequeue_bulk(new_events.begin(), 50);
-            for (size_t i = 0; i < events_number; i++) {
-                auto signal = new_events[i];
-                pk_->OnNewSignal(signal);
-            }
-        }
-        logi("Trading/PositionKeeperService stopped");
-    };
+//     ~PositionKeeperService() override {
+//         StopImmediately();  // Ensure cleanup
+//         using namespace std::literals::chrono_literals;
+//         std::this_thread::sleep_for(1s);
+//     }
+//     void Run() {
+//         if (!pk_) {
+//             logw("Can't run PositionKeeperService. pk_ = nullptr");
+//             return;
+//         }
+//         if (!queue_) [[unlikely]] {
+//             logw("Can't run PositionKeeperService. queue_ = nullptr");
+//             return;
+//         }
+//         logi("Trading::PositionKeeperService start");
+//         std::array<position_keeper::Event *, 50> new_events{};
+//         while (run_) {
+//             auto events_number =
+//                 queue_->try_dequeue_bulk(new_events.begin(), 50);
+//             for (size_t i = 0; i < events_number; i++) {
+//                 auto signal = new_events[i];
+//                 pk_->OnNewSignal(signal);
+//             }
+//         }
+//         logi("Trading/PositionKeeperService stopped");
+//     };
 
-  private:
-    volatile bool run_ = false;
-    std::unique_ptr<std::jthread> thread_;
+//   private:
+//     volatile bool run_ = false;
+//     std::unique_ptr<std::jthread> thread_;
 
-    exchange::PositionKeeper *pk_         = nullptr;
-    position_keeper::EventLFQueue *queue_ = nullptr;
-};
+//     exchange::PositionKeeper *pk_         = nullptr;
+//     position_keeper::EventLFQueue *queue_ = nullptr;
+// };
 
 template<typename Executor>
 class PositionKeeperComponent : public bus::Component{
@@ -400,17 +408,18 @@ class PositionKeeperComponent : public bus::Component{
 
     ~PositionKeeperComponent() override = default;
     
-    void AsyncHandleEvent(position_keeper::BusEventAddFill* event) override{
+    void AsyncHandleEvent(Exchange::BusEventResponse* event) override{
+         logd("position keeper accept new event response {}", event->response->ToString());
          boost::asio::post(executor_, [this, event]() {
-            pk_->OnNewSignal(event);
-            event->Release();
+            pk_->HandleResponse(event);
         });
     }
     void AsyncHandleEvent(position_keeper::BusEventUpdateBBO* event) override{
-         boost::asio::post(executor_, [this, event]() {
-            pk_->OnNewSignal(event);
-            event->Release();
-        });
+        assert(false);
+        //  boost::asio::post(executor_, [this, event]() {
+        //     pk_->OnNewSignal(event);
+        //     event->Release();
+        // });
     }
 };
 

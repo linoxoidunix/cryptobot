@@ -2,37 +2,33 @@
 
 #include "aot/Types.h"
 
+//universal response event
+struct BusEventResponse;
+
 namespace position_keeper{
-  struct BusEventAddFill;
+  //struct BusEventAddFill;
   struct BusEventUpdateBBO;
 }
 
 namespace order_manager{
-  struct BusEventRequestNewLimitOrder;
+  /**need define SIDE variable. default RequestCancelOrder not suited for this */
   struct BusEventRequestCancelOrder;
-  struct BusEventResponse;
 }
 
 namespace wallet{
   struct BusEventReserveQty;
-  struct BusEventResponse;
 }
 
 namespace Exchange{
   struct BusEventRequestNewLimitOrder;
+  struct BusEventRequestCancelOrder;
+  struct BusEventResponse;
 }
 
 namespace bus{
 class Component {
   public:
     virtual ~Component() = default;
-    /**
-     * @brief update position keeper when new exchange response incoming
-     * 
-     */
-    virtual void AsyncHandleEvent(position_keeper::BusEventAddFill*) {
-      //it is empty class
-    };
     /**
      * @brief update position keeper when OrderBook emit new signal updateBBO
      * 
@@ -44,7 +40,7 @@ class Component {
      * @brief order manager process ability to create new limit order
      * 
      */
-    virtual void AsyncHandleEvent(order_manager::BusEventRequestNewLimitOrder*){
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder*){
         //it is empty class
     };
     /**
@@ -52,13 +48,6 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(order_manager::BusEventRequestCancelOrder*){
-        //it is empty class
-    };
-    /**
-     * @brief order manager process response from exchange or other
-     * 
-     */
-    virtual void AsyncHandleEvent(order_manager::BusEventResponse*){
         //it is empty class
     };
     /**
@@ -72,7 +61,7 @@ class Component {
      * @brief wallet reserve qty of ticker
      * 
      */
-    virtual void AsyncHandleEvent(wallet::BusEventResponse*){
+    virtual void AsyncHandleEvent(Exchange::BusEventResponse*){
         //it is empty class
     };
     /**

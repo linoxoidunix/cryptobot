@@ -16,22 +16,9 @@
 using namespace common;
 
 namespace order_manager{
-    struct BusEventRequestNewLimitOrder : public Exchange::RequestNewOrder,  public bus::Event{
-        ~BusEventRequestNewLimitOrder() override = default;
-        void Accept(bus::Component* comp) override{
-            comp->AsyncHandleEvent(this);
-        }
-    };
     struct BusEventRequestCancelOrder : public Exchange::RequestCancelOrder,  public bus::Event{
         ~BusEventRequestCancelOrder() override = default;
         common::Side side;
-        void Accept(bus::Component* comp) override{
-            comp->AsyncHandleEvent(this);
-        }
-    };
-    struct BusEventResponse : public bus::Event{
-        ~BusEventResponse() override = default;
-        Exchange::IResponse* response;
         void Accept(bus::Component* comp) override{
             comp->AsyncHandleEvent(this);
         }
@@ -176,7 +163,7 @@ class OrderManagerComponent : public bus::Component{
     
     ~OrderManagerComponent() override = default;
     
-    void AsyncHandleEvent(order_manager::BusEventRequestNewLimitOrder* event) override{
+    void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event) override{
          boost::asio::post(executor_, [this, event]() {
             om_->NewOrder(event->exchange_id, event->trading_pair, event->price, event->side, event->qty);
             event->Release();
@@ -188,7 +175,7 @@ class OrderManagerComponent : public bus::Component{
             event->Release();
         });
     }
-    void AsyncHandleEvent(order_manager::BusEventResponse* event) override{
+    void AsyncHandleEvent(Exchange::BusEventResponse* event) override{
          boost::asio::post(executor_, [this, event]() {
             om_->OnOrderResponse(event->response);
             event->Release();

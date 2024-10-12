@@ -557,6 +557,7 @@ class FactoryRequest {
 
 class FamilyLimitOrder {
   public:
+    
     virtual ~FamilyLimitOrder()                 = default;
     explicit FamilyLimitOrder()                 = default;
     static constexpr std::string_view end_point = "/api/v3/order";
@@ -883,7 +884,52 @@ class OrderNewLimit3 : public OrderNewLimit2 {
                 logd("Start preparing new limit order request");
                 auto req = factory();
                 logd("End preparing new limit order request");
-                order->Deallocate();
+                auto session = session_pool_->AcquireConnection();
+                logd("Start sending new limit order request");
+
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false) {
+                    loge("AsyncRequest wasn't sent in io_context");
+                }
+
+                logd("End sending new limit order request");
+                co_return;  // Exit the coroutine
+            },
+            boost::asio::detached);  // Detach to avoid awaiting here
+        co_return;
+    }
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewLimitOrder* order,
+        const OnHttpsResponce& callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        boost::asio::co_spawn(
+            executor_,
+            [this, order, &callback]() -> boost::asio::awaitable<void> {
+                // Inside this lambda, we perform the logic
+                // Ensure the callback is valid
+                if (!callback) {
+                    loge("Callback is null");
+                    co_return;  // Exit if no callback is provided
+                }
+
+                logd("Start CoExec");
+
+                ArgsOrder args(order->request, pairs_);
+
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyLimitOrder::end_point,
+                    args,
+                    boost::beast::http::verb::post,
+                    signer_,
+                    need_sign};
+
+                logd("Start preparing new limit order request");
+                auto req = factory();
+                logd("End preparing new limit order request");
+                order->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("Start sending new limit order request");
 
@@ -902,28 +948,29 @@ class OrderNewLimit3 : public OrderNewLimit2 {
 };
 
 // maybe 2 executor extra
-template <typename Executor>
+template <typename Executor, typename ... BusEventTypes>
 class OrderNewLimitComponent : public bus::Component,
                                public OrderNewLimit3<Executor> {
-    //Executor executor_;
-
+  
   public:
+    common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
+    common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
     using OrderNewLimit3<Executor>::OrderNewLimit3;
-  explicit  OrderNewLimitComponent (Executor&& executor, SignerI* signer,
+  explicit  OrderNewLimitComponent (Executor&& executor, size_t number_responses, SignerI* signer,
                             TypeExchange type,
                             common::TradingPairHashMap& pairs,
                             common::TradingPairReverseHashMap& pairs_reverse,
                             ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            OrderNewLimit3<Executor>(executor, signer, type, pairs, pairs, session_pool){}
+                            OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
+                            exchange_response_mem_pool_(number_responses),
+                            bus_event_response_mem_pool_(number_responses){}
     ~OrderNewLimitComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
                           const OnHttpsResponce& cb) override {
-        auto ptr_event = event->request;
         boost::asio::co_spawn(OrderNewLimit3<Executor>::executor_,
-                              CoExec<Executor>(ptr_event, cb),
+                              OrderNewLimit3<Executor>::CoExec(event, cb),
                               boost::asio::detached);
-        event->Release();
     };
 };
 

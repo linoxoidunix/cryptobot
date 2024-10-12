@@ -101,7 +101,8 @@ class RequestNewOrder {
     virtual ~RequestNewOrder() = default;
 };
 
-struct BusEventRequestNewLimitOrder : public bus::Event{
+struct BusEventRequestNewLimitOrder : public bus::Event, public RequestNewOrder{
+    explicit BusEventRequestNewLimitOrder(RequestNewOrder* new_request) : request(new_request){}
     ~BusEventRequestNewLimitOrder() override = default;
     RequestNewOrder* request;
     void Accept(bus::Component* comp, const OnHttpsResponce& cb) override{

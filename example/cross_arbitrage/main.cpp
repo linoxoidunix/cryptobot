@@ -64,7 +64,7 @@ int main() {
     
     strategy::cross_arbitrage::LFQueue queue;
     position_keeper::EventLFQueue orderbook_positionkeeper_channel;
-    strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
+    strategy::cross_arbitrage::OrderBook ob(common::ExchangeId::kBinance, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
     
     Trading::OrderBookService orderbook_service(&ob, &event_queue);
 

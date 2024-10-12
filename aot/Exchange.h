@@ -24,6 +24,11 @@
 #include "aot/third_party/emhash/hash_table7.hpp"
 #include "concurrentqueue.h"
 
+// enum class ExchangeName{
+//   kBinance,
+//   kBybit,
+//   kMexc
+// };
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
 
@@ -317,7 +322,9 @@ class ParserKLineResponseI {
 };
 namespace Exchange {
 class RequestNewOrder;
+class BusEventRequestNewLimitOrder;
 class RequestCancelOrder;
+class BusEventRequestCancelOrder;
 };  // namespace Exchange
 
 namespace inner {
@@ -334,7 +341,11 @@ class OrderNewI {
     virtual boost::asio::awaitable<void> CoExec(Exchange::RequestNewOrder* order, 
                                              const OnHttpsResponce& cb ) {
     co_return;
-    } 
+    }
+    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestNewLimitOrder* order, 
+                                             const OnHttpsResponce& cb ) {
+    co_return;
+    }  
     virtual ~OrderNewI()                                 = default;
 };
 

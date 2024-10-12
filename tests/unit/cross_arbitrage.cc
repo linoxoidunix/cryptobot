@@ -9,7 +9,7 @@
 TEST(CrossArbitrageEvent, Create) {
     using namespace strategy::cross_arbitrage;
     using namespace common;
-    common::ExchangeId exchange = 1;
+    common::ExchangeId exchange = common::ExchangeId::kBinance;
     BBidUpdated bid_updated(exchange, TradingPair{2, 1}, 100.0, 14.0, nullptr);
     EXPECT_EQ(bid_updated.GetType(), EventType::kBidUpdate);
     EXPECT_EQ(bid_updated.price, 100);
@@ -20,7 +20,7 @@ TEST(CrossArbitrageEvent, Create) {
 TEST(MemPoolEvents, Using) {
     using namespace strategy::cross_arbitrage;
     using namespace common;
-    common::ExchangeId exchange = 1;
+    common::ExchangeId exchange = common::ExchangeId::kBinance;
     BBUPool pool{10};
     LFQueue queue;
     for (int i = 0; i < 9; i++) {
@@ -31,7 +31,7 @@ TEST(MemPoolEvents, Using) {
     queue.try_dequeue(event);
     if (event->GetType() == EventType::kBidUpdate) {
         auto bid_event = static_cast<BBidUpdated*>(event);
-        EXPECT_EQ(bid_event->exchange, 1);
+        EXPECT_EQ(bid_event->exchange, common::ExchangeId::kBinance);
         EXPECT_EQ(bid_event->GetType(), EventType::kBidUpdate);
         EXPECT_EQ(bid_event->price, 100);
         EXPECT_EQ(bid_event->qty, 14);
@@ -44,7 +44,7 @@ TEST(MemPoolEvents, Using) {
 TEST(MemPoolEvents, UsingInThread) {
     using namespace strategy::cross_arbitrage;
     using namespace common;
-    common::ExchangeId exchange = 1;
+    common::ExchangeId exchange = common::ExchangeId::kBinance;
     BBUPool pool{10};
     LFQueue queue;
     std::jthread t1([&pool, &queue, &exchange]() {
@@ -71,7 +71,7 @@ TEST(MemPoolEvents, UsingInThread) {
             if(status)
                 if (event->GetType() == EventType::kBidUpdate) {
                     auto bid_event = static_cast<BBidUpdated*>(event);
-                    EXPECT_EQ(bid_event->exchange, 1);
+                    EXPECT_EQ(bid_event->exchange, common::ExchangeId::kBinance);
                     EXPECT_EQ(bid_event->GetType(), EventType::kBidUpdate);
                     EXPECT_EQ(bid_event->price, 100+number_dequed);
                     EXPECT_EQ(bid_event->qty, 14+number_dequed);
@@ -100,10 +100,10 @@ protected:
     BBUPool bbu_pool{10};
     BAUPool bau_pool{10};
     void SetUp() override {
-        working_pairs_[1] = common::TradingPair{2,1};
-        working_pairs_[2] = common::TradingPair{2,1};
-        exchanges_.emplace_back(1);
-        exchanges_.emplace_back(2);
+        working_pairs_[common::ExchangeId::kBinance] = common::TradingPair{2,1};
+        working_pairs_[common::ExchangeId::kBybit] = common::TradingPair{2,1};
+        exchanges_.emplace_back(common::ExchangeId::kBinance);
+        exchanges_.emplace_back(common::ExchangeId::kBybit);
         trade_engine_ = new startegy::cross_arbitrage::TradeEngine(&lf_queue_,
                                                             working_pairs_,
                                                             exchanges_,
@@ -126,8 +126,8 @@ protected:
 TEST_F(TradeEngineTest, RunValidArbitrage) {
     fmtlog::setLogLevel(fmtlog::DBG);
     // Create mock events with valid data
-    auto bid_event = bbu_pool.allocate(BBidUpdated(1, TradingPair{2, 1}, 100, 14, &bbu_pool));
-    auto ask_event = bau_pool.allocate(BAskUpdated(2, TradingPair{2, 1}, 90, 140, &bau_pool));
+    auto bid_event = bbu_pool.allocate(BBidUpdated(common::ExchangeId::kBinance, TradingPair{2, 1}, 100, 14, &bbu_pool));
+    auto ask_event = bau_pool.allocate(BAskUpdated(common::ExchangeId::kBybit, TradingPair{2, 1}, 90, 140, &bau_pool));
 
 
     lf_queue_.enqueue(bid_event);

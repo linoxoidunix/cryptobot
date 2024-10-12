@@ -152,7 +152,8 @@ target_link_libraries(${PROJECT_NAME}
     boost_thread
     boost_system
     OpenSSL::SSL OpenSSL::Crypto
-    magic_enum::magic_enum
+    #magic_enum::magic_enum
+    magic_enum
     ${Boost_LIBRARIES}
     simdjson::simdjson
     nlohmann_json::nlohmann_json

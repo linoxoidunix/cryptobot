@@ -1329,6 +1329,8 @@
  * @return int
  */
 #include <memory>
+#include "aot/bus/bus.h"
+
 int main(int argc, char** argv) {
     boost::asio::io_context ioc;
 
@@ -1357,7 +1359,7 @@ int main(int argc, char** argv) {
     ExchangeTPsJR exchange_trading_pairs_reverse;
     
     using namespace binance;
-
+    common::ExchangeId binance_id = common::ExchangeId::kBinance;
     common::TickerHashMap tickers;
     tickers[1] = "usdt";
     tickers[2] = "btc";
@@ -1375,8 +1377,8 @@ int main(int argc, char** argv) {
         .https_query_response = to_upper.ToString()
         };
     pairs[{2, 1}] = pair_info;
-    exchange_trading_pairs[1] = pairs;
-    exchange_trading_pairs_reverse[1] = common::InitTPsJR(pairs);
+    exchange_trading_pairs[binance_id] = pairs;
+    exchange_trading_pairs_reverse[binance_id] = common::InitTPsJR(pairs);
 
     HTTPSSessionPool session_pools;
     binance::ConnectionPoolFactory factory;
@@ -1394,15 +1396,17 @@ int main(int argc, char** argv) {
     
     using namespace std::literals::chrono_literals;
 
-    std::this_thread::sleep_for(5s);
+    //std::this_thread::sleep_for(5s);
     //ioc.stop();
-    session_pools[1] = pool;
+    session_pools[binance_id] = pool;
     
     boost::asio::thread_pool asio_pool;
+    aot::CoBus bus(asio_pool);
+    using StrandExecutor = boost::asio::strand<boost::asio::thread_pool::executor_type>;
 
+    //OrderNewLimit3 new_order(boost::asio::make_strand(asio_pool), &signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+    OrderNewLimitComponent<StrandExecutor> new_order(boost::asio::make_strand(asio_pool), 10000, &signer, type, exchange_trading_pairs[binance_id], exchange_trading_pairs_reverse[binance_id], pool);
 
-    OrderNewLimit3 new_order(boost::asio::make_strand(asio_pool), &signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
-    
     auto main_executor = boost::asio::make_strand(asio_pool);
 
     // NewLimitOrderExecutors new_limit_order_executors;
@@ -1423,33 +1427,54 @@ int main(int argc, char** argv) {
 //     Exchange::ClientResponseLFQueue client_responses;
 
     Exchange::RequestNewOrder request_new_order;
-    request_new_order.exchange_id = 1;
+    request_new_order.exchange_id = binance_id;
     request_new_order.trading_pair   = {2, 1};
     request_new_order.order_id = 6;
     request_new_order.side     = common::Side::BUY;
     request_new_order.price    = 4000000;
     request_new_order.qty      = 100;
-    //auto x = std::make_shared<int>(777);
+
+
+    Trading::PositionKeeper keeper;
+    exchange::PositionKeeper::ExchangePositionKeeper map{{binance_id, &keeper}};
+    exchange::PositionKeeper positionKeeper(map);
+    Trading::PositionKeeperComponent position_keeper_component(boost::asio::make_strand(asio_pool), &positionKeeper);
+
+    bus.Subscribe(&new_order, &position_keeper_component);
+
+
+
     OnHttpsResponce cb =
-            [&work_guard, &session_pools, &ioc, &pairs, &exchange_trading_pairs_reverse](
+            [&binance_id, &new_order, &bus, &work_guard, &session_pools, &pairs, &exchange_trading_pairs_reverse](
                 boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
+                    buffer) ->void{
                 const auto& resut = buffer.body();
                 logi("{}", resut);
-                auto& reverse_value = exchange_trading_pairs_reverse[1];
+                auto& reverse_value = exchange_trading_pairs_reverse[binance_id];
                 binance::detail::FamilyLimitOrder::ParserResponse parser(pairs, reverse_value);
                 auto answer    = parser.Parse(resut);
-                session_pools[1]->CloseAllSessions();
+                auto ptr = new_order.exchange_response_mem_pool_.Allocate();
+                *ptr = std::move(answer);
+                session_pools[binance_id]->CloseAllSessions();
                 /**
                  * @brief stop infinum ioc.run
                  * wait untill all close all session tasks will be completed
                  * 
                  */
                 work_guard.reset();
+                auto bus_event_response = new_order.bus_event_response_mem_pool_.Allocate(ptr);
+                bus.AsyncSend(&new_order, bus_event_response);
+                //boost::asio::co_spawn( bus.CoSend(&new_order, bus_event_response);
+                int x = 0;
             };
 
     boost::asio::co_spawn(main_executor, new_order.CoExec(&request_new_order, cb), boost::asio::detached);
-    asio_pool.join();
+    
+
+    
+
+
+
 //     requests_new_order.enqueue(request_new_order);
 //     Exchange::RequestCancelOrder order_for_cancel;
 //     order_for_cancel.exchange_id = 1;
@@ -1478,5 +1503,6 @@ int main(int argc, char** argv) {
      //ioc.stop();
      t.join();
      fmtlog::poll();
+     asio_pool.join();
      return 0;
 }

@@ -2,14 +2,18 @@
 
 #include "aot/bus/bus_event.h"
 #include "aot/bus/bus_component.h"
-
+#include "aot/Logger.h"
 void aot::Bus::AsyncSend(bus::Component* publisher, bus::Event* event) {
+    logd("start send order from {}", (void*)publisher);
     auto it = subscribers_.find(publisher);
     if (it != subscribers_.end()) {
+        logd("found {} subscribers", it->second.size());
         SetNumberCopyEvent(event, it->second.size());
         for (auto component : it->second) {
             boost::asio::post(
-                strand_, [component, event]() { event->Accept(component); });
+                strand_, [component, event]() { 
+                    event->Accept(component); 
+                    });
         }
     }
 }

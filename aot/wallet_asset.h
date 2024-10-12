@@ -34,13 +34,6 @@ namespace wallet{
         common::TickerId ticker_id = common::kTickerIdInvalid;
         common::Qty qty = common::kQtyInvalid;
     };
-    struct BusEventResponse : public bus::Event{
-        ~BusEventResponse() override = default;
-        Exchange::IResponse* response;
-        void Accept(bus::Component* comp) override{
-            comp->AsyncHandleEvent(this);
-        }
-    };
 }
 using WalletAsset =
     ankerl::unordered_dense::map<common::TickerId, common::QtyD>;
@@ -178,7 +171,7 @@ class WalletComponent : public bus::Component{
         });
     }
 
-    void AsyncHandleEvent(wallet::BusEventResponse* event) override{
+    void AsyncHandleEvent(Exchange::BusEventResponse* event) override{
          boost::asio::post(executor_, [this, event]() {
             wallet_->Update(event->response);
             event->Release();

@@ -6,6 +6,8 @@
 #include "aot/common/mem_pool.h"  // Include the memory pool header from your provided code
 #include "aot/common/time_utils.h"  // Include the memory pool header from your provided code
 // Create a dummy class for allocation
+
+class Dummy;
 class Dummy {
   public:
     char* data;
