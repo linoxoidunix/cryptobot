@@ -312,6 +312,10 @@ class PositionKeeper : public ::Trading::PositionKeeper {
     Trading::PositionInfo *GetPositionInfo(
         common::ExchangeId exchange_id,
         const common::TradingPair trading_pair) noexcept {
+        if (exchange_id == common::kExchangeIdInvalid) {
+            loge("Invalid exchange id");
+            return nullptr;
+        }
         return position_[exchange_id]->GetPositionInfo(trading_pair);
     };
     // void OnNewSignal(Exchange::BusEventResponse *signal) {

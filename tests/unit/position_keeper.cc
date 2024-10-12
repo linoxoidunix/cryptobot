@@ -164,22 +164,18 @@ TEST(PositionKeeperTest,
     EXPECT_CALL(mockResponse, GetExchangeId())
         .WillOnce(testing::Return(static_cast<common::ExchangeId>(common::ExchangeId::kInvalid)));
     EXPECT_CALL(mockResponse, GetTradingPair())
-        .WillOnce(testing::Return(common::TradingPair{2, 1}));
+        .Times(testing::AnyNumber());
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(testing::Return(common::Side::BUY));
-    EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(1.0));
-    EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(50000.0));
+        .Times(testing::AnyNumber());
+    EXPECT_CALL(mockResponse, GetExecQty()).Times(testing::AnyNumber());
+    EXPECT_CALL(mockResponse, GetPrice()).Times(testing::AnyNumber());
     EXPECT_CALL(mockResponse, ToString()).Times(testing::AnyNumber());
 
     positionKeeper.AddFill(&mockResponse);
 
     auto positionInfo = positionKeeper.GetPositionInfo(
-        static_cast<common::ExchangeId>(999999), common::TradingPair{2, 1});
-    ASSERT_NE(positionInfo, nullptr);
-    EXPECT_EQ(positionInfo->position, 1);
-    EXPECT_EQ(positionInfo->volume, 1.0);
-    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::BUY)],
-              50000.0);
+        common::ExchangeId::kInvalid, common::TradingPair{2, 1});
+    ASSERT_EQ(positionInfo, nullptr);
 }
 
 
