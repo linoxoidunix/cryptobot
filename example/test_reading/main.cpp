@@ -1388,9 +1388,7 @@ int main(int argc, char** argv) {
     
     auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
     //::V2::ConnectionPool<HTTPSesionType>* pool = nullptr;
-    std::thread t([&ioc] {
-        //auto work_guard = boost::asio::make_work_guard(ioc);
-        
+    std::thread t([&ioc] {      
         ioc.run();
     });
     
@@ -1464,11 +1462,10 @@ int main(int argc, char** argv) {
                 work_guard.reset();
                 auto bus_event_response = new_order.bus_event_response_mem_pool_.Allocate(ptr);
                 bus.AsyncSend(&new_order, bus_event_response);
-                //boost::asio::co_spawn( bus.CoSend(&new_order, bus_event_response);
-                int x = 0;
             };
-
-    boost::asio::co_spawn(main_executor, new_order.CoExec(&request_new_order, cb), boost::asio::detached);
+            
+    Exchange::BusEventRequestNewLimitOrder bus_request_new_order(&request_new_order);
+    boost::asio::co_spawn(main_executor, new_order.CoExec(&bus_request_new_order, cb), boost::asio::detached);
     
 
     

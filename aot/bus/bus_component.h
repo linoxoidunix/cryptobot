@@ -65,10 +65,17 @@ class Component {
         //it is empty class
     };
     /**
-     * @brief wallet reserve qty of ticker
+     * @brief if order executor need send new limit order
      * 
      */
     virtual void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder*, const OnHttpsResponce& cb){
+        //it is empty class
+    };
+      /**
+     * @brief if order executor need send cancel order
+     * 
+     */
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestCancelOrder*, const OnHttpsResponce& cb){
         //it is empty class
     };
 };

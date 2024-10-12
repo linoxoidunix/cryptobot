@@ -132,6 +132,15 @@ class RequestCancelOrder {
 
 };
 
+struct BusEventRequestCancelOrder : public bus::Event, public RequestCancelOrder{
+    explicit BusEventRequestCancelOrder(RequestCancelOrder* new_request) : request(new_request){}
+    ~BusEventRequestCancelOrder() override = default;
+    RequestCancelOrder* request;
+    void Accept(bus::Component* comp, const OnHttpsResponce& cb) override{
+        comp->AsyncHandleEvent(this, cb);
+    };
+};
+
 /// Lock free queues of matching engine client order request messages.
 using RequestNewLimitOrderLFQueue =
     moodycamel::ConcurrentQueue<RequestNewOrder>;

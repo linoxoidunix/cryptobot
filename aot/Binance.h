@@ -839,6 +839,11 @@ class OrderNewLimit2 : public inner::OrderNewI,
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
 };
 
+/**
+ * @brief OrderNewLimit3 is wrapper above OrderNewLimit2 with coroutine CoExec
+ * 
+ * @tparam Executor 
+ */
 template <typename Executor>
 class OrderNewLimit3 : public OrderNewLimit2 {
     protected:
@@ -855,22 +860,23 @@ class OrderNewLimit3 : public OrderNewLimit2 {
 
     ~OrderNewLimit3() override = default;
     boost::asio::awaitable<void> CoExec(
-        Exchange::RequestNewOrder* order,
+        Exchange::BusEventRequestNewLimitOrder* bus_event_request_new_order,
         const OnHttpsResponce& callback) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if(bus_event_request_new_order == nullptr){
+          loge("bus_event_request_new_order = nullptr");
+          co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
         boost::asio::co_spawn(
             executor_,
-            [this, order, &callback]() -> boost::asio::awaitable<void> {
-                // Inside this lambda, we perform the logic
-                // Ensure the callback is valid
-                if (!callback) {
-                    loge("Callback is null");
-                    co_return;  // Exit if no callback is provided
-                }
-
+            [this, bus_event_request_new_order, &callback]() -> boost::asio::awaitable<void> {
                 logd("Start CoExec");
 
-                ArgsOrder args(order, pairs_);
+                ArgsOrder args(bus_event_request_new_order->request, pairs_);
 
                 bool need_sign = true;
                 detail::FactoryRequest factory{
@@ -884,52 +890,7 @@ class OrderNewLimit3 : public OrderNewLimit2 {
                 logd("Start preparing new limit order request");
                 auto req = factory();
                 logd("End preparing new limit order request");
-                auto session = session_pool_->AcquireConnection();
-                logd("Start sending new limit order request");
-
-                if (auto status =
-                        session->AsyncRequest(std::move(req), callback);
-                    status == false) {
-                    loge("AsyncRequest wasn't sent in io_context");
-                }
-
-                logd("End sending new limit order request");
-                co_return;  // Exit the coroutine
-            },
-            boost::asio::detached);  // Detach to avoid awaiting here
-        co_return;
-    }
-    boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestNewLimitOrder* order,
-        const OnHttpsResponce& callback) override {
-        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
-        boost::asio::co_spawn(
-            executor_,
-            [this, order, &callback]() -> boost::asio::awaitable<void> {
-                // Inside this lambda, we perform the logic
-                // Ensure the callback is valid
-                if (!callback) {
-                    loge("Callback is null");
-                    co_return;  // Exit if no callback is provided
-                }
-
-                logd("Start CoExec");
-
-                ArgsOrder args(order->request, pairs_);
-
-                bool need_sign = true;
-                detail::FactoryRequest factory{
-                    current_exchange_,
-                    detail::FamilyLimitOrder::end_point,
-                    args,
-                    boost::beast::http::verb::post,
-                    signer_,
-                    need_sign};
-
-                logd("Start preparing new limit order request");
-                auto req = factory();
-                logd("End preparing new limit order request");
-                order->Release();
+                bus_event_request_new_order->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("Start sending new limit order request");
 
@@ -947,7 +908,6 @@ class OrderNewLimit3 : public OrderNewLimit2 {
     }
 };
 
-// maybe 2 executor extra
 template <typename Executor, typename ... BusEventTypes>
 class OrderNewLimitComponent : public bus::Component,
                                public OrderNewLimit3<Executor> {
@@ -1083,11 +1043,86 @@ class CancelOrder2 : public inner::CancelOrderI,
 
   private:
     ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
+    common::TradingPairReverseHashMap& pairs_reverse_;
+  protected:
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap& pairs_reverse_;
+    https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+};
+
+/**
+ * @brief CancelOrder3 is wrapper above CancelOrder2 with coroutine CoExec
+ * 
+ * @tparam Executor 
+ */
+template <typename Executor>
+class CancelOrder3 : public CancelOrder2 {
+  protected:
+     Executor executor_;
+  public:
+    explicit CancelOrder3(Executor&& executor, SignerI* signer, TypeExchange type,
+                          common::TradingPairHashMap& pairs,
+                          common::TradingPairReverseHashMap& pairs_reverse,
+                          ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : executor_(std::move(executor)),
+          CancelOrder2(signer, type, pairs, pairs_reverse, session_pool) {};
+    boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
+              const OnHttpsResponce& callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if (bus_event_request_cancel_order == nullptr) {
+            loge("bus_event_request_cancel_order == nullptr");
+            co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
+        boost::asio::co_spawn(
+            executor_,
+            [this, bus_event_request_cancel_order, &callback]() -> boost::asio::awaitable<void> {
+        logd("start exec");
+
+
+        ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
+        bool need_sign = true;
+        detail::FactoryRequest factory{current_exchange_,
+                                       detail::FamilyCancelOrder::end_point,
+                                       args,
+                                       boost::beast::http::verb::delete_,
+                                       signer_,
+                                       need_sign};
+        logd("start prepare cancel request");
+        auto req = factory();
+        logd("end prepare cancel request");
+
+        // auto cb =
+        //     [response_lfqueue, this](
+        //         boost::beast::http::response<boost::beast::http::string_body>&
+        //             buffer) {
+        //         const auto& resut = buffer.body();
+        //         logi("{}", resut);
+        //         ParserResponse parser(pairs_reverse_);
+        //         auto answer    = parser.Parse(resut);
+        //         bool status_op = response_lfqueue->try_enqueue(answer);
+        //         if (!status_op) [[unlikely]]
+        //             loge("my queue is full. need clean my queue");
+        //     };
+
+        auto session = session_pool_->AcquireConnection();
+        logd("start send cancel request");
+
+        if (auto status = session->AsyncRequest(std::move(req), callback);
+            status == false)
+            loge("AsyncRequest wasn't sent in io_context");
+
+        logd("end send cancel request");
+        co_return;;
+        },
+            boost::asio::detached);
+        co_return;    
+    };
+    ~CancelOrder3() override = default;
 };
 
 class BookSnapshot : public inner::BookSnapshotI {

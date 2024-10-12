@@ -338,10 +338,6 @@ class OrderNewI {
     virtual void Exec(Exchange::RequestNewOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
 
-    virtual boost::asio::awaitable<void> CoExec(Exchange::RequestNewOrder* order, 
-                                             const OnHttpsResponce& cb ) {
-    co_return;
-    }
     virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestNewLimitOrder* order, 
                                              const OnHttpsResponce& cb ) {
     co_return;
@@ -358,6 +354,10 @@ class CancelOrderI {
      */
     virtual void Exec(Exchange::RequestCancelOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
+    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* order, 
+                                             const OnHttpsResponce& cb ) {
+    co_return;
+    }  
     virtual ~CancelOrderI()                              = default;
 };
 
