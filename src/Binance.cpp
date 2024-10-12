@@ -10,6 +10,8 @@ using namespace std::literals;
 
 Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
     std::string_view response) {
+    //NEED ADD EXCHANGE ID FIELD
+    assert(false);
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
@@ -44,6 +46,8 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
 
 Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
     std::string_view response) {
+    //NEED ADD EXCHANGE ID FIELD
+    assert(false);
     Exchange::BookDiffSnapshot book_diff_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
@@ -249,6 +253,7 @@ Exchange::MEClientResponse binance::detail::FamilyLimitOrder::ParserResponse::Pa
         } else {
             loge("no key origQty in response");
         }
+        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
@@ -295,6 +300,7 @@ Exchange::MEClientResponse binance::detail::FamilyCancelOrder::ParserResponse::P
             loge("pairs_reverse not contain {}", ticker);
             return {};
         }
+        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (const simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
@@ -353,6 +359,5 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     } else {
         loge("pairs_reverse not contain {}", ticker);
     }
-
     return output;
 }
