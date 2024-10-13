@@ -30,6 +30,9 @@ jobs:
     - name: Install some developer dependencies
       run: |
           sudo apt update
+          
+          apt-cache show libboost-system-dev | grep Version
+
           sudo apt-get install -y build-essential libboost-all-dev=1.67.0.1 libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
 
     # Update references
