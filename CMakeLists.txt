@@ -98,7 +98,7 @@ FetchContent_MakeAvailable(re2)
 
 
 
-find_package(Boost 1.65.0) 
+find_package(Boost 1.83.0) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
 

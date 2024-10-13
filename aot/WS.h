@@ -11,6 +11,7 @@
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
 #include "boost/asio/awaitable.hpp"
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
