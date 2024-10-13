@@ -563,6 +563,12 @@ class FamilyLimitOrder {
     static constexpr std::string_view end_point = "/api/v3/order";
     class ParserResponse {
       public:
+      /**
+       * @brief Construct a new Parser Response object
+       * 
+       * @param pairs is needed to extract precission qty and price 
+       * @param pairs_reverse 
+       */
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
@@ -915,7 +921,6 @@ class OrderNewLimitComponent : public bus::Component,
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-    using OrderNewLimit3<Executor>::OrderNewLimit3;
   explicit  OrderNewLimitComponent (Executor&& executor, size_t number_responses, SignerI* signer,
                             TypeExchange type,
                             common::TradingPairHashMap& pairs,
@@ -1132,13 +1137,12 @@ class CancelOrderComponent : public bus::Component,
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-    using OrderNewLimit3<Executor>::OrderNewLimit3;
   explicit  CancelOrderComponent (Executor&& executor, size_t number_responses, SignerI* signer,
                             TypeExchange type,
                             common::TradingPairHashMap& pairs,
                             common::TradingPairReverseHashMap& pairs_reverse,
                             ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
+                            CancelOrder3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
                             exchange_response_mem_pool_(number_responses),
                             bus_event_response_mem_pool_(number_responses){}
     ~CancelOrderComponent() override = default;

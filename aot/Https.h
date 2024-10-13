@@ -110,7 +110,6 @@ class HttpsSession {
     // Close the session gracefully
     void AsyncCloseSessionGracefully() {
         // Perform SSL shutdown asynchronously
-        //start_timer();
         stream_.async_shutdown([this](beast::error_code ec) {
             if (ec) {
                 // If shutdown fails, log the error but still close the socket
@@ -198,10 +197,11 @@ class HttpsSession {
         if (ec) return fail(ec, "handshake");
 
         // Reset the timer for the next operation
-        start_timer();
+        //start_timer();
 
         // Set the connected flag to true after a successful handshake
         is_connected_ = true;
+        timer_.cancel();
         // Notify that the handshake was successful (you could add a callback
         // here as well) For example, you might want to notify that the session
         // is now active.

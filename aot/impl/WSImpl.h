@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iostream>
-#include <fstream>
+// #include <iostream>
+// #include <fstream>
 #include <memory>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
@@ -27,13 +27,13 @@ class WSSession : public std::enable_shared_from_this<WSSession>
         beast::ssl_stream<beast::tcp_stream>> ws_;
     beast::flat_buffer buffer_;
     std::string host_;
-    std::string text_;
+    //std::string text_;
     std::string end_point_;
-    std::string strbuf;
+    //std::string strbuf;
     std::string request_json_;
     std::string_view empty_json = "{}";
     OnMessage on_msg_cb_;
-    std::ofstream ofstream_;
+    //std::ofstream ofstream_;
 public:
     /**
      * @brief Construct a new WSSession object
@@ -226,7 +226,6 @@ public:
     {
         auto size = buffer_.size();
         assert(size == bytes_transferred);
-        strbuf.reserve(size);
         on_msg_cb_(buffer_);
         buffer_.consume(buffer_.size());
         ws_.async_read(
