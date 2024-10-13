@@ -48,7 +48,7 @@ class Https {
 };
 
 namespace V2 {
-template <typename _Timeout>
+template <typename _Timeout, typename ...AdditionalArgs>
 class HttpsSession {
   public:
     using Timeout = _Timeout;
@@ -73,9 +73,13 @@ class HttpsSession {
     Timeout timeout_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
-    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
-                          const std::string_view host,
-                          const std::string_view port, _Timeout timeout)
+    explicit HttpsSession(boost::asio::io_context& ioc, 
+                            ssl::context& ctx,
+                             _Timeout timeout, 
+                                
+                            const std::string_view host,
+                          const std::string_view port,
+                          AdditionalArgs&& ...)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
@@ -252,7 +256,7 @@ class HttpsSession {
     }
 };
 
-template <typename HTTPSessionType>
+template <typename HTTPSessionType, typename... Args>
 class ConnectionPool {
     moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
     moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
@@ -270,11 +274,14 @@ class ConnectionPool {
     size_t pool_size_;
     common::MemoryPool<HTTPSessionType> session_pool_;
     HTTPSessionType::Timeout timeout_;
-
+    std::tuple<std::decay_t<Args>...> ctor_args_;
   public:
-    ConnectionPool(boost::asio::io_context& ioc, /*ssl::context& ssl_ctx,*/
-                   const std::string_view host, const std::string_view port,
-                   std::size_t pool_size, HTTPSessionType::Timeout timeout)
+  //template
+    // ConnectionPool(boost::asio::io_context& ioc, /*ssl::context& ssl_ctx,*/
+    //                const std::string_view host, const std::string_view port,
+    //                std::size_t pool_size, HTTPSessionType::Timeout timeout)
+    
+    ConnectionPool(boost::asio::io_context& ioc, HTTPSessionType::Timeout timeout, size_t pool_size, const std::string_view host, const std::string_view port, Args&&... args)
         : block_until_helper_thread_finished(
               helper_thread_finished.get_future()),
           ioc_(ioc),
@@ -283,10 +290,13 @@ class ConnectionPool {
           port_(port),
           pool_size_(pool_size),
           session_pool_(pool_size),
-          timeout_(timeout) {
+          timeout_(timeout),
+          ctor_args_(std::forward<Args>(args)...) {
         for (std::size_t i = 0; i < pool_size; ++i) {
-            auto session =
-                session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+            auto session = CreateSession();
+                //session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+                //session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, args);
+
             until_handshake_connections_.enqueue(session);
         }
         timeout_thread_ =
@@ -371,8 +381,7 @@ class ConnectionPool {
             if(int needed_new_connection = pool_size_ - ready_connection - almost_ready_connection; needed_new_connection > 0){
                 logd("add {} new session where ready:{} almost_ready:{}", needed_new_connection, ready_connection, almost_ready_connection);
                 for(auto k = 0; k < needed_new_connection; k++) {
-                    auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_,
-                                                            port_, timeout_);
+                    auto new_session = CreateSession();//session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, ctor_args_);
                     if(auto status = until_handshake_connections_.try_enqueue(new_session); !status)
                         loge("can't enque connection");
                 }
@@ -389,8 +398,8 @@ class ConnectionPool {
         session_pool_.Deallocate(session);  // Deallocate the old session
         // fmtlog::poll();
         //  Create a new session and add it back to the pool
-        auto new_session =
-            session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+        auto new_session = CreateSession();
+            //session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, ctor_args_);
         until_handshake_connections_.enqueue(new_session);
     }
 
@@ -464,11 +473,19 @@ class ConnectionPool {
         while (queue.try_dequeue(session)) {
             if (session) {
                 // Post the close operation to the strand to ensure thread safety
-                boost::asio::post(ioc_, [session]() {
+                //boost::asio::post(ioc_, [session]() {
                     session->AsyncCloseSessionGracefully();
-                });
+                //});
             }
         }
-}
+    }
+
+    HTTPSessionType* CreateSession() {
+        // If args are provided, they will be forwarded to Allocate
+        
+        return std::apply([this](auto&&... unpacked_args) {
+            return session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, std::forward<decltype(unpacked_args)>(unpacked_args)...);
+        }, ctor_args_);
+    }
 };
 };  // namespace V2

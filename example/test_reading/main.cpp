@@ -1518,9 +1518,61 @@
 //      return 0;
 // }
 //----------------------------------------------------------------------------------------
-#include "aot/WS.h"
+// #include "aot/WS.h"
 
+// /**
+//  * @brief connect to binance using WssSession based on coroutines
+//  * , subscribe on diff depth stream and shutdown after 20s
+//  * 
+//  * @return int 
+//  */
+// int main(){
+//     boost::asio::io_context ioc;
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
+    
+//     std::thread t([&ioc] {      
+//          ioc.run();
+//     });
+    
+//     ssl::context ssl_ctx{ssl::context::sslv23};
+
+//     using WSS = WssSession<std::chrono::seconds>;
+//     auto host = "stream.binance.com";
+//     auto port = "443";
+//     auto defauld_endpoint = "/ws";
+//     WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
+//     OnWssResponse cb = [](boost::beast::flat_buffer& fb){
+//         auto result = boost::beast::buffers_to_string(fb.data());
+//         std::cout << result << std::endl;
+//     };
+//     std::string g = "{\"method\": \"SUBSCRIBE\",\
+//      \"params\": [\"btcusdt@depth\"],\
+//      \"id\": 1}";
+//     using namespace std::literals::chrono_literals;
+//     std::this_thread::sleep_for(10s);
+    
+//     boost::asio::thread_pool thread_pool;
+
+//     boost::asio::co_spawn(thread_pool, ws.AsyncRequest(std::move(g), cb), boost::asio::detached );
+    
+//     std::this_thread::sleep_for(20s);
+//     ws.AsyncCloseSessionGracefully();
+//     work_guard.reset();
+//     t.join(); 
+//     return 0;
+// }
+//----------------------------------------------------------------------------------------
+#include "aot/WS.h"
+#include "aot/Https.h"
+#include "string_view"
+/**
+ * @brief connect to binance using connection_pool with WssSession based on coroutines
+ * , subscribe on diff depth stream and shutdown after 20s
+ * 
+ * @return int 
+ */
 int main(){
+    binance::testnet::HttpsExchange exchange;
     boost::asio::io_context ioc;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
     
@@ -1531,10 +1583,20 @@ int main(){
     ssl::context ssl_ctx{ssl::context::sslv23};
 
     using WSS = WssSession<std::chrono::seconds>;
-    auto host = "stream.binance.com";
-    auto port = "443";
-    auto defauld_endpoint = "/ws";
-    WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
+    const std::string_view host = "stream.binance.com";
+    const std::string_view port = "443";
+    const std::string_view default_endpoint = "/ws";
+    V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
+
+    //binance::HttpsConnectionPoolFactory factory;
+    
+
+    
+   //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
+
+
+    auto ws = connection_pool.AcquireConnection();
+    //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
     OnWssResponse cb = [](boost::beast::flat_buffer& fb){
         auto result = boost::beast::buffers_to_string(fb.data());
         std::cout << result << std::endl;
@@ -1547,10 +1609,10 @@ int main(){
     
     boost::asio::thread_pool thread_pool;
 
-    boost::asio::co_spawn(thread_pool, ws.AsyncRequest(std::move(g), cb), boost::asio::detached );
+    boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
     
     std::this_thread::sleep_for(20s);
-    ws.AsyncCloseSessionGracefully();
+    ws->AsyncCloseSessionGracefully();
     work_guard.reset();
     t.join(); 
     return 0;

@@ -378,10 +378,12 @@ using NewLimitOrderExecutors =
 using CancelOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::CancelOrderI *>;
 
-class ConnectionPoolFactory {
+class HttpsConnectionPoolFactory {
   public:
-    virtual ~ConnectionPoolFactory() = default;
+    virtual ~HttpsConnectionPoolFactory() = default;
     virtual V2::ConnectionPool<HTTPSesionType> *Create(
-        boost::asio::io_context &io_context, https::ExchangeI *,
-        std::size_t pool_size, HTTPSesionType::Timeout timeout) = 0;
+       boost::asio::io_context& io_context,
+        HTTPSesionType::Timeout timeout,
+        std::size_t pool_size,
+        https::ExchangeI* exchange) = 0;
 };

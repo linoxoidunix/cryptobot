@@ -78,11 +78,12 @@ class WssSession {
     Timeout timeout_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
-    explicit WssSession(boost::asio::io_context& ioc, ssl::context& ctx,
+    explicit WssSession(boost::asio::io_context& ioc, 
+                        ssl::context& ctx,
+                        _Timeout timeout,
                         const std::string_view host,
                         const std::string_view port,
-                        const std::string_view default_endpoint,
-                        _Timeout timeout)
+                        const std::string_view default_endpoint)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
