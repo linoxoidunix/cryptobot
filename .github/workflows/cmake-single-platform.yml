@@ -30,8 +30,31 @@ jobs:
     - name: Install some developer dependencies
       run: |
           sudo apt update    
-          sudo apt-get install -y build-essential libboost-all-dev=1.74* libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
-          find /usr/include/boost -name as_tuple.hpp
+          # sudo apt-get install -y build-essential libboost-all-dev=1.74* libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
+          sudo apt-get install -y build-essential libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
+
+    # Download Boost 1.83
+    - name: Download Boost
+    run: |
+          #wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
+          # tar -xzf boost_1_83_0.tar.gz
+
+    # Build and Install Boost 1.83
+    - name: Build and install Boost 
+    run: |
+      cd boost_1_83_0
+      ./bootstrap.sh
+      sudo ./b2 install --prefix=/usr/local
+
+    # Set up Boost environment variables
+    - name: Set Boost environment
+    run: echo "/usr/local/lib" | sudo tee -a /etc/ld.so.conf.d/boost.conf && sudo ldconfig
+
+    - name: Cache Boost
+    uses: actions/cache@v3
+    with:
+    path: /usr/local
+    key: boost-1.83-ubuntu-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
 
     # Update references
     - name: Git Submodule Update

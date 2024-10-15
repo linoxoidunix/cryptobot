@@ -96,9 +96,18 @@ FetchContent_MakeAvailable(unordered_dense)
 FetchContent_MakeAvailable(abseil)
 FetchContent_MakeAvailable(re2)
 
+#FetchContent_Declare(
+#    boost
+#    GIT_REPOSITORY https://github.com/boostorg/boost.git
+#    GIT_TAG        boost-1.83.0  # Change to the desired Boost version
+#)
+
+#FetchContent_MakeAvailable(boost)
+
+#include_directories(${boost_SOURCE_DIR})
 
 
-find_package(Boost 1.67.0 REQUIRED) 
+# find_package(Boost 1.83.0 REQUIRED) 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
 
