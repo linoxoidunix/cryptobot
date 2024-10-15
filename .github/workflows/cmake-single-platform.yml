@@ -33,16 +33,17 @@ jobs:
           sudo apt-get install -y build-essential libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
 
     # Cache Boost
-    - name: cache_boost
-      uses: actions/cache@v3
+    - name: Cache Boost
+      id: cache_boost
+      uses: actions/cache@v4
       with:
         path: |
           /usr/local/include/boost
           /usr/local/lib/libboost_*
-        key: boost-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
+        key: boost_${{ runner.os }}_${{ hashFiles('boost_1_83_0.tar.gz') }}
         restore-keys: |
-          boost-${{ runner.os }}-
-          boost-
+          boost_${{ runner.os }}_
+          boost_
 
     # Check if the Boost cache was restored
     - name: Check if Boost cache was restored
