@@ -32,28 +32,41 @@ jobs:
           sudo apt update    
           sudo apt-get install -y build-essential libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
 
-    # Download Boost 1.83
+    # Cache Boost
+    - name: Cache Boost
+      uses: actions/cache@v3
+      with:
+        path: |
+          /usr/local/include/boost
+          /usr/local/lib/libboost_*
+        key: boost-1.83-ubuntu-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
+        restore-keys: |
+          boost-1.83-ubuntu-${{ runner.os }}
+
+    # Check if the Boost cache was restored
+    - name: Check if Boost cache was restored
+      id: cache_check
+      run: echo "BOOST_CACHE_HIT=${{ steps.cache.outputs.cache-hit }}" >> $GITHUB_ENV
+
+    # Download Boost if cache not restored
     - name: Download Boost
+      if: env.BOOST_CACHE_HIT != 'true'
       run: |
           wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
           tar -xzf boost_1_83_0.tar.gz
 
-    #Build and Install Boost 1.83
+    # Build and Install Boost if cache not restored
     - name: Build and install Boost 
+      if: env.BOOST_CACHE_HIT != 'true'
       run: |
         cd boost_1_83_0
         ./bootstrap.sh
         sudo ./b2 install --prefix=/usr/local
 
-    #Set up Boost environment variables
+    # Set up Boost environment variables
     - name: Set Boost environment
       run: echo "/usr/local/lib" | sudo tee -a /etc/ld.so.conf.d/boost.conf && sudo ldconfig
 
-    - name: Cache Boost
-      uses: actions/cache@v3
-      with:
-        path: /usr/local
-        key: boost-1.83-ubuntu-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
 
     # Update references
     - name: Git Submodule Update

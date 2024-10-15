@@ -1,4 +1,4 @@
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include "aot/wallet_asset.h"
 
 void Wallet::Update(Exchange::IResponse* response){

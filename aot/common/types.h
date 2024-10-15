@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
 #include "aot/third_party/emhash/hash_table7.hpp"

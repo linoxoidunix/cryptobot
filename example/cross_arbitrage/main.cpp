@@ -22,7 +22,7 @@
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 //#include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"//if link form source
 
