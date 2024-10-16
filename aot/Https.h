@@ -140,6 +140,7 @@ class HttpsSession {
             return;
         }
 
+
         // Start the timer for expiration
         start_timer();
 
