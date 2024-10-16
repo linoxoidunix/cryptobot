@@ -155,10 +155,10 @@ target_include_directories(
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-    boost_coroutine
-    boost_chrono
-    boost_thread
-    boost_system
+    #boost_coroutine
+    #boost_chrono
+    #boost_thread
+    #boost_system
     OpenSSL::SSL OpenSSL::Crypto
     magic_enum
     ${Boost_LIBRARIES}
