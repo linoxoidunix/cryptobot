@@ -171,7 +171,6 @@ target_link_libraries(${PROJECT_NAME}
     prometheus-cpp::util 
     prometheus-cpp::civetweb 
     prometheus-cpp::pull
-    #cpp_trader
     absl::base
     re2::re2
     tomlplusplus::tomlplusplus
@@ -186,8 +185,14 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_A
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
 add_subdirectory(example)
-enable_testing()
-include(GoogleTest)
 
-add_subdirectory(tests)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    enable_testing()
+    include(GoogleTest)
+    add_subdirectory(tests)
+else()
+    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
+endif()
+
+
 
