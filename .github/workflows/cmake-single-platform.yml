@@ -38,7 +38,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          /usr/local/boost
+          /usr/local/include/boost
+          /usr/local/lib/libboost_*
         key: boost_${{ runner.os }}_${{ hashFiles('boost_1_83_0.tar.gz') }}
         restore-keys: |
           boost_${{ runner.os }}_
