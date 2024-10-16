@@ -24,7 +24,7 @@ cxx_executable(order_manager_backtesting ${CMAKE_CURRENT_LIST_DIR} aot concurren
 cxx_executable(cross_arbitrage ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense magic_enum gtest_main)
 cxx_executable(parser_responce_binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense magic_enum gtest_main)
 cxx_executable(position_keeper ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense magic_enum gtest_main gmock_main)
-#cxx_executable(wallet_asset ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense magic_enum gtest_main gmock_main)
+cxx_executable(wallet_asset ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense magic_enum gtest_main gmock_main)
 cxx_executable(mempool ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main gmock_main)
 cxx_executable(thread_utils ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main gmock_main)
 cxx_executable(https ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main)
