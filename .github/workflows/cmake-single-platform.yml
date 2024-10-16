@@ -39,10 +39,10 @@ jobs:
       with:
         path: |
           boost_libs/
-        key: boost_${{ runner.os }}_${{ hashFiles('boost_1_83_0.tar.gz') }}
+        key: boost-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
         restore-keys: |
-          boost_${{ runner.os }}_
-          boost_
+          boost-${{ runner.os }}-
+          boost-
 
     # Check if the Boost cache was restored
     - name: Check if Boost cache was restored
