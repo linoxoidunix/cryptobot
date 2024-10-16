@@ -25,6 +25,15 @@ jobs:
       with:
         token: ${{ secrets.TOKEN }}
         submodules: 'recursive'
+
+    - name: Install GCC (latest)
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
+          gcc --version
+          g++ --version
     
     # Install dependencies
     - name: Install some developer dependencies
