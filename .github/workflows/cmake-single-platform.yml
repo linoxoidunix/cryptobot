@@ -90,11 +90,11 @@ jobs:
 
     - name: Build DBG
       # Build your program with the given configuration
-      run: cmake --build --preset build_dbg
+      run: cmake --build --preset build_dbg -- -j$(nproc)
     
     - name: Build RELEASE
       # Build your program with the given configuration
-      run: cmake --build --preset build_release
+      run: cmake --build --preset build_release -- -j$(nproc)
     
     - name: Test
       # working-directory: ${{github.workspace}}/build
