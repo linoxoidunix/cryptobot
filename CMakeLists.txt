@@ -102,10 +102,11 @@ find_package(Boost 1.83.0 REQUIRED)
 
 if (Boost_FOUND)
     message(STATUS "Boost found: ${Boost_VERSION}")
+    include_directories(${Boost_INCLUDE_DIRS})
+    link_directories(${Boost_LIBRARY_DIRS})
 else()
     message(FATAL_ERROR "Boost not found!")
 endif()
-
 
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
@@ -150,7 +151,6 @@ target_include_directories(
     ${Boost_INCLUDE_DIRS}
     PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
-    #/home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/include
 )
 
 target_link_libraries(${PROJECT_NAME}
