@@ -99,7 +99,7 @@ class HttpsSession {
         cb_      = handler;
         req_     = std::move(req);
         // Set up the timer for session expiration
-        start_timer();
+        //start_timer();
 
         // Send the HTTP request asynchronously
         http::async_write(
@@ -178,7 +178,7 @@ class HttpsSession {
         if (ec) return fail(ec, "resolve");
 
         // Reset the timer for the next operation
-        start_timer();
+        //start_timer();
 
         beast::get_lowest_layer(stream_).async_connect(
             results, [this](beast::error_code ec,
@@ -191,7 +191,7 @@ class HttpsSession {
         if (ec) return fail(ec, "connect");
 
         // Reset the timer for the next operation
-        start_timer();
+        //start_timer();
 
         stream_.async_handshake(
             ssl::stream_base::client,
@@ -206,7 +206,7 @@ class HttpsSession {
 
         // Set the connected flag to true after a successful handshake
         is_connected_ = true;
-        timer_.cancel();
+        //timer_.cancel();
         // Notify that the handshake was successful (you could add a callback
         // here as well) For example, you might want to notify that the session
         // is now active.
@@ -219,7 +219,7 @@ class HttpsSession {
         if (ec) return fail(ec, "write");
         // logi("execute cb on write");
         //  Reset the timer for the next operation
-        start_timer();
+        //start_timer();
         // fmtlog::poll();
         http::async_read(
             stream_, buffer_, res_,
@@ -234,7 +234,7 @@ class HttpsSession {
         if (ec) return fail(ec, "read");
 
         // Cancel the timer as the operation is completed successfully
-        timer_.cancel();
+        //timer_.cancel();
         // logi("execute cb on read");
 
         // fmtlog::poll();
