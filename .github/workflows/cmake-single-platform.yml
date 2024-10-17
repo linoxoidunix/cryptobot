@@ -25,12 +25,60 @@ jobs:
       with:
         token: ${{ secrets.TOKEN }}
         submodules: 'recursive'
+
+    - name: Install GCC (latest)
+      run: |
+          sudo apt-get update
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13
+          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 13
+          gcc --version
+          g++ --version
     
     # Install dependencies
     - name: Install some developer dependencies
       run: |
-          sudo apt update
-          sudo apt-get install -y build-essential libboost-all-dev libssl-dev python3-dev git cmake libcurl4-openssl-dev
+          sudo apt update    
+          sudo apt-get install -y build-essential libssl-dev python3-dev git cmake libcurl4-openssl-dev libuv1 libuv1-dev
+
+    # Cache Boost
+    - name: Cache Boost
+      id: cache_boost
+      uses: actions/cache@v4
+      with:
+        path: |
+          boost_libs/
+        key: boost-${{ runner.os }}-${{ hashFiles('boost_1_83_0.tar.gz') }}
+        restore-keys: |
+          boost-${{ runner.os }}-
+          boost-
+
+    # Check if the Boost cache was restored
+    - name: Check if Boost cache was restored
+      id: cache_check
+      run: echo "BOOST_CACHE_HIT=${{ steps.cache_boost.outputs.cache-hit }}" >> $GITHUB_ENV
+
+    # Download Boost if cache not restored
+    - name: Download Boost
+      if: env.BOOST_CACHE_HIT != 'true'
+      run: |
+          wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
+          tar -xzf boost_1_83_0.tar.gz
+
+    # Build and Install Boost if cache not restored
+    - name: Build and install Boost 
+      if: env.BOOST_CACHE_HIT != 'true'
+      run: |
+        cd boost_1_83_0
+        ./bootstrap.sh
+        sudo ./b2 install --prefix=$GITHUB_WORKSPACE/boost_libs
+
+    # Set up Boost environment variables
+    - name: Set Boost environment
+      run: echo "BOOST_ROOT=$GITHUB_WORKSPACE/boost_libs" >> $GITHUB_ENV
+
 
     # Update references
     - name: Git Submodule Update
@@ -53,11 +101,11 @@ jobs:
 
     - name: Build DBG
       # Build your program with the given configuration
-      run: cmake --build --preset build_dbg
+      run: cmake --build --preset build_dbg -- -j$(nproc)
     
     - name: Build RELEASE
       # Build your program with the given configuration
-      run: cmake --build --preset build_release
+      run: cmake --build --preset build_release -- -j$(nproc)
     
     - name: Test
       # working-directory: ${{github.workspace}}/build

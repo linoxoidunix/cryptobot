@@ -35,7 +35,7 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
     fmtlog::setLogLevel(fmtlog::DBG);
     std::string_view host = "testnet.binance.vision";
     std::string_view port = "443";
-    V2::HttpsSession session(io_context, ssl_context, host, port, std::chrono::seconds(30));
+    V2::HttpsSession session(io_context, ssl_context, std::chrono::seconds(30), host, port );
     bool connected = false;
     // session->Resolve(host.data(), port.data());
     // Expect the response callback to be called once
@@ -95,7 +95,7 @@ protected:
     using HTTPSes =  V2::HttpsSession<std::chrono::seconds>;
     V2::ConnectionPool<HTTPSes> pool;
     ConnectionPoolTest() 
-        : pool(ioc, host, port, pool_size, HTTPSes::Timeout{30}) {}
+        : pool(ioc, HTTPSes::Timeout{30}, pool_size, host, port  ) {}
 
     // Helper function to simulate connection usage
 };

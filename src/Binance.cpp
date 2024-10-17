@@ -10,6 +10,8 @@ using namespace std::literals;
 
 Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
     std::string_view response) {
+    //NEED ADD EXCHANGE ID FIELD
+    assert(false);
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
@@ -44,6 +46,8 @@ Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
 
 Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
     std::string_view response) {
+    //NEED ADD EXCHANGE ID FIELD
+    assert(false);
     Exchange::BookDiffSnapshot book_diff_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
@@ -181,7 +185,7 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
         std::make_unique<BookEventGetter>(pair_info_, interval, type_exchange_);
 }
 
-Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
+Exchange::MEClientResponse binance::detail::FamilyLimitOrder::ParserResponse::Parse(
     std::string_view response) {
         Exchange::MEClientResponse output;
     simdjson::ondemand::parser parser;
@@ -249,6 +253,7 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
         } else {
             loge("no key origQty in response");
         }
+        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
@@ -257,83 +262,7 @@ Exchange::MEClientResponse binance::OrderNewLimit::ParserResponse::Parse(
     return output;
 }
 
-Exchange::MEClientResponse binance::OrderNewLimit2::ParserResponse::Parse(
-    std::string_view response) {
-        Exchange::MEClientResponse output;
-    simdjson::ondemand::parser parser;
-    simdjson::padded_string my_padded_data(response.data(), response.size());
-    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    try {
-        // Helper function to get a string view from the document
-        auto getStringView = [&](const char* key, std::string_view& value) {
-            auto error = doc[key].get_string().get(value);
-            if (error != simdjson::SUCCESS) {
-                loge("no key {} in response", key);
-                return false;
-            }
-            return true;
-        };
-        
-        // Getting ticker
-        std::string_view ticker;
-        if (!getStringView("symbol", ticker) || !pairs_reverse_.count(ticker)) 
-            return {};
-
-        output.trading_pair = pairs_reverse_.find(ticker)->second;
-
-        // Getting order_id
-        output.order_id = doc["clientOrderId"].get_uint64_in_string();
-        
-        // Getting status
-        std::string_view status;
-        if (!getStringView("status", status)) return {};
-
-        // Checking for success status
-        const std::unordered_set<std::string_view> success_status{"NEW", "PARTIALLY_FILLED", "FILLED"};
-        if (!success_status.contains(status)) return {};
-
-        // Handling price based on status
-        double price = 0;
-
-        if (status == "NEW"sv) {
-            output.type = Exchange::ClientResponseType::ACCEPTED;
-            if (doc["price"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
-            output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
-
-        } else if (status == "PARTIALLY_FILLED"sv || status == "FILLED"sv) {
-            output.type = Exchange::ClientResponseType::FILLED;
-            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
-            output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
-        }
-
-        // Handling side
-        std::string_view side;
-        if (getStringView("side", side)) {
-            output.side = (side == "BUY"sv) ? common::Side::BUY : 
-                          (side == "SELL"sv) ? common::Side::SELL : output.side;
-        }
-
-        // Getting executed quantity
-        double executed_qty = 0;
-        if (doc["executedQty"].get_double_in_string().get(executed_qty) != simdjson::SUCCESS) return {};
-        output.exec_qty = static_cast<common::Qty>(executed_qty * std::pow(10, pairs_[output.trading_pair].qty_precission));
-
-        // Getting original quantity and calculating leaves quantity
-        double orig_qty;
-        if (doc["origQty"].get_double_in_string().get(orig_qty) == simdjson::SUCCESS) {
-            output.leaves_qty = static_cast<common::Qty>((orig_qty - executed_qty) * std::pow(10, pairs_[output.trading_pair].qty_precission));
-        } else {
-            loge("no key origQty in response");
-        }
-
-    } catch (simdjson::simdjson_error& error) {
-        loge("JSON error: {}", error.what());
-    }
-
-    return output;
-}
-
-Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
+Exchange::MEClientResponse binance::detail::FamilyCancelOrder::ParserResponse::Parse(
     std::string_view response) {
     Exchange::MEClientResponse output;
     simdjson::ondemand::parser parser;
@@ -371,51 +300,7 @@ Exchange::MEClientResponse binance::CancelOrder::ParserResponse::Parse(
             loge("pairs_reverse not contain {}", ticker);
             return {};
         }
-
-    } catch (const simdjson::simdjson_error& error) {
-        loge("JSON error: {}", error.what());
-    }
-    return output;
-}
-
-Exchange::MEClientResponse binance::CancelOrder2::ParserResponse::Parse(
-    std::string_view response) {
-    Exchange::MEClientResponse output;
-    simdjson::ondemand::parser parser;
-    simdjson::padded_string my_padded_data(response.data(), response.size());
-    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-
-    try {
-        // Retrieve order ID
-        output.order_id = doc["origClientOrderId"].get_uint64_in_string();
-
-        // Check and retrieve status
-        std::string_view status;
-        if (auto error_status = doc["status"].get_string().get(status);
-            error_status != simdjson::SUCCESS) {
-            loge("no key status in response");
-            return {};
-        }
-
-        // Check if order is canceled
-        if (status != "CANCELED"sv) return {};
-        output.type = Exchange::ClientResponseType::CANCELED;
-
-        // Check and retrieve ticker
-        std::string_view ticker;
-        if (auto error_symbol = doc["symbol"].get_string().get(ticker);
-            error_symbol != simdjson::SUCCESS) {
-            loge("no key symbol in response");
-            return {};
-        }
-
-        // Find trading pair
-        if (auto it = pairs_reverse_.find(ticker); it != pairs_reverse_.end()) {
-            output.trading_pair = it->second;
-        } else {
-            loge("pairs_reverse not contain {}", ticker);
-            return {};
-        }
+        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (const simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
@@ -474,6 +359,5 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
     } else {
         loge("pairs_reverse not contain {}", ticker);
     }
-
     return output;
 }

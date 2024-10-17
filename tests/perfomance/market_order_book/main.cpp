@@ -9,7 +9,7 @@
 #include "aot/market_data/market_update.h"
 #include "aot/strategy/market_order_book.h"
 #include "aot/third_party/fmt/core.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 
 constexpr std::string_view kPathData = PATH_TO_DATA;
 

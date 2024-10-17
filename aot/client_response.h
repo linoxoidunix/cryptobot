@@ -13,9 +13,14 @@
 
 #include <sstream>
 
+#include "aot/bus/bus_event.h"
 #include "aot/common/types.h"
 #include "aot/common/mem_pool.h"
 #include "concurrentqueue.h"
+
+namespace bus{
+    class Component;
+};
 
 namespace Exchange {
 /// Type of the order response sent by the exchange to the trading client.
@@ -61,6 +66,7 @@ class IResponse {
 
     virtual common::Side GetSide() const               = 0;
     virtual common::Qty GetExecQty() const             = 0;
+    virtual common::Qty GetLeavesQty() const           = 0;
     virtual common::Price GetPrice() const             = 0;
     virtual std::string ToString() const               = 0;
     virtual common::TradingPair GetTradingPair() const = 0;
@@ -135,6 +141,7 @@ struct MEClientResponse : public IResponse {
         return order_id;
     };
     Exchange::ClientResponseType GetType() const override {return type;};
+    common::Qty GetLeavesQty() const override {return leaves_qty;};
 
 };
 
@@ -143,4 +150,23 @@ struct MEClientResponse : public IResponse {
 
 /// Lock free queues of matching engine client order response messages.
 using ClientResponseLFQueue = moodycamel::ConcurrentQueue<MEClientResponse>;
+
+struct BusEventResponse : public bus::Event{
+    explicit BusEventResponse(Exchange::IResponse* _response) : response(_response){}
+    ~BusEventResponse() override = default;
+    Exchange::IResponse* response;
+    void Accept(bus::Component* comp) override;
+    protected:
+    void Deallocate() override{
+        logd("Deallocating resources");
+        response->Deallocate();
+        response = nullptr;
+        //delete this;  // Deletes the event object
+    }
+
+
+                    //order->Deallocate();
+
+};
+
 }  // namespace Exchange

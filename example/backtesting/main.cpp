@@ -9,7 +9,7 @@
 #include <string_view>
 #include <thread>
 
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 //#include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"//if link form source
 

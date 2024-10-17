@@ -127,14 +127,6 @@ using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
 
 };  // namespace Exchange
 
-// template <> struct fmt::formatter<Exchange::BookSnapshotElem>:
-// formatter<std::string> {
-//   // parse is inherited from formatter<string_view>.
-
-//   auto format(const Exchange::BookSnapshotElem& c, format_context& ctx)
-//   const;
-// };
-
 template <>
 class fmt::formatter<Exchange::BookSnapshotElem> {
   public:

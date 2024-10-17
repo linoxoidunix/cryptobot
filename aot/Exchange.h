@@ -1,14 +1,20 @@
 #pragma once
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/beast/http.hpp>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+
+#include "boost/asio/awaitable.hpp"
+#include "boost/algorithm/string.hpp"
+#include "boost/beast/http.hpp"
+
+
+
 
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -18,6 +24,11 @@
 #include "aot/third_party/emhash/hash_table7.hpp"
 #include "concurrentqueue.h"
 
+// enum class ExchangeName{
+//   kBinance,
+//   kBybit,
+//   kMexc
+// };
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
 
@@ -44,7 +55,7 @@ class ExchangeB {
         return static_cast<const Derived *>(this)->RecvWindowImpl();
     }
 };
-};
+};  // namespace sp
 };  // namespace https
 
 class CurrentTime {
@@ -60,6 +71,8 @@ class CurrentTime {
 class SignerI {
   public:
     virtual std::string Sign(std::string_view data) = 0;
+    virtual std::string SignByLowerCase(std::string_view data) = 0;
+
     virtual std::string_view ApiKey()               = 0;
     virtual ~SignerI()                              = default;
 };
@@ -94,8 +107,13 @@ class Signer : public SignerI {
 
         return B2aHex(digest, dilen);
     };
+    std::string SignByLowerCase(std::string_view data) override {
+        auto buffer = Sign(data);
+        boost::algorithm::to_lower(buffer);
+        return buffer;
+    }
     std::string_view ApiKey() override { return api_key_; }
-
+    ~Signer() override = default;
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
         static const char hex[] = "0123456789abcdef";
@@ -203,17 +221,7 @@ class BookEventGetterI {
     virtual ~BookEventGetterI()                         = default;
 };
 
-/**
- * @brief for different exchanges ChartInterval has different format 1m or 1s or
- * 1M or 1d
- *
- */
-class ChartInterval {
-  public:
-    virtual std::string ToString() const = 0;
-    virtual uint Seconds() const         = 0;
-    virtual ~ChartInterval()             = default;
-};
+
 
 /**
  * @brief make stream channel for fetch kline from exchange
@@ -221,6 +229,17 @@ class ChartInterval {
  */
 class KLineStreamI {
   public:
+    /**
+   * @brief for different exchanges ChartInterval has different format 1m or 1s or
+   * 1M or 1d
+   *
+   */
+    class ChartInterval {
+      public:
+        virtual std::string ToString() const = 0;
+        virtual uint Seconds() const         = 0;
+        virtual ~ChartInterval()             = default;
+    };
     /**
      * @brief
      *
@@ -303,7 +322,9 @@ class ParserKLineResponseI {
 };
 namespace Exchange {
 class RequestNewOrder;
+class BusEventRequestNewLimitOrder;
 class RequestCancelOrder;
+class BusEventRequestCancelOrder;
 };  // namespace Exchange
 
 namespace inner {
@@ -316,6 +337,11 @@ class OrderNewI {
      */
     virtual void Exec(Exchange::RequestNewOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
+
+    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestNewLimitOrder* order, 
+                                             const OnHttpsResponce& cb ) {
+    co_return;
+    }  
     virtual ~OrderNewI()                                 = default;
 };
 
@@ -328,6 +354,10 @@ class CancelOrderI {
      */
     virtual void Exec(Exchange::RequestCancelOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
+    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* order, 
+                                             const OnHttpsResponce& cb ) {
+    co_return;
+    }  
     virtual ~CancelOrderI()                              = default;
 };
 
@@ -348,10 +378,12 @@ using NewLimitOrderExecutors =
 using CancelOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::CancelOrderI *>;
 
-class ConnectionPoolFactory {
+class HttpsConnectionPoolFactory {
   public:
-    virtual ~ConnectionPoolFactory() = default;
+    virtual ~HttpsConnectionPoolFactory() = default;
     virtual V2::ConnectionPool<HTTPSesionType> *Create(
-        boost::asio::io_context &io_context, https::ExchangeI *,
-        std::size_t pool_size, HTTPSesionType::Timeout timeout) = 0;
+       boost::asio::io_context& io_context,
+        HTTPSesionType::Timeout timeout,
+        std::size_t pool_size,
+        https::ExchangeI* exchange) = 0;
 };

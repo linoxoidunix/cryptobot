@@ -7,6 +7,8 @@ find_package(OpenSSL)
 add_subdirectory(aot_data)
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
+#find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBUV REQUIRED libuv)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -16,6 +18,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+    GIT_TAG        master
 )
 FetchContent_Declare(
     nlohmann_json
@@ -95,13 +98,22 @@ FetchContent_MakeAvailable(abseil)
 FetchContent_MakeAvailable(re2)
 
 
+find_package(Boost 1.83.0 REQUIRED) 
 
-find_package(Boost 1.65.0) 
+if (Boost_FOUND)
+    message(STATUS "Boost found: ${Boost_VERSION}")
+    include_directories(${Boost_INCLUDE_DIRS})
+    link_directories(${Boost_LIBRARY_DIRS})
+else()
+    message(FATAL_ERROR "Boost not found!")
+endif()
+
 find_package(Python COMPONENTS Interpreter Development)
 find_package(concurrentqueue)
 
 file(GLOB LIST_H
      "aot/*.h"
+     "aot/bus/*.h"
      "aot/common/*.h"
      "aot/market_data/*.h"
      "aot/order_gw/*.h"
@@ -139,17 +151,16 @@ target_include_directories(
     ${Boost_INCLUDE_DIRS}
     PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
-    #/home/linoxoidunix/Programming/cplusplus/cryptobot/sdk/cpptrader/include
 )
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-    boost_coroutine
-    boost_chrono
-    boost_thread
-    boost_system
+    #boost_coroutine
+    #boost_chrono
+    #boost_thread
+    #boost_system
     OpenSSL::SSL OpenSSL::Crypto
-    magic_enum::magic_enum
+    magic_enum
     ${Boost_LIBRARIES}
     simdjson::simdjson
     nlohmann_json::nlohmann_json
@@ -160,7 +171,6 @@ target_link_libraries(${PROJECT_NAME}
     prometheus-cpp::util 
     prometheus-cpp::civetweb 
     prometheus-cpp::pull
-    #cpp_trader
     absl::base
     re2::re2
     tomlplusplus::tomlplusplus
@@ -174,9 +184,15 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURREN
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=false")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
-add_subdirectory(example)
-enable_testing()
-include(GoogleTest)
 
-add_subdirectory(tests)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_subdirectory(example)
+    enable_testing()
+    include(GoogleTest)
+    add_subdirectory(tests)
+else()
+    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
+endif()
+
+
 

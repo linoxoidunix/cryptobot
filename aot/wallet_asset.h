@@ -5,20 +5,36 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "aot/Logger.h"
+#include "boost/asio/thread_pool.hpp"
+#include "boost/asio/strand.hpp"
+#include "ankerl/unordered_dense.h"
+
+#include "aot/bus/bus_event.h"
+#include "aot/bus/bus_component.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/types.h"
-// #include "aot/Exchange.h
-
-#include "ankerl/unordered_dense.h"
 #include "aot/client_response.h"
 #include "aot/common/types.h"
+#include "aot/Logger.h"
 #include "boost/noncopyable.hpp"
 /**
  * @brief key - ticker asset
  * value - cuurent number this asset
  *
  */
+
+namespace wallet{
+    struct BusEventReserveQty : public bus::Event{
+        ~BusEventReserveQty() override = default;
+        void Accept(bus::Component* comp) override{
+            comp->AsyncHandleEvent(this);
+        }
+        common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+        common::OrderId order_id = common::kOrderIdInvalid;
+        common::TickerId ticker_id = common::kTickerIdInvalid;
+        common::Qty qty = common::kQtyInvalid;
+    };
+}
 using WalletAsset =
     ankerl::unordered_dense::map<common::TickerId, common::QtyD>;
 
@@ -37,7 +53,7 @@ class Wallet : public WalletAsset {
   public:
     explicit Wallet() = default;
     virtual ~Wallet() = default;
-    void Update(const Exchange::IResponse* response);
+    void Update(Exchange::IResponse* response);
     bool CanReserve(common::TickerId ticker, common::Qty qty) {
         InitTicker(ticker);
         if (at(ticker) >= qty) return true;
@@ -64,7 +80,7 @@ class Wallet : public ::Wallet {
     Wallet::ReservedForOrder GetReserves() const { return reserves_; }
     ~Wallet() override = default;
 };
-}
+};
 
 namespace exchange {
 class Wallet : public boost::noncopyable {  // Forbid copying
@@ -96,7 +112,7 @@ class Wallet : public boost::noncopyable {  // Forbid copying
             wallets_.try_emplace(id, ::Wallet());
         }
     }
-    void Update(const Exchange::IResponse* response) {
+    void Update(Exchange::IResponse* response) {
         auto exchange_id = response->GetExchangeId();
         if (exchange_id == common::kExchangeIdInvalid) {
             logw("response->exchange_id = invalid id");
@@ -126,8 +142,44 @@ class Wallet : public boost::noncopyable {  // Forbid copying
         }
         return it->second.Reserve(order_id, ticker, qty);
     }
+    bool OnNewSignal(wallet::BusEventReserveQty* event) {
+        auto exchange_id = event->exchange_id;
+        if (exchange_id== common::kExchangeIdInvalid) {
+            logw("event->exchange_id = invalid id");
+            return false;
+        }
+        return Reserve(exchange_id, event->order_id, event->ticker_id, event->qty);
+    }
 };
 };
+
+template<typename Executor>
+class WalletComponent : public bus::Component{
+    Executor executor_;
+
+    exchange::Wallet *wallet_         = nullptr;
+  public:
+    explicit WalletComponent(Executor&& executor, exchange::Wallet *wallet)
+        : executor_(std::move(executor)),wallet_(wallet) {}
+    
+    ~WalletComponent() override = default;
+    
+    void AsyncHandleEvent(wallet::BusEventReserveQty* event) override{
+         boost::asio::post(executor_, [this, event]() {
+            wallet_->OnNewSignal(event);
+            event->Release();
+        });
+    }
+
+    void AsyncHandleEvent(Exchange::BusEventResponse* event) override{
+         boost::asio::post(executor_, [this, event]() {
+            wallet_->Update(event->response);
+            event->Release();
+        });
+    }
+};
+
+
 
 namespace testing {
     namespace exchange{

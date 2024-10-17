@@ -26,7 +26,7 @@ prometheus-cpp::core
 prometheus-cpp::util 
 prometheus-cpp::civetweb 
 prometheus-cpp::pull
-magic_enum::magic_enum
+magic_enum
 tomlplusplus::tomlplusplus
 )
 

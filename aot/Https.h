@@ -48,7 +48,7 @@ class Https {
 };
 
 namespace V2 {
-template <typename _Timeout>
+template <typename _Timeout, typename ...AdditionalArgs>
 class HttpsSession {
   public:
     using Timeout = _Timeout;
@@ -72,11 +72,14 @@ class HttpsSession {
     boost::asio::io_context& ioc_;
     Timeout timeout_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
-
   public:
-    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
-                          const std::string_view host,
-                          const std::string_view port, _Timeout timeout)
+    explicit HttpsSession(boost::asio::io_context& ioc, 
+                            ssl::context& ctx,
+                             _Timeout timeout, 
+                                
+                            const std::string_view host,
+                          const std::string_view port,
+                          AdditionalArgs&& ...)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
@@ -96,7 +99,7 @@ class HttpsSession {
         cb_      = handler;
         req_     = std::move(req);
         // Set up the timer for session expiration
-        start_timer();
+        //start_timer();
 
         // Send the HTTP request asynchronously
         http::async_write(
@@ -107,6 +110,21 @@ class HttpsSession {
 
         return true;
     }
+
+    // Close the session gracefully
+    void AsyncCloseSessionGracefully() {
+        // Perform SSL shutdown asynchronously
+        stream_.async_shutdown([this](beast::error_code ec) {
+            if (ec) {
+                // If shutdown fails, log the error but still close the socket
+                logi("SSL shutdown failed: {}", ec.message());
+            }
+
+            // Close the underlying TCP connection
+            close_session();
+        });
+    }
+
     inline bool IsConnected() const { return is_connected_; }
     inline bool IsExpired() const { return is_expired_; }
     inline bool IsUsed() const { return is_used_; }
@@ -121,6 +139,7 @@ class HttpsSession {
             std::cerr << ec.message() << "\n";
             return;
         }
+
 
         // Start the timer for expiration
         start_timer();
@@ -143,13 +162,7 @@ class HttpsSession {
             if (ec !=
                 boost::asio::error::operation_aborted) {  // Ignore if the timer
                                                           // was canceled
-                fail(ec, "session expired");
-                // Handle session expiration (close, notify user, etc.)
-                if (cb_) {
-                    beast::error_code timeout_error{
-                        boost::asio::error::timed_out};
-                    // cb_(res_);  // Notify the callback about the timeout
-                }
+                fail(ec, "session expired. it is closed by async timer");
                 close_session();
             }
         });
@@ -157,9 +170,6 @@ class HttpsSession {
 
     void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
         if (ec) return fail(ec, "resolve");
-
-        // Reset the timer for the next operation
-        start_timer();
 
         beast::get_lowest_layer(stream_).async_connect(
             results, [this](beast::error_code ec,
@@ -171,9 +181,6 @@ class HttpsSession {
     void on_connect(beast::error_code ec) {
         if (ec) return fail(ec, "connect");
 
-        // Reset the timer for the next operation
-        start_timer();
-
         stream_.async_handshake(
             ssl::stream_base::client,
             [this](beast::error_code ec) { this->on_handshake(ec); });
@@ -182,25 +189,14 @@ class HttpsSession {
     void on_handshake(beast::error_code ec) {
         if (ec) return fail(ec, "handshake");
 
-        // Reset the timer for the next operation
-        start_timer();
-
         // Set the connected flag to true after a successful handshake
         is_connected_ = true;
-        // Notify that the handshake was successful (you could add a callback
-        // here as well) For example, you might want to notify that the session
-        // is now active.
-
-        // Optionally, you can now send the HTTP request if needed
     }
 
     void on_write(beast::error_code ec, std::size_t bytes_transferred) {
         boost::ignore_unused(bytes_transferred);
         if (ec) return fail(ec, "write");
-        // logi("execute cb on write");
-        //  Reset the timer for the next operation
-        start_timer();
-        // fmtlog::poll();
+
         http::async_read(
             stream_, buffer_, res_,
             [this](beast::error_code ec, std::size_t bytes_transferred) {
@@ -213,11 +209,6 @@ class HttpsSession {
 
         if (ec) return fail(ec, "read");
 
-        // Cancel the timer as the operation is completed successfully
-        timer_.cancel();
-        // logi("execute cb on read");
-
-        // fmtlog::poll();
         //  Call the response callback
         cb_(res_);
         close_session();
@@ -226,7 +217,6 @@ class HttpsSession {
     // Handle session expiration or failure
     void fail(beast::error_code ec, const char* what) {
         logi("{}: {}", what, ec.message());
-        // std::cerr << what << ": " << ec.message() << "\n";
         close_session();
     }
 
@@ -237,7 +227,7 @@ class HttpsSession {
     }
 };
 
-template <typename HTTPSessionType>
+template <typename HTTPSessionType, typename... Args>
 class ConnectionPool {
     moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
     moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
@@ -255,23 +245,20 @@ class ConnectionPool {
     size_t pool_size_;
     common::MemoryPool<HTTPSessionType> session_pool_;
     HTTPSessionType::Timeout timeout_;
-
+    std::tuple<std::decay_t<Args>...> ctor_args_;
   public:
-    ConnectionPool(boost::asio::io_context& ioc, /*ssl::context& ssl_ctx,*/
-                   const std::string_view host, const std::string_view port,
-                   std::size_t pool_size, HTTPSessionType::Timeout timeout)
+    ConnectionPool(boost::asio::io_context& ioc, HTTPSessionType::Timeout timeout, size_t pool_size, const std::string_view host, const std::string_view port, Args&&... args)
         : block_until_helper_thread_finished(
               helper_thread_finished.get_future()),
           ioc_(ioc),
-          // ssl_ctx_(ssl_ctx),
           host_(host),
           port_(port),
           pool_size_(pool_size),
           session_pool_(pool_size),
-          timeout_(timeout) {
+          timeout_(timeout),
+          ctor_args_(std::forward<Args>(args)...) {
         for (std::size_t i = 0; i < pool_size; ++i) {
-            auto session =
-                session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+            auto session = CreateSession();
             until_handshake_connections_.enqueue(session);
         }
         timeout_thread_ =
@@ -301,16 +288,20 @@ class ConnectionPool {
     }
 
     // Release a connection back to the pool
-
+    void CloseAllSessions() {
+    // Stop the helper thread and wait for it to finish
+        timeout_thread_->request_stop();
+        block_until_helper_thread_finished.wait();
+        // Now proceed to close all sessions
+        CloseQueueSessions(until_handshake_connections_);
+        CloseQueueSessions(after_handshake_connections_);
+        CloseQueueSessions(used_connections_);
+        CloseQueueSessions(expired_connections_);
+    }
 
   private:
       void ReleaseConnection(HTTPSessionType* session) {
         if (!session) return;
-        // if(!session->IsUsed()){
-        //     if(auto status = after_handshake_connections_.try_enqueue(session); !status)
-        //         loge("can't enqueue session to after_handshake_connections_");
-        //     return;
-        // }
         if(auto status = used_connections_.try_enqueue(session); !status)
             loge("can't enque session in used_connections_");
     }
@@ -346,8 +337,7 @@ class ConnectionPool {
             if(int needed_new_connection = pool_size_ - ready_connection - almost_ready_connection; needed_new_connection > 0){
                 logd("add {} new session where ready:{} almost_ready:{}", needed_new_connection, ready_connection, almost_ready_connection);
                 for(auto k = 0; k < needed_new_connection; k++) {
-                    auto new_session = session_pool_.Allocate(ioc_, ssl_ctx_, host_,
-                                                            port_, timeout_);
+                    auto new_session = CreateSession();//session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, ctor_args_);
                     if(auto status = until_handshake_connections_.try_enqueue(new_session); !status)
                         loge("can't enque connection");
                 }
@@ -360,12 +350,9 @@ class ConnectionPool {
 
     // Replace a timed-out connection by deleting it and adding a new one
     void ReplaceTimedOutConnection(HTTPSessionType* session) {
-        // logi("Replace Timed Out Connection {}", session);
         session_pool_.Deallocate(session);  // Deallocate the old session
-        // fmtlog::poll();
         //  Create a new session and add it back to the pool
-        auto new_session =
-            session_pool_.Allocate(ioc_, ssl_ctx_, host_, port_, timeout_);
+        auto new_session = CreateSession();
         until_handshake_connections_.enqueue(new_session);
     }
 
@@ -431,6 +418,23 @@ class ConnectionPool {
         if (auto status = used_connections_.try_enqueue(session); !status) {
             loge("loss connection");
         }
+    }
+
+    template <typename QueueType>
+    void CloseQueueSessions(QueueType& queue) {
+        HTTPSessionType* session = nullptr;
+        while (queue.try_dequeue(session)) {
+            if (session) {
+                session->AsyncCloseSessionGracefully();
+            }
+        }
+    }
+
+    HTTPSessionType* CreateSession() {
+        // If args are provided, they will be forwarded to Allocate
+        return std::apply([this](auto&&... unpacked_args) {
+            return session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, std::forward<decltype(unpacked_args)>(unpacked_args)...);
+        }, ctor_args_);
     }
 };
 };  // namespace V2

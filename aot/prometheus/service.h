@@ -4,7 +4,7 @@
 #include <prometheus/gauge.h>
 #include <prometheus/registry.h>
 
-#include <magic_enum.hpp>
+#include "magic_enum/magic_enum.hpp"
 #include <memory>
 
 #include "aot/common/thread_utils.h"

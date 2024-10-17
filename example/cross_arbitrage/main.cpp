@@ -22,7 +22,7 @@
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
-#include "magic_enum.hpp"
+#include "magic_enum/magic_enum.hpp"
 //#include "moodycamel/concurrentqueue.h"//if link as 3rd party
 #include "concurrentqueue.h"//if link form source
 
@@ -64,7 +64,7 @@ int main() {
     
     strategy::cross_arbitrage::LFQueue queue;
     position_keeper::EventLFQueue orderbook_positionkeeper_channel;
-    strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
+    strategy::cross_arbitrage::OrderBook ob(common::ExchangeId::kBinance, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
     
     Trading::OrderBookService orderbook_service(&ob, &event_queue);
 

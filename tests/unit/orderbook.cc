@@ -127,7 +127,7 @@ TEST(OrderBook, ShouldNotSendMessagesIfUpdateBidAndUpdateAskAreFalse) {
     EventLFQueue orderbook_positionkeeper_channel;
 
     OrderBook order_book(
-        1, TradingPair{2,1}, pair,
+        common::ExchangeId::kBinance, TradingPair{2,1}, pair,
         &orderbook_tradeengine_channel, &orderbook_positionkeeper_channel,
         10, 10, 10);
 
@@ -167,7 +167,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromBAUPoolAndSendAskUpdateMessageToOrderboo
     EventLFQueue orderbook_positionkeeper_channel;
 
     OrderBook order_book(
-        1, TradingPair{2,1}, pair,
+        common::ExchangeId::kBinance, TradingPair{2,1}, pair,
         &orderbook_tradeengine_channel, &orderbook_positionkeeper_channel,
         10, 10, 10);
 
@@ -223,7 +223,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromBBUPoolAndSendBidUpdateMessageToOrderboo
     EventLFQueue orderbook_positionkeeper_channel;
 
     OrderBook order_book(
-        1, TradingPair{2,1}, pair,
+        common::ExchangeId::kBinance, TradingPair{2,1}, pair,
         &orderbook_tradeengine_channel, &orderbook_positionkeeper_channel,
         10, 10, 10);
 
@@ -279,7 +279,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     EventLFQueue orderbook_positionkeeper_channel;
 
     OrderBook order_book(
-        1, TradingPair{2,1}, pair,
+        common::ExchangeId::kBinance, TradingPair{2,1}, pair,
         &orderbook_tradeengine_channel, &orderbook_positionkeeper_channel,
         10, 10, 10);
 
@@ -319,7 +319,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     EventLFQueue orderbook_positionkeeper_channel;
 
     OrderBook order_book(
-        1, TradingPair{2,1}, pair,
+        common::ExchangeId::kBinance, TradingPair{2,1}, pair,
         &orderbook_tradeengine_channel, &orderbook_positionkeeper_channel,
         10, 10, 10);
 

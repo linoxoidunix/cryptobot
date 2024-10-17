@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 
+#include "magic_enum/magic_enum.hpp"
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
@@ -23,8 +24,14 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
 
-using ExchangeId                  = uint16_t;
-constexpr auto kExchangeIdInvalid = std::numeric_limits<ExchangeId>::max();
+enum class ExchangeId{
+  kBinance,
+  kBybit,
+  kMexc,
+  kInvalid
+};
+
+constexpr auto kExchangeIdInvalid = ExchangeId::kInvalid;
 
 using OrderId                     = uint64_t;
 constexpr auto kOrderIdInvalid    = std::numeric_limits<OrderId>::max();
@@ -359,3 +366,14 @@ inline uint32_t Digits10(uint64_t v) {
            (std::uint32_t)(v >= 10000000000000000000ULL);
 };
 }  // namespace common
+
+template <>
+class fmt::formatter<common::ExchangeId> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::ExchangeId& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "Exchange:{}]", magic_enum::enum_name(foo));
+    }
+};

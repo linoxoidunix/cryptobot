@@ -157,4 +157,5 @@ class MemoryPool {
     boost::pool<> pool_;
     const size_t pool_size_;
 };
+
 }  // namespace common

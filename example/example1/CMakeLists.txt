@@ -16,6 +16,7 @@ target_link_libraries(${PROJECT_NAME}
 aot
 # concurrentqueue::concurrentqueue
 concurrentqueue
+magic_enum
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
