@@ -251,7 +251,6 @@ class ConnectionPool {
         : block_until_helper_thread_finished(
               helper_thread_finished.get_future()),
           ioc_(ioc),
-          // ssl_ctx_(ssl_ctx),
           host_(host),
           port_(port),
           pool_size_(pool_size),
@@ -351,7 +350,6 @@ class ConnectionPool {
 
     // Replace a timed-out connection by deleting it and adding a new one
     void ReplaceTimedOutConnection(HTTPSessionType* session) {
-        // logi("Replace Timed Out Connection {}", session);
         session_pool_.Deallocate(session);  // Deallocate the old session
         //  Create a new session and add it back to the pool
         auto new_session = CreateSession();

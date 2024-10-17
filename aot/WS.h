@@ -106,10 +106,7 @@ class WssSession {
         is_used_ = true;
         cb_      = handler;
         request_json_     = std::move(req);
-        // Set up the timer for session expiration
-        //start_timer();
         co_await stream_.async_write(net::buffer(request_json_), boost::asio::use_awaitable);
-        //start_timer();
         while(need_read_){
           auto [ec, n] = co_await stream_.async_read(buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
           handler(buffer_);
@@ -134,7 +131,6 @@ class WssSession {
     net::awaitable<void> Run(const char* host, const char* port,
                              const char* default_end_point) {
 
-        start_timer();
         auto results =
             co_await resolver_.async_resolve(host, port, net::use_awaitable);
         if (!SSL_set_tlsext_host_name(stream_.next_layer().native_handle(),
@@ -147,8 +143,10 @@ class WssSession {
         start_timer();
         auto ep = co_await beast::get_lowest_layer(stream_).async_connect(
             results, net::use_awaitable);
-        /**need aupdate host with port from previous action */
-        start_timer();
+        // Turn off the timeout on the tcp_stream, because
+        // the websocket stream has its own timeout system.
+        beast::get_lowest_layer(stream_).expires_never();
+        
         co_await stream_.next_layer().async_handshake(ssl::stream_base::client,
                                                   net::use_awaitable);
         // Set suggested timeout settings for the websocket
@@ -161,12 +159,10 @@ class WssSession {
                         std::string(BOOST_BEAST_VERSION_STRING) +
                             " websocket-client-async-ssl");
             }));
-        start_timer();
         co_await stream_.async_handshake(host, default_end_point, net::use_awaitable);
 
         is_connected_ = true;
         timer_.cancel();
-        // auto executor = co_await net::this_coro::executor;
         co_return;
     }
 
@@ -179,13 +175,7 @@ class WssSession {
             if (ec !=
                 boost::asio::error::operation_aborted) {  // Ignore if the timer
                                                           // was canceled
-                fail(ec, "session expired");
-                // Handle session expiration (close, notify user, etc.)
-                if (cb_) {
-                    beast::error_code timeout_error{
-                        boost::asio::error::timed_out};
-                    // cb_(res_);  // Notify the callback about the timeout
-                }
+                fail(ec, "session expired. it is closed by async timer");
                 close_session();
             }
         });
@@ -194,7 +184,6 @@ class WssSession {
     // Handle session expiration or failure
     void fail(beast::error_code ec, const char* what) {
         logi("{}: {}", what, ec.message());
-        // std::cerr << what << ": " << ec.message() << "\n";
         close_session();
     }
 
@@ -204,5 +193,3 @@ class WssSession {
         is_expired_ = true;
     }
 };
-
-//#endif

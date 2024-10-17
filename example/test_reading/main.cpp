@@ -1611,7 +1611,7 @@ int main(){
 
     boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
     
-    std::this_thread::sleep_for(20s);
+    std::this_thread::sleep_for(60s);
     ws->AsyncCloseSessionGracefully();
     work_guard.reset();
     t.join(); 
