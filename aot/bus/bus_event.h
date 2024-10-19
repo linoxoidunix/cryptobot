@@ -34,6 +34,7 @@ class Event {
         int x = 0;
     };
     virtual void Accept(bus::Component*, const OnHttpsResponce& cb){};
+    virtual void Accept(bus::Component*, const OnHttpsResponce* cb){};
 
     virtual boost::asio::awaitable<void> CoAccept(bus::Component* component){
         logd("Accept component");

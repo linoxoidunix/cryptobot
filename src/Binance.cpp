@@ -112,7 +112,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             logd("clear order book. try make snapshot");
             event_lfqueue_->enqueue(event_clear_queue);
 
-            binance::BookSnapshot::ArgsOrder args{
+            binance::detail::FamilyBookSnapshot::ArgsOrder args{
                 ticker_hash_map_[trading_pair_.first],
                 ticker_hash_map_[trading_pair_.second],
                 1000};  // TODO parametrize 1000

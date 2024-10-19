@@ -557,18 +557,17 @@ class FactoryRequest {
 
 class FamilyLimitOrder {
   public:
-    
     virtual ~FamilyLimitOrder()                 = default;
     explicit FamilyLimitOrder()                 = default;
     static constexpr std::string_view end_point = "/api/v3/order";
     class ParserResponse {
       public:
-      /**
-       * @brief Construct a new Parser Response object
-       * 
-       * @param pairs is needed to extract precission qty and price 
-       * @param pairs_reverse 
-       */
+        /**
+         * @brief Construct a new Parser Response object
+         *
+         * @param pairs is needed to extract precission qty and price
+         * @param pairs_reverse
+         */
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
@@ -692,6 +691,13 @@ class FamilyCancelOrder {
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
+        /**
+         * @brief Construct a new Args Order object. it is old ctor. don't use
+         * it
+         *
+         * @param symbol
+         * @param order_id
+         */
         explicit ArgsOrder(SymbolType symbol, common::OrderId order_id)
             : ArgsQuery() {
             SetSymbol(symbol);
@@ -847,13 +853,13 @@ class OrderNewLimit2 : public inner::OrderNewI,
 
 /**
  * @brief OrderNewLimit3 is wrapper above OrderNewLimit2 with coroutine CoExec
- * 
- * @tparam Executor 
+ *
+ * @tparam Executor
  */
 template <typename Executor>
 class OrderNewLimit3 : public OrderNewLimit2 {
-    protected:
-     Executor executor_;
+  protected:
+    Executor executor_;
 
   public:
     explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
@@ -869,9 +875,9 @@ class OrderNewLimit3 : public OrderNewLimit2 {
         Exchange::BusEventRequestNewLimitOrder* bus_event_request_new_order,
         const OnHttpsResponce& callback) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
-        if(bus_event_request_new_order == nullptr){
-          loge("bus_event_request_new_order = nullptr");
-          co_return;
+        if (bus_event_request_new_order == nullptr) {
+            loge("bus_event_request_new_order = nullptr");
+            co_return;
         }
         if (session_pool_ == nullptr) {
             loge("session_pool_ == nullptr");
@@ -879,7 +885,8 @@ class OrderNewLimit3 : public OrderNewLimit2 {
         }
         boost::asio::co_spawn(
             executor_,
-            [this, bus_event_request_new_order, &callback]() -> boost::asio::awaitable<void> {
+            [this, bus_event_request_new_order,
+             &callback]() -> boost::asio::awaitable<void> {
                 logd("Start CoExec");
 
                 ArgsOrder args(bus_event_request_new_order->request, pairs_);
@@ -914,21 +921,21 @@ class OrderNewLimit3 : public OrderNewLimit2 {
     }
 };
 
-template <typename Executor, typename ... BusEventTypes>
+template <typename Executor>
 class OrderNewLimitComponent : public bus::Component,
                                public OrderNewLimit3<Executor> {
-  
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-  explicit  OrderNewLimitComponent (Executor&& executor, size_t number_responses, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
-                            exchange_response_mem_pool_(number_responses),
-                            bus_event_response_mem_pool_(number_responses){}
+    explicit OrderNewLimitComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs,
+                                   pairs_reverse, session_pool),
+          exchange_response_mem_pool_(number_responses),
+          bus_event_response_mem_pool_(number_responses) {}
     ~OrderNewLimitComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
@@ -1049,6 +1056,7 @@ class CancelOrder2 : public inner::CancelOrderI,
   private:
     ExchangeChooser exchange_;
     common::TradingPairReverseHashMap& pairs_reverse_;
+
   protected:
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
@@ -1058,22 +1066,24 @@ class CancelOrder2 : public inner::CancelOrderI,
 
 /**
  * @brief CancelOrder3 is wrapper above CancelOrder2 with coroutine CoExec
- * 
- * @tparam Executor 
+ *
+ * @tparam Executor
  */
 template <typename Executor>
 class CancelOrder3 : public CancelOrder2 {
   protected:
-     Executor executor_;
+    Executor executor_;
+
   public:
-    explicit CancelOrder3(Executor&& executor, SignerI* signer, TypeExchange type,
-                          common::TradingPairHashMap& pairs,
+    explicit CancelOrder3(Executor&& executor, SignerI* signer,
+                          TypeExchange type, common::TradingPairHashMap& pairs,
                           common::TradingPairReverseHashMap& pairs_reverse,
                           ::V2::ConnectionPool<HTTPSesionType>* session_pool)
         : executor_(std::move(executor)),
           CancelOrder2(signer, type, pairs, pairs_reverse, session_pool) {};
-    boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
-              const OnHttpsResponce& callback) override {
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
+        const OnHttpsResponce& callback) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
         if (bus_event_request_cancel_order == nullptr) {
             loge("bus_event_request_cancel_order == nullptr");
@@ -1085,66 +1095,57 @@ class CancelOrder3 : public CancelOrder2 {
         }
         boost::asio::co_spawn(
             executor_,
-            [this, bus_event_request_cancel_order, &callback]() -> boost::asio::awaitable<void> {
-        logd("start exec");
+            [this, bus_event_request_cancel_order,
+             &callback]() -> boost::asio::awaitable<void> {
+                logd("start exec");
 
+                ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyCancelOrder::end_point,
+                    args,
+                    boost::beast::http::verb::delete_,
+                    signer_,
+                    need_sign};
+                logd("start prepare cancel request");
+                auto req = factory();
+                logd("end prepare cancel request");
 
-        ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyCancelOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::delete_,
-                                       signer_,
-                                       need_sign};
-        logd("start prepare cancel request");
-        auto req = factory();
-        logd("end prepare cancel request");
+                bus_event_request_cancel_order->Release();
 
-        // auto cb =
-        //     [response_lfqueue, this](
-        //         boost::beast::http::response<boost::beast::http::string_body>&
-        //             buffer) {
-        //         const auto& resut = buffer.body();
-        //         logi("{}", resut);
-        //         ParserResponse parser(pairs_reverse_);
-        //         auto answer    = parser.Parse(resut);
-        //         bool status_op = response_lfqueue->try_enqueue(answer);
-        //         if (!status_op) [[unlikely]]
-        //             loge("my queue is full. need clean my queue");
-        //     };
+                auto session = session_pool_->AcquireConnection();
+                logd("start send cancel request");
 
-        auto session = session_pool_->AcquireConnection();
-        logd("start send cancel request");
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false)
+                    loge("AsyncRequest wasn't sent in io_context");
 
-        if (auto status = session->AsyncRequest(std::move(req), callback);
-            status == false)
-            loge("AsyncRequest wasn't sent in io_context");
-
-        logd("end send cancel request");
-        co_return;;
-        },
+                logd("end send cancel request");
+                co_return;
+            },
             boost::asio::detached);
-        co_return;    
+        co_return;
     };
     ~CancelOrder3() override = default;
 };
 
-template <typename Executor, typename ... BusEventTypes>
+template <typename Executor>
 class CancelOrderComponent : public bus::Component,
-                               public CancelOrder3<Executor> {
-  
+                             public CancelOrder3<Executor> {
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-  explicit  CancelOrderComponent (Executor&& executor, size_t number_responses, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            CancelOrder3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
-                            exchange_response_mem_pool_(number_responses),
-                            bus_event_response_mem_pool_(number_responses){}
+    explicit CancelOrderComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : CancelOrder3<Executor>(std::move(executor), signer, type, pairs,
+                                 pairs_reverse, session_pool),
+          exchange_response_mem_pool_(number_responses),
+          bus_event_response_mem_pool_(number_responses) {}
     ~CancelOrderComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestCancelOrder* event,
@@ -1155,7 +1156,9 @@ class CancelOrderComponent : public bus::Component,
     };
 };
 
-class BookSnapshot : public inner::BookSnapshotI {
+namespace detail {
+class FamilyBookSnapshot {
+  public:
     static constexpr std::string_view end_point = "/api/v3/depth";
     class ParserResponse {
         const common::TradingPairInfo& pair_info_;
@@ -1166,7 +1169,6 @@ class BookSnapshot : public inner::BookSnapshotI {
         Exchange::BookSnapshot Parse(std::string_view response);
     };
 
-  public:
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
@@ -1175,6 +1177,17 @@ class BookSnapshot : public inner::BookSnapshotI {
             : ArgsQuery() {
             SetSymbol(ticker1, ticker2);
             SetLimit(limit);
+        };
+        explicit ArgsOrder(
+            const Exchange::RequestSnapshot* request_cancel_order,
+            common::TradingPairHashMap& pairs)
+            : ArgsQuery() {
+            SetSymbol(
+                pairs[request_cancel_order->trading_pair].https_query_request);
+            SetLimit(request_cancel_order->depth);
+        };
+        void SetSymbol(SymbolType symbol) {
+            storage["symbol"] = symbol.data();
         };
         void SetSymbol(SymbolType ticker1, SymbolType ticker2) {
             SymbolUpperCase formatter(ticker1, ticker2);
@@ -1193,8 +1206,14 @@ class BookSnapshot : public inner::BookSnapshotI {
       private:
         ArgsOrder& storage = *this;
     };
-    explicit BookSnapshot(ArgsOrder&& args, TypeExchange type,
-                          Exchange::BookSnapshot* snapshot,
+};
+};  // namespace detail
+
+class BookSnapshot : public inner::BookSnapshotI,
+                     public detail::FamilyBookSnapshot {
+  public:
+    explicit BookSnapshot(detail::FamilyBookSnapshot::ArgsOrder&& args,
+                          TypeExchange type, Exchange::BookSnapshot* snapshot,
                           const common::TradingPairInfo& pair_info)
         : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
         switch (type) {
@@ -1209,7 +1228,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     void Exec() override {
         bool need_sign = false;
         detail::FactoryRequest factory{current_exchange_,
-                                       BookSnapshot::end_point,
+                                       detail::FamilyBookSnapshot::end_point,
                                        args_,
                                        boost::beast::http::verb::get,
                                        signer_,
@@ -1220,7 +1239,7 @@ class BookSnapshot : public inner::BookSnapshotI {
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
-            ParserResponse parser(pair_info_);
+            detail::FamilyBookSnapshot::ParserResponse parser(pair_info_);
             auto answer = parser.Parse(resut);
             // answer.ticker = args_["symbol"];
             *snapshot_  = answer;
@@ -1232,7 +1251,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     };
 
   private:
-    ArgsOrder args_;
+    detail::FamilyBookSnapshot::ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
     binance::mainnet::HttpsExchange binance_main_net_;
 
@@ -1240,6 +1259,116 @@ class BookSnapshot : public inner::BookSnapshotI {
     SignerI* signer_ = nullptr;
     Exchange::BookSnapshot* snapshot_;
     const common::TradingPairInfo& pair_info_;
+};
+
+template <typename Executor>
+class BookSnapshot2 {
+    SignerI* signer_;
+    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+    common::TradingPairHashMap& pairs_;
+
+  protected:
+    Executor executor_;
+
+  public:
+    explicit BookSnapshot2(Executor&& executor,
+                            SignerI* signer,
+                           ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+                           TypeExchange type,
+                           common::TradingPairHashMap& pairs)
+        : executor_(std::move(executor)),
+          signer_(signer),
+          session_pool_(session_pool),
+          pairs_(pairs) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_main_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+    };
+
+    ~BookSnapshot2() override = default;
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewSnapshot* bus_event_request_new_snapshot,
+        const OnHttpsResponce* callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if (bus_event_request_new_snapshot == nullptr) {
+            loge("bus_event_request_new_snapshot == nullptr");
+            co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
+        boost::asio::co_spawn(
+            executor_,
+            [this, bus_event_request_new_snapshot, &callback]() -> boost::asio::awaitable<void> {
+                logd("start book snapshot exec");
+
+                detail::FamilyBookSnapshot::ArgsOrder args(
+                    bus_event_request_new_snapshot->request, pairs_);
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyCancelOrder::end_point,
+                    args,
+                    boost::beast::http::verb::delete_,
+                    signer_,
+                    need_sign};
+                logd("start prepare new snapshot request");
+                auto req = factory();
+                logd("end prepare new snapshot request");
+
+                bus_event_request_new_snapshot->Release();
+
+                auto session = session_pool_->AcquireConnection();
+                logd("start send new snapshot request");
+
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false)
+                    loge("AsyncRequest wasn't sent in io_context");
+
+                logd("end send new snapshot request");
+                co_return;
+            },
+            boost::asio::detached);
+        co_return;
+    }
+
+  private:
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+
+    https::ExchangeI* current_exchange_;
+};
+
+template <typename Executor>
+class BookSnapshotComponent : public bus::Component,
+                             public BookSnapshot2<Executor> {
+  public:
+    common::MemoryPool<Exchange::BookSnapshot> snapshot_mem_pool_;
+    common::MemoryPool<Exchange::BusEventResponseNewSnapshot> bus_event_response_snapshot_mem_pool_;
+    explicit BookSnapshotComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : BookSnapshot2<Executor>(std::move(executor), signer, type, pairs,
+                                 pairs_reverse, session_pool),
+          exchange_response_mem_pool_(number_responses),
+          bus_event_response_mem_pool_(number_responses) {}
+    ~BookSnapshotComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot* event,
+                          const OnHttpsResponce& cb) override {
+        boost::asio::co_spawn(BookSnapshot2<Executor>::executor_,
+                              BookSnapshot2<Executor>::CoExec(event, cb),
+                              boost::asio::detached);
+    };
 };
 
 /**
@@ -1318,11 +1447,10 @@ class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
         : pool_(default_number_session) {};
     ~HttpsConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
-        boost::asio::io_context& io_context,
-        HTTPSesionType::Timeout timeout,
-        std::size_t pool_size,
-        https::ExchangeI* exchange) override {
-        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(), exchange->Port());
+        boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI* exchange) override {
+        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
+                              exchange->Port());
     };
 };
 };  // namespace binance

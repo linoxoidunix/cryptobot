@@ -3,11 +3,13 @@
 #include <limits>
 #include <list>
 
-#include "aot/Logger.h"
-#include "aot/common/types.h"
+#include "concurrentqueue.h"  //if link form source
 
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"//if link form source
+#include "aot/Logger.h"
+#include "aot/bus/bus_component.h"
+#include "aot/bus/bus_event.h"
+#include "aot/common/types.h"
+#include "aot/common/mem_pool.h"
 
 namespace Exchange {
 enum class MarketUpdateType : uint8_t {
@@ -29,9 +31,9 @@ struct MEMarketUpdate {
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side   = common::Side::INVALID;
-    common::Price price = common::kPriceInvalid;
-    common::Qty qty     = common::kQtyInvalid;
+    common::Side side        = common::Side::INVALID;
+    common::Price price      = common::kPriceInvalid;
+    common::Qty qty          = common::kQtyInvalid;
 
     auto ToString() const {
         return fmt::format(
@@ -46,27 +48,33 @@ using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
 
 struct BookSnapshotElem {
     common::Price price = common::kPriceInvalid;
-    common::Qty qty = common::kQtyInvalid;
-    BookSnapshotElem(common::Price _price, common::Qty _qty) : price(_price), qty(_qty) {};
+    common::Qty qty     = common::kQtyInvalid;
+    BookSnapshotElem(common::Price _price, common::Qty _qty)
+        : price(_price), qty(_qty) {};
     auto ToString() const {
         return fmt::format("BookSnapshotElem[price:{} qty:{}]", price, qty);
     };
 };
 
+struct BookSnapshot;
+using BookSnapshotPool = common::MemoryPool<BookSnapshot>;
+
 struct BookSnapshot {
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
+    BookSnapshotPool* mem_pool = nullptr;
     void AddToQueue(EventLFQueue& queue) {
         std::vector<MEMarketUpdate> bulk;
         bulk.resize(bids.size());
         int i = 0;
         for (const auto& bid : bids) {
             MEMarketUpdate event;
-            event.side   = common::Side::SELL;
-            event.price  = bid.price;
-            event.qty    = bid.qty;
-            bulk[i]      = event;
+            event.side  = common::Side::SELL;
+            event.price = bid.price;
+            event.qty   = bid.qty;
+            bulk[i]     = event;
             i++;
         }
         bool status = false;
@@ -76,10 +84,10 @@ struct BookSnapshot {
         i = 0;
         for (const auto& ask : asks) {
             MEMarketUpdate event;
-            event.side   = common::Side::BUY;
-            event.price  = ask.price;
-            event.qty    = ask.qty;
-            bulk[i]      = event;
+            event.side  = common::Side::BUY;
+            event.price = ask.price;
+            event.qty   = ask.qty;
+            bulk[i]     = event;
             i++;
         }
         status = false;
@@ -88,6 +96,72 @@ struct BookSnapshot {
     auto ToString() const {
         return fmt::format("BookSnapshot[lastUpdateId:{}]", lastUpdateId);
     };
+    void Deallocate() {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate BookSnapshot");
+                return;
+        }
+        mem_pool->Deallocate(this);
+    };
+};
+
+struct BusEventResponseNewSnapshot : public bus::Event {
+    explicit BusEventResponseNewSnapshot(Exchange::BookSnapshot* _response) : response(_response){};
+    BookSnapshot* response;
+    ~BusEventResponseNewSnapshot() override = default;
+    void Accept(bus::Component* comp) override {
+        comp->AsyncHandleEvent(this);
+    }
+    void Deallocate() override{
+        logd("Deallocating resources");
+        response->Deallocate();
+        response = nullptr;
+    }
+};
+
+
+struct RequestSnapshot;
+using RequestSnapshotPool = common::MemoryPool<RequestSnapshot>;
+
+class RequestSnapshot {
+  public:
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
+    unsigned int depth;
+    RequestSnapshotPool* mem_pool = nullptr;
+    virtual ~RequestSnapshot() = default;
+    auto ToString() const {
+        return fmt::format("RequestSnapshot[{}, {}, depth:{}]", exchange_id, trading_pair.ToString(), depth);
+    }
+    RequestSnapshot() = default;
+    RequestSnapshot(common::ExchangeId _exchange_id,
+                          common::TradingPair _trading_pair, unsigned int _depth = 1000) : exchange_id(_exchange_id), 
+                          trading_pair(_trading_pair),
+                          depth(_depth){}
+
+    void Deallocate() {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate MEClientResponse");
+                return;
+        }
+        mem_pool->Deallocate(this);
+    };
+};
+
+struct BusEventRequestNewSnapshot : public bus::Event {
+    explicit BusEventRequestNewSnapshot(Exchange::RequestSnapshot* _request) : request(_request){};
+    RequestSnapshot* request;
+    ~BusEventRequestNewSnapshot() override = default;
+    void Accept(bus::Component* comp, const OnHttpsResponce* cb) override {
+        comp->AsyncHandleEvent(this, cb);
+    }
+    void Deallocate() override{
+        logd("Deallocating resources");
+        request->Deallocate();
+        request = nullptr;
+    }
 };
 
 struct BookDiffSnapshot {
@@ -107,7 +181,7 @@ struct BookDiffSnapshot {
             event.qty      = bid.qty;
             auto status_op = queue.try_enqueue(event);
             logi("{}", event.ToString());
-            if(!status_op)[[unlikely]]
+            if (!status_op) [[unlikely]]
                 loge("can't enqueue more elements. my lfqueue is busy");
         }
         for (const auto& ask : asks) {
@@ -117,7 +191,7 @@ struct BookDiffSnapshot {
             event.qty      = ask.qty;
             auto status_op = queue.try_enqueue(event);
             logi("{}", event.ToString());
-            if(!status_op)[[unlikely]]
+            if (!status_op) [[unlikely]]
                 loge("can't enqueue more elements. my lfqueue is busy");
         }
     }
