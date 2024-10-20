@@ -17,6 +17,7 @@
 
 
 #include "aot/Https.h"
+#include "aot/WS.h"
 #include "aot/Logger.h"
 #include "aot/client_response.h"
 #include "aot/common/types.h"
@@ -24,11 +25,6 @@
 #include "aot/third_party/emhash/hash_table7.hpp"
 #include "concurrentqueue.h"
 
-// enum class ExchangeName{
-//   kBinance,
-//   kBybit,
-//   kMexc
-// };
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
 
@@ -325,6 +321,7 @@ class RequestNewOrder;
 class BusEventRequestNewLimitOrder;
 class RequestCancelOrder;
 class BusEventRequestCancelOrder;
+class BusEventRequestDiffOrderBook;
 };  // namespace Exchange
 
 namespace inner {
@@ -370,9 +367,16 @@ class BookSnapshotI {
 };  // namespace inner
 
 using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
+using WSSesionType = WssSession<std::chrono::seconds>;
+using WSSesionType2 = WssSession2<std::chrono::seconds>;
+
 using HTTPSSessionPool =
     std::unordered_map<common::ExchangeId,
                        V2::ConnectionPool<HTTPSesionType> *>;
+
+using WSSessionPool =
+    std::unordered_map<common::ExchangeId,
+                       V2::ConnectionPool<WSSesionType> *>;
 using NewLimitOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::OrderNewI *>;
 using CancelOrderExecutors =
@@ -387,3 +391,4 @@ class HttpsConnectionPoolFactory {
         std::size_t pool_size,
         https::ExchangeI* exchange) = 0;
 };
+

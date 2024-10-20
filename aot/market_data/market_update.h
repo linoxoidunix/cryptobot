@@ -165,6 +165,7 @@ struct BusEventRequestNewSnapshot : public bus::Event {
 };
 
 struct BookDiffSnapshot {
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
@@ -196,6 +197,39 @@ struct BookDiffSnapshot {
         }
     }
 };
+
+struct RequestDiffOrderBook;
+using RequestDiffOrderBookPool = common::MemoryPool<RequestDiffOrderBook>;
+struct RequestDiffOrderBook{
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
+    RequestDiffOrderBookPool* mem_pool = nullptr;
+    common::FrequencyMS frequency = common::kFrequencyMSInvalid;
+    void Deallocate() {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate MEClientResponse");
+                return;
+        }
+        mem_pool->Deallocate(this);
+    };
+};
+
+struct BusEventRequestDiffOrderBook;
+using BusEventRequestDiffOrderBookPool = common::MemoryPool<BusEventRequestDiffOrderBook>;
+struct BusEventRequestDiffOrderBook: public bus::Event{
+    RequestDiffOrderBook* request;
+    ~BusEventRequestDiffOrderBook() override = default;
+    void Accept(bus::Component* comp, const OnWssResponse* cb) override {
+        comp->AsyncHandleEvent(this, cb);
+    }
+    void Deallocate() override{
+        logd("Deallocating resources");
+        request->Deallocate();
+        request = nullptr;
+    }
+};
+
 
 using BookDiffLFQueue = moodycamel::ConcurrentQueue<BookDiffSnapshot>;
 

@@ -33,6 +33,10 @@ enum class ExchangeId{
 
 constexpr auto kExchangeIdInvalid = ExchangeId::kInvalid;
 
+using FrequencyMS = uint64_t;
+constexpr auto kFrequencyMSInvalid   = std::numeric_limits<FrequencyMS>::max();
+
+
 using OrderId                     = uint64_t;
 constexpr auto kOrderIdInvalid    = std::numeric_limits<OrderId>::max();
 

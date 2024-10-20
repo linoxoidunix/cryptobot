@@ -3,10 +3,18 @@
 #include <string_view>
 #include <unordered_set>
 
-#include "aot/Logger.h"
 #include "simdjson.h"
+#include "nlohmann/json.hpp"
+
+
+#include "aot/Logger.h"
 
 using namespace std::literals;
+
+std::string binance::ArgsBody::Body(){
+    nlohmann::json json(*this);
+    return json.dump();
+}
 
 Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
     std::string_view response) {
