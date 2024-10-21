@@ -176,22 +176,67 @@ enum class Type {
     TAKE_PROFIT_LIMIT,
     LIMIT_MAKER
 };
-// class Symbol : public SymbolI {
-//   public:
-//     explicit Symbol(std::string_view first, std::string_view second)
-//         : first_(first.data()),
-//           second_(second.data()),
-//           ticker_(fmt::format("{0}{1}", first_, second_)) {
-//         boost::algorithm::to_upper(ticker_);
-//     };
-//     std::string_view ToString() const override { return ticker_; };
-//     ~Symbol() override = default;
 
-//   private:
-//     std::string first_;
-//     std::string second_;
-//     std::string ticker_;
-// };
+struct StringEqual {
+    using is_transparent = void;
+
+    bool operator()(std::string_view l, std::string_view r) const {
+        return l.compare(r) == 0;
+    }
+};
+
+struct StringHash {
+    using transparent_key_equal = StringEqual;  // or std::equal_to<>
+
+    std::size_t operator()(const std::string& s) const { return s.size(); }
+
+    std::size_t operator()(const char* s) const { return std::strlen(s); }
+};
+
+class Args : public std::unordered_map<std::string, std::string, StringHash,
+                                       StringHash::transparent_key_equal> {};
+
+class ArgsBody : public Args {
+  public:
+    explicit ArgsBody() : Args() {};
+    /**
+     * @brief json wrapped around unordered_map
+     *
+     * @return std::string
+     */
+    virtual std::string Body();
+
+    virtual ~ArgsBody() = default;
+};
+
+class ArgsQuery : public Args {
+  public:
+    explicit ArgsQuery() : Args() {};
+    /**
+     * @brief return query string starts with ?
+     *
+     * @return std::string
+     */
+    virtual std::string QueryString() {
+        std::list<std::string> merged;
+        std::ranges::for_each(*this, [&merged](const auto& expr) {
+            merged.emplace_back(fmt::format("{}={}", expr.first, expr.second));
+        });
+        // std::for_each(begin(), end(), [&merged](const auto& expr) {
+        //     merged.emplace_back(fmt::format("{}={}", expr.first,
+        //     expr.second));
+        // });
+        auto out = boost::algorithm::join(merged, "&");
+        return out;
+    };
+    virtual std::string FinalQueryString() {
+        auto out = QueryString();
+        if (!out.empty()) out.insert(out.begin(), '?');
+        return out;
+    };
+    virtual ~ArgsQuery() = default;
+};
+
 class s1 : public KLineStreamI::ChartInterval {
   public:
     explicit s1() = default;
@@ -395,6 +440,95 @@ class OHLCVI : public OHLCVGetter {
     TypeExchange type_exchange_;
 };
 
+namespace detail {
+class FamilyBookEventGetter {
+    static constexpr std::string_view end_point_as_json = "/ws";
+  public:
+    class ParserResponse {
+        const common::TradingPairInfo& pair_info_;
+
+      public:
+        explicit ParserResponse(const common::TradingPairInfo& pair_info)
+            : pair_info_(pair_info) {};
+        Exchange::BookDiffSnapshot Parse(std::string_view response);
+    };
+    class ArgsOrder : public ArgsQuery {
+      public:
+        using SymbolType = std::string_view;
+        using Limit      = uint16_t;
+        explicit ArgsOrder(SymbolType ticker1, SymbolType ticker2, Limit limit)
+            : ArgsQuery() {
+            SetSymbol(ticker1, ticker2);
+            SetLimit(limit);
+        };
+        explicit ArgsOrder(
+            const Exchange::RequestSnapshot* request_cancel_order,
+            common::TradingPairHashMap& pairs)
+            : ArgsQuery() {
+            SetSymbol(
+                pairs[request_cancel_order->trading_pair].https_query_request);
+            SetLimit(request_cancel_order->depth);
+        };
+
+      private:
+        void SetSymbol(SymbolType symbol) {
+            storage["symbol"] = symbol.data();
+        };
+        void SetSymbol(SymbolType ticker1, SymbolType ticker2) {
+            SymbolUpperCase formatter(ticker1, ticker2);
+            storage["symbol"] = formatter.ToString().data();
+        };
+        void SetLimit(Limit limit) {
+            /**
+             * @brief If limit > 5000, then the response will truncate to 5000.
+             * https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+             */
+            limit            = (limit > 5000) ? 5000 : limit;
+
+            storage["limit"] = std::to_string(limit);
+        };
+
+      private:
+        ArgsOrder& storage = *this;
+    };
+
+    class ArgsBody : public binance::ArgsBody {
+      common::TradingPairHashMap& pairs_;
+      /**
+       * @brief id_ need add when send json request to exchange
+       * 
+       */
+      unsigned int id_;
+      public:
+        ArgsBody(const Exchange::RequestDiffOrderBook* request,
+                 common::TradingPairHashMap& pairs,
+                 unsigned int id) : binance::ArgsBody(),
+                 pairs_(pairs),
+                 id_(id)
+                {
+                  SetMethod();
+                  SetParams(request);
+                  SetId(id_);
+                 }
+
+      private:
+        void SetMethod() {
+            storage["method"] = "SUBSCRIBE";
+        };
+        void SetParams(const Exchange::RequestDiffOrderBook* request) {
+            if(request->frequency == common::kFrequencyMSInvalid)
+              storage["method"] = fmt::format("[{}@{}]", pairs_[request->trading_pair].https_json_request, "depth");
+        };
+        void SetId(unsigned int id) {
+            //i don't want process an id now because for binance an id is integer, but for ArgsBody value is a string
+        };
+      private:
+        ArgsBody& storage = *this;
+    };
+    virtual ~FamilyBookEventGetter() = default;
+};
+};  // namespace detail
+
 class BookEventGetter : public BookEventGetterI {
     class ParserResponse {
         const common::TradingPairInfo& pair_info_;
@@ -446,52 +580,6 @@ class BookEventGetter : public BookEventGetterI {
     TypeExchange type_exchange_;
 };
 
-struct StringEqual {
-    using is_transparent = void;
-
-    bool operator()(std::string_view l, std::string_view r) const {
-        return l.compare(r) == 0;
-    }
-};
-
-struct StringHash {
-    using transparent_key_equal = StringEqual;  // or std::equal_to<>
-
-    std::size_t operator()(const std::string& s) const { return s.size(); }
-
-    std::size_t operator()(const char* s) const { return std::strlen(s); }
-};
-
-class Args : public std::unordered_map<std::string, std::string, StringHash,
-                                       StringHash::transparent_key_equal> {};
-
-class ArgsQuery : public Args {
-  public:
-    explicit ArgsQuery() : Args() {};
-    /**
-     * @brief return query string starts with ?
-     *
-     * @return std::string
-     */
-    virtual std::string QueryString() {
-        std::list<std::string> merged;
-        std::ranges::for_each(*this, [&merged](const auto& expr) {
-            merged.emplace_back(fmt::format("{}={}", expr.first, expr.second));
-        });
-        // std::for_each(begin(), end(), [&merged](const auto& expr) {
-        //     merged.emplace_back(fmt::format("{}={}", expr.first,
-        //     expr.second));
-        // });
-        auto out = boost::algorithm::join(merged, "&");
-        return out;
-    };
-    virtual std::string FinalQueryString() {
-        auto out = QueryString();
-        if (!out.empty()) out.insert(out.begin(), '?');
-        return out;
-    };
-    virtual ~ArgsQuery() = default;
-};
 namespace detail {
 class FactoryRequest {
   public:
@@ -499,7 +587,11 @@ class FactoryRequest {
                             std::string_view end_point, const ArgsQuery& args,
                             boost::beast::http::verb action, SignerI* signer,
                             bool need_sign = false)
-        : exchange_(exchange), args_(args), action_(action), signer_(signer) {
+        : exchange_(exchange),
+          args_(args),
+          action_(action),
+          signer_(signer),
+          need_sign_(need_sign) {
         if (need_sign) {
             AddSignParams();
             auto request_args = args_.QueryString();
@@ -518,7 +610,7 @@ class FactoryRequest {
          * header.
          *
          */
-        if (signer_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
+        if (need_sign_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -553,22 +645,142 @@ class FactoryRequest {
     ArgsQuery args_;
     boost::beast::http::verb action_;
     SignerI* signer_;
+    bool need_sign_ = false;
+};
+
+class FactoryRequestJson {
+  public:
+    explicit FactoryRequestJson(const https::ExchangeI* exchange,
+                                std::string_view end_point, ArgsBody& args,
+                                boost::beast::http::verb action,
+                                SignerI* signer, bool need_sign = false)
+        : exchange_(exchange),
+          end_point_(end_point.data()),
+          args_(args),
+          action_(action),
+          signer_(signer),
+          need_sign_(need_sign) {
+            /**
+             * @brief Construct a new assert object i don't debug this
+             * 
+             */
+            assert(false);
+          };
+    boost::beast::http::request<boost::beast::http::string_body> operator()() {
+        boost::beast::http::request<boost::beast::http::string_body> req;
+        if (need_sign_) {
+            assert(false);
+            // code beow only for bybit
+            //  auto current_time      = AddSignParams(req);
+            //  /**
+            //   * @brief
+            //   * https://bybit-exchange.github.io/docs/v5/guide#parameters-for-authenticated-endpoints
+            //   * Basic steps:
+            //      1) timestamp + API key + (recv_window) + (queryString |
+            //   jsonBodyString)
+            //   *
+            //   */
+            //  auto request_body_args = fmt::format(
+            //      "{}{}{}{}", current_time, signer_->ApiKey(),
+            //      std::to_string(exchange_->RecvWindow()), args_.Body());
+            //  /**
+            //   * @brief
+            //   * 2) Use the HMAC_SHA256 or RSA_SHA256 algorithm to sign the
+            //   string
+            //   * in step 1, and convert it to a hex string (HMAC_SHA256) /
+            //   base64
+            //   * (RSA_SHA256) to obtain the sign parameter.
+            //   */
+            //  auto signature = signer_->Sign(request_body_args);
+
+            // AddSignature(signature, req);
+        }
+        req.version(11);
+        req.method(action_);
+        req.target(end_point_);
+        /**
+         * @brief API-keys are passed into the REST API via the X-MBX-APIKEY
+         * header.
+         *
+         */
+        if (need_sign_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
+        req.set(boost::beast::http::field::host, exchange_->Host().data());
+        req.set(boost::beast::http::field::user_agent,
+                BOOST_BEAST_VERSION_STRING);
+        /**
+         * @brief For POST, PUT, and DELETE endpoints, the parameters may be
+         * sent as a query string or in the request body with content type
+         * application/x-www-form-urlencoded. You may mix parameters between
+         * both the query string and request body if you wish to do so.
+         *
+         */
+        req.set(boost::beast::http::field::content_type,
+                "application/x-www-form-urlencoded");
+        req.body() = args_.Body();
+        req.prepare_payload();
+        return req;
+    };
+
+    std::string_view Host() const { return exchange_->Host(); };
+    std::string_view Port() const { return exchange_->Port(); };
+    std::string_view EndPoint() const { return end_point_; }
+
+  private:
+    /**
+     * @brief
+     *
+     * @param req
+     * @return std::string return time which insert into headers
+     */
+    std::string AddSignParams(
+        boost::beast::http::request<boost::beast::http::string_body>& req)
+        const {
+        CurrentTime time_service;
+        auto time = std::to_string(time_service.Time());
+        req.insert("X-BAPI-TIMESTAMP", time);
+        req.insert("X-BAPI-RECV-WINDOW",
+                   std::to_string(exchange_->RecvWindow()));
+        return time;
+    };
+    /**
+     * @brief
+     * Append the sign parameter to request header, and
+     * send the HTTP request. Note: the plain text for GET and POST requests is
+     * different. Please refer to blew examples.
+     *
+     * @param signature
+     * @param req
+     */
+    void AddSignature(
+        std::string_view signature,
+        boost::beast::http::request<boost::beast::http::string_body>& req)
+        const {
+        req.insert("X-BAPI-SIGN", signature.data());
+        req.insert("X-BAPI-SIGN-TYPE", "2");
+    };
+
+  private:
+    const https::ExchangeI* exchange_;
+    std::string end_point_;
+    ArgsBody& args_;
+    boost::beast::http::verb action_;
+    SignerI* signer_;
+    bool need_sign_ = false;
 };
 
 class FamilyLimitOrder {
   public:
-    
     virtual ~FamilyLimitOrder()                 = default;
     explicit FamilyLimitOrder()                 = default;
     static constexpr std::string_view end_point = "/api/v3/order";
     class ParserResponse {
       public:
-      /**
-       * @brief Construct a new Parser Response object
-       * 
-       * @param pairs is needed to extract precission qty and price 
-       * @param pairs_reverse 
-       */
+        /**
+         * @brief Construct a new Parser Response object
+         *
+         * @param pairs is needed to extract precission qty and price
+         * @param pairs_reverse
+         */
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
@@ -692,6 +904,13 @@ class FamilyCancelOrder {
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
+        /**
+         * @brief Construct a new Args Order object. it is old ctor. don't use
+         * it
+         *
+         * @param symbol
+         * @param order_id
+         */
         explicit ArgsOrder(SymbolType symbol, common::OrderId order_id)
             : ArgsQuery() {
             SetSymbol(symbol);
@@ -721,6 +940,104 @@ class FamilyCancelOrder {
     };
 };
 };  // namespace detail
+
+template <typename Executor>
+class BookEventGetter2 : public detail::FamilyBookEventGetter {
+    ::V2::ConnectionPool<WSSesionType2>* session_pool_;
+    common::TradingPairHashMap& pairs_;
+
+  protected:
+    Executor executor_;
+
+  public:
+    BookEventGetter2(Executor&& executor,
+                     ::V2::ConnectionPool<WSSesionType2>* session_pool,
+                     TypeExchange type, common::TradingPairHashMap& pairs)
+        : executor_(std::move(executor)),
+          session_pool_(session_pool),
+          pairs_(pairs) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_main_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+    };
+    ~BookEventGetter2() override = default;
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestDiffOrderBook*
+            bus_event_request_diff_order_book,
+        const OnWssResponse* callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if (bus_event_request_diff_order_book == nullptr) {
+            loge("bus_event_request_diff_order_book == nullptr");
+            co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
+        boost::asio::co_spawn(
+            executor_,
+            [this, bus_event_request_diff_order_book,
+             &callback]() -> boost::asio::awaitable<void> {
+                logd("start book event getter for binance");
+
+                detail::FamilyBookEventGetter::ArgsBody args(
+                    bus_event_request_diff_order_book->request, pairs_);
+                logd("start prepare event getter for binance request");
+                auto req = args.Body();
+                logd("end prepare event getter for binance request");
+
+                bus_event_request_diff_order_book->Release();
+
+                auto session = session_pool_->AcquireConnection();
+                logd("start send event getter for binance request");
+
+                if (auto status =
+                        co_await session->AsyncRequest(std::move(req), callback);
+                    status == false)
+                    loge("AsyncRequest finished unsuccessfully");
+
+                logd("end send event getter for binance request");
+                co_return;
+            },
+            boost::asio::detached);
+        co_return;
+    }
+
+  private:
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+
+    https::ExchangeI* current_exchange_;
+};
+
+template <typename Executor>
+class BookEventGetterComponent : public bus::Component,
+                              public BookEventGetter2<Executor> {
+  public:
+    common::MemoryPool<Exchange::BookDiffSnapshot> book_diff_mem_pool_;
+    common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
+        bus_event_book_diff_snapshot_mem_pool_;
+    explicit BookEventGetterComponent(
+        Executor&& executor, size_t number_responses,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        ::V2::ConnectionPool<WSSesionType2>* session_pool)
+        : BookEventGetter2<Executor>(std::move(executor), session_pool, type, pairs),
+          book_diff_mem_pool_(number_responses),
+          bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
+    ~BookEventGetterComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook* event,
+                          const OnWssResponse* cb) override {
+        boost::asio::co_spawn(BookEventGetter2<Executor>::executor_,
+                              BookEventGetter2<Executor>::CoExec(event, cb),
+                              boost::asio::detached);
+    };
+};
 
 class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
   public:
@@ -847,13 +1164,13 @@ class OrderNewLimit2 : public inner::OrderNewI,
 
 /**
  * @brief OrderNewLimit3 is wrapper above OrderNewLimit2 with coroutine CoExec
- * 
- * @tparam Executor 
+ *
+ * @tparam Executor
  */
 template <typename Executor>
 class OrderNewLimit3 : public OrderNewLimit2 {
-    protected:
-     Executor executor_;
+  protected:
+    Executor executor_;
 
   public:
     explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
@@ -869,9 +1186,9 @@ class OrderNewLimit3 : public OrderNewLimit2 {
         Exchange::BusEventRequestNewLimitOrder* bus_event_request_new_order,
         const OnHttpsResponce& callback) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
-        if(bus_event_request_new_order == nullptr){
-          loge("bus_event_request_new_order = nullptr");
-          co_return;
+        if (bus_event_request_new_order == nullptr) {
+            loge("bus_event_request_new_order = nullptr");
+            co_return;
         }
         if (session_pool_ == nullptr) {
             loge("session_pool_ == nullptr");
@@ -879,7 +1196,8 @@ class OrderNewLimit3 : public OrderNewLimit2 {
         }
         boost::asio::co_spawn(
             executor_,
-            [this, bus_event_request_new_order, &callback]() -> boost::asio::awaitable<void> {
+            [this, bus_event_request_new_order,
+             &callback]() -> boost::asio::awaitable<void> {
                 logd("Start CoExec");
 
                 ArgsOrder args(bus_event_request_new_order->request, pairs_);
@@ -914,21 +1232,21 @@ class OrderNewLimit3 : public OrderNewLimit2 {
     }
 };
 
-template <typename Executor, typename ... BusEventTypes>
+template <typename Executor>
 class OrderNewLimitComponent : public bus::Component,
                                public OrderNewLimit3<Executor> {
-  
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-  explicit  OrderNewLimitComponent (Executor&& executor, size_t number_responses, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
-                            exchange_response_mem_pool_(number_responses),
-                            bus_event_response_mem_pool_(number_responses){}
+    explicit OrderNewLimitComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs,
+                                   pairs_reverse, session_pool),
+          exchange_response_mem_pool_(number_responses),
+          bus_event_response_mem_pool_(number_responses) {}
     ~OrderNewLimitComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestNewLimitOrder* event,
@@ -1049,6 +1367,7 @@ class CancelOrder2 : public inner::CancelOrderI,
   private:
     ExchangeChooser exchange_;
     common::TradingPairReverseHashMap& pairs_reverse_;
+
   protected:
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
@@ -1058,22 +1377,24 @@ class CancelOrder2 : public inner::CancelOrderI,
 
 /**
  * @brief CancelOrder3 is wrapper above CancelOrder2 with coroutine CoExec
- * 
- * @tparam Executor 
+ *
+ * @tparam Executor
  */
 template <typename Executor>
 class CancelOrder3 : public CancelOrder2 {
   protected:
-     Executor executor_;
+    Executor executor_;
+
   public:
-    explicit CancelOrder3(Executor&& executor, SignerI* signer, TypeExchange type,
-                          common::TradingPairHashMap& pairs,
+    explicit CancelOrder3(Executor&& executor, SignerI* signer,
+                          TypeExchange type, common::TradingPairHashMap& pairs,
                           common::TradingPairReverseHashMap& pairs_reverse,
                           ::V2::ConnectionPool<HTTPSesionType>* session_pool)
         : executor_(std::move(executor)),
           CancelOrder2(signer, type, pairs, pairs_reverse, session_pool) {};
-    boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
-              const OnHttpsResponce& callback) override {
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
+        const OnHttpsResponce& callback) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
         if (bus_event_request_cancel_order == nullptr) {
             loge("bus_event_request_cancel_order == nullptr");
@@ -1085,66 +1406,57 @@ class CancelOrder3 : public CancelOrder2 {
         }
         boost::asio::co_spawn(
             executor_,
-            [this, bus_event_request_cancel_order, &callback]() -> boost::asio::awaitable<void> {
-        logd("start exec");
+            [this, bus_event_request_cancel_order,
+             &callback]() -> boost::asio::awaitable<void> {
+                logd("start exec");
 
+                ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyCancelOrder::end_point,
+                    args,
+                    boost::beast::http::verb::delete_,
+                    signer_,
+                    need_sign};
+                logd("start prepare cancel request");
+                auto req = factory();
+                logd("end prepare cancel request");
 
-        ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyCancelOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::delete_,
-                                       signer_,
-                                       need_sign};
-        logd("start prepare cancel request");
-        auto req = factory();
-        logd("end prepare cancel request");
+                bus_event_request_cancel_order->Release();
 
-        // auto cb =
-        //     [response_lfqueue, this](
-        //         boost::beast::http::response<boost::beast::http::string_body>&
-        //             buffer) {
-        //         const auto& resut = buffer.body();
-        //         logi("{}", resut);
-        //         ParserResponse parser(pairs_reverse_);
-        //         auto answer    = parser.Parse(resut);
-        //         bool status_op = response_lfqueue->try_enqueue(answer);
-        //         if (!status_op) [[unlikely]]
-        //             loge("my queue is full. need clean my queue");
-        //     };
+                auto session = session_pool_->AcquireConnection();
+                logd("start send cancel request");
 
-        auto session = session_pool_->AcquireConnection();
-        logd("start send cancel request");
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false)
+                    loge("AsyncRequest wasn't sent in io_context");
 
-        if (auto status = session->AsyncRequest(std::move(req), callback);
-            status == false)
-            loge("AsyncRequest wasn't sent in io_context");
-
-        logd("end send cancel request");
-        co_return;;
-        },
+                logd("end send cancel request");
+                co_return;
+            },
             boost::asio::detached);
-        co_return;    
+        co_return;
     };
     ~CancelOrder3() override = default;
 };
 
-template <typename Executor, typename ... BusEventTypes>
+template <typename Executor>
 class CancelOrderComponent : public bus::Component,
-                               public CancelOrder3<Executor> {
-  
+                             public CancelOrder3<Executor> {
   public:
     common::MemoryPool<Exchange::MEClientResponse> exchange_response_mem_pool_;
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
-  explicit  CancelOrderComponent (Executor&& executor, size_t number_responses, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool) : 
-                            CancelOrder3<Executor>(std::move(executor), signer, type, pairs, pairs_reverse, session_pool),
-                            exchange_response_mem_pool_(number_responses),
-                            bus_event_response_mem_pool_(number_responses){}
+    explicit CancelOrderComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : CancelOrder3<Executor>(std::move(executor), signer, type, pairs,
+                                 pairs_reverse, session_pool),
+          exchange_response_mem_pool_(number_responses),
+          bus_event_response_mem_pool_(number_responses) {}
     ~CancelOrderComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestCancelOrder* event,
@@ -1155,7 +1467,9 @@ class CancelOrderComponent : public bus::Component,
     };
 };
 
-class BookSnapshot : public inner::BookSnapshotI {
+namespace detail {
+class FamilyBookSnapshot {
+  public:
     static constexpr std::string_view end_point = "/api/v3/depth";
     class ParserResponse {
         const common::TradingPairInfo& pair_info_;
@@ -1166,7 +1480,6 @@ class BookSnapshot : public inner::BookSnapshotI {
         Exchange::BookSnapshot Parse(std::string_view response);
     };
 
-  public:
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
@@ -1175,6 +1488,17 @@ class BookSnapshot : public inner::BookSnapshotI {
             : ArgsQuery() {
             SetSymbol(ticker1, ticker2);
             SetLimit(limit);
+        };
+        explicit ArgsOrder(
+            const Exchange::RequestSnapshot* request_cancel_order,
+            common::TradingPairHashMap& pairs)
+            : ArgsQuery() {
+            SetSymbol(
+                pairs[request_cancel_order->trading_pair].https_query_request);
+            SetLimit(request_cancel_order->depth);
+        };
+        void SetSymbol(SymbolType symbol) {
+            storage["symbol"] = symbol.data();
         };
         void SetSymbol(SymbolType ticker1, SymbolType ticker2) {
             SymbolUpperCase formatter(ticker1, ticker2);
@@ -1193,8 +1517,14 @@ class BookSnapshot : public inner::BookSnapshotI {
       private:
         ArgsOrder& storage = *this;
     };
-    explicit BookSnapshot(ArgsOrder&& args, TypeExchange type,
-                          Exchange::BookSnapshot* snapshot,
+};
+};  // namespace detail
+
+class BookSnapshot : public inner::BookSnapshotI,
+                     public detail::FamilyBookSnapshot {
+  public:
+    explicit BookSnapshot(detail::FamilyBookSnapshot::ArgsOrder&& args,
+                          TypeExchange type, Exchange::BookSnapshot* snapshot,
                           const common::TradingPairInfo& pair_info)
         : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
         switch (type) {
@@ -1209,7 +1539,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     void Exec() override {
         bool need_sign = false;
         detail::FactoryRequest factory{current_exchange_,
-                                       BookSnapshot::end_point,
+                                       detail::FamilyBookSnapshot::end_point,
                                        args_,
                                        boost::beast::http::verb::get,
                                        signer_,
@@ -1220,7 +1550,7 @@ class BookSnapshot : public inner::BookSnapshotI {
                  boost::beast::http::response<boost::beast::http::string_body>&
                      buffer) {
             const auto& resut = buffer.body();
-            ParserResponse parser(pair_info_);
+            detail::FamilyBookSnapshot::ParserResponse parser(pair_info_);
             auto answer = parser.Parse(resut);
             // answer.ticker = args_["symbol"];
             *snapshot_  = answer;
@@ -1232,7 +1562,7 @@ class BookSnapshot : public inner::BookSnapshotI {
     };
 
   private:
-    ArgsOrder args_;
+    detail::FamilyBookSnapshot::ArgsOrder args_;
     binance::testnet::HttpsExchange binance_test_net_;
     binance::mainnet::HttpsExchange binance_main_net_;
 
@@ -1240,6 +1570,116 @@ class BookSnapshot : public inner::BookSnapshotI {
     SignerI* signer_ = nullptr;
     Exchange::BookSnapshot* snapshot_;
     const common::TradingPairInfo& pair_info_;
+};
+
+template <typename Executor>
+class BookSnapshot2 {
+    SignerI* signer_;
+    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+    common::TradingPairHashMap& pairs_;
+
+  protected:
+    Executor executor_;
+
+  public:
+    explicit BookSnapshot2(Executor&& executor, SignerI* signer,
+                           ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+                           TypeExchange type, common::TradingPairHashMap& pairs)
+        : executor_(std::move(executor)),
+          signer_(signer),
+          session_pool_(session_pool),
+          pairs_(pairs) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_main_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+    };
+
+    ~BookSnapshot2() override = default;
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewSnapshot* bus_event_request_new_snapshot,
+        const OnHttpsResponce* callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if (bus_event_request_new_snapshot == nullptr) {
+            loge("bus_event_request_new_snapshot == nullptr");
+            co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
+        boost::asio::co_spawn(
+            executor_,
+            [this, bus_event_request_new_snapshot,
+             &callback]() -> boost::asio::awaitable<void> {
+                logd("start book snapshot exec");
+
+                detail::FamilyBookSnapshot::ArgsOrder args(
+                    bus_event_request_new_snapshot->request, pairs_);
+                bool need_sign = true;
+                detail::FactoryRequest factory{
+                    current_exchange_,
+                    detail::FamilyCancelOrder::end_point,
+                    args,
+                    boost::beast::http::verb::delete_,
+                    signer_,
+                    need_sign};
+                logd("start prepare new snapshot request");
+                auto req = factory();
+                logd("end prepare new snapshot request");
+
+                bus_event_request_new_snapshot->Release();
+
+                auto session = session_pool_->AcquireConnection();
+                logd("start send new snapshot request");
+
+                if (auto status =
+                        session->AsyncRequest(std::move(req), callback);
+                    status == false)
+                    loge("AsyncRequest wasn't sent in io_context");
+
+                logd("end send new snapshot request");
+                co_return;
+            },
+            boost::asio::detached);
+        co_return;
+    }
+
+  private:
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+
+    https::ExchangeI* current_exchange_;
+};
+
+template <typename Executor>
+class BookSnapshotComponent : public bus::Component,
+                              public BookSnapshot2<Executor> {
+  public:
+    common::MemoryPool<Exchange::BookSnapshot> snapshot_mem_pool_;
+    common::MemoryPool<Exchange::BusEventResponseNewSnapshot>
+        bus_event_response_snapshot_mem_pool_;
+    explicit BookSnapshotComponent(
+        Executor&& executor, size_t number_responses, SignerI* signer,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        common::TradingPairReverseHashMap& pairs_reverse,
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+        : BookSnapshot2<Executor>(std::move(executor), signer, type, pairs,
+                                  pairs_reverse, session_pool),
+          snapshot_mem_pool_(number_responses),
+          bus_event_response_snapshot_mem_pool_(number_responses) {}
+    ~BookSnapshotComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot* event,
+                          const OnHttpsResponce& cb) override {
+        boost::asio::co_spawn(BookSnapshot2<Executor>::executor_,
+                              BookSnapshot2<Executor>::CoExec(event, cb),
+                              boost::asio::detached);
+    };
 };
 
 /**
@@ -1318,11 +1758,10 @@ class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
         : pool_(default_number_session) {};
     ~HttpsConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
-        boost::asio::io_context& io_context,
-        HTTPSesionType::Timeout timeout,
-        std::size_t pool_size,
-        https::ExchangeI* exchange) override {
-        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(), exchange->Port());
+        boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI* exchange) override {
+        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
+                              exchange->Port());
     };
 };
 };  // namespace binance

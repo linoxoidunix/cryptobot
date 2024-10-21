@@ -23,6 +23,10 @@ namespace Exchange{
   struct BusEventRequestNewLimitOrder;
   struct BusEventRequestCancelOrder;
   struct BusEventResponse;
+  struct BusEventRequestNewSnapshot;
+  struct BusEventResponseNewSnapshot;
+  struct BusEventRequestDiffOrderBook;
+  struct BusEventBookDiffSnapshot;
 }
 
 namespace bus{
@@ -76,6 +80,31 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(Exchange::BusEventRequestCancelOrder*, const OnHttpsResponce& cb){
+        //it is empty class
+    };
+    /**
+     * @brief
+     * 
+     */
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot*, const OnHttpsResponce* cb){
+        //it is empty class
+    };
+    /**
+     * @brief 
+     * 
+     */
+    virtual void AsyncHandleEvent(Exchange::BusEventResponseNewSnapshot*){
+        //it is empty class
+    };
+    /**
+     * @brief
+     * 
+     */
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*, const OnWssResponse* cb){
+        //it is empty class
+    };
+
+    virtual void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot*){
         //it is empty class
     };
 };

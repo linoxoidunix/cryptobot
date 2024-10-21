@@ -161,7 +161,6 @@ struct BusEventResponse : public bus::Event{
         logd("Deallocating resources");
         response->Deallocate();
         response = nullptr;
-        //delete this;  // Deletes the event object
     }
 
 

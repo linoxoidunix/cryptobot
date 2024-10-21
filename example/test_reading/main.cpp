@@ -1588,11 +1588,8 @@ int main(){
     const std::string_view default_endpoint = "/ws";
     V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
 
-    //binance::HttpsConnectionPoolFactory factory;
-    
-
-    
-   //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
+    //binance::HttpsConnectionPoolFactory factory; 
+    //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
 
 
     auto ws = connection_pool.AcquireConnection();

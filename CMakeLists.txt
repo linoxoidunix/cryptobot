@@ -184,9 +184,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURREN
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=false")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
+add_subdirectory(example)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_subdirectory(example)
     enable_testing()
     include(GoogleTest)
     add_subdirectory(tests)
