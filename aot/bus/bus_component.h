@@ -26,6 +26,7 @@ namespace Exchange{
   struct BusEventRequestNewSnapshot;
   struct BusEventResponseNewSnapshot;
   struct BusEventRequestDiffOrderBook;
+  struct BusEventBookDiffSnapshot;
 }
 
 namespace bus{
@@ -100,6 +101,10 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*, const OnWssResponse* cb){
+        //it is empty class
+    };
+
+    virtual void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot*){
         //it is empty class
     };
 };

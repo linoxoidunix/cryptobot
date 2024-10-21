@@ -163,7 +163,8 @@ struct BusEventRequestNewSnapshot : public bus::Event {
         request = nullptr;
     }
 };
-
+struct BookDiffSnapshot;
+using BookDiffSnapshotPool = common::MemoryPool<BookDiffSnapshot>;
 struct BookDiffSnapshot {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     std::list<BookSnapshotElem> bids;
@@ -196,7 +197,31 @@ struct BookDiffSnapshot {
                 loge("can't enqueue more elements. my lfqueue is busy");
         }
     }
+    BookDiffSnapshotPool* mem_pool = nullptr;
+    void Deallocate() {
+        if(!mem_pool)
+        {
+            logw("mem_pool = nullptr. can.t deallocate MEClientResponse");
+                return;
+        }
+        mem_pool->Deallocate(this);
+    };
 };
+
+struct BusEventBookDiffSnapshot : public bus::Event {
+    explicit BusEventBookDiffSnapshot(Exchange::BookDiffSnapshot* _ptr) : ptr(_ptr){};
+    Exchange::BookDiffSnapshot* ptr;
+    ~BusEventBookDiffSnapshot() override = default;
+    void Accept(bus::Component* comp) override {
+        comp->AsyncHandleEvent(this);
+    }
+    void Deallocate() override{
+        logd("Deallocating resources");
+        ptr->Deallocate();
+        ptr = nullptr;
+    }
+};
+
 
 struct RequestDiffOrderBook;
 using RequestDiffOrderBookPool = common::MemoryPool<RequestDiffOrderBook>;

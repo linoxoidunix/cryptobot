@@ -1015,6 +1015,30 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter {
     https::ExchangeI* current_exchange_;
 };
 
+template <typename Executor>
+class BookEventGetterComponent : public bus::Component,
+                              public BookEventGetter2<Executor> {
+  public:
+    common::MemoryPool<Exchange::BookDiffSnapshot> book_diff_mem_pool_;
+    common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
+        bus_event_book_diff_snapshot_mem_pool_;
+    explicit BookEventGetterComponent(
+        Executor&& executor, size_t number_responses,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        ::V2::ConnectionPool<WSSesionType2>* session_pool)
+        : BookEventGetter2<Executor>(std::move(executor), session_pool, type, pairs),
+          book_diff_mem_pool_(number_responses),
+          bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
+    ~BookEventGetterComponent() override = default;
+
+    void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook* event,
+                          const OnWssResponse* cb) override {
+        boost::asio::co_spawn(BookEventGetter2<Executor>::executor_,
+                              BookEventGetter2<Executor>::CoExec(event, cb),
+                              boost::asio::detached);
+    };
+};
+
 class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
   public:
     explicit OrderNewLimit(SignerI* signer, TypeExchange type,
