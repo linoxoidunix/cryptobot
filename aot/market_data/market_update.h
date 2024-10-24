@@ -167,6 +167,7 @@ struct BookDiffSnapshot;
 using BookDiffSnapshotPool = common::MemoryPool<BookDiffSnapshot>;
 struct BookDiffSnapshot {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
@@ -244,6 +245,9 @@ struct BusEventRequestDiffOrderBook;
 using BusEventRequestDiffOrderBookPool = common::MemoryPool<BusEventRequestDiffOrderBook>;
 struct BusEventRequestDiffOrderBook: public bus::Event{
     RequestDiffOrderBook* request;
+    BusEventRequestDiffOrderBook(RequestDiffOrderBook* _request){
+        request = _request;
+    }
     ~BusEventRequestDiffOrderBook() override = default;
     void Accept(bus::Component* comp, const OnWssResponse* cb) override {
         comp->AsyncHandleEvent(this, cb);

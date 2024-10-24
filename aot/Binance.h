@@ -443,14 +443,20 @@ class OHLCVI : public OHLCVGetter {
 namespace detail {
 class FamilyBookEventGetter {
     static constexpr std::string_view end_point_as_json = "/ws";
+
   public:
     class ParserResponse {
-        const common::TradingPairInfo& pair_info_;
-
       public:
-        explicit ParserResponse(const common::TradingPairInfo& pair_info)
-            : pair_info_(pair_info) {};
+        explicit ParserResponse(
+            common::TradingPairHashMap& pairs,
+            common::TradingPairReverseHashMap& pairs_reverse)
+            : pairs_reverse_(pairs_reverse), pairs_(pairs) {};
+
         Exchange::BookDiffSnapshot Parse(std::string_view response);
+
+      private:
+        common::TradingPairHashMap& pairs_;
+        common::TradingPairReverseHashMap& pairs_reverse_;
     };
     class ArgsOrder : public ArgsQuery {
       public:
@@ -493,35 +499,35 @@ class FamilyBookEventGetter {
     };
 
     class ArgsBody : public binance::ArgsBody {
-      common::TradingPairHashMap& pairs_;
-      /**
-       * @brief id_ need add when send json request to exchange
-       * 
-       */
-      unsigned int id_;
+        common::TradingPairHashMap& pairs_;
+        /**
+         * @brief id_ need add when send json request to exchange
+         *
+         */
+        unsigned int id_;
+
       public:
         ArgsBody(const Exchange::RequestDiffOrderBook* request,
-                 common::TradingPairHashMap& pairs,
-                 unsigned int id) : binance::ArgsBody(),
-                 pairs_(pairs),
-                 id_(id)
-                {
-                  SetMethod();
-                  SetParams(request);
-                  SetId(id_);
-                 }
+                 common::TradingPairHashMap& pairs, unsigned int id)
+            : binance::ArgsBody(), pairs_(pairs), id_(id) {
+            SetMethod();
+            SetParams(request);
+            SetId(id_);
+        }
 
       private:
-        void SetMethod() {
-            storage["method"] = "SUBSCRIBE";
-        };
+        void SetMethod() { storage["method"] = "\"SUBSCRIBE\""; };
         void SetParams(const Exchange::RequestDiffOrderBook* request) {
-            if(request->frequency == common::kFrequencyMSInvalid)
-              storage["method"] = fmt::format("[{}@{}]", pairs_[request->trading_pair].https_json_request, "depth");
+            if (request->frequency == common::kFrequencyMSInvalid)
+                storage["params"] = fmt::format(
+                    "{}@{}", pairs_[request->trading_pair].ws_query_request,
+                    "depth");
         };
         void SetId(unsigned int id) {
-            //i don't want process an id now because for binance an id is integer, but for ArgsBody value is a string
+            // i don't want process an id now because for binance an id is
+            // integer, but for ArgsBody value is a string
         };
+
       private:
         ArgsBody& storage = *this;
     };
@@ -660,12 +666,12 @@ class FactoryRequestJson {
           action_(action),
           signer_(signer),
           need_sign_(need_sign) {
-            /**
-             * @brief Construct a new assert object i don't debug this
-             * 
-             */
-            assert(false);
-          };
+        /**
+         * @brief Construct a new assert object i don't debug this
+         *
+         */
+        assert(false);
+    };
     boost::beast::http::request<boost::beast::http::string_body> operator()() {
         boost::beast::http::request<boost::beast::http::string_body> req;
         if (need_sign_) {
@@ -942,17 +948,20 @@ class FamilyCancelOrder {
 };  // namespace detail
 
 template <typename Executor>
-class BookEventGetter2 : public detail::FamilyBookEventGetter {
-    ::V2::ConnectionPool<WSSesionType2>* session_pool_;
+class BookEventGetter2 : public detail::FamilyBookEventGetter,
+                         public inner::BookEventGetterI {
+    ::V2::ConnectionPool<WSSesionType2, const std::string_view&>* session_pool_;
     common::TradingPairHashMap& pairs_;
 
   protected:
     Executor executor_;
 
   public:
-    BookEventGetter2(Executor&& executor,
-                     ::V2::ConnectionPool<WSSesionType2>* session_pool,
-                     TypeExchange type, common::TradingPairHashMap& pairs)
+    BookEventGetter2(
+        Executor&& executor,
+        ::V2::ConnectionPool<WSSesionType2, const std::string_view&>*
+            session_pool,
+        TypeExchange type, common::TradingPairHashMap& pairs)
         : executor_(std::move(executor)),
           session_pool_(session_pool),
           pairs_(pairs) {
@@ -986,7 +995,7 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter {
                 logd("start book event getter for binance");
 
                 detail::FamilyBookEventGetter::ArgsBody args(
-                    bus_event_request_diff_order_book->request, pairs_);
+                    bus_event_request_diff_order_book->request, pairs_, 1);
                 logd("start prepare event getter for binance request");
                 auto req = args.Body();
                 logd("end prepare event getter for binance request");
@@ -996,8 +1005,8 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter {
                 auto session = session_pool_->AcquireConnection();
                 logd("start send event getter for binance request");
 
-                if (auto status =
-                        co_await session->AsyncRequest(std::move(req), callback);
+                if (auto status = co_await session->AsyncRequest(std::move(req),
+                                                                 callback);
                     status == false)
                     loge("AsyncRequest finished unsuccessfully");
 
@@ -1017,16 +1026,18 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter {
 
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
-                              public BookEventGetter2<Executor> {
+                                 public BookEventGetter2<Executor> {
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
         bus_event_book_diff_snapshot_mem_pool_;
     explicit BookEventGetterComponent(
-        Executor&& executor, size_t number_responses,
-        TypeExchange type, common::TradingPairHashMap& pairs,
-        ::V2::ConnectionPool<WSSesionType2>* session_pool)
-        : BookEventGetter2<Executor>(std::move(executor), session_pool, type, pairs),
+        Executor&& executor, size_t number_responses, TypeExchange type,
+        common::TradingPairHashMap& pairs,
+        ::V2::ConnectionPool<WSSesionType2, const std::string_view&>*
+            session_pool)
+        : BookEventGetter2<Executor>(std::move(executor), session_pool, type,
+                                     pairs),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
@@ -1573,7 +1584,7 @@ class BookSnapshot : public inner::BookSnapshotI,
 };
 
 template <typename Executor>
-class BookSnapshot2 {
+class BookSnapshot2 : public inner::BookSnapshotI {
     SignerI* signer_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
     common::TradingPairHashMap& pairs_;

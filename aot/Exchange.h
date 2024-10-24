@@ -360,8 +360,20 @@ class CancelOrderI {
 
 class BookSnapshotI {
   public:
-    virtual void Exec()      = 0;
+    virtual void Exec(){};
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewSnapshot* bus_event_request_new_snapshot,
+        const OnHttpsResponce* callback){co_return;}
     virtual ~BookSnapshotI() = default;
+};
+
+class BookEventGetterI {
+  public:
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestDiffOrderBook*
+            bus_event_request_diff_order_book,
+        const OnWssResponse* callback){co_return;}
+    virtual ~BookEventGetterI() = default;
 };
 
 };  // namespace inner

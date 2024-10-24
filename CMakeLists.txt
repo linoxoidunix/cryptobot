@@ -186,13 +186,13 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=fa
 
 add_subdirectory(example)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+#if(CMAKE_BUILD_TYPE STREQUAL "Release")
     enable_testing()
     include(GoogleTest)
     add_subdirectory(tests)
-else()
-    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
-endif()
+#else()
+#    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
+#endif()
 
 
 
