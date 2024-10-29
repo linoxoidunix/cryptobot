@@ -23,8 +23,8 @@ const boost::system::error_code& ec) {
 class BookEventGetterComponentTest : public ::testing::Test {
   protected:
     boost::asio::io_context io_context;
-    ::V2::ConnectionPool<WSSesionType2, const std::string_view&> session_pool{
-        io_context, WSSesionType2::Timeout{30}, 1, "stream.binance.com", "443",
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool{
+        io_context, WSSesionType3::Timeout{30}, 1, "stream.binance.com", "443",
         "/ws"};
     size_t number_responses = 100;
     common::TradingPairHashMap pairs;
@@ -49,7 +49,7 @@ class BookEventGetterComponentTest : public ::testing::Test {
 
 // Test case for AsyncHandleEvent
 TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
-    boost::asio::steady_timer timer(io_context, std::chrono::seconds(20));
+    //boost::asio::steady_timer timer(io_context, std::chrono::seconds(20));
 
     fmtlog::setLogLevel(fmtlog::DBG);
     common::TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pairs);
@@ -57,22 +57,24 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
         work_guard(io_context.get_executor());
     std::thread t([this] { io_context.run(); });
-    timer.async_wait(std::bind(&StopIoContext, std::ref(io_context), std::placeholders::_1));
+    //timer.async_wait(std::bind(&StopIoContext, std::ref(io_context), std::placeholders::_1));
+    boost::asio::cancellation_signal cancel_signal;
 
     binance::BookEventGetterComponent component(
         boost::asio::make_strand(thread_pool), number_responses,
-        TypeExchange::TESTNET, pairs, &session_pool);
+        TypeExchange::TESTNET, pairs, &session_pool, cancel_signal);
 
     Exchange::RequestDiffOrderBook request;
     request.exchange_id  = common::ExchangeId::kBinance;
     request.trading_pair = {2, 1};
 
     Exchange::BusEventRequestDiffOrderBook bus_event_request(&request);
+    bus_event_request.AddReference();
 
     uint64_t counter_successfull   = 0;
     uint64_t counter_unsuccessfull = 0;
 
-    OnWssResponse cb = [&work_guard, &counter_successfull, &counter_unsuccessfull, this,
+    OnWssResponse cb = [&component, &counter_successfull, &counter_unsuccessfull, this,
                         &pair_reverse](boost::beast::flat_buffer& fb) {
         auto data     = fb.data();  // returns a const_buffer
         auto response = std::string_view(static_cast<const char*>(data.data()),
@@ -88,14 +90,16 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
         else
             counter_unsuccessfull++;
         if (counter_successfull == 5) {
-            io_context.stop();
+            component.AsyncStop();
         }
     };
-
+    auto cancelation_slot = cancel_signal.slot();
     component.AsyncHandleEvent(&bus_event_request, &cb);
     thread_pool.join();
+    session_pool.CloseAllSessions();
+    work_guard.reset();
     t.join();
-    EXPECT_EQ(counter_successfull, 5);
+    EXPECT_GE(counter_successfull, 5);
     EXPECT_EQ(counter_unsuccessfull, 1);//first response from binance is status response
 }
 

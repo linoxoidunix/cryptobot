@@ -1562,55 +1562,189 @@
 //     return 0;
 // }
 //----------------------------------------------------------------------------------------
-#include "aot/WS.h"
-#include "aot/Https.h"
-#include "string_view"
-/**
- * @brief connect to binance using connection_pool with WssSession based on coroutines
- * , subscribe on diff depth stream and shutdown after 20s
- * 
- * @return int 
- */
-int main(){
-    binance::testnet::HttpsExchange exchange;
-    boost::asio::io_context ioc;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
+// #include "aot/WS.h"
+// #include "aot/Https.h"
+// #include "string_view"
+// /**
+//  * @brief connect to binance using connection_pool with WssSession based on coroutines
+//  * , subscribe on diff depth stream and shutdown after 20s
+//  * 
+//  * @return int 
+//  */
+// int main(){
+//     binance::testnet::HttpsExchange exchange;
+//     boost::asio::io_context ioc;
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
     
-    std::thread t([&ioc] {      
-         ioc.run();
+//     std::thread t([&ioc] {      
+//          ioc.run();
+//     });
+    
+//     ssl::context ssl_ctx{ssl::context::sslv23};
+
+//     using WSS = WssSession<std::chrono::seconds>;
+//     const std::string_view host = "stream.binance.com";
+//     const std::string_view port = "443";
+//     const std::string_view default_endpoint = "/ws";
+//     V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
+
+//     //binance::HttpsConnectionPoolFactory factory; 
+//     //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
+
+
+//     auto ws = connection_pool.AcquireConnection();
+//     //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
+//     OnWssResponse cb = [](boost::beast::flat_buffer& fb){
+//         auto result = boost::beast::buffers_to_string(fb.data());
+//         std::cout << result << std::endl;
+//     };
+//     std::string g = "{\"method\": \"SUBSCRIBE\",\
+//      \"params\": [\"btcusdt@depth\"],\
+//      \"id\": 1}";
+//     using namespace std::literals::chrono_literals;
+//     std::this_thread::sleep_for(10s);
+    
+//     boost::asio::thread_pool thread_pool;
+
+//     boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
+    
+//     std::this_thread::sleep_for(60s);
+//     ws->AsyncCloseSessionGracefully();
+//     work_guard.reset();
+//     t.join(); 
+//     return 0;
+// }
+
+//----------------------------------------------------------------------------------------
+//check cancellation coroutine
+// Define the cancellation handler function
+// void cancellation_handler(boost::asio::cancellation_type type) {
+//     std::cout << "Cancellation handler invoked. Type: "
+//               << (type == boost::asio::cancellation_type::all ? "all" : "partial") 
+//               << std::endl;
+// }
+
+// // A coroutine that performs repeated tasks, with cancellation support
+// boost::asio::awaitable<void> cancellable_coroutine(boost::asio::cancellation_slot slot) {
+//     auto executor = co_await boost::asio::this_coro::executor;
+
+//     // Install the cancellation handler
+//     slot.assign(cancellation_handler);  
+
+//     for (int i = 0; i < 10; ++i) {
+//         // Create a timer to simulate work
+//         boost::asio::steady_timer timer(executor, std::chrono::seconds(1));
+        
+//         // Wait asynchronously, respecting the cancellation slot
+//         boost::system::error_code ec;
+//         co_await timer.async_wait(boost::asio::bind_cancellation_slot(slot, boost::asio::redirect_error(boost::asio::use_awaitable, ec)));
+
+//         // Check for cancellation during or immediately after async_wait
+//         if (ec == boost::asio::error::operation_aborted) {
+//             std::cout << "Coroutine was canceled during async_wait on iteration " << i << "." << std::endl;
+//             co_return; // Exit the coroutine
+//         }
+
+//         std::cout << "Completed iteration " << i << "." << std::endl;
+//     }
+
+//     std::cout << "Coroutine completed normally without cancellation." << std::endl;
+// }
+
+// int main() {
+//     boost::asio::io_context io;
+//     boost::asio::cancellation_signal cancel_signal;
+
+//     // Get the cancellation slot
+//     boost::asio::cancellation_slot slot = cancel_signal.slot();
+
+//     // Spawn the cancellable coroutine
+//     boost::asio::co_spawn(io, cancellable_coroutine(slot), boost::asio::detached);
+
+//     // Schedule cancellation to be triggered after 3 seconds
+//     boost::asio::steady_timer cancel_timer(io, std::chrono::seconds(1));
+//     cancel_timer.async_wait([&](const boost::system::error_code&) {
+//         std::cout << "Requesting coroutine cancellation from main." << std::endl;
+//         cancel_signal.emit(boost::asio::cancellation_type::all);  // Trigger cancellation
+//     });
+
+//     // Run the io_context to start processing
+//     io.run();
+//     return 0;
+// }
+//---------------------------------------
+//multiple cancel requests for coroutine
+
+namespace net = boost::asio;
+
+#include <boost/asio.hpp>
+#include <iostream>
+#include <vector>
+#include <functional>  // for std::reference_wrapper
+
+namespace net = boost::asio;
+
+net::cancellation_slot unify_cancellation_signals(net::cancellation_signal& unified_signal, std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {  
+
+    for (auto& signal : signals) {
+        signal.get().slot().assign([&](net::cancellation_type type) {
+            unified_signal.emit(type);
+        });
+    }
+
+    return unified_signal.slot();
+}
+
+net::awaitable<void> cancellable_operation(net::cancellation_slot& slot) {
+    auto executor = co_await net::this_coro::executor;
+
+    net::steady_timer timer(executor, std::chrono::seconds(10));
+
+    try {
+        co_await timer.async_wait(net::bind_cancellation_slot(slot, net::use_awaitable));
+        std::cout << "Operation completed.\n";
+    } catch (const boost::system::system_error& e) {
+        if (e.code() == net::error::operation_aborted) {
+            std::cout << "Operation cancelled.\n";
+        } else {
+            throw;
+        }
+    }
+}
+
+int main() {
+    boost::asio::thread_pool io;
+    //net::io_context io;
+
+    net::cancellation_signal signal1, signal2;
+    net::cancellation_signal unified_signal;
+
+
+
+
+    std::vector<std::reference_wrapper<net::cancellation_signal>> signals = {signal1, signal2};
+
+    net::cancellation_slot unified_slot = unify_cancellation_signals(unified_signal, signals);
+
+    unified_slot.assign([](boost::asio::cancellation_type_t&) {
+         std::cout << "Cancellation requested!" << std::endl;
+     });
+
+unified_signal.slot().assign([&](net::cancellation_type type) {
+         std::cout << "Cancellation requested!" << std::endl;
+        });
+
+    net::co_spawn(io, cancellable_operation(unified_slot), net::detached);
+    //std::this_thread::sleep_for(std::chrono::seconds(3));
+    
+    net::steady_timer delay_timer(io, std::chrono::nanoseconds(1));
+    delay_timer.async_wait([&](const boost::system::error_code&) {
+        std::cout << "Emitting cancellation signal...\n";
+        signal2.emit(net::cancellation_type::all);
     });
     
-    ssl::context ssl_ctx{ssl::context::sslv23};
+    //signal1.emit(net::cancellation_type::all);
 
-    using WSS = WssSession<std::chrono::seconds>;
-    const std::string_view host = "stream.binance.com";
-    const std::string_view port = "443";
-    const std::string_view default_endpoint = "/ws";
-    V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
-
-    //binance::HttpsConnectionPoolFactory factory; 
-    //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
-
-
-    auto ws = connection_pool.AcquireConnection();
-    //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
-    OnWssResponse cb = [](boost::beast::flat_buffer& fb){
-        auto result = boost::beast::buffers_to_string(fb.data());
-        std::cout << result << std::endl;
-    };
-    std::string g = "{\"method\": \"SUBSCRIBE\",\
-     \"params\": [\"btcusdt@depth\"],\
-     \"id\": 1}";
-    using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(10s);
-    
-    boost::asio::thread_pool thread_pool;
-
-    boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
-    
-    std::this_thread::sleep_for(60s);
-    ws->AsyncCloseSessionGracefully();
-    work_guard.reset();
-    t.join(); 
-    return 0;
+    //io.run();
+    io.join();
 }

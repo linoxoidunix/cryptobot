@@ -1016,6 +1016,87 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
             boost::asio::detached);
         co_return;
     }
+  private:
+    binance::testnet::HttpsExchange binance_test_net_;
+    binance::mainnet::HttpsExchange binance_main_net_;
+
+    https::ExchangeI* current_exchange_;
+};
+
+template <typename Executor>
+class BookEventGetter3 : public detail::FamilyBookEventGetter,
+                         public inner::BookEventGetterI {
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
+    common::TradingPairHashMap& pairs_;
+  protected:
+    Executor executor_;
+    boost::asio::cancellation_signal& signal_;
+
+  public:
+    BookEventGetter3(
+        Executor&& executor,
+        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
+            session_pool,
+        TypeExchange type, common::TradingPairHashMap& pairs,
+        boost::asio::cancellation_signal& signal)
+        : executor_(std::move(executor)),
+          session_pool_(session_pool),
+          pairs_(pairs),
+          signal_(signal) {
+        switch (type) {
+            case TypeExchange::MAINNET:
+                current_exchange_ = &binance_main_net_;
+                break;
+            default:
+                current_exchange_ = &binance_test_net_;
+                break;
+        }
+    };
+    ~BookEventGetter3() override = default;
+    boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestDiffOrderBook*
+            bus_event_request_diff_order_book,
+        const OnWssResponse* callback) override {
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        if (bus_event_request_diff_order_book == nullptr) {
+            loge("bus_event_request_diff_order_book == nullptr");
+            co_return;
+        }
+        if (session_pool_ == nullptr) {
+            loge("session_pool_ == nullptr");
+            co_return;
+        }
+        boost::asio::co_spawn(
+            executor_,
+            [this, bus_event_request_diff_order_book,
+             &callback]() -> boost::asio::awaitable<void> {
+                logd("start book event getter for binance");
+
+                detail::FamilyBookEventGetter::ArgsBody args(
+                    bus_event_request_diff_order_book->request, pairs_, 1);
+                logd("start prepare event getter for binance request");
+                auto req = args.Body();
+                logd("end prepare event getter for binance request");
+
+                bus_event_request_diff_order_book->Release();
+
+                auto session = session_pool_->AcquireConnection();
+                logd("start send event getter for binance request");
+
+                auto slot = signal_.slot();
+                if (auto status = co_await session->AsyncRequest(std::move(req),
+                                                                 callback,
+                                                                 slot);
+                    status == false)
+                    loge("AsyncRequest finished unsuccessfully");
+
+                logd("end send event getter for binance request");
+                co_return;
+            },
+            boost::asio::detached);
+        co_return;
+    }
+    
 
   private:
     binance::testnet::HttpsExchange binance_test_net_;
@@ -1026,7 +1107,7 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
 
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
-                                 public BookEventGetter2<Executor> {
+                                 public BookEventGetter3<Executor> {
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
@@ -1034,20 +1115,27 @@ class BookEventGetterComponent : public bus::Component,
     explicit BookEventGetterComponent(
         Executor&& executor, size_t number_responses, TypeExchange type,
         common::TradingPairHashMap& pairs,
-        ::V2::ConnectionPool<WSSesionType2, const std::string_view&>*
-            session_pool)
-        : BookEventGetter2<Executor>(std::move(executor), session_pool, type,
-                                     pairs),
+        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
+            session_pool,
+            boost::asio::cancellation_signal& cancel_signal)
+        : BookEventGetter3<Executor>(std::move(executor), session_pool, type,
+                                     pairs, cancel_signal),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
 
     void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook* event,
                           const OnWssResponse* cb) override {
-        boost::asio::co_spawn(BookEventGetter2<Executor>::executor_,
-                              BookEventGetter2<Executor>::CoExec(event, cb),
+        boost::asio::co_spawn(BookEventGetter3<Executor>::executor_,
+                              BookEventGetter3<Executor>::CoExec(event, cb),
                               boost::asio::detached);
     };
+    void AsyncStop() override{
+      net::steady_timer delay_timer(BookEventGetter3<Executor>::executor_, std::chrono::nanoseconds(1));
+      delay_timer.async_wait([&](const boost::system::error_code&) {
+        BookEventGetter3<Executor>::signal_.emit(boost::asio::cancellation_type::all);
+      });
+    }
 };
 
 class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {

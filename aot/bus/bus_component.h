@@ -33,6 +33,10 @@ namespace bus{
 class Component {
   public:
     virtual ~Component() = default;
+    virtual void AsyncStop(){
+        //it is empty class
+    };
+
     /**
      * @brief update position keeper when OrderBook emit new signal updateBBO
      * 
