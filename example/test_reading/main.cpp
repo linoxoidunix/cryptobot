@@ -1381,12 +1381,12 @@
 //     exchange_trading_pairs_reverse[binance_id] = common::InitTPsJR(pairs);
 
 //     HTTPSSessionPool session_pools;
-//     binance::ConnectionPoolFactory factory;
+//     binance::HttpsConnectionPoolFactory factory;
     
 //     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
 
     
-//     auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
+//     auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange );
 //     //::V2::ConnectionPool<HTTPSesionType>* pool = nullptr;
 //     std::thread t([&ioc] {      
 //         ioc.run();

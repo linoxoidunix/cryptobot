@@ -359,8 +359,7 @@ class BookSnapshotI {
   public:
     virtual void Exec() {};
     virtual boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestNewSnapshot *bus_event_request_new_snapshot,
-        const OnHttpsResponce *callback) {
+        Exchange::BusEventRequestNewSnapshot *bus_event_request_new_snapshot) {
         co_return;
     }
     virtual ~BookSnapshotI() = default;
@@ -381,6 +380,8 @@ class BookEventGetterI {
 };  // namespace inner
 
 using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
+using HTTPSesionType2 = V2::HttpsSession2<std::chrono::seconds>;
+using HTTPSesionType3 = V2::HttpsSession3<std::chrono::seconds>;
 using WSSesionType   = WssSession<std::chrono::seconds>;
 using WSSesionType2  = WssSession2<std::chrono::seconds>;
 using WSSesionType3  = WssSession3<std::chrono::seconds>;
@@ -401,5 +402,13 @@ class HttpsConnectionPoolFactory {
     virtual ~HttpsConnectionPoolFactory() = default;
     virtual V2::ConnectionPool<HTTPSesionType> *Create(
         boost::asio::io_context &io_context, HTTPSesionType::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI *exchange) = 0;
+};
+
+class HttpsConnectionPoolFactory2 {
+  public:
+    virtual ~HttpsConnectionPoolFactory2() = default;
+    virtual V2::ConnectionPool<HTTPSesionType3> *Create(
+        boost::asio::io_context &io_context, HTTPSesionType3::Timeout timeout,
         std::size_t pool_size, https::ExchangeI *exchange) = 0;
 };

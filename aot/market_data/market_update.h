@@ -61,6 +61,7 @@ using BookSnapshotPool = common::MemoryPool<BookSnapshot>;
 
 struct BookSnapshot {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
     uint64_t lastUpdateId = std::numeric_limits<uint64_t>::max();
@@ -155,7 +156,7 @@ struct BusEventRequestNewSnapshot : public bus::Event {
     RequestSnapshot* request;
     ~BusEventRequestNewSnapshot() override = default;
     void Accept(bus::Component* comp, const OnHttpsResponce* cb) override {
-        comp->AsyncHandleEvent(this, cb);
+        comp->AsyncHandleEvent(this);
     }
     void Deallocate() override{
         logd("Deallocating resources");

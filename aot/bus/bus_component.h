@@ -90,7 +90,7 @@ class Component {
      * @brief
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot*, const OnHttpsResponce* cb){
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot*){
         //it is empty class
     };
     /**

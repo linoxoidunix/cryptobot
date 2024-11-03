@@ -205,6 +205,14 @@ class ArgsBody : public Args {
      * @return std::string
      */
     virtual std::string Body();
+    virtual std::string QueryString() {
+        std::list<std::string> merged;
+        std::ranges::for_each(*this, [&merged](const auto& expr) {
+            merged.emplace_back(fmt::format("{}={}", expr.first, expr.second));
+        });
+        auto out = boost::algorithm::join(merged, "&");
+        return out;
+    };
 
     virtual ~ArgsBody() = default;
 };
@@ -587,6 +595,10 @@ class BookEventGetter : public BookEventGetterI {
 };
 
 namespace detail {
+/**
+ * @brief for GET request
+ * 
+ */
 class FactoryRequest {
   public:
     explicit FactoryRequest(const https::ExchangeI* exchange,
@@ -670,37 +682,15 @@ class FactoryRequestJson {
          * @brief Construct a new assert object i don't debug this
          *
          */
-        assert(false);
+        if (need_sign) {
+            AddSignParams();
+            auto request_args = args_.QueryString();
+            auto signature    = signer_->Sign(request_args);
+            AddSignature(signature);
+        }
     };
     boost::beast::http::request<boost::beast::http::string_body> operator()() {
         boost::beast::http::request<boost::beast::http::string_body> req;
-        if (need_sign_) {
-            assert(false);
-            // code beow only for bybit
-            //  auto current_time      = AddSignParams(req);
-            //  /**
-            //   * @brief
-            //   * https://bybit-exchange.github.io/docs/v5/guide#parameters-for-authenticated-endpoints
-            //   * Basic steps:
-            //      1) timestamp + API key + (recv_window) + (queryString |
-            //   jsonBodyString)
-            //   *
-            //   */
-            //  auto request_body_args = fmt::format(
-            //      "{}{}{}{}", current_time, signer_->ApiKey(),
-            //      std::to_string(exchange_->RecvWindow()), args_.Body());
-            //  /**
-            //   * @brief
-            //   * 2) Use the HMAC_SHA256 or RSA_SHA256 algorithm to sign the
-            //   string
-            //   * in step 1, and convert it to a hex string (HMAC_SHA256) /
-            //   base64
-            //   * (RSA_SHA256) to obtain the sign parameter.
-            //   */
-            //  auto signature = signer_->Sign(request_body_args);
-
-            // AddSignature(signature, req);
-        }
         req.version(11);
         req.method(action_);
         req.target(end_point_);
@@ -709,7 +699,8 @@ class FactoryRequestJson {
          * header.
          *
          */
-        if (need_sign_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
+        if (need_sign_) 
+          req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
         req.set(boost::beast::http::field::host, exchange_->Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
@@ -720,9 +711,15 @@ class FactoryRequestJson {
          * both the query string and request body if you wish to do so.
          *
          */
-        req.set(boost::beast::http::field::content_type,
-                "application/x-www-form-urlencoded");
-        req.body() = args_.Body();
+        if(action_ == boost::beast::http::verb::get)
+          assert(false);
+
+        if(action_ == boost::beast::http::verb::post ||
+         action_ == boost::beast::http::verb::put ||
+         action_ == boost::beast::http::verb::delete_)
+          req.set(boost::beast::http::field::content_type,
+                 "application/x-www-form-urlencoded");
+        req.body() = args_.QueryString();
         req.prepare_payload();
         return req;
     };
@@ -738,15 +735,12 @@ class FactoryRequestJson {
      * @param req
      * @return std::string return time which insert into headers
      */
-    std::string AddSignParams(
-        boost::beast::http::request<boost::beast::http::string_body>& req)
+    void AddSignParams()
         const {
         CurrentTime time_service;
         auto time = std::to_string(time_service.Time());
-        req.insert("X-BAPI-TIMESTAMP", time);
-        req.insert("X-BAPI-RECV-WINDOW",
-                   std::to_string(exchange_->RecvWindow()));
-        return time;
+        args_["timestamp"]= time;
+        args_["recvWindow"]= std::to_string(exchange_->RecvWindow());
     };
     /**
      * @brief
@@ -757,12 +751,8 @@ class FactoryRequestJson {
      * @param signature
      * @param req
      */
-    void AddSignature(
-        std::string_view signature,
-        boost::beast::http::request<boost::beast::http::string_body>& req)
-        const {
-        req.insert("X-BAPI-SIGN", signature.data());
-        req.insert("X-BAPI-SIGN-TYPE", "2");
+    void AddSignature(std::string_view signature) {
+        args_["signature"] = signature.data();
     };
 
   private:
@@ -1582,19 +1572,19 @@ class FamilyBookSnapshot {
     class ArgsOrder : public ArgsQuery {
       public:
         using SymbolType = std::string_view;
-        using Limit      = uint16_t;
+        using Limit      = uint64_t;
         explicit ArgsOrder(SymbolType ticker1, SymbolType ticker2, Limit limit)
             : ArgsQuery() {
             SetSymbol(ticker1, ticker2);
             SetLimit(limit);
         };
         explicit ArgsOrder(
-            const Exchange::RequestSnapshot* request_cancel_order,
+            const Exchange::RequestSnapshot* request_snapshot,
             common::TradingPairHashMap& pairs)
             : ArgsQuery() {
             SetSymbol(
-                pairs[request_cancel_order->trading_pair].https_query_request);
-            SetLimit(request_cancel_order->depth);
+                pairs[request_snapshot->trading_pair].https_query_request);
+            //SetLimit(request_cancel_order->depth);
         };
         void SetSymbol(SymbolType symbol) {
             storage["symbol"] = symbol.data();
@@ -1615,6 +1605,40 @@ class FamilyBookSnapshot {
 
       private:
         ArgsOrder& storage = *this;
+    };
+      class ArgsBody : public binance::ArgsBody {
+        common::TradingPairHashMap& pairs_;
+        /**
+         * @brief id_ need add when send json request to exchange
+         *
+         */
+        unsigned int id_;
+
+      public:
+        ArgsBody(const Exchange::RequestSnapshot* request_snapshot,
+                    common::TradingPairHashMap& pairs)
+            : binance::ArgsBody(), pairs_(pairs) {
+            SetSymbol(
+                pairs[request_snapshot->trading_pair].https_query_request);
+            //SetLimit(request_cancel_order->depth);
+        }
+
+      private:
+        void SetSymbol(std::string_view trading_pair) {
+            storage["symbol"] = trading_pair.data();
+        };
+        void SetLimit(unsigned int limit) {
+            /**
+             * @brief If limit > 5000, then the response will truncate to 5000.
+             * https://binance-docs.github.io/apidocs/spot/en/#exchange-information
+             */
+            limit            = (limit > 5000) ? 5000 : limit;
+
+            storage["limit"] = std::to_string(limit);
+        };
+
+      private:
+        ArgsBody& storage = *this;
     };
 };
 };  // namespace detail
@@ -1674,20 +1698,24 @@ class BookSnapshot : public inner::BookSnapshotI,
 template <typename Executor>
 class BookSnapshot2 : public inner::BookSnapshotI {
     SignerI* signer_;
-    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+    ::V2::ConnectionPool<HTTPSesionType3>* session_pool_;
     common::TradingPairHashMap& pairs_;
-
+    // Add a callback map to store parsing callbacks for each trading pair
+    std::unordered_map<common::TradingPair, const OnHttpsResponce*, common::TradingPairHash, common::TradingPairEqual> callback_map_;
   protected:
     Executor executor_;
+    boost::asio::cancellation_signal& signal_;
 
   public:
     explicit BookSnapshot2(Executor&& executor, SignerI* signer,
-                           ::V2::ConnectionPool<HTTPSesionType>* session_pool,
-                           TypeExchange type, common::TradingPairHashMap& pairs)
+                           ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
+                           TypeExchange type, common::TradingPairHashMap& pairs,
+                           boost::asio::cancellation_signal& signal)
         : executor_(std::move(executor)),
           signer_(signer),
           session_pool_(session_pool),
-          pairs_(pairs) {
+          pairs_(pairs),
+          signal_(signal) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_main_net_;
@@ -1700,8 +1728,7 @@ class BookSnapshot2 : public inner::BookSnapshotI {
 
     ~BookSnapshot2() override = default;
     boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestNewSnapshot* bus_event_request_new_snapshot,
-        const OnHttpsResponce* callback) override {
+        Exchange::BusEventRequestNewSnapshot* bus_event_request_new_snapshot) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
         if (bus_event_request_new_snapshot == nullptr) {
             loge("bus_event_request_new_snapshot == nullptr");
@@ -1713,18 +1740,31 @@ class BookSnapshot2 : public inner::BookSnapshotI {
         }
         boost::asio::co_spawn(
             executor_,
-            [this, bus_event_request_new_snapshot,
-             &callback]() -> boost::asio::awaitable<void> {
+            [this, bus_event_request_new_snapshot]() -> boost::asio::awaitable<void> {
+                if(bus_event_request_new_snapshot == nullptr){
+                  loge("bus_event_request_new_snapshot = nulptr");
+                  co_return;
+                }
+                auto& trading_pair = bus_event_request_new_snapshot->request->trading_pair;
+                auto callback_it = callback_map_.find(trading_pair);
+                if (callback_it == callback_map_.end()) {
+                  loge("No callback registered for trading pair: {}", trading_pair.ToString());
+                  co_return;
+                }
+                auto& callback = callback_it->second;
                 logd("start book snapshot exec");
-
+                /**
+                 * @brief https://binance-docs.github.io/apidocs/spot/en/#general-api-information:~:text=For%20GET%20endpoints%2C%20parameters%20must%20be%20sent%20as%20a%20query%20string.
+                 * For GET endpoints, parameters must be sent as a query string.
+                 */
                 detail::FamilyBookSnapshot::ArgsOrder args(
                     bus_event_request_new_snapshot->request, pairs_);
-                bool need_sign = true;
+                bool need_sign = false;
                 detail::FactoryRequest factory{
                     current_exchange_,
-                    detail::FamilyCancelOrder::end_point,
+                    detail::FamilyBookSnapshot::end_point,
                     args,
-                    boost::beast::http::verb::delete_,
+                    boost::beast::http::verb::get,
                     signer_,
                     need_sign};
                 logd("start prepare new snapshot request");
@@ -1736,8 +1776,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
 
-                if (auto status =
-                        session->AsyncRequest(std::move(req), callback);
+                auto slot = signal_.slot();
+                if (auto status = co_await session->AsyncRequest(std::move(req), callback, slot);
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -1747,7 +1787,15 @@ class BookSnapshot2 : public inner::BookSnapshotI {
             boost::asio::detached);
         co_return;
     }
-
+    /**
+     * @brief Add a function to register callbacks for trading pairs
+     * 
+     * @param trading_pair 
+     * @param callback 
+     */
+    void RegisterCallback(common::TradingPair trading_pair, const OnHttpsResponce* callback) {
+        callback_map_[trading_pair] = callback;
+    }
   private:
     binance::testnet::HttpsExchange binance_test_net_;
     binance::mainnet::HttpsExchange binance_main_net_;
@@ -1766,19 +1814,24 @@ class BookSnapshotComponent : public bus::Component,
         Executor&& executor, size_t number_responses, SignerI* signer,
         TypeExchange type, common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
-        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : BookSnapshot2<Executor>(std::move(executor), signer, type, pairs,
-                                  pairs_reverse, session_pool),
+        ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
+        boost::asio::cancellation_signal& signal)
+        : BookSnapshot2<Executor>(std::move(executor), signer, session_pool, type, pairs, signal),
           snapshot_mem_pool_(number_responses),
           bus_event_response_snapshot_mem_pool_(number_responses) {}
     ~BookSnapshotComponent() override = default;
 
-    void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot* event,
-                          const OnHttpsResponce& cb) override {
+    void AsyncHandleEvent(Exchange::BusEventRequestNewSnapshot* event) override {
         boost::asio::co_spawn(BookSnapshot2<Executor>::executor_,
-                              BookSnapshot2<Executor>::CoExec(event, cb),
+                              BookSnapshot2<Executor>::CoExec(event),
                               boost::asio::detached);
     };
+    void AsyncStop() override{
+      net::steady_timer delay_timer(BookSnapshot2<Executor>::executor_, std::chrono::nanoseconds(1));
+      delay_timer.async_wait([&](const boost::system::error_code&) {
+        BookSnapshot2<Executor>::signal_.emit(boost::asio::cancellation_type::all);
+      });
+    }
 };
 
 /**
@@ -1858,6 +1911,20 @@ class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
     ~HttpsConnectionPoolFactory() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
         boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI* exchange) override {
+        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
+                              exchange->Port());
+    };
+};
+class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
+    common::MemoryPool<::V2::ConnectionPool<HTTPSesionType3>> pool_;
+
+  public:
+    explicit HttpsConnectionPoolFactory2(size_t default_number_session = 10)
+        : pool_(default_number_session) {};
+    ~HttpsConnectionPoolFactory2() override = default;
+    virtual ::V2::ConnectionPool<HTTPSesionType3>* Create(
+        boost::asio::io_context& io_context, HTTPSesionType3::Timeout timeout,
         std::size_t pool_size, https::ExchangeI* exchange) override {
         return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
                               exchange->Port());

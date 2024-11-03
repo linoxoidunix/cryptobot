@@ -26,38 +26,42 @@ std::string binance::ArgsBody::Body() {
     return json_object.dump();
 }
 
-Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
+Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Parse(
     std::string_view response) {
     // NEED ADD EXCHANGE ID FIELD
-    assert(false);
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
-    auto price_prec = std::pow(10, pair_info_.price_precission);
-    auto qty_prec   = std::pow(10, pair_info_.qty_precission);
-    for (auto all : doc["bids"]) {
-        simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;  // price + qty
-        uint8_t i = 0;
-        for (auto number : arr) {
-            pair[i] = number.get_double_in_string();
-            i++;
+    try{
+        book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
+        auto price_prec = std::pow(10, pair_info_.price_precission);
+        auto qty_prec   = std::pow(10, pair_info_.qty_precission);
+        for (auto all : doc["bids"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;  // price + qty
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                            static_cast<int>(pair[1] * qty_prec));
         }
-        book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                        static_cast<int>(pair[1] * qty_prec));
-    }
-    for (auto all : doc["asks"]) {
-        simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;  // price + qty
-        uint8_t i = 0;
-        for (auto number : arr) {
-            pair[i] = number.get_double_in_string();
-            i++;
+        for (auto all : doc["asks"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;  // price + qty
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                            static_cast<int>(pair[1] * qty_prec));
         }
-        book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                        static_cast<int>(pair[1] * qty_prec));
+        book_snapshot.exchange_id = common::ExchangeId::kBinance;
+    } catch (simdjson::simdjson_error& error) {
+        loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
     return book_snapshot;
 }
@@ -292,7 +296,7 @@ binance::detail::FamilyLimitOrder::ParserResponse::Parse(
         output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (simdjson::simdjson_error& error) {
-        loge("JSON error: {}", error.what());
+        loge("JSON error in FamilyLimitOrder response: {}", error.what());
     }
 
     return output;

@@ -1,5 +1,5 @@
 
-set (PROJECT_NAME bch_market_order_book)
+set (PROJECT_NAME unit_test_binance_local_test)
 project(${PROJECT_NAME})
 
 
@@ -14,9 +14,11 @@ add_executable (${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
 aot
-benchmark::benchmark
+gtest_main
+gmock_main
 concurrentqueue
 magic_enum::magic_enum
+tomlplusplus::tomlplusplus
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -25,4 +27,3 @@ ${CMAKE_SOURCE_DIR}
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
-target_compile_definitions(${PROJECT_NAME} PUBLIC "PATH_TO_DATA=\"${CMAKE_SOURCE_DIR}/aot_data\"")

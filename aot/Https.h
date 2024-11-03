@@ -1,12 +1,16 @@
 #pragma once
 
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/noncopyable.hpp>
+#include "boost/asio.hpp"
+#include "boost/asio/as_tuple.hpp"
+#include "boost/asio/co_spawn.hpp"
+#include "boost/asio/io_context.hpp"
+#include "boost/asio/ssl/context.hpp"
+#include "boost/asio/strand.hpp"
+#include "boost/beast/core.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/ssl.hpp"
+#include "boost/beast/version.hpp"
+#include "boost/noncopyable.hpp"
 #include <functional>
 #include <future>
 #include <memory>
@@ -73,6 +77,7 @@ class HttpsSession {
     Timeout timeout_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
+    virtual ~HttpsSession() = default;
     explicit HttpsSession(boost::asio::io_context& ioc, 
                             ssl::context& ctx,
                              _Timeout timeout, 
@@ -221,6 +226,334 @@ class HttpsSession {
     }
 
     // Close the session gracefully
+    void close_session() {
+        beast::get_lowest_layer(stream_).close();
+        is_expired_ = true;
+    }
+};
+
+template <typename _Timeout, typename ...AdditionalArgs>
+class HttpsSession2 {
+  public:
+    using Timeout = _Timeout;
+
+  private:
+    bool is_connected_ = false;
+    bool is_used_      = false;
+    bool is_expired_   = false;
+
+    /**
+     * @brief req variable must manage only via SetRequest() method
+     *
+     */
+    boost::beast::http::request<boost::beast::http::string_body> req_;
+
+    tcp::resolver resolver_;
+    beast::ssl_stream<beast::tcp_stream> stream_;
+    beast::flat_buffer buffer_;  // (Must persist between reads)
+    http::response<http::string_body> res_;
+    const OnHttpsResponce* cb_;
+    boost::asio::io_context& ioc_;
+    Timeout timeout_;
+    boost::asio::steady_timer timer_;  // Timer to track session expiration
+  public:
+    virtual ~HttpsSession2() = default;
+    explicit HttpsSession2(boost::asio::io_context& ioc, 
+                            ssl::context& ctx,
+                             _Timeout timeout, 
+                                
+                            const std::string_view host,
+                          const std::string_view port,
+                          AdditionalArgs&& ...)
+        : resolver_(net::make_strand(ioc)),
+          stream_(net::make_strand(ioc), ctx),
+          ioc_(ioc),
+          timeout_(timeout),
+          timer_(ioc)  // Initialize the timer
+    {
+        Run(host.data(), port.data(), nullptr, {});
+    }
+
+    template <typename CompletionHandler>
+    bool AsyncRequest(http::request<http::string_body>&& req,
+                      const CompletionHandler* handler) {
+        if (!IsConnected()) return false;
+        if (IsUsed()) return false;
+
+        is_used_ = true;
+        cb_      = handler;
+        req_     = std::move(req);
+        // Set up the timer for session expiration
+        //start_timer();
+
+        // Send the HTTP request asynchronously
+        http::async_write(
+            stream_, req_,
+            [this](beast::error_code ec, std::size_t bytes_transferred) {
+                this->on_write(ec, bytes_transferred);
+            });
+
+        return true;
+    }
+
+    // Close the session gracefully
+    void AsyncCloseSessionGracefully() {
+        // Perform SSL shutdown asynchronously
+        stream_.async_shutdown([this](beast::error_code ec) {
+            if (ec) {
+                // If shutdown fails, log the error but still close the socket
+                logi("SSL shutdown failed: {}", ec.message());
+            }
+
+            // Close the underlying TCP connection
+            close_session();
+        });
+    }
+
+    inline bool IsConnected() const { return is_connected_; }
+    inline bool IsExpired() const { return is_expired_; }
+    inline bool IsUsed() const { return is_used_; }
+
+  private:
+    // Start the asynchronous operation
+    void Run(char const* host, char const* port, char const* target,
+             http::request<http::string_body>&& req) {
+        if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
+            beast::error_code ec{static_cast<int>(::ERR_get_error()),
+                                 net::error::get_ssl_category()};
+            std::cerr << ec.message() << "\n";
+            return;
+        }
+
+
+        // Start the timer for expiration
+        start_timer();
+
+        // Start the resolver
+        resolver_.async_resolve(
+            host, port,
+            [this](beast::error_code ec, tcp::resolver::results_type results) {
+                this->on_resolve(ec, results);
+            });
+    }
+
+    // Start the session expiration timer
+    void start_timer() {
+        // Set the timer to expire after the specified timeout
+        timer_.expires_after(timeout_);
+
+        // Set up the handler to catch when the timer expires
+        timer_.async_wait([this](beast::error_code ec) {
+            if (ec !=
+                boost::asio::error::operation_aborted) {  // Ignore if the timer
+                                                          // was canceled
+                fail(ec, "session expired. it is closed by async timer");
+                close_session();
+            }
+        });
+    }
+
+    void on_resolve(beast::error_code ec, tcp::resolver::results_type results) {
+        if (ec) return fail(ec, "resolve");
+
+        beast::get_lowest_layer(stream_).async_connect(
+            results, [this](beast::error_code ec,
+                            tcp::resolver::results_type::endpoint_type) {
+                this->on_connect(ec);
+            });
+    }
+
+    void on_connect(beast::error_code ec) {
+        if (ec) return fail(ec, "connect");
+
+        stream_.async_handshake(
+            ssl::stream_base::client,
+            [this](beast::error_code ec) { this->on_handshake(ec); });
+    }
+
+    void on_handshake(beast::error_code ec) {
+        if (ec) return fail(ec, "handshake");
+
+        // Set the connected flag to true after a successful handshake
+        is_connected_ = true;
+    }
+
+    void on_write(beast::error_code ec, std::size_t bytes_transferred) {
+        boost::ignore_unused(bytes_transferred);
+        if (ec) return fail(ec, "write");
+
+        http::async_read(
+            stream_, buffer_, res_,
+            [this](beast::error_code ec, std::size_t bytes_transferred) {
+                this->on_read(ec, bytes_transferred);
+            });
+    }
+
+    void on_read(beast::error_code ec, std::size_t bytes_transferred) {
+        boost::ignore_unused(bytes_transferred);
+
+        if (ec) return fail(ec, "read");
+
+        //  Call the response callback
+        const auto& cb = *cb_;
+        cb(res_);
+        close_session();
+    }
+
+    // Handle session expiration or failure
+    void fail(beast::error_code ec, const char* what) {
+        logi("{}: {}", what, ec.message());
+        close_session();
+    }
+
+    // Close the session gracefully
+    void close_session() {
+        beast::get_lowest_layer(stream_).close();
+        is_expired_ = true;
+    }
+};
+
+template <typename _Timeout, typename... AdditionalArgs>
+class HttpsSession3 {
+public:
+    using Timeout = _Timeout;
+
+private:
+    bool is_connected_ = false;
+    bool is_used_      = false;
+    bool is_expired_   = false;
+    bool is_shutting_down_ = false;  // Flag to indicate if shutdown is in progress
+
+
+    boost::beast::http::request<boost::beast::http::string_body> req_;
+    tcp::resolver resolver_;
+    beast::ssl_stream<beast::tcp_stream> stream_;
+    beast::flat_buffer buffer_;
+    http::response<http::string_body> res_;
+    const OnHttpsResponce* cb_;
+    boost::asio::io_context& ioc_;
+    Timeout timeout_;
+    boost::asio::steady_timer timer_;
+
+public:
+    virtual ~HttpsSession3() = default;
+    explicit HttpsSession3(boost::asio::io_context& ioc, ssl::context& ctx, _Timeout timeout, const std::string_view host, const std::string_view port, AdditionalArgs&&...)
+        : resolver_(net::make_strand(ioc)),
+          stream_(net::make_strand(ioc), ctx),
+          ioc_(ioc),
+          timeout_(timeout),
+          timer_(ioc) {
+        net::co_spawn(ioc_, Run(host.data(), port.data()), [](std::exception_ptr e) {
+            if (e) std::rethrow_exception(e);
+        });
+    }
+
+    template <typename CompletionHandler>
+    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req, const CompletionHandler* handler, net::cancellation_slot& slot) {
+        if (!IsConnected() || IsUsed()) co_return false;
+        req_ = std::move(req);
+        cb_ = handler;
+        is_used_ = true;
+        slot.assign([this](boost::asio::cancellation_type_t) {
+            AsyncCloseSessionGracefully();
+        });
+        auto [ec_write, bytes_written] = co_await http::async_write(stream_, req_, net::as_tuple(net::use_awaitable));
+        if (ec_write) {
+            if (ec_write == net::error::operation_aborted) {
+                logd("Operation cancelled");
+            } else {
+                fail(ec_write, "write");
+            }
+            co_return false;
+        }
+
+        auto [ec_read, bytes_read] = co_await http::async_read(stream_, buffer_, res_, net::as_tuple(net::use_awaitable));
+        if (ec_read) {
+            if (ec_read == net::error::operation_aborted) {
+                logd("Operation cancelled");
+            } else {
+                fail(ec_read, "read");
+            }
+            co_return false;
+        }
+        try{
+            if (cb_) (*cb_)(res_);
+        }
+        catch (const boost::system::system_error& e) {
+            logi("Exception in cb: {}", e.what());
+            co_return false;
+        }
+        AsyncCloseSessionGracefully();
+        slot.clear();
+        co_return true;
+    }
+
+    // Close the session gracefully
+    void AsyncCloseSessionGracefully() {
+       boost::asio::post(ioc_, [this]() {
+        if (is_shutting_down_) {
+            logi("Shutdown is already in progress.");
+            return;
+        }
+        is_shutting_down_ = true;
+
+        stream_.async_shutdown([this](beast::error_code ec) {
+            if (ec) {
+                // Если `shutdown` завершился с ошибкой, логируем её, но всё равно закрываем соединение
+                logi("SSL shutdown failed: {}", ec.message());
+            }
+
+            // close tcp connection
+            close_session();
+        });
+    });
+    }
+
+    inline bool IsConnected() const { return is_connected_; }
+    inline bool IsExpired() const { return is_expired_; }
+    inline bool IsUsed() const { return is_used_; }
+
+private:
+    net::awaitable<void> Run(const char* host, const char* port) {
+        if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
+            auto ec = beast::error_code(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category());
+            loge("{}", ec.message());
+            co_return;
+        }
+        boost::beast::error_code ec;
+        start_timer();
+        auto results = co_await resolver_.async_resolve(host, port, net::use_awaitable);
+
+        auto ep = co_await beast::get_lowest_layer(stream_).async_connect(results, net::use_awaitable);
+        beast::get_lowest_layer(stream_).expires_never();
+
+
+        co_await stream_.async_handshake(ssl::stream_base::client,
+                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+
+        if (ec) {
+            loge("fail handshake");
+            co_return;
+        }
+
+        is_connected_ = true;
+    }
+
+    void start_timer() {
+        timer_.expires_after(timeout_);
+        timer_.async_wait([this](beast::error_code ec) {
+            if (ec != boost::asio::error::operation_aborted) {
+                fail(ec, "session expired. it is closed by async timer");
+                close_session();
+            }
+        });
+    }
+
+    void fail(beast::error_code ec, const char* what) {
+        logi("{}: {}", what, ec.message());
+        close_session();
+    }
+
     void close_session() {
         beast::get_lowest_layer(stream_).close();
         is_expired_ = true;
