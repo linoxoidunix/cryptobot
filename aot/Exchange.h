@@ -369,8 +369,7 @@ class BookEventGetterI {
   public:
     virtual boost::asio::awaitable<void> CoExec(
         Exchange::BusEventRequestDiffOrderBook
-            *bus_event_request_diff_order_book,
-        const OnWssResponse *callback) {
+            *bus_event_request_diff_order_book) {
         co_return;
     }
     virtual void AsyncStop() {}
@@ -378,6 +377,35 @@ class BookEventGetterI {
 };
 
 };  // namespace inner
+
+struct BidAskState {
+    bool is_first_run = true;                // Tracks if this is the first run
+    bool diff_packet_lost = true;            // Tracks if diff packet sequence is lost
+    bool snapshot_and_diff_was_synced = false; // Tracks synchronization state
+    bool snapshot_and_diff_now_sync = false; 
+    uint64_t last_id_diff_book_event = 0;    // Last processed diff book event ID
+    Exchange::BookSnapshot snapshot;         // Snapshot of the order book
+    explicit BidAskState() = default;
+    void Reset() {
+        is_first_run = true;
+        diff_packet_lost = true;
+        snapshot_and_diff_was_synced = false;
+        snapshot_and_diff_now_sync = false;
+        last_id_diff_book_event = 0;
+    }
+};
+
+/**
+ * @brief when you want get actual BBOPrice for current trading pair 
+ * for given Exchange you need launch this signal
+ * 
+ */
+struct BusEventRequestBBOPrice{
+  common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+  common::TradingPair trading_pair;
+  unsigned int snapshot_depth = 1000;
+  explicit BusEventRequestBBOPrice() = default;
+};
 
 using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
 using HTTPSesionType2 = V2::HttpsSession2<std::chrono::seconds>;

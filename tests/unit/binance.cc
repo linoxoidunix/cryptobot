@@ -68,7 +68,8 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
     request.exchange_id  = common::ExchangeId::kBinance;
     request.trading_pair = {2, 1};
 
-    Exchange::BusEventRequestDiffOrderBook bus_event_request(&request);
+    //Exchange::BusEventRequestDiffOrderBookPool mem_pool(5);
+    Exchange::BusEventRequestDiffOrderBook bus_event_request(nullptr, &request);
     bus_event_request.AddReference();
 
     uint64_t counter_successfull   = 0;
@@ -94,7 +95,8 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
         }
     };
     auto cancelation_slot = cancel_signal.slot();
-    component.AsyncHandleEvent(&bus_event_request, &cb);
+    component.RegisterCallback(request.trading_pair, &cb);
+    component.AsyncHandleEvent(&bus_event_request);
     thread_pool.join();
     session_pool.CloseAllSessions();
     work_guard.reset();

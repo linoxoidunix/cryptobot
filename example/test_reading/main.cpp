@@ -1672,79 +1672,148 @@
 //     io.run();
 //     return 0;
 // }
-//---------------------------------------
+//----------------------------------------------------------------------------------------
+
 //multiple cancel requests for coroutine
 
-namespace net = boost::asio;
+// namespace net = boost::asio;
 
-#include <boost/asio.hpp>
-#include <iostream>
-#include <vector>
-#include <functional>  // for std::reference_wrapper
+// #include <boost/asio.hpp>
+// #include <iostream>
+// #include <vector>
+// #include <functional>  // for std::reference_wrapper
 
-namespace net = boost::asio;
+// namespace net = boost::asio;
 
-net::cancellation_slot unify_cancellation_signals(net::cancellation_signal& unified_signal, std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {  
+// net::cancellation_slot unify_cancellation_signals(net::cancellation_signal& unified_signal, std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {  
 
-    for (auto& signal : signals) {
-        signal.get().slot().assign([&](net::cancellation_type type) {
-            unified_signal.emit(type);
-        });
+//     for (auto& signal : signals) {
+//         signal.get().slot().assign([&](net::cancellation_type type) {
+//             unified_signal.emit(type);
+//         });
+//     }
+
+//     return unified_signal.slot();
+// }
+
+// net::awaitable<void> cancellable_operation(net::cancellation_slot& slot) {
+//     auto executor = co_await net::this_coro::executor;
+
+//     net::steady_timer timer(executor, std::chrono::seconds(10));
+
+//     try {
+//         co_await timer.async_wait(net::bind_cancellation_slot(slot, net::use_awaitable));
+//         std::cout << "Operation completed.\n";
+//     } catch (const boost::system::system_error& e) {
+//         if (e.code() == net::error::operation_aborted) {
+//             std::cout << "Operation cancelled.\n";
+//         } else {
+//             throw;
+//         }
+//     }
+// }
+
+// int main() {
+//     boost::asio::thread_pool io;
+//     //net::io_context io;
+
+//     net::cancellation_signal signal1, signal2;
+//     net::cancellation_signal unified_signal;
+
+
+
+
+//     std::vector<std::reference_wrapper<net::cancellation_signal>> signals = {signal1, signal2};
+
+//     net::cancellation_slot unified_slot = unify_cancellation_signals(unified_signal, signals);
+
+//     unified_slot.assign([](boost::asio::cancellation_type_t&) {
+//          std::cout << "Cancellation requested!" << std::endl;
+//      });
+
+// unified_signal.slot().assign([&](net::cancellation_type type) {
+//          std::cout << "Cancellation requested!" << std::endl;
+//         });
+
+//     net::co_spawn(io, cancellable_operation(unified_slot), net::detached);
+//     //std::this_thread::sleep_for(std::chrono::seconds(3));
+    
+//     net::steady_timer delay_timer(io, std::chrono::nanoseconds(1));
+//     delay_timer.async_wait([&](const boost::system::error_code&) {
+//         std::cout << "Emitting cancellation signal...\n";
+//         signal2.emit(net::cancellation_type::all);
+//     });
+    
+//     //signal1.emit(net::cancellation_type::all);
+
+//     //io.run();
+//     io.join();
+// }
+//----------------------------------------------------------------------------------------
+#include <boost/intrusive_ptr.hpp>
+class MyClass {
+public:
+    MyClass() : ref_count_(0) {
+        std::cout << "MyClass constructed." << std::endl;
+    }
+    
+    ~MyClass() {
+        std::cout << "MyClass destructed." << std::endl;
     }
 
-    return unified_signal.slot();
-}
+    // Increment reference count atomically
+    void add_ref() const {
+        std::cout << "add_ref" << "\n";
+        ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
 
-net::awaitable<void> cancellable_operation(net::cancellation_slot& slot) {
-    auto executor = co_await net::this_coro::executor;
-
-    net::steady_timer timer(executor, std::chrono::seconds(10));
-
-    try {
-        co_await timer.async_wait(net::bind_cancellation_slot(slot, net::use_awaitable));
-        std::cout << "Operation completed.\n";
-    } catch (const boost::system::system_error& e) {
-        if (e.code() == net::error::operation_aborted) {
-            std::cout << "Operation cancelled.\n";
-        } else {
-            throw;
+    // Decrement reference count atomically and delete the object if count reaches zero
+    void release() const {
+        std::cout << "release" << "\n";
+        if (ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
+            // Ensure proper synchronization before deletion
+            std::atomic_thread_fence(std::memory_order_acquire);
+            delete this;
         }
     }
+
+    void say_hello() const {
+        std::cout << "Hello from MyClass!" << std::endl;
+    }
+
+private:
+    mutable std::atomic<int> ref_count_;  // Atomic reference count for thread safety
+};
+
+// Boost intrusive pointer reference counting functions
+void intrusive_ptr_add_ref(const MyClass* p) {
+    p->add_ref();
 }
 
+void intrusive_ptr_release(const MyClass* p) {
+    p->release();
+}
+
+void thread_func(boost::intrusive_ptr<MyClass> ptr) {
+    ptr->say_hello();
+}
+
+void func2(boost::intrusive_ptr<MyClass> ptr){
+    std::cout << "func2\n";
+}
+void func3(boost::intrusive_ptr<MyClass> ptr){
+    std::cout << "func3\n";
+}
+
+void func1(MyClass* ptr){
+    auto xxx = boost::intrusive_ptr<MyClass>(ptr);
+    func2(xxx);
+    func3(xxx);
+}
 int main() {
-    boost::asio::thread_pool io;
-    //net::io_context io;
-
-    net::cancellation_signal signal1, signal2;
-    net::cancellation_signal unified_signal;
-
-
-
-
-    std::vector<std::reference_wrapper<net::cancellation_signal>> signals = {signal1, signal2};
-
-    net::cancellation_slot unified_slot = unify_cancellation_signals(unified_signal, signals);
-
-    unified_slot.assign([](boost::asio::cancellation_type_t&) {
-         std::cout << "Cancellation requested!" << std::endl;
-     });
-
-unified_signal.slot().assign([&](net::cancellation_type type) {
-         std::cout << "Cancellation requested!" << std::endl;
-        });
-
-    net::co_spawn(io, cancellable_operation(unified_slot), net::detached);
-    //std::this_thread::sleep_for(std::chrono::seconds(3));
-    
-    net::steady_timer delay_timer(io, std::chrono::nanoseconds(1));
-    delay_timer.async_wait([&](const boost::system::error_code&) {
-        std::cout << "Emitting cancellation signal...\n";
-        signal2.emit(net::cancellation_type::all);
-    });
-    
-    //signal1.emit(net::cancellation_type::all);
-
-    //io.run();
-    io.join();
+    // Create an object and manage it using boost::intrusive_ptr
+    auto ptr = new MyClass();
+    func1(ptr);
+    int x = 0;
+    return 0;
 }

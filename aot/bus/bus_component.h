@@ -4,6 +4,7 @@
 
 //universal response event
 struct BusEventResponse;
+struct BusEventRequestBBOPrice;
 
 namespace position_keeper{
   //struct BusEventAddFill;
@@ -104,12 +105,20 @@ class Component {
      * @brief
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*, const OnWssResponse* cb){
+    virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*){
         //it is empty class
     };
 
     virtual void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot*){
         //it is empty class
     };
+    /**
+     * @brief
+     * 
+     */
+    virtual void AsyncHandleEvent(const BusEventRequestBBOPrice*){
+        //it is empty class
+    };
+    
 };
 };

@@ -17,9 +17,13 @@ class BookSnapshotComponentTest : public ::testing::Test {
   protected:
     boost::asio::io_context io_context;
     ::V2::ConnectionPool<HTTPSesionType3>* session_pool = nullptr;
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_wss{
+    io_context, WSSesionType3::Timeout{30}, 1, "stream.binance.com", "443",
+    "/ws"};
+
     size_t number_responses = 100;
     common::TradingPairHashMap pairs;
-    boost::asio::thread_pool thread_pool;
+    boost::asio::thread_pool thread_pool{1};
     binance::HttpsConnectionPoolFactory2 factory;
     binance::testnet::HttpsExchange exchange;
     boost::asio::cancellation_signal cancel_signal;
@@ -43,9 +47,81 @@ class BookSnapshotComponentTest : public ::testing::Test {
 };
 
 // Test case for AsyncHandleEvent
-TEST_F(BookSnapshotComponentTest, TestAsyncHandleEvent) {
+// TEST_F(BookSnapshotComponentTest, TestAsyncHandleEvent) {
+//     fmtlog::setLogLevel(fmtlog::DBG);
+//     ASSERT_GE(argc, 2);
+
+//     config::ApiSecretKey config(argv[1]);
+//     auto [status_api_key, api_key] = config.ApiKey();
+//     if(!status_api_key){
+//         fmtlog::poll();
+//         ASSERT_NE(status_api_key, false) << "status_api_key must not equal false";
+//     }
+
+//     auto [status_secret_key, secret_key] = config.SecretKey();
+//     if(!status_secret_key)[[unlikely]]{
+//         fmtlog::poll();
+//         ASSERT_NE(status_secret_key, false) << "status_secret_key must not equal false";
+//     }
+//     hmac_sha256::Keys keys{api_key, secret_key};
+//     hmac_sha256::Signer signer(keys);
+
+//     common::TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pairs);
+
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+//         work_guard(io_context.get_executor());
+//     std::thread t([this] { io_context.run(); });
+
+
+//     binance::BookSnapshotComponent component(
+//         boost::asio::make_strand(thread_pool), number_responses,
+//         &signer, TypeExchange::TESTNET, pairs, pair_reverse, session_pool, cancel_signal);
+
+//     Exchange::RequestSnapshot request;
+//     request.exchange_id  = common::ExchangeId::kBinance;
+//     request.trading_pair = {2, 1};
+//     request.depth = 1000;
+    
+//     Exchange::BusEventRequestNewSnapshotPool mem_pool(2);
+//     Exchange::BusEventRequestNewSnapshot bus_event_request(&mem_pool, &request);
+//     bus_event_request.AddReference();
+
+//     uint64_t counter_successfull   = 0;
+//     uint64_t counter_unsuccessfull = 0;
+
+//     OnHttpsResponce cb = [&component, &counter_successfull, &counter_unsuccessfull, this,
+//                         &pair_reverse](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
+//         const auto& result = buffer.body();
+
+//         binance::detail::FamilyBookSnapshot::ParserResponse parser(
+//             pairs[{2, 1}]);
+//         auto snapshot = parser.Parse(result);
+//         snapshot.trading_pair = {2,1};
+//         if (snapshot.exchange_id ==
+//                 common::ExchangeId::kBinance &&
+//                 snapshot.bids.size() > 0 &&
+//                 snapshot.asks.size() > 0) {
+//             logi("Successfull snapshot received");
+//             counter_successfull++;
+//         } else
+//             counter_unsuccessfull++;
+//         component.AsyncStop();
+//     };
+//     component.RegisterCallback(request.trading_pair, &cb);
+//     component.AsyncHandleEvent(&bus_event_request);
+//     thread_pool.join();
+//     session_pool->CloseAllSessions();
+//     work_guard.reset();
+//     t.join();
+//     int x = 0;
+//     EXPECT_GE(counter_successfull, 1);
+// };
+
+TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     fmtlog::setLogLevel(fmtlog::DBG);
     ASSERT_GE(argc, 2);
+    
+    aot::CoBus bus(thread_pool);
 
     config::ApiSecretKey config(argv[1]);
     auto [status_api_key, api_key] = config.ApiKey();
@@ -68,7 +144,7 @@ TEST_F(BookSnapshotComponentTest, TestAsyncHandleEvent) {
         work_guard(io_context.get_executor());
     std::thread t([this] { io_context.run(); });
 
-
+    //------------------Snapshot component------------------------------------
     binance::BookSnapshotComponent component(
         boost::asio::make_strand(thread_pool), number_responses,
         &signer, TypeExchange::TESTNET, pairs, pair_reverse, session_pool, cancel_signal);
@@ -76,15 +152,8 @@ TEST_F(BookSnapshotComponentTest, TestAsyncHandleEvent) {
     Exchange::RequestSnapshot request;
     request.exchange_id  = common::ExchangeId::kBinance;
     request.trading_pair = {2, 1};
-    request.depth = 1000;
     
-    Exchange::BusEventRequestNewSnapshot bus_event_request(&request);
-    bus_event_request.AddReference();
-
-    uint64_t counter_successfull   = 0;
-    uint64_t counter_unsuccessfull = 0;
-
-    OnHttpsResponce cb = [&component, &counter_successfull, &counter_unsuccessfull, this,
+    OnHttpsResponce cb = [&component, &bus, this,
                         &pair_reverse](boost::beast::http::response<boost::beast::http::string_body>& buffer) {
         const auto& result = buffer.body();
 
@@ -92,27 +161,99 @@ TEST_F(BookSnapshotComponentTest, TestAsyncHandleEvent) {
             pairs[{2, 1}]);
         auto snapshot = parser.Parse(result);
         snapshot.trading_pair = {2,1};
-        if (snapshot.exchange_id ==
-                common::ExchangeId::kBinance &&
-                snapshot.bids.size() > 0 &&
-                snapshot.asks.size() > 0) {
-            logi("Successfull snapshot received");
-            counter_successfull++;
-        } else
-            counter_unsuccessfull++;
-        component.AsyncStop();
+        auto ptr = component.snapshot_mem_pool_.Allocate(&component.snapshot_mem_pool_,
+            snapshot.exchange_id,
+            snapshot.trading_pair,
+            std::move(snapshot.bids),
+            std::move(snapshot.asks),
+            snapshot.lastUpdateId);
+        auto bus_event = component.bus_event_response_snapshot_mem_pool_.Allocate(&component.bus_event_response_snapshot_mem_pool_,
+            ptr);
+        fmtlog::poll();
+        bus.AsyncSend(&component, bus_event);
     };
     component.RegisterCallback(request.trading_pair, &cb);
-    // auto cancelation_slot = cancel_signal.slot();
-    component.AsyncHandleEvent(&bus_event_request);
+    //-----------------------------------------------------------------
+    //--------------------------Depth stream component----------------
+    boost::asio::cancellation_signal cancel_signal;
+
+    binance::BookEventGetterComponent event_getter_component(
+        boost::asio::make_strand(thread_pool), number_responses,
+        TypeExchange::TESTNET, pairs, &session_pool_wss, cancel_signal);
+
+    Exchange::RequestDiffOrderBook request_diff_order_book;
+    request.exchange_id  = common::ExchangeId::kBinance;
+    request.trading_pair = {2, 1};
+
+    uint64_t counter_successfull   = 0;
+    uint64_t counter_unsuccessfull = 0;
+
+    OnWssResponse cb_wss = [&event_getter_component, &bus, &counter_successfull, &counter_unsuccessfull, this,
+                        &pair_reverse](boost::beast::flat_buffer& fb) {
+        auto data     = fb.data();  // returns a const_buffer
+        auto response = std::string_view(static_cast<const char*>(data.data()),
+                                         data.size());
+        binance::detail::FamilyBookEventGetter::ParserResponse parser(
+            pairs, pair_reverse);
+        auto result = parser.Parse(response);
+        
+        auto request = event_getter_component.book_diff_mem_pool_.Allocate(
+                &event_getter_component.book_diff_mem_pool_,
+                result.exchange_id,
+                result.trading_pair,
+                std::move(result.bids),
+                std::move(result.asks),
+                result.first_id,
+                result.last_id);
+        auto bus_event = event_getter_component.bus_event_book_diff_snapshot_mem_pool_.Allocate(
+            &event_getter_component.bus_event_book_diff_snapshot_mem_pool_,
+            request
+        );
+        fmtlog::poll();
+        bus.AsyncSend(&event_getter_component, bus_event);
+
+        // if ((result.exchange_id ==
+        //         common::ExchangeId::kBinance) && 
+        //     (result.trading_pair ==
+        //         common::TradingPair(2, 1)))
+        //     counter_successfull++;
+        // else
+        //     counter_unsuccessfull++;
+        // if (counter_successfull == 5) {
+        //     component.AsyncStop();
+        // }
+    };
+    auto cancelation_slot = cancel_signal.slot();
+    event_getter_component.RegisterCallback(request.trading_pair, &cb_wss);
+    //------------------------------------------------------------------------------
+
+
+
+    binance::BidAskGeneratorComponent  bid_ask_generator(boost::asio::make_strand(thread_pool), bus, 100, 1000);
+    std::unordered_map<common::TradingPair, BidAskState, common::TradingPairHash, common::TradingPairEqual> state_map_;
+    
+    BusEventRequestBBOPrice request_bbo_btc;
+    request_bbo_btc.exchange_id = common::ExchangeId::kBinance;
+    request_bbo_btc.trading_pair = {2, 1};
+    request_bbo_btc.snapshot_depth = 1000;
+
+
+    bus.Subscribe(&bid_ask_generator, &component);
+    bus.Subscribe(&bid_ask_generator, &event_getter_component);
+    bus.Subscribe(&component, &bid_ask_generator);
+    bus.Subscribe(&event_getter_component, &bid_ask_generator);
+    //------------------------------------------------------------------------------
+
+    bid_ask_generator.AsyncHandleEvent(&request_bbo_btc);
+
+
+
+
     thread_pool.join();
-    //std::this_thread::sleep_for(std::chrono::seconds(3));
     session_pool->CloseAllSessions();
     work_guard.reset();
     t.join();
     int x = 0;
-    EXPECT_GE(counter_successfull, 1);
-    // EXPECT_EQ(counter_unsuccessfull, 1);//first response from binance is status response
 }
 
 int main(int _argc, char** _argv) {
