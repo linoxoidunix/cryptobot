@@ -2024,7 +2024,7 @@ class BidAskGeneratorComponent : public bus::Component {
         state.snapshot     = std::move(*wrapped_event);
         //wrapped_event->Release();
         //event->Release();
-        fmtlog::poll();
+        //fmtlog::poll();
 
         co_return;
     }
@@ -2101,7 +2101,7 @@ class BidAskGeneratorComponent : public bus::Component {
             // TODO add diff to BUSEVENT
             //assert(false);
         }
-        fmtlog::poll();
+        //fmtlog::poll();
         //diff.Release();
         co_return;
     }
