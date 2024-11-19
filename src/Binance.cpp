@@ -59,10 +59,10 @@ Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Pars
             book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
                                             static_cast<int>(pair[1] * qty_prec));
         }
-        book_snapshot.exchange_id = common::ExchangeId::kBinance;
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
+    book_snapshot.exchange_id = common::ExchangeId::kBinance;
     return book_snapshot;
 }
 
@@ -127,6 +127,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         auto snapshot_and_diff_now_sync =
             (item.first_id <= snapshot_.lastUpdateId + 1) &&
             (item.last_id >= snapshot_.lastUpdateId + 1);
+        need_snapshot += !snapshot_and_diff_now_sync;
         if (need_snapshot) [[unlikely]] {
             snapshot_and_diff_was_synced = false;
             Exchange::MEMarketUpdate event_clear_queue;
@@ -156,6 +157,11 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
                     "snapshot_.lastUpdateId = {}",
                     item.ToString(), snapshot_.lastUpdateId);
             } else {
+                /**
+                 * @brief TODO may be there is a problem
+                 * getting snapshot if snapshot last update id < diff last update id
+                 * need test it
+                 */
                 logd(
                     "snapshot too old snapshot_.lastUpdateId = {}. Need "
                     "new snapshot",
@@ -293,12 +299,11 @@ binance::detail::FamilyLimitOrder::ParserResponse::Parse(
         } else {
             loge("no key origQty in response");
         }
-        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error in FamilyLimitOrder response: {}", error.what());
     }
-
+    output.exchange_id = common::ExchangeId::kBinance;
     return output;
 }
 
@@ -341,11 +346,11 @@ binance::detail::FamilyCancelOrder::ParserResponse::Parse(
             loge("pairs_reverse not contain {}", ticker);
             return {};
         }
-        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (const simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
     }
+    output.exchange_id = common::ExchangeId::kBinance;
     return output;
 }
 
@@ -436,7 +441,8 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
             loge("pairs_reverse not contain {}", trading_pair);
             return {};
         }
-
+        if(book_diff_snapshot.trading_pair.first != 2 || book_diff_snapshot.trading_pair.second != 1 )
+            int x = 0;
         auto price_prec = std::pow(
             10, pairs_[book_diff_snapshot.trading_pair].price_precission);
         auto qty_prec = std::pow(
@@ -465,10 +471,9 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
                 static_cast<int>(pair[0] * price_prec),
                 static_cast<int>(pair[1] * qty_prec));
         }
-        book_diff_snapshot.exchange_id = common::ExchangeId::kBinance;
     } catch (const simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
     }
-
+    book_diff_snapshot.exchange_id = common::ExchangeId::kBinance;
     return book_diff_snapshot;
 }

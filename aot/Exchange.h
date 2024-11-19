@@ -379,17 +379,19 @@ class BookEventGetterI {
 };  // namespace inner
 
 struct BidAskState {
-    bool is_first_run = true;                // Tracks if this is the first run
+    bool need_make_snapshot = true;                // Tracks if this is the first run
     bool diff_packet_lost = true;            // Tracks if diff packet sequence is lost
-    bool snapshot_and_diff_was_synced = false; // Tracks synchronization state
+    bool need_process_current_snapshot = false; // Tracks synchronization state
+    bool need_process_current_diff = false; // Tracks synchronization state
     bool snapshot_and_diff_now_sync = false; 
     uint64_t last_id_diff_book_event = 0;    // Last processed diff book event ID
     Exchange::BookSnapshot snapshot;         // Snapshot of the order book
     explicit BidAskState() = default;
     void Reset() {
-        is_first_run = true;
+        need_make_snapshot = true;
         diff_packet_lost = true;
-        snapshot_and_diff_was_synced = false;
+        need_process_current_snapshot = false;
+        need_process_current_diff = false;
         snapshot_and_diff_now_sync = false;
         last_id_diff_book_event = 0;
     }
@@ -405,6 +407,10 @@ struct BusEventRequestBBOPrice{
   common::TradingPair trading_pair;
   unsigned int snapshot_depth = 1000;
   explicit BusEventRequestBBOPrice() = default;
+  friend void intrusive_ptr_release(BusEventRequestBBOPrice* ptr){
+  }
+  friend void intrusive_ptr_add_ref(BusEventRequestBBOPrice* ptr) {
+  }
 };
 
 using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/intrusive_ptr.hpp>
+
 #include "aot/Types.h"
 
 //universal response event
@@ -116,7 +118,7 @@ class Component {
      * @brief
      * 
      */
-    virtual void AsyncHandleEvent(const BusEventRequestBBOPrice*){
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<BusEventRequestBBOPrice>){
         //it is empty class
     };
     

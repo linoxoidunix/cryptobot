@@ -70,7 +70,7 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEvent) {
 
     //Exchange::BusEventRequestDiffOrderBookPool mem_pool(5);
     Exchange::BusEventRequestDiffOrderBook bus_event_request(nullptr, &request);
-    bus_event_request.AddReference();
+    //bus_event_request.AddReference();
 
     uint64_t counter_successfull   = 0;
     uint64_t counter_unsuccessfull = 0;

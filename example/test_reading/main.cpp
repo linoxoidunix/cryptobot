@@ -1750,70 +1750,199 @@
 //     io.join();
 // }
 //----------------------------------------------------------------------------------------
-#include <boost/intrusive_ptr.hpp>
-class MyClass {
-public:
-    MyClass() : ref_count_(0) {
-        std::cout << "MyClass constructed." << std::endl;
-    }
+// #include <boost/intrusive_ptr.hpp>
+// class MyClass {
+// public:
+//     MyClass() : ref_count_(0) {
+//         std::cout << "MyClass constructed." << std::endl;
+//     }
     
-    ~MyClass() {
-        std::cout << "MyClass destructed." << std::endl;
+//     ~MyClass() {
+//         std::cout << "MyClass destructed." << std::endl;
+//     }
+
+//     // Increment reference count atomically
+//     void add_ref() const {
+//         std::cout << "add_ref" << "\n";
+//         ref_count_.fetch_add(1, std::memory_order_relaxed);
+//     }
+
+//     // Decrement reference count atomically and delete the object if count reaches zero
+//     void release() const {
+//         std::cout << "release" << "\n";
+//         if (ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
+//             // Ensure proper synchronization before deletion
+//             std::atomic_thread_fence(std::memory_order_acquire);
+//             delete this;
+//         }
+//     }
+
+//     void say_hello() const {
+//         std::cout << "Hello from MyClass!" << std::endl;
+//     }
+
+// private:
+//     mutable std::atomic<int> ref_count_;  // Atomic reference count for thread safety
+// };
+
+// // Boost intrusive pointer reference counting functions
+// void intrusive_ptr_add_ref(const MyClass* p) {
+//     p->add_ref();
+// }
+
+// void intrusive_ptr_release(const MyClass* p) {
+//     p->release();
+// }
+
+// void thread_func(boost::intrusive_ptr<MyClass> ptr) {
+//     ptr->say_hello();
+// }
+
+// void func2(boost::intrusive_ptr<MyClass> ptr){
+//     std::cout << "func2\n";
+// }
+// void func3(boost::intrusive_ptr<MyClass> ptr){
+//     std::cout << "func3\n";
+// }
+
+// void func1(MyClass* ptr){
+//     auto xxx = boost::intrusive_ptr<MyClass>(ptr);
+//     func2(xxx);
+//     func3(xxx);
+// }
+// int main() {
+//     // Create an object and manage it using boost::intrusive_ptr
+//     auto ptr = new MyClass();
+//     func1(ptr);
+//     int x = 0;
+//     return 0;
+// }
+//----------------------------------------------------------------------------------------
+#include <boost/intrusive_ptr.hpp>
+#include <iostream>
+#include <atomic>
+#include <thread>
+#include <vector>
+#include <chrono>
+#include <mutex>
+
+// Base class for intrusive reference counting
+class RefCounted {
+public:
+    RefCounted() : ref_count_(0) {}
+
+    friend void intrusive_ptr_add_ref(RefCounted* obj) {
+        obj->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    // Increment reference count atomically
-    void add_ref() const {
-        std::cout << "add_ref" << "\n";
-        ref_count_.fetch_add(1, std::memory_order_relaxed);
-    }
-
-    // Decrement reference count atomically and delete the object if count reaches zero
-    void release() const {
-        std::cout << "release" << "\n";
-        if (ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
-            // Ensure proper synchronization before deletion
-            std::atomic_thread_fence(std::memory_order_acquire);
-            delete this;
+    friend void intrusive_ptr_release(RefCounted* obj) {
+        if (obj->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            delete obj;
         }
     }
+    
+    int GetRefCount(){
+        return ref_count_.load(std::memory_order_relaxed);
+    }
+protected:
+    virtual ~RefCounted() = default;
 
-    void say_hello() const {
-        std::cout << "Hello from MyClass!" << std::endl;
+private:
+    std::atomic<int> ref_count_;
+};
+
+// Event class
+class Event : public RefCounted {
+public:
+    explicit Event(int id) : id_(id) {}
+    ~Event() {
+        std::cout << "Event destroyed: " << id_ << "\n";
+    }
+
+    int getId() const {
+        return id_;
     }
 
 private:
-    mutable std::atomic<int> ref_count_;  // Atomic reference count for thread safety
+    int id_;
 };
 
-// Boost intrusive pointer reference counting functions
-void intrusive_ptr_add_ref(const MyClass* p) {
-    p->add_ref();
+// BusEvent class
+class BusEvent : public RefCounted {
+public:
+    explicit BusEvent(boost::intrusive_ptr<Event> event)
+        : event_(std::move(event)) {}
+
+    ~BusEvent() {
+        std::cout << "BusEvent destroyed\n";
+    }
+
+    const boost::intrusive_ptr<Event>& getEvent() const {
+        return event_;
+    }
+
+private:
+    boost::intrusive_ptr<Event> event_;
+};
+
+// Factory functions
+boost::intrusive_ptr<Event> make_event(int id) {
+    return boost::intrusive_ptr<Event>(new Event(id));
 }
 
-void intrusive_ptr_release(const MyClass* p) {
-    p->release();
+boost::intrusive_ptr<BusEvent> make_bus_event(boost::intrusive_ptr<Event> event) {
+    return boost::intrusive_ptr<BusEvent>(new BusEvent(std::move(event)));
 }
 
-void thread_func(boost::intrusive_ptr<MyClass> ptr) {
-    ptr->say_hello();
+// Worker function
+void process_bus_events(std::vector<boost::intrusive_ptr<BusEvent>> bus_events) {
+    for (const auto& bus_event : bus_events) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "Processing BusEvent with Event ID: "
+                  << bus_event->getEvent()->getId() << "\n";
+    }
 }
 
-void func2(boost::intrusive_ptr<MyClass> ptr){
-    std::cout << "func2\n";
-}
-void func3(boost::intrusive_ptr<MyClass> ptr){
-    std::cout << "func3\n";
-}
-
-void func1(MyClass* ptr){
-    auto xxx = boost::intrusive_ptr<MyClass>(ptr);
-    func2(xxx);
-    func3(xxx);
-}
 int main() {
-    // Create an object and manage it using boost::intrusive_ptr
-    auto ptr = new MyClass();
-    func1(ptr);
-    int x = 0;
+    // Synchronization for logging
+    std::mutex log_mutex;
+
+    // Create a long-lived Event
+    auto event = make_event(42);
+
+    {
+        // Create BusEvents
+        auto bus_event1 = make_bus_event(event);
+        auto bus_event2 = make_bus_event(event);
+
+        // Simulate multi-threaded processing
+        std::vector<boost::intrusive_ptr<BusEvent>> bus_events = {bus_event1, bus_event2};
+
+        std::thread worker1([&] {
+            process_bus_events(bus_events);
+            std::lock_guard<std::mutex> lock(log_mutex);
+            std::cout << "Worker 1 finished\n";
+        });
+
+        std::thread worker2([&] {
+            process_bus_events(bus_events);
+            std::lock_guard<std::mutex> lock(log_mutex);
+            std::cout << "Worker 2 finished\n";
+        });
+
+        worker1.join();
+        worker2.join();
+
+        std::cout << "Resetting BusEvents\n";
+        bus_events.clear(); // Clear local references to BusEvent
+    }
+
+    std::cout << "BusEvents are destroyed, but Event is still alive.\n";
+
+    // Event reset after BusEvent scope
+    std::cout << "Resetting Event\n";
+    std::cout << event->GetRefCount() << std::endl;
+    event.reset();
+
     return 0;
 }

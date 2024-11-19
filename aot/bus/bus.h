@@ -38,18 +38,28 @@ protected:
     void Subscribe(bus::Component* publisher, bus::Component* subscriber) {
         subscribers_[publisher].push_back(subscriber);
     }
-
+    /**
+     * @brief 
+     * 
+     * @tparam T must be boost::intrusive_ptr
+     * @param publisher 
+     * @param event 
+     */
     template <class T>
-    void AsyncSend(bus::Component* publisher, T* event){
+    void AsyncSend(bus::Component* publisher, T event){
+        if(!event){
+            loge("event = nullptr");
+            return;
+        }
         logd("start send order from {}", (void*)publisher);
         auto it = subscribers_.find(publisher);
         if (it != subscribers_.end()) {
             logd("found {} subscribers", it->second.size());
-            SetNumberCopyEvent(event, it->second.size());
             for (auto component : it->second) {
+                //pass copy of event
                 boost::asio::post(
                     strand_, [component, event]() { 
-                        event->Accept(component); 
+                        event.get()->Accept(component); 
                         });
             }
         }
@@ -57,13 +67,6 @@ protected:
 
     void Join() { pool_.join(); }
     virtual ~Bus(){logd("dtor Bus");}
-  protected:
-    template <class T>
-    void SetNumberCopyEvent(T* event, size_t number) const{
-    for (auto i = 0; i < number; i++) {
-            event->AddReference();
-        }
-    }
 };
 
 // class CoBus : public Bus {
@@ -98,37 +101,43 @@ protected:
         subscribers_[publisher].push_back(subscriber);
     }
 
+    /**
+     * @brief 
+     * 
+     * @tparam T must be boost::intrusive_ptr
+     * @param publisher 
+     * @param event 
+     */
     template <class T>
-    void AsyncSend(bus::Component* publisher, T* event){
+    void AsyncSend(bus::Component* publisher, T event){
+        if(!event){
+            loge("event = nullptr");
+            return;
+        }
         logd("start send order from {}", (void*)publisher);
         auto it = subscribers_.find(publisher);
         if (it != subscribers_.end()) {
             logd("found {} subscribers", it->second.size());
-            SetNumberCopyEvent(event, it->second.size());
             for (auto component : it->second) {
+                //pass copy of event
                 boost::asio::post(
                     strand_, [component, event]() { 
-                        event->Accept(component); 
+                        event.get()->Accept(component); 
                         });
             }
         }
     }
-    boost::asio::awaitable<void> CoSend(bus::Component* publisher, bus::Event* event) {
-            logi("suspend coroutine");
-            co_await boost::asio::post(strand_, boost::asio::use_awaitable);
-            logi("resume coroutine");
-            AsyncSend(publisher, event);
-            co_return;
-        }   
+
+    template <class T>
+    boost::asio::awaitable<void> CoSend(bus::Component* publisher, T event) {
+        logi("suspend coroutine");
+        co_await boost::asio::post(strand_, boost::asio::use_awaitable);
+        logi("resume coroutine");
+        AsyncSend(publisher, event);
+        co_return;
+    }   
     void Join() { pool_.join(); }
     virtual ~CoBus(){logd("dtor Bus");}
-  protected:
-    template <class T>
-    void SetNumberCopyEvent(T* event, size_t number) const{
-    for (auto i = 0; i < number; i++) {
-            event->AddReference();
-        }
-    }
 };
 
 

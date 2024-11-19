@@ -6,6 +6,7 @@
 #include "aot/Types.h"
 #include "aot/event/general_event.h"
 #include "boost/asio/awaitable.hpp"
+#include <boost/intrusive_ptr.hpp>
 
 namespace bus {
 class Component;
@@ -51,32 +52,14 @@ class Event {
     std::atomic<int> ref_count_{0};  // Atomic counter for reference counting
 };
 
-template < typename BusPool, typename Pool>
+template < typename BusPool>
 class Event2 {
   public:
-    Event2(BusPool* memory_pool, aot::Event<Pool>* event)
-        : wrapped_event_(event), memory_pool_(memory_pool) {
-        // if (wrapped_event_) {
-        //     wrapped_event_
-        //         ->AddReference();  // Increment reference count for Event
-        // }
+    Event2(BusPool* memory_pool)
+        : memory_pool_(memory_pool) {
     }
 
     virtual ~Event2() {
-        if (wrapped_event_) {
-            wrapped_event_->Release();  // Decrement reference count for Event
-        }
-    }
-
-    void AddReference() {
-        ref_count_.fetch_add(1, std::memory_order_relaxed);
-        if (wrapped_event_) {
-            wrapped_event_
-                ->AddReference();  // Increment reference count for Event
-        }
-    }
-
-    virtual void Release() {
     }
 
     virtual void Accept(bus::Component*) {};
@@ -92,7 +75,6 @@ class Event2 {
     };
 
   protected:
-    aot::Event<Pool>* wrapped_event_;  // Pointer to wrapped Event
     BusPool* memory_pool_;             // Pointer to the memory pool
     std::atomic<int> ref_count_{0};  // Reference count for BusEvent
 };
