@@ -480,8 +480,14 @@ class WssSession3 {
     // Start the asynchronous operation
     net::awaitable<void> Run(const char* host, const char* port,
                              const char* default_end_point) {
-        auto results =
-            co_await resolver_.async_resolve(host, port, net::use_awaitable);
+        beast::error_code ec;
+
+        auto results = co_await resolver_.async_resolve(
+                host, port, net::redirect_error(net::use_awaitable, ec));
+        if (ec) {
+            loge("Failed to resolve host '{}:{}': {}", host, port, ec.message());
+            co_return;
+        }
         if (!SSL_set_tlsext_host_name(stream_.next_layer().native_handle(),
                                       host)) {
             auto ec = beast::error_code(static_cast<int>(::ERR_get_error()),
@@ -490,14 +496,22 @@ class WssSession3 {
             co_return;
         }
         start_timer();
-        auto ep = co_await beast::get_lowest_layer(stream_).async_connect(
-            results, net::use_awaitable);
+        auto ep = co_await beast::get_lowest_layer(stream_)
+                          .async_connect(results, net::redirect_error(net::use_awaitable, ec));
+        if (ec) {
+            loge("Failed to connect to endpoint: {}", ec.message());
+            co_return;
+        }
         // Turn off the timeout on the tcp_stream, because
         // the websocket stream has its own timeout system.
         beast::get_lowest_layer(stream_).expires_never();
 
         co_await stream_.next_layer().async_handshake(ssl::stream_base::client,
-                                                      net::use_awaitable);
+                                                          net::redirect_error(net::use_awaitable, ec));
+        if (ec) {
+            loge("SSL handshake failed: {}", ec.message());
+            co_return;
+        }
         // Set suggested timeout settings for the websocket
         stream_.set_option(websocket::stream_base::timeout::suggested(
             beast::role_type::client));
@@ -509,7 +523,11 @@ class WssSession3 {
                             " websocket-client-async-ssl");
             }));
         co_await stream_.async_handshake(host, default_end_point,
-                                         net::use_awaitable);
+                                             net::redirect_error(net::use_awaitable, ec));
+        if (ec) {
+            loge("WebSocket handshake failed: {}", ec.message());
+            co_return;
+        }
 
         is_connected_ = true;
         timer_.cancel();
