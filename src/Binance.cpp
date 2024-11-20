@@ -4,49 +4,71 @@
 #include <unordered_set>
 
 #include "aot/Logger.h"
+#include "nlohmann/json.hpp"
 #include "simdjson.h"
 
 using namespace std::literals;
 
-Exchange::BookSnapshot binance::BookSnapshot::ParserResponse::Parse(
+std::string binance::ArgsBody::Body() {
+    nlohmann::json json_object;
+
+    for (const auto& [key, value] : *this) {
+        if (key == "params") {
+            json_object[key] = {value};
+            continue;
+        }
+        // Check if the value starts and ends with quotes
+        if (value.front() == '"' && value.back() == '"') {
+            // Remove the quotes and store the value as a string
+            json_object[key] = value.substr(1, value.size() - 2);
+        }
+    }
+    return json_object.dump();
+}
+
+Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Parse(
     std::string_view response) {
-    //NEED ADD EXCHANGE ID FIELD
-    assert(false);
+    // NEED ADD EXCHANGE ID FIELD
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
-    auto price_prec = std::pow(10, pair_info_.price_precission);
-    auto qty_prec   = std::pow(10, pair_info_.qty_precission);
-    for (auto all : doc["bids"]) {
-        simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;  // price + qty
-        uint8_t i = 0;
-        for (auto number : arr) {
-            pair[i] = number.get_double_in_string();
-            i++;
+    try{
+        book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
+        auto price_prec = std::pow(10, pair_info_.price_precission);
+        auto qty_prec   = std::pow(10, pair_info_.qty_precission);
+        for (auto all : doc["bids"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;  // price + qty
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                            static_cast<int>(pair[1] * qty_prec));
         }
-        book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                        static_cast<int>(pair[1] * qty_prec));
-    }
-    for (auto all : doc["asks"]) {
-        simdjson::ondemand::array arr = all.get_array();
-        std::array<double, 2> pair;  // price + qty
-        uint8_t i = 0;
-        for (auto number : arr) {
-            pair[i] = number.get_double_in_string();
-            i++;
+        for (auto all : doc["asks"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;  // price + qty
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
+                                            static_cast<int>(pair[1] * qty_prec));
         }
-        book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                        static_cast<int>(pair[1] * qty_prec));
+    } catch (simdjson::simdjson_error& error) {
+        loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
+    book_snapshot.exchange_id = common::ExchangeId::kBinance;
     return book_snapshot;
 }
 
 Exchange::BookDiffSnapshot binance::BookEventGetter::ParserResponse::Parse(
     std::string_view response) {
-    //NEED ADD EXCHANGE ID FIELD
+    // NEED ADD EXCHANGE ID FIELD
     assert(false);
     Exchange::BookDiffSnapshot book_diff_snapshot;
     simdjson::ondemand::parser parser;
@@ -105,6 +127,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
         auto snapshot_and_diff_now_sync =
             (item.first_id <= snapshot_.lastUpdateId + 1) &&
             (item.last_id >= snapshot_.lastUpdateId + 1);
+        need_snapshot += !snapshot_and_diff_now_sync;
         if (need_snapshot) [[unlikely]] {
             snapshot_and_diff_was_synced = false;
             Exchange::MEMarketUpdate event_clear_queue;
@@ -112,7 +135,7 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
             logd("clear order book. try make snapshot");
             event_lfqueue_->enqueue(event_clear_queue);
 
-            binance::BookSnapshot::ArgsOrder args{
+            binance::detail::FamilyBookSnapshot::ArgsOrder args{
                 ticker_hash_map_[trading_pair_.first],
                 ticker_hash_map_[trading_pair_.second],
                 1000};  // TODO parametrize 1000
@@ -134,6 +157,11 @@ auto binance::GeneratorBidAskService::Run() noexcept -> void {
                     "snapshot_.lastUpdateId = {}",
                     item.ToString(), snapshot_.lastUpdateId);
             } else {
+                /**
+                 * @brief TODO may be there is a problem
+                 * getting snapshot if snapshot last update id < diff last update id
+                 * need test it
+                 */
                 logd(
                     "snapshot too old snapshot_.lastUpdateId = {}. Need "
                     "new snapshot",
@@ -185,9 +213,10 @@ binance::GeneratorBidAskService::GeneratorBidAskService(
         std::make_unique<BookEventGetter>(pair_info_, interval, type_exchange_);
 }
 
-Exchange::MEClientResponse binance::detail::FamilyLimitOrder::ParserResponse::Parse(
+Exchange::MEClientResponse
+binance::detail::FamilyLimitOrder::ParserResponse::Parse(
     std::string_view response) {
-        Exchange::MEClientResponse output;
+    Exchange::MEClientResponse output;
     simdjson::ondemand::parser parser;
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
@@ -201,23 +230,24 @@ Exchange::MEClientResponse binance::detail::FamilyLimitOrder::ParserResponse::Pa
             }
             return true;
         };
-        
+
         // Getting ticker
         std::string_view ticker;
-        if (!getStringView("symbol", ticker) || !pairs_reverse_.count(ticker)) 
+        if (!getStringView("symbol", ticker) || !pairs_reverse_.count(ticker))
             return {};
 
         output.trading_pair = pairs_reverse_.find(ticker)->second;
 
         // Getting order_id
-        output.order_id = doc["clientOrderId"].get_uint64_in_string();
-        
+        output.order_id     = doc["clientOrderId"].get_uint64_in_string();
+
         // Getting status
         std::string_view status;
         if (!getStringView("status", status)) return {};
 
         // Checking for success status
-        const std::unordered_set<std::string_view> success_status{"NEW", "PARTIALLY_FILLED", "FILLED"};
+        const std::unordered_set<std::string_view> success_status{
+            "NEW", "PARTIALLY_FILLED", "FILLED"};
         if (!success_status.contains(status)) return {};
 
         // Handling price based on status
@@ -225,44 +255,60 @@ Exchange::MEClientResponse binance::detail::FamilyLimitOrder::ParserResponse::Pa
 
         if (status == "NEW"sv) {
             output.type = Exchange::ClientResponseType::ACCEPTED;
-            if (doc["price"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
-            output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
+            if (doc["price"].get_double_in_string().get(price) !=
+                simdjson::SUCCESS)
+                return {};
+            output.price = static_cast<common::Price>(
+                price *
+                std::pow(10, pairs_[output.trading_pair].price_precission));
 
         } else if (status == "PARTIALLY_FILLED"sv || status == "FILLED"sv) {
             output.type = Exchange::ClientResponseType::FILLED;
-            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price) != simdjson::SUCCESS) return {};
-            output.price = static_cast<common::Price>(price * std::pow(10, pairs_[output.trading_pair].price_precission));
+            if (doc["cummulativeQuoteQty"].get_double_in_string().get(price) !=
+                simdjson::SUCCESS)
+                return {};
+            output.price = static_cast<common::Price>(
+                price *
+                std::pow(10, pairs_[output.trading_pair].price_precission));
         }
 
         // Handling side
         std::string_view side;
         if (getStringView("side", side)) {
-            output.side = (side == "BUY"sv) ? common::Side::BUY : 
-                          (side == "SELL"sv) ? common::Side::SELL : output.side;
+            output.side = (side == "BUY"sv)    ? common::Side::BUY
+                          : (side == "SELL"sv) ? common::Side::SELL
+                                               : output.side;
         }
 
         // Getting executed quantity
         double executed_qty = 0;
-        if (doc["executedQty"].get_double_in_string().get(executed_qty) != simdjson::SUCCESS) return {};
-        output.exec_qty = static_cast<common::Qty>(executed_qty * std::pow(10, pairs_[output.trading_pair].qty_precission));
+        if (doc["executedQty"].get_double_in_string().get(executed_qty) !=
+            simdjson::SUCCESS)
+            return {};
+        output.exec_qty = static_cast<common::Qty>(
+            executed_qty *
+            std::pow(10, pairs_[output.trading_pair].qty_precission));
 
         // Getting original quantity and calculating leaves quantity
         double orig_qty;
-        if (doc["origQty"].get_double_in_string().get(orig_qty) == simdjson::SUCCESS) {
-            output.leaves_qty = static_cast<common::Qty>((orig_qty - executed_qty) * std::pow(10, pairs_[output.trading_pair].qty_precission));
+        if (doc["origQty"].get_double_in_string().get(orig_qty) ==
+            simdjson::SUCCESS) {
+            output.leaves_qty = static_cast<common::Qty>(
+                (orig_qty - executed_qty) *
+                std::pow(10, pairs_[output.trading_pair].qty_precission));
         } else {
             loge("no key origQty in response");
         }
-        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (simdjson::simdjson_error& error) {
-        loge("JSON error: {}", error.what());
+        loge("JSON error in FamilyLimitOrder response: {}", error.what());
     }
-
+    output.exchange_id = common::ExchangeId::kBinance;
     return output;
 }
 
-Exchange::MEClientResponse binance::detail::FamilyCancelOrder::ParserResponse::Parse(
+Exchange::MEClientResponse
+binance::detail::FamilyCancelOrder::ParserResponse::Parse(
     std::string_view response) {
     Exchange::MEClientResponse output;
     simdjson::ondemand::parser parser;
@@ -300,11 +346,11 @@ Exchange::MEClientResponse binance::detail::FamilyCancelOrder::ParserResponse::P
             loge("pairs_reverse not contain {}", ticker);
             return {};
         }
-        output.exchange_id = common::ExchangeId::kBinance;
 
     } catch (const simdjson::simdjson_error& error) {
         loge("JSON error: {}", error.what());
     }
+    output.exchange_id = common::ExchangeId::kBinance;
     return output;
 }
 
@@ -358,6 +404,76 @@ OHLCVExt binance::OHLCVI::ParserResponse::Parse(std::string_view response) {
         output.trading_pair = pairs_reverse_.find(ticker)->second;
     } else {
         loge("pairs_reverse not contain {}", ticker);
+        return {};
     }
     return output;
+}
+
+Exchange::BookDiffSnapshot
+binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
+    std::string_view response) {
+    Exchange::BookDiffSnapshot book_diff_snapshot;
+    simdjson::ondemand::parser parser;
+    simdjson::padded_string my_padded_data(response.data(), response.size());
+    simdjson::ondemand::document doc = parser.iterate(my_padded_data);
+    try {
+        book_diff_snapshot.first_id = doc["U"].get_uint64();
+        book_diff_snapshot.last_id  = doc["u"].get_uint64();
+
+        auto get_value_s = [&](const char* key, std::string_view& variable,
+                               const char* error_msg) -> bool {
+            if (auto error = doc[key].get_string().get(variable);
+                error != simdjson::SUCCESS) [[unlikely]] {
+                loge("{}", error_msg);
+                return false;
+            }
+            return true;
+        };
+        std::string_view trading_pair;
+        if (!get_value_s("s", trading_pair, "no trading_pair in response")) {
+            return {};  // Early return if any value fetch fails
+        }
+
+        if (pairs_reverse_.count(trading_pair)) [[likely]] {
+            book_diff_snapshot.trading_pair =
+                pairs_reverse_.find(trading_pair)->second;
+        } else {
+            loge("pairs_reverse not contain {}", trading_pair);
+            return {};
+        }
+        if(book_diff_snapshot.trading_pair.first != 2 || book_diff_snapshot.trading_pair.second != 1 )
+            int x = 0;
+        auto price_prec = std::pow(
+            10, pairs_[book_diff_snapshot.trading_pair].price_precission);
+        auto qty_prec = std::pow(
+            10, pairs_[book_diff_snapshot.trading_pair].qty_precission);
+        for (auto all : doc["b"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_diff_snapshot.bids.emplace_back(
+                static_cast<int>(pair[0] * price_prec),
+                static_cast<int>(pair[1] * qty_prec));
+        }
+        for (auto all : doc["a"]) {
+            simdjson::ondemand::array arr = all.get_array();
+            std::array<double, 2> pair;
+            uint8_t i = 0;
+            for (auto number : arr) {
+                pair[i] = number.get_double_in_string();
+                i++;
+            }
+            book_diff_snapshot.asks.emplace_back(
+                static_cast<int>(pair[0] * price_prec),
+                static_cast<int>(pair[1] * qty_prec));
+        }
+    } catch (const simdjson::simdjson_error& error) {
+        loge("JSON error: {}", error.what());
+    }
+    book_diff_snapshot.exchange_id = common::ExchangeId::kBinance;
+    return book_diff_snapshot;
 }

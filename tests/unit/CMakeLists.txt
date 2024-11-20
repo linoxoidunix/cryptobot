@@ -28,3 +28,4 @@ cxx_executable(wallet_asset ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unorde
 cxx_executable(mempool ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main gmock_main)
 cxx_executable(thread_utils ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main gmock_main)
 cxx_executable(https ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main)
+cxx_executable(binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main)

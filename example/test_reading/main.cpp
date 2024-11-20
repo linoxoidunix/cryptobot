@@ -1381,12 +1381,12 @@
 //     exchange_trading_pairs_reverse[binance_id] = common::InitTPsJR(pairs);
 
 //     HTTPSSessionPool session_pools;
-//     binance::ConnectionPoolFactory factory;
+//     binance::HttpsConnectionPoolFactory factory;
     
 //     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
 
     
-//     auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
+//     auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange );
 //     //::V2::ConnectionPool<HTTPSesionType>* pool = nullptr;
 //     std::thread t([&ioc] {      
 //         ioc.run();
@@ -1562,58 +1562,387 @@
 //     return 0;
 // }
 //----------------------------------------------------------------------------------------
-#include "aot/WS.h"
-#include "aot/Https.h"
-#include "string_view"
-/**
- * @brief connect to binance using connection_pool with WssSession based on coroutines
- * , subscribe on diff depth stream and shutdown after 20s
- * 
- * @return int 
- */
-int main(){
-    binance::testnet::HttpsExchange exchange;
-    boost::asio::io_context ioc;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
+// #include "aot/WS.h"
+// #include "aot/Https.h"
+// #include "string_view"
+// /**
+//  * @brief connect to binance using connection_pool with WssSession based on coroutines
+//  * , subscribe on diff depth stream and shutdown after 20s
+//  * 
+//  * @return int 
+//  */
+// int main(){
+//     binance::testnet::HttpsExchange exchange;
+//     boost::asio::io_context ioc;
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
     
-    std::thread t([&ioc] {      
-         ioc.run();
-    });
+//     std::thread t([&ioc] {      
+//          ioc.run();
+//     });
     
-    ssl::context ssl_ctx{ssl::context::sslv23};
+//     ssl::context ssl_ctx{ssl::context::sslv23};
 
-    using WSS = WssSession<std::chrono::seconds>;
-    const std::string_view host = "stream.binance.com";
-    const std::string_view port = "443";
-    const std::string_view default_endpoint = "/ws";
-    V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
+//     using WSS = WssSession<std::chrono::seconds>;
+//     const std::string_view host = "stream.binance.com";
+//     const std::string_view port = "443";
+//     const std::string_view default_endpoint = "/ws";
+//     V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
 
-    //binance::HttpsConnectionPoolFactory factory;
-    
-
-    
-   //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
+//     //binance::HttpsConnectionPoolFactory factory; 
+//     //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
 
 
-    auto ws = connection_pool.AcquireConnection();
-    //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
-    OnWssResponse cb = [](boost::beast::flat_buffer& fb){
-        auto result = boost::beast::buffers_to_string(fb.data());
-        std::cout << result << std::endl;
-    };
-    std::string g = "{\"method\": \"SUBSCRIBE\",\
-     \"params\": [\"btcusdt@depth\"],\
-     \"id\": 1}";
-    using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(10s);
+//     auto ws = connection_pool.AcquireConnection();
+//     //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
+//     OnWssResponse cb = [](boost::beast::flat_buffer& fb){
+//         auto result = boost::beast::buffers_to_string(fb.data());
+//         std::cout << result << std::endl;
+//     };
+//     std::string g = "{\"method\": \"SUBSCRIBE\",\
+//      \"params\": [\"btcusdt@depth\"],\
+//      \"id\": 1}";
+//     using namespace std::literals::chrono_literals;
+//     std::this_thread::sleep_for(10s);
     
-    boost::asio::thread_pool thread_pool;
+//     boost::asio::thread_pool thread_pool;
 
-    boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
+//     boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
     
-    std::this_thread::sleep_for(60s);
-    ws->AsyncCloseSessionGracefully();
-    work_guard.reset();
-    t.join(); 
+//     std::this_thread::sleep_for(60s);
+//     ws->AsyncCloseSessionGracefully();
+//     work_guard.reset();
+//     t.join(); 
+//     return 0;
+// }
+
+//----------------------------------------------------------------------------------------
+//check cancellation coroutine
+// Define the cancellation handler function
+// void cancellation_handler(boost::asio::cancellation_type type) {
+//     std::cout << "Cancellation handler invoked. Type: "
+//               << (type == boost::asio::cancellation_type::all ? "all" : "partial") 
+//               << std::endl;
+// }
+
+// // A coroutine that performs repeated tasks, with cancellation support
+// boost::asio::awaitable<void> cancellable_coroutine(boost::asio::cancellation_slot slot) {
+//     auto executor = co_await boost::asio::this_coro::executor;
+
+//     // Install the cancellation handler
+//     slot.assign(cancellation_handler);  
+
+//     for (int i = 0; i < 10; ++i) {
+//         // Create a timer to simulate work
+//         boost::asio::steady_timer timer(executor, std::chrono::seconds(1));
+        
+//         // Wait asynchronously, respecting the cancellation slot
+//         boost::system::error_code ec;
+//         co_await timer.async_wait(boost::asio::bind_cancellation_slot(slot, boost::asio::redirect_error(boost::asio::use_awaitable, ec)));
+
+//         // Check for cancellation during or immediately after async_wait
+//         if (ec == boost::asio::error::operation_aborted) {
+//             std::cout << "Coroutine was canceled during async_wait on iteration " << i << "." << std::endl;
+//             co_return; // Exit the coroutine
+//         }
+
+//         std::cout << "Completed iteration " << i << "." << std::endl;
+//     }
+
+//     std::cout << "Coroutine completed normally without cancellation." << std::endl;
+// }
+
+// int main() {
+//     boost::asio::io_context io;
+//     boost::asio::cancellation_signal cancel_signal;
+
+//     // Get the cancellation slot
+//     boost::asio::cancellation_slot slot = cancel_signal.slot();
+
+//     // Spawn the cancellable coroutine
+//     boost::asio::co_spawn(io, cancellable_coroutine(slot), boost::asio::detached);
+
+//     // Schedule cancellation to be triggered after 3 seconds
+//     boost::asio::steady_timer cancel_timer(io, std::chrono::seconds(1));
+//     cancel_timer.async_wait([&](const boost::system::error_code&) {
+//         std::cout << "Requesting coroutine cancellation from main." << std::endl;
+//         cancel_signal.emit(boost::asio::cancellation_type::all);  // Trigger cancellation
+//     });
+
+//     // Run the io_context to start processing
+//     io.run();
+//     return 0;
+// }
+//----------------------------------------------------------------------------------------
+
+//multiple cancel requests for coroutine
+
+// namespace net = boost::asio;
+
+// #include <boost/asio.hpp>
+// #include <iostream>
+// #include <vector>
+// #include <functional>  // for std::reference_wrapper
+
+// namespace net = boost::asio;
+
+// net::cancellation_slot unify_cancellation_signals(net::cancellation_signal& unified_signal, std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {  
+
+//     for (auto& signal : signals) {
+//         signal.get().slot().assign([&](net::cancellation_type type) {
+//             unified_signal.emit(type);
+//         });
+//     }
+
+//     return unified_signal.slot();
+// }
+
+// net::awaitable<void> cancellable_operation(net::cancellation_slot& slot) {
+//     auto executor = co_await net::this_coro::executor;
+
+//     net::steady_timer timer(executor, std::chrono::seconds(10));
+
+//     try {
+//         co_await timer.async_wait(net::bind_cancellation_slot(slot, net::use_awaitable));
+//         std::cout << "Operation completed.\n";
+//     } catch (const boost::system::system_error& e) {
+//         if (e.code() == net::error::operation_aborted) {
+//             std::cout << "Operation cancelled.\n";
+//         } else {
+//             throw;
+//         }
+//     }
+// }
+
+// int main() {
+//     boost::asio::thread_pool io;
+//     //net::io_context io;
+
+//     net::cancellation_signal signal1, signal2;
+//     net::cancellation_signal unified_signal;
+
+
+
+
+//     std::vector<std::reference_wrapper<net::cancellation_signal>> signals = {signal1, signal2};
+
+//     net::cancellation_slot unified_slot = unify_cancellation_signals(unified_signal, signals);
+
+//     unified_slot.assign([](boost::asio::cancellation_type_t&) {
+//          std::cout << "Cancellation requested!" << std::endl;
+//      });
+
+// unified_signal.slot().assign([&](net::cancellation_type type) {
+//          std::cout << "Cancellation requested!" << std::endl;
+//         });
+
+//     net::co_spawn(io, cancellable_operation(unified_slot), net::detached);
+//     //std::this_thread::sleep_for(std::chrono::seconds(3));
+    
+//     net::steady_timer delay_timer(io, std::chrono::nanoseconds(1));
+//     delay_timer.async_wait([&](const boost::system::error_code&) {
+//         std::cout << "Emitting cancellation signal...\n";
+//         signal2.emit(net::cancellation_type::all);
+//     });
+    
+//     //signal1.emit(net::cancellation_type::all);
+
+//     //io.run();
+//     io.join();
+// }
+//----------------------------------------------------------------------------------------
+// #include <boost/intrusive_ptr.hpp>
+// class MyClass {
+// public:
+//     MyClass() : ref_count_(0) {
+//         std::cout << "MyClass constructed." << std::endl;
+//     }
+    
+//     ~MyClass() {
+//         std::cout << "MyClass destructed." << std::endl;
+//     }
+
+//     // Increment reference count atomically
+//     void add_ref() const {
+//         std::cout << "add_ref" << "\n";
+//         ref_count_.fetch_add(1, std::memory_order_relaxed);
+//     }
+
+//     // Decrement reference count atomically and delete the object if count reaches zero
+//     void release() const {
+//         std::cout << "release" << "\n";
+//         if (ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
+//             // Ensure proper synchronization before deletion
+//             std::atomic_thread_fence(std::memory_order_acquire);
+//             delete this;
+//         }
+//     }
+
+//     void say_hello() const {
+//         std::cout << "Hello from MyClass!" << std::endl;
+//     }
+
+// private:
+//     mutable std::atomic<int> ref_count_;  // Atomic reference count for thread safety
+// };
+
+// // Boost intrusive pointer reference counting functions
+// void intrusive_ptr_add_ref(const MyClass* p) {
+//     p->add_ref();
+// }
+
+// void intrusive_ptr_release(const MyClass* p) {
+//     p->release();
+// }
+
+// void thread_func(boost::intrusive_ptr<MyClass> ptr) {
+//     ptr->say_hello();
+// }
+
+// void func2(boost::intrusive_ptr<MyClass> ptr){
+//     std::cout << "func2\n";
+// }
+// void func3(boost::intrusive_ptr<MyClass> ptr){
+//     std::cout << "func3\n";
+// }
+
+// void func1(MyClass* ptr){
+//     auto xxx = boost::intrusive_ptr<MyClass>(ptr);
+//     func2(xxx);
+//     func3(xxx);
+// }
+// int main() {
+//     // Create an object and manage it using boost::intrusive_ptr
+//     auto ptr = new MyClass();
+//     func1(ptr);
+//     int x = 0;
+//     return 0;
+// }
+//----------------------------------------------------------------------------------------
+#include <boost/intrusive_ptr.hpp>
+#include <iostream>
+#include <atomic>
+#include <thread>
+#include <vector>
+#include <chrono>
+#include <mutex>
+
+// Base class for intrusive reference counting
+class RefCounted {
+public:
+    RefCounted() : ref_count_(0) {}
+
+    friend void intrusive_ptr_add_ref(RefCounted* obj) {
+        obj->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    friend void intrusive_ptr_release(RefCounted* obj) {
+        if (obj->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            delete obj;
+        }
+    }
+    
+    int GetRefCount(){
+        return ref_count_.load(std::memory_order_relaxed);
+    }
+protected:
+    virtual ~RefCounted() = default;
+
+private:
+    std::atomic<int> ref_count_;
+};
+
+// Event class
+class Event : public RefCounted {
+public:
+    explicit Event(int id) : id_(id) {}
+    ~Event() {
+        std::cout << "Event destroyed: " << id_ << "\n";
+    }
+
+    int getId() const {
+        return id_;
+    }
+
+private:
+    int id_;
+};
+
+// BusEvent class
+class BusEvent : public RefCounted {
+public:
+    explicit BusEvent(boost::intrusive_ptr<Event> event)
+        : event_(std::move(event)) {}
+
+    ~BusEvent() {
+        std::cout << "BusEvent destroyed\n";
+    }
+
+    const boost::intrusive_ptr<Event>& getEvent() const {
+        return event_;
+    }
+
+private:
+    boost::intrusive_ptr<Event> event_;
+};
+
+// Factory functions
+boost::intrusive_ptr<Event> make_event(int id) {
+    return boost::intrusive_ptr<Event>(new Event(id));
+}
+
+boost::intrusive_ptr<BusEvent> make_bus_event(boost::intrusive_ptr<Event> event) {
+    return boost::intrusive_ptr<BusEvent>(new BusEvent(std::move(event)));
+}
+
+// Worker function
+void process_bus_events(std::vector<boost::intrusive_ptr<BusEvent>> bus_events) {
+    for (const auto& bus_event : bus_events) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "Processing BusEvent with Event ID: "
+                  << bus_event->getEvent()->getId() << "\n";
+    }
+}
+
+int main() {
+    // Synchronization for logging
+    std::mutex log_mutex;
+
+    // Create a long-lived Event
+    auto event = make_event(42);
+
+    {
+        // Create BusEvents
+        auto bus_event1 = make_bus_event(event);
+        auto bus_event2 = make_bus_event(event);
+
+        // Simulate multi-threaded processing
+        std::vector<boost::intrusive_ptr<BusEvent>> bus_events = {bus_event1, bus_event2};
+
+        std::thread worker1([&] {
+            process_bus_events(bus_events);
+            std::lock_guard<std::mutex> lock(log_mutex);
+            std::cout << "Worker 1 finished\n";
+        });
+
+        std::thread worker2([&] {
+            process_bus_events(bus_events);
+            std::lock_guard<std::mutex> lock(log_mutex);
+            std::cout << "Worker 2 finished\n";
+        });
+
+        worker1.join();
+        worker2.join();
+
+        std::cout << "Resetting BusEvents\n";
+        bus_events.clear(); // Clear local references to BusEvent
+    }
+
+    std::cout << "BusEvents are destroyed, but Event is still alive.\n";
+
+    // Event reset after BusEvent scope
+    std::cout << "Resetting Event\n";
+    std::cout << event->GetRefCount() << std::endl;
+    event.reset();
+
     return 0;
 }

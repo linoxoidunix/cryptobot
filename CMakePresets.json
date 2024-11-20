@@ -3,7 +3,7 @@
     "configurePresets": [
         {
             "name": "cryptobot_dbg",
-            "displayName": "GCC x86_64 Debug",
+            "displayName": "GCC Debug",
             "description": "Using compilers: C = /usr/bin/g++",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
@@ -14,13 +14,37 @@
         },
         {
             "name": "cryptobot_release",
-            "displayName": "GCC x86_64 Release",
+            "displayName": "GCC Release",
             "description": "Using compilers: C = /usr/bin/g++",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
                 "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "cryptobot_dbg_local",
+            "displayName": "GCC Debug Local",
+            "description": "Using compilers: C = /usr/bin/g++",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON"
+            }
+        },
+        {
+            "name": "cryptobot_release_local",
+            "displayName": "GCC Release Local",
+            "description": "Using compilers: C = /usr/bin/g++",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Release",
+                "LOCAL_TEST": "ON"
             }
         }
     ],

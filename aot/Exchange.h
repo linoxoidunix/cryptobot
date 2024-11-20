@@ -1,34 +1,26 @@
 #pragma once
 
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
-
-#include "boost/asio/awaitable.hpp"
-#include "boost/algorithm/string.hpp"
-#include "boost/beast/http.hpp"
-
-
-
-
 #include "aot/Https.h"
 #include "aot/Logger.h"
+#include "aot/WS.h"
 #include "aot/client_response.h"
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
+#include "boost/algorithm/string.hpp"
+#include "boost/asio/awaitable.hpp"
+#include "boost/beast/http.hpp"
 #include "concurrentqueue.h"
 
-// enum class ExchangeName{
-//   kBinance,
-//   kBybit,
-//   kMexc
-// };
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
 
@@ -70,11 +62,11 @@ class CurrentTime {
 };
 class SignerI {
   public:
-    virtual std::string Sign(std::string_view data) = 0;
+    virtual std::string Sign(std::string_view data)            = 0;
     virtual std::string SignByLowerCase(std::string_view data) = 0;
 
-    virtual std::string_view ApiKey()               = 0;
-    virtual ~SignerI()                              = default;
+    virtual std::string_view ApiKey()                          = 0;
+    virtual ~SignerI()                                         = default;
 };
 namespace hmac_sha256 {
 struct Keys {
@@ -114,6 +106,7 @@ class Signer : public SignerI {
     }
     std::string_view ApiKey() override { return api_key_; }
     ~Signer() override = default;
+
   private:
     std::string B2aHex(const std::uint8_t *p, std::size_t n) {
         static const char hex[] = "0123456789abcdef";
@@ -221,8 +214,6 @@ class BookEventGetterI {
     virtual ~BookEventGetterI()                         = default;
 };
 
-
-
 /**
  * @brief make stream channel for fetch kline from exchange
  *
@@ -230,10 +221,10 @@ class BookEventGetterI {
 class KLineStreamI {
   public:
     /**
-   * @brief for different exchanges ChartInterval has different format 1m or 1s or
-   * 1M or 1d
-   *
-   */
+     * @brief for different exchanges ChartInterval has different format 1m or
+     * 1s or 1M or 1d
+     *
+     */
     class ChartInterval {
       public:
         virtual std::string ToString() const = 0;
@@ -325,6 +316,7 @@ class RequestNewOrder;
 class BusEventRequestNewLimitOrder;
 class RequestCancelOrder;
 class BusEventRequestCancelOrder;
+class BusEventRequestDiffOrderBook;
 };  // namespace Exchange
 
 namespace inner {
@@ -338,11 +330,12 @@ class OrderNewI {
     virtual void Exec(Exchange::RequestNewOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
 
-    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestNewLimitOrder* order, 
-                                             const OnHttpsResponce& cb ) {
-    co_return;
-    }  
-    virtual ~OrderNewI()                                 = default;
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewLimitOrder *order,
+        const OnHttpsResponce &cb) {
+        co_return;
+    }
+    virtual ~OrderNewI() = default;
 };
 
 class CancelOrderI {
@@ -354,25 +347,85 @@ class CancelOrderI {
      */
     virtual void Exec(Exchange::RequestCancelOrder *,
                       Exchange::ClientResponseLFQueue *) = 0;
-    virtual boost::asio::awaitable<void> CoExec(Exchange::BusEventRequestCancelOrder* order, 
-                                             const OnHttpsResponce& cb ) {
-    co_return;
-    }  
-    virtual ~CancelOrderI()                              = default;
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestCancelOrder *order,
+        const OnHttpsResponce &cb) {
+        co_return;
+    }
+    virtual ~CancelOrderI() = default;
 };
 
 class BookSnapshotI {
   public:
-    virtual void Exec()      = 0;
+    virtual void Exec() {};
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestNewSnapshot *bus_event_request_new_snapshot) {
+        co_return;
+    }
     virtual ~BookSnapshotI() = default;
+};
+
+class BookEventGetterI {
+  public:
+    virtual boost::asio::awaitable<void> CoExec(
+        Exchange::BusEventRequestDiffOrderBook
+            *bus_event_request_diff_order_book) {
+        co_return;
+    }
+    virtual void AsyncStop() {}
+    virtual ~BookEventGetterI() = default;
 };
 
 };  // namespace inner
 
+struct BidAskState {
+    bool need_make_snapshot = true;                // Tracks if this is the first run
+    bool diff_packet_lost = true;            // Tracks if diff packet sequence is lost
+    bool need_process_current_snapshot = false; // Tracks synchronization state
+    bool need_process_current_diff = false; // Tracks synchronization state
+    bool snapshot_and_diff_now_sync = false; 
+    uint64_t last_id_diff_book_event = 0;    // Last processed diff book event ID
+    Exchange::BookSnapshot snapshot;         // Snapshot of the order book
+    explicit BidAskState() = default;
+    void Reset() {
+        need_make_snapshot = true;
+        diff_packet_lost = true;
+        need_process_current_snapshot = false;
+        need_process_current_diff = false;
+        snapshot_and_diff_now_sync = false;
+        last_id_diff_book_event = 0;
+    }
+};
+
+/**
+ * @brief when you want get actual BBOPrice for current trading pair 
+ * for given Exchange you need launch this signal
+ * 
+ */
+struct BusEventRequestBBOPrice{
+  common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+  common::TradingPair trading_pair;
+  unsigned int snapshot_depth = 1000;
+  explicit BusEventRequestBBOPrice() = default;
+  friend void intrusive_ptr_release(BusEventRequestBBOPrice* ptr){
+  }
+  friend void intrusive_ptr_add_ref(BusEventRequestBBOPrice* ptr) {
+  }
+};
+
 using HTTPSesionType = V2::HttpsSession<std::chrono::seconds>;
+using HTTPSesionType2 = V2::HttpsSession2<std::chrono::seconds>;
+using HTTPSesionType3 = V2::HttpsSession3<std::chrono::seconds>;
+using WSSesionType   = WssSession<std::chrono::seconds>;
+using WSSesionType2  = WssSession2<std::chrono::seconds>;
+using WSSesionType3  = WssSession3<std::chrono::seconds>;
+
 using HTTPSSessionPool =
     std::unordered_map<common::ExchangeId,
                        V2::ConnectionPool<HTTPSesionType> *>;
+
+using WSSessionPool =
+    std::unordered_map<common::ExchangeId, V2::ConnectionPool<WSSesionType> *>;
 using NewLimitOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::OrderNewI *>;
 using CancelOrderExecutors =
@@ -382,8 +435,14 @@ class HttpsConnectionPoolFactory {
   public:
     virtual ~HttpsConnectionPoolFactory() = default;
     virtual V2::ConnectionPool<HTTPSesionType> *Create(
-       boost::asio::io_context& io_context,
-        HTTPSesionType::Timeout timeout,
-        std::size_t pool_size,
-        https::ExchangeI* exchange) = 0;
+        boost::asio::io_context &io_context, HTTPSesionType::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI *exchange) = 0;
+};
+
+class HttpsConnectionPoolFactory2 {
+  public:
+    virtual ~HttpsConnectionPoolFactory2() = default;
+    virtual V2::ConnectionPool<HTTPSesionType3> *Create(
+        boost::asio::io_context &io_context, HTTPSesionType3::Timeout timeout,
+        std::size_t pool_size, https::ExchangeI *exchange) = 0;
 };
