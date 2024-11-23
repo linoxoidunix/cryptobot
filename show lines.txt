@@ -1,0 +1,6 @@
+show lines lib
+git ls-files "*.cpp" "*.h" | grep -vE "^(build|tests|example|aot/third_party)/" | xargs wc -l
+
+show lines for test
+cd test
+git ls-files "*.cpp" "*.cc" "*.h" | xargs wc -l

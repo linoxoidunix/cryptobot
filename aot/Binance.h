@@ -990,7 +990,7 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
                 auto req = args.Body();
                 logd("end prepare event getter for binance request");
 
-                //bus_event_request_diff_order_book->Release();
+                // bus_event_request_diff_order_book->Release();
 
                 auto session = session_pool_->AcquireConnection();
                 logd("start send event getter for binance request");
@@ -999,7 +999,7 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
                                                                  callback);
                     status == false)
                     loge("AsyncRequest finished unsuccessfully");
-                //bus_event_request_diff_order_book->WrappedEvent()->Release();
+                // bus_event_request_diff_order_book->WrappedEvent()->Release();
                 logd("end send event getter for binance request");
                 co_return;
             },
@@ -1082,8 +1082,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
                 auto req = args.Body();
                 logd("end prepare event getter for binance request");
 
-                //bus_event_request_diff_order_book->Release();
-                //bus_event_request_diff_order_book->WrappedEvent()->Release();
+                // bus_event_request_diff_order_book->Release();
+                // bus_event_request_diff_order_book->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("start send event getter for binance request");
 
@@ -1805,8 +1805,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 auto req = factory();
                 logd("end prepare new snapshot request");
 
-                //bus_event_request_new_snapshot->Release();
-                //bus_event_request_new_snapshot->WrappedEvent()->Release();
+                // bus_event_request_new_snapshot->Release();
+                // bus_event_request_new_snapshot->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
 
@@ -1963,7 +1963,7 @@ class BidAskGeneratorComponent : public bus::Component {
         request_bus_event_diff_mem_pool_;
     common::MemoryPool<Exchange::RequestDiffOrderBook> request_diff_mem_pool_;
 
-//  public:
+    //  public:
     explicit BidAskGeneratorComponent(Executor&& executor, aot::CoBus& bus,
                                       const unsigned int number_snapshots,
                                       const unsigned int number_diff)
@@ -1983,7 +1983,8 @@ class BidAskGeneratorComponent : public bus::Component {
         boost::asio::co_spawn(executor_, HandleBookDiffSnapshotEvent(event),
                               boost::asio::detached);
     };
-    void AsyncHandleEvent(boost::intrusive_ptr<BusEventRequestBBOPrice> event) override {
+    void AsyncHandleEvent(
+        boost::intrusive_ptr<BusEventRequestBBOPrice> event) override {
         boost::asio::co_spawn(executor_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
@@ -2022,93 +2023,77 @@ class BidAskGeneratorComponent : public bus::Component {
         logd("Processing new snapshot for {}", trading_pair.ToString());
         auto wrapped_event = event->WrappedEvent();
         state.snapshot     = std::move(*wrapped_event);
-        //wrapped_event->Release();
-        //event->Release();
-        //fmtlog::poll();
-
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         Exchange::BusEventBookDiffSnapshot* event) {
-        auto& diff              = *event->WrappedEvent();
+        auto& diff = *event->WrappedEvent();
         logi("diff:{} is accepted", diff.ToString());
 
-        //event->Release();
         const auto& exchange_id = diff.exchange_id;
         if (exchange_id != common::ExchangeId::kBinance) {
             loge("binance::BidAskGeneratorComponent can't process {}",
                  exchange_id);
-            //diff.Release();
             co_return;
         }
         auto trading_pair = diff.trading_pair;
         auto& state       = state_map_[trading_pair];
         logi("now snap:{}", state.snapshot.ToString());
         state.diff_packet_lost =
-            //!state.need_make_snapshot &&
             (diff.first_id != state.last_id_diff_book_event + 1);
-        //auto need_snapshot = (state.need_make_snapshot || state.diff_packet_lost);
+
 
         state.last_id_diff_book_event = diff.last_id;
 
-        if(state.need_make_snapshot){
+        if (state.need_make_snapshot) {
             bool snapshot_and_diff_now_sync =
                 (diff.first_id <= state.snapshot.lastUpdateId + 1) &&
                 (diff.last_id >= state.snapshot.lastUpdateId + 1);
-            if(snapshot_and_diff_now_sync){
-                state.need_make_snapshot = false;
+            if (snapshot_and_diff_now_sync) {
+                state.need_make_snapshot            = false;
                 state.need_process_current_snapshot = true;
             }
         }
-        auto need_snapshot = (state.need_make_snapshot || state.diff_packet_lost);
-        
-        if (need_snapshot) {
+        auto need_snapshot =
+            (state.need_make_snapshot || state.diff_packet_lost);
 
+        if (need_snapshot) {
             if (diff.last_id <= state.snapshot.lastUpdateId) {
-                //wait new diff
+                // wait new diff
                 co_return;
             }
-            // } else if (snapshot_and_diff_now_sync) {
-            //     //state.need_make_snapshot = false;
-            //     logd(
-            //         "add snapshot and diff {} to order book. "
-            //         "snapshot_.lastUpdateId = {}",
-            //         diff.ToString(), state.snapshot.lastUpdateId);
-            // } 
-            else {
-                logd(
-                    "snapshot too old snapshot_.lastUpdateId = {}. Need "
-                    "new snapshot",
-                    state.snapshot.lastUpdateId);
-                state.need_make_snapshot = true;
-                co_await RequestNewSnapshot(trading_pair);
-                //diff.Release();
-                co_return;
-            }
+            logd(
+                "snapshot too old snapshot_.lastUpdateId = {}. Need "
+                "new snapshot",
+                state.snapshot.lastUpdateId);
+            state.need_make_snapshot = true;
+            co_await RequestNewSnapshot(trading_pair);
+            co_return;
         }
         if (state.need_process_current_snapshot) {
             logd("add {} to order book", state.snapshot.ToString());
             // snapshot_.AddToQueue(*event_lfqueue_);
             // TODO add snapshot to BUSEVENT
             state.need_process_current_snapshot = false;
-            state.need_process_current_diff = true;
-            //assert(false);
+            state.need_process_current_diff     = true;
+            // assert(false);
         }
         if (!state.diff_packet_lost && state.need_process_current_diff) {
             logd("add {} to order book. snapshot_.lastUpdateId = {}",
                  diff.ToString(), state.snapshot.lastUpdateId);
             // TODO add useful payload
             // TODO add diff to BUSEVENT
-            //assert(false);
+            // assert(false);
         }
-        //fmtlog::poll();
-        //diff.Release();
         co_return;
     }
     boost::asio::awaitable<void> RequestNewSnapshot(
         common::TradingPair trading_pair) {
         if (!request_bbo_.count(trading_pair)) {
-            loge("can't find info to prepare request new snapshot for this pair:{} request_bbo.size():{}", trading_pair.ToString(), request_bbo_.size());
+            loge(
+                "can't find info to prepare request new snapshot for this "
+                "pair:{} request_bbo.size():{}",
+                trading_pair.ToString(), request_bbo_.size());
             co_return;
         }
         auto& info = request_bbo_[trading_pair];
@@ -2116,12 +2101,15 @@ class BidAskGeneratorComponent : public bus::Component {
         auto* ptr  = request_snapshot_mem_pool_.Allocate(
             &request_snapshot_mem_pool_, info.exchange_id, info.trading_pair,
             info.snapshot_depth);
-        auto intr_ptr_request = boost::intrusive_ptr<Exchange::RequestSnapshot>(ptr);
-        
+        auto intr_ptr_request =
+            boost::intrusive_ptr<Exchange::RequestSnapshot>(ptr);
+
         auto* bus_evt_request = request_bus_event_snapshot_mem_pool_.Allocate(
             &request_bus_event_snapshot_mem_pool_, intr_ptr_request);
-        auto intr_ptr_bus_event_request = boost::intrusive_ptr<Exchange::BusEventRequestNewSnapshot>(bus_evt_request);
-        
+        auto intr_ptr_bus_event_request =
+            boost::intrusive_ptr<Exchange::BusEventRequestNewSnapshot>(
+                bus_evt_request);
+
         bus_.AsyncSend(this, intr_ptr_bus_event_request);
         co_return;
     }
@@ -2140,11 +2128,14 @@ class BidAskGeneratorComponent : public bus::Component {
         auto* ptr  = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
             common::kFrequencyMSInvalid);
-        auto intr_ptr_request = boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
+        auto intr_ptr_request =
+            boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 
         auto* bus_evt_request = request_bus_event_diff_mem_pool_.Allocate(
             &request_bus_event_diff_mem_pool_, intr_ptr_request);
-        auto intr_ptr_bus_event_request = boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>(bus_evt_request);
+        auto intr_ptr_bus_event_request =
+            boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>(
+                bus_evt_request);
 
         bus_.AsyncSend(this, intr_ptr_bus_event_request);
         co_return;
