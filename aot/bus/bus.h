@@ -9,6 +9,9 @@
 #include "boost/asio/strand.hpp"
 #include "boost/asio/awaitable.hpp"
 #include "boost/thread.hpp"
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/transform.hpp>
+#include <boost/range/adaptor/map.hpp>
 
 #include "aot/Logger.h"
 #include "aot/bus/bus_event.h"
@@ -46,22 +49,26 @@ protected:
      * @param event 
      */
     template <class T>
-    void AsyncSend(bus::Component* publisher, T event){
-        if(!event){
-            loge("event = nullptr");
+    void AsyncSend(bus::Component* publisher, T event) {
+        if (!event) {
+            loge("event is nullptr");
             return;
         }
-        logd("start send order from {}", (void*)publisher);
+
+        logd("Start sending event from {}", static_cast<void*>(publisher));
+
         auto it = subscribers_.find(publisher);
         if (it != subscribers_.end()) {
-            logd("found {} subscribers", it->second.size());
-            for (auto component : it->second) {
-                //pass copy of event
-                boost::asio::post(
-                    strand_, [component, event]() { 
-                        event.get()->Accept(component); 
-                        });
-            }
+            logd("Found {} subscribers", it->second.size());
+
+            // Использование boost::range для обхода подписчиков
+            boost::range::for_each(it->second, [this, event](bus::Component* component) {
+                boost::asio::post(strand_, [component, event]() {
+                    event->Accept(component);
+                });
+            });
+        } else {
+            logd("No subscribers found for publisher {}", static_cast<void*>(publisher));
         }
     }
 
@@ -109,22 +116,26 @@ protected:
      * @param event 
      */
     template <class T>
-    void AsyncSend(bus::Component* publisher, T event){
-        if(!event){
-            loge("event = nullptr");
+    void AsyncSend(bus::Component* publisher, T event) {
+        if (!event) {
+            loge("event is nullptr");
             return;
         }
-        logd("start send order from {}", (void*)publisher);
+
+        logd("Start sending event from {}", static_cast<void*>(publisher));
+
         auto it = subscribers_.find(publisher);
         if (it != subscribers_.end()) {
-            logd("found {} subscribers", it->second.size());
-            for (auto component : it->second) {
-                //pass copy of event
-                boost::asio::post(
-                    strand_, [component, event]() { 
-                        event.get()->Accept(component); 
-                        });
-            }
+            logd("Found {} subscribers", it->second.size());
+
+            //visit all subscribers
+            boost::range::for_each(it->second, [this, event](bus::Component* component) {
+                boost::asio::post(strand_, [component, event]() {
+                    event->Accept(component);
+                });
+            });
+        } else {
+            logd("No subscribers found for publisher {}", static_cast<void*>(publisher));
         }
     }
 

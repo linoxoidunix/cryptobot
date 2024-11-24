@@ -44,6 +44,79 @@ struct MEMarketUpdate {
     explicit MEMarketUpdate() = default;
 };
 
+struct MEMarketUpdate2;
+using MEMarketUpdate2Pool = common::MemoryPool<MEMarketUpdate2>;
+
+/**
+ * @brief this class for work bus
+ * 
+ */
+struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
+    MarketUpdateType type    = MarketUpdateType::DEFAULT;
+    common::OrderId order_id = common::kOrderIdInvalid;
+    common::Side side        = common::Side::INVALID;
+    common::Price price      = common::kPriceInvalid;
+    common::Qty qty          = common::kQtyInvalid;
+
+    auto ToString() const {
+        return fmt::format(
+            "MEMarketUpdate[exch_id:{} {} oid:{} side:{} qty:{} price:{}]", exchange_id,
+            trading_pair.ToString(),
+            common::orderIdToString(order_id), sideToString(side),
+            common::qtyToString(qty), common::priceToString(price));
+    };
+    explicit MEMarketUpdate2(): aot::Event<MEMarketUpdate2Pool>(nullptr){};
+    friend void intrusive_ptr_release(Exchange::MEMarketUpdate2* ptr){
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(Exchange::MEMarketUpdate2* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+};
+
+struct BusEventMEMarketUpdate2;
+using BusEventMEMarketUpdate2Pool =
+    common::MemoryPool<BusEventMEMarketUpdate2>;
+/**
+ * @brief it is wrapper above MEMarketUpdate2
+ * 
+ */
+struct BusEventMEMarketUpdate2
+    : public bus::Event2<BusEventMEMarketUpdate2Pool> {
+    explicit BusEventMEMarketUpdate2(
+        BusEventMEMarketUpdate2Pool* mem_pool,
+        boost::intrusive_ptr<Exchange::MEMarketUpdate2> ptr)
+        : bus::Event2<BusEventMEMarketUpdate2Pool>(
+              mem_pool),
+          wrapped_event_(ptr) {};
+    ~BusEventMEMarketUpdate2() override = default;
+    void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
+    friend void intrusive_ptr_release(Exchange::BusEventMEMarketUpdate2* ptr){
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(Exchange::BusEventMEMarketUpdate2* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+    Exchange::MEMarketUpdate2* WrappedEvent() {
+        if(!wrapped_event_)
+            return nullptr;
+        return wrapped_event_.get();
+    }
+
+  private:
+    boost::intrusive_ptr<Exchange::MEMarketUpdate2> wrapped_event_;
+};
+
 using EventLFQueue = moodycamel::ConcurrentQueue<MEMarketUpdate>;
 
 struct BookSnapshotElem {

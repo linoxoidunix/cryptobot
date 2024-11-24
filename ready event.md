@@ -79,6 +79,10 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
     };
 };
 
+struct BusEventResponseNewSnapshot;
+using BusEventResponseNewSnapshotPool =
+    common::MemoryPool<BusEventResponseNewSnapshot>;
+
 struct BusEventResponseNewSnapshot
     : public bus::Event2<BusEventResponseNewSnapshotPool> {
     explicit BusEventResponseNewSnapshot(

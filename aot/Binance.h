@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <functional> 
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -1945,6 +1946,15 @@ class GeneratorBidAskService {
 
 template <typename Executor>
 class BidAskGeneratorComponent : public bus::Component {
+  public:
+    using SnapshotCallback = void(*)(
+        const Exchange::BookSnapshot&);
+    using DiffCallback     = void(*)(
+        const Exchange::BookDiffSnapshot2&);
+
+  private:
+    BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
+    BidAskGeneratorComponent::DiffCallback diff_callback_         = nullptr;
     std::unordered_map<common::TradingPair, BidAskState,
                        common::TradingPairHash, common::TradingPairEqual>
         state_map_;
@@ -1990,6 +2000,15 @@ class BidAskGeneratorComponent : public bus::Component {
     };
     void AsyncStop() override {};
 
+    void RegisterSnapshotCallback(BidAskGeneratorComponent::SnapshotCallback* callback) {
+        snapshot_callback_ = callback;
+    }
+
+    // External API to register diff callback
+    void RegisterDiffCallback(BidAskGeneratorComponent::DiffCallback* callback) {
+        diff_callback_ = callback;
+    }
+
   private:
     boost::asio::awaitable<void> HandleTrackingNewTradingPair(
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) {
@@ -2010,80 +2029,137 @@ class BidAskGeneratorComponent : public bus::Component {
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
         Exchange::BusEventResponseNewSnapshot* event) {
+        // Extract the exchange ID from the event.
         const auto& exchange_id = event->WrappedEvent()->exchange_id;
+
+        // Validate the exchange ID; this component only supports Binance.
         if (exchange_id != common::ExchangeId::kBinance) {
-            loge("binance::BidAskGeneratorComponent can't process {}",
-                 exchange_id);
-            co_return;
+            loge("[UNSUPPORTED EXCHANGE] Exchange ID: {}", exchange_id);
+            co_return;  // Exit early for unsupported exchanges.
         }
+
+        // Extract the trading pair from the event.
         auto trading_pair = event->WrappedEvent()->trading_pair;
+
+        // Retrieve the state associated with the trading pair.
         auto& state       = state_map_[trading_pair];
 
-        // Logic to update snapshot and state
-        logd("Processing new snapshot for {}", trading_pair.ToString());
+        // Log that a new snapshot is being processed for the trading pair.
+        logd("[PROCESSING NEW SNAPSHOT] {}", trading_pair.ToString());
+
+        // Update the state with the new snapshot.
+        // The snapshot is moved into the state to avoid unnecessary copies.
         auto wrapped_event = event->WrappedEvent();
         state.snapshot     = std::move(*wrapped_event);
+
+        // End the coroutine since the snapshot update is complete.
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         Exchange::BusEventBookDiffSnapshot* event) {
-        auto& diff = *event->WrappedEvent();
-        logi("diff:{} is accepted", diff.ToString());
+        const auto& diff = *event->WrappedEvent();
+        logi("[DIFF ACCEPTED] {}, Diff ID Range: [{}-{}]",
+             diff.trading_pair.ToString(), diff.first_id, diff.last_id);
 
         const auto& exchange_id = diff.exchange_id;
         if (exchange_id != common::ExchangeId::kBinance) {
-            loge("binance::BidAskGeneratorComponent can't process {}",
-                 exchange_id);
+            loge("[UNSUPPORTED EXCHANGE] Exchange ID: {}", exchange_id);
             co_return;
         }
+
         auto trading_pair = diff.trading_pair;
         auto& state       = state_map_[trading_pair];
-        logi("now snap:{}", state.snapshot.ToString());
+        logi("[CURRENT SNAPSHOT] {}, Snapshot LastUpdateId: {}",
+             trading_pair.ToString(), state.snapshot.lastUpdateId);
+
+        // Check for packet loss
         state.diff_packet_lost =
             (diff.first_id != state.last_id_diff_book_event + 1);
-
-
         state.last_id_diff_book_event = diff.last_id;
 
+        if (state.diff_packet_lost) {
+            logw(
+                "[PACKET LOSS] {}, Expected First ID: {}, Actual "
+                "First ID: {}",
+                trading_pair.ToString(), state.last_id_diff_book_event + 1,
+                diff.first_id);
+        }
+
         if (state.need_make_snapshot) {
-            bool snapshot_and_diff_now_sync =
+            const bool snapshot_and_diff_now_sync =
                 (diff.first_id <= state.snapshot.lastUpdateId + 1) &&
                 (diff.last_id >= state.snapshot.lastUpdateId + 1);
             if (snapshot_and_diff_now_sync) {
                 state.need_make_snapshot            = false;
                 state.need_process_current_snapshot = true;
+                logd(
+                    "[SYNC ACHIEVED] {}, Snapshot and Diff are "
+                    "synchronized",
+                    trading_pair.ToString());
             }
         }
-        auto need_snapshot =
-            (state.need_make_snapshot || state.diff_packet_lost);
 
+        // Determine if a new snapshot is needed
+        const bool need_snapshot =
+            (state.need_make_snapshot || state.diff_packet_lost);
         if (need_snapshot) {
             if (diff.last_id <= state.snapshot.lastUpdateId) {
-                // wait new diff
+                logw(
+                    "[OUTDATED DIFF] {}, Diff Last ID: {}, "
+                    "Snapshot LastUpdateId: {}. Awaiting newer diff.",
+                    trading_pair.ToString(), diff.last_id,
+                    state.snapshot.lastUpdateId);
                 co_return;
             }
+
             logd(
-                "snapshot too old snapshot_.lastUpdateId = {}. Need "
-                "new snapshot",
-                state.snapshot.lastUpdateId);
+                "[REQUESTING NEW SNAPSHOT] {}, Current Snapshot "
+                "LastUpdateId: {}",
+                trading_pair.ToString(), state.snapshot.lastUpdateId);
             state.need_make_snapshot = true;
             co_await RequestNewSnapshot(trading_pair);
             co_return;
         }
+
         if (state.need_process_current_snapshot) {
-            logd("add {} to order book", state.snapshot.ToString());
-            // snapshot_.AddToQueue(*event_lfqueue_);
-            // TODO add snapshot to BUSEVENT
+            logd(
+                "[PROCESSING SNAPSHOT] {}, Snapshot LastUpdateId: "
+                "{}",
+                trading_pair.ToString(), state.snapshot.lastUpdateId);
             state.need_process_current_snapshot = false;
             state.need_process_current_diff     = true;
-            // assert(false);
+            if (!snapshot_callback_){
+                loge("[SNAPSHOT CALLBACK NOT FOUND]");
+                co_return;
+            }
+            try {
+                auto& function = *snapshot_callback_;
+                function(state.snapshot); // Call the snapshot callback
+            } catch (const std::exception& e) {
+                loge("Exception in snapshot callback: {}", e.what());
+            } catch (...) {
+                loge("Unknown exception in snapshot callback");
+            }
         }
+
         if (!state.diff_packet_lost && state.need_process_current_diff) {
-            logd("add {} to order book. snapshot_.lastUpdateId = {}",
-                 diff.ToString(), state.snapshot.lastUpdateId);
-            // TODO add useful payload
-            // TODO add diff to BUSEVENT
-            // assert(false);
+            logd(
+                "[PROCESSING DIFF] {}, Diff ID Range: [{}-{}], "
+                "Snapshot LastUpdateId: {}",
+                trading_pair.ToString(), diff.first_id, diff.last_id,
+                state.snapshot.lastUpdateId);
+            if (!diff_callback_){
+                loge("[DIFF CALLBACK NOT FOUND]");
+                co_return;
+            }
+            try {
+                auto& function = *diff_callback_;
+                function(diff);
+            } catch (const std::exception& e) {
+                loge("Exception in snapshot callback: {}", e.what());
+            } catch (...) {
+                loge("Unknown exception in snapshot callback");
+            }
         }
         co_return;
     }

@@ -30,6 +30,7 @@ namespace Exchange{
   struct BusEventResponseNewSnapshot;
   struct BusEventRequestDiffOrderBook;
   struct BusEventBookDiffSnapshot;
+  struct BusEventMEMarketUpdate2;
 }
 
 namespace bus{
@@ -121,6 +122,14 @@ class Component {
     virtual void AsyncHandleEvent(boost::intrusive_ptr<BusEventRequestBBOPrice>){
         //it is empty class
     };
+    /**
+     * @brief this event when order book need process diff from exchange order book 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>){
+        //it is empty class
+    };
+    
     
 };
 };
