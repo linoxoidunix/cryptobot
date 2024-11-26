@@ -171,12 +171,13 @@ class MarketOrderBook2 {
     common::ExchangeId exchange_id_;
     common::TradingPair trading_pair_;
     /// Memory pool to manage MarketOrdersAtPrice objects.
-    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_{common::ME_MAX_ORDERS_AT_PRICE};
+    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_{
+        common::ME_MAX_ORDERS_AT_PRICE};
+
   public:
     explicit MarketOrderBook2(common::ExchangeId exchange_id,
                               common::TradingPair trading_pair)
-        : exchange_id_(exchange_id),
-          trading_pair_(trading_pair) {};
+        : exchange_id_(exchange_id), trading_pair_(trading_pair) {};
 
     virtual ~MarketOrderBook2() {
         logi("call ~MarketOrderBook2()");
@@ -185,7 +186,7 @@ class MarketOrderBook2 {
 
     /// Process market data update and update the limit order book.
     virtual void OnMarketUpdate(
-        const Exchange::MEMarketUpdate2 *market_update) noexcept {};
+        const Exchange::MEMarketUpdate2 *market_update) noexcept;
 
     auto GetBBO() const noexcept -> const BBO * { return &bbo_; }
 
@@ -354,7 +355,8 @@ template <typename Executor>
 class OrderBookComponent : public bus::Component {
     using OrderBookMap = std::unordered_map<
         common::ExchangeId,
-        std::unordered_map<common::TradingPair, MarketOrderBook2>>;
+        std::unordered_map<common::TradingPair, MarketOrderBook2,
+                           common::TradingPairHash, common::TradingPairEqual>>;
 
     Executor executor_;
     OrderBookMap order_books_;
@@ -375,13 +377,29 @@ class OrderBookComponent : public bus::Component {
     // Method to add a new order book
     void AddOrderBook(common::ExchangeId exchange_id,
                       const common::TradingPair &trading_pair) {
-        // Access the nested map for the exchange
-        auto &exchange_books = order_books_[exchange_id];
+        // Ensure the outer map contains the desired ExchangeId
+        auto &inner_map =
+            order_books_
+                .try_emplace(
+                    exchange_id,
+                    std::unordered_map<common::TradingPair, MarketOrderBook2,
+                                       common::TradingPairHash,
+                                       common::TradingPairEqual>())
+                .first->second;
 
-        // Add a new order book for the trading pair if it doesn't exist
-        if (!exchange_books.contains(trading_pair)) {
-            exchange_books.emplace(trading_pair,
-                                   MarketOrderBook2(trading_pair));
+        auto result = inner_map.try_emplace(
+            trading_pair,  // Key (TradingPair)
+            exchange_id,
+            trading_pair  // Constructor arguments for MarketOrderBook2
+        );
+
+        if (result.second) {
+            logi("[MarketOrderBook2 inserted successfully!] with {} {}",
+                 exchange_id, trading_pair.ToString());
+        } else {
+            logi(
+                "[MarketOrderBook2 already exists in the inner map!] with {} {}",
+                exchange_id, trading_pair.ToString());
         }
     }
 
@@ -389,33 +407,48 @@ class OrderBookComponent : public bus::Component {
     boost::asio::awaitable<void> HandleNewMEMarketUpdate(
         boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2> event) {
         // Extract the necessary information from the event
-        const auto* wrapped_event = event->WrappedEvent();
+        const auto *wrapped_event = event->WrappedEvent();
         if (!wrapped_event) {
             co_return;  // Exit if the event is invalid
         }
 
-        const auto exchange_id = wrapped_event->exchange_id;
-        const auto& trading_pair = wrapped_event->trading_pair;
+        const auto exchange_id   = wrapped_event->exchange_id;
+        const auto &trading_pair = wrapped_event->trading_pair;
 
         // Check if the exchange and trading pair exist in the order books
         if (!order_books_.contains(exchange_id)) {
-            loge("[EXCHANGE NOT FOUND] {}, {}",
-                 exchange_id, trading_pair.ToString());
+            loge("[EXCHANGE NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
             co_return;
         }
         if (!order_books_[exchange_id].contains(trading_pair)) {
-            loge("[TRADING PAIR NOT FOUND] {}, {}",
-                 exchange_id, trading_pair.ToString());
+            loge("[TRADING PAIR NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
             co_return;
         }
 
-        auto& order_book = order_books_[exchange_id][trading_pair];
+        auto &inner_map =
+            order_books_
+                .try_emplace(
+                    exchange_id,
+                    std::unordered_map<common::TradingPair, MarketOrderBook2,
+                                       common::TradingPairHash,
+                                       common::TradingPairEqual>())
+                .first->second;
+
+        auto &order_book =
+            inner_map
+                .try_emplace(
+                    trading_pair, exchange_id,
+                    trading_pair  // Arguments for constructing MarketOrderBook2
+                    )
+                .first->second;
 
         logi("[PROCESSING MARKET UPDATE] {}, {}, Price: {}, Qty: {}",
-             exchange_id, trading_pair.ToString(),
-             wrapped_event->price, wrapped_event->qty);
+             exchange_id, trading_pair.ToString(), wrapped_event->price,
+             wrapped_event->qty);
 
-        co_await order_book.OnMarketUpdate(wrapped_event);
+        order_book.OnMarketUpdate(wrapped_event);
 
         co_return;
     }

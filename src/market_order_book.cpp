@@ -69,6 +69,40 @@ void OrderBookService::Run() {
         }
     }
 }
+
+/// Process market data update and update the limit order book.
+void MarketOrderBook2::OnMarketUpdate(
+    const Exchange::MEMarketUpdate2 *market_update) noexcept {
+    if (market_update->type == Exchange::MarketUpdateType::CLEAR) [[unlikely]] {
+        ClearOrderBook();
+        return;
+    }
+
+    const auto bid_will_be_updated =
+        (!bids_at_price_map_.size() &&
+             market_update->side == common::Side::SELL ||
+         bids_at_price_map_.size() &&
+             market_update->side == common::Side::SELL &&
+             market_update->price >= bids_at_price_map_.begin()->price_);
+    const auto ask_will_be_updated =
+        (!asks_at_price_map_.size() &&
+             market_update->side == common::Side::BUY ||
+         asks_at_price_map_.size() &&
+             market_update->side == common::Side::BUY &&
+             market_update->price <= asks_at_price_map_.begin()->price_);
+
+    if (market_update->qty != 0) {
+        MarketOrder order(common::kOrderIdInvalid, market_update->side,
+                          market_update->price, market_update->qty);
+        AddOrder(&order);
+    } else {
+        RemoveOrdersAtPrice(market_update->side, market_update->price);
+    }
+
+    UpdateBBO(bid_will_be_updated, ask_will_be_updated);
+    if (bid_will_be_updated || ask_will_be_updated) logi("{}", bbo_.ToString());
+    //logd("{}", market_update->ToString());
+}
 }  // namespace Trading
 
 namespace backtesting {

@@ -1,6 +1,6 @@
 #pragma once
 #include <algorithm>
-#include <functional> 
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -1947,10 +1947,9 @@ class GeneratorBidAskService {
 template <typename Executor>
 class BidAskGeneratorComponent : public bus::Component {
   public:
-    using SnapshotCallback = void(*)(
-        const Exchange::BookSnapshot&);
-    using DiffCallback     = void(*)(
-        const Exchange::BookDiffSnapshot2&);
+    using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
+    using DiffCallback =
+        std::function<void(const Exchange::BookDiffSnapshot2&)>;
 
   private:
     BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
@@ -1966,23 +1965,37 @@ class BidAskGeneratorComponent : public bus::Component {
     aot::CoBus& bus_;
 
   public:
-    common::MemoryPool<Exchange::BusEventRequestNewSnapshot>
-        request_bus_event_snapshot_mem_pool_;
-    common::MemoryPool<Exchange::RequestSnapshot> request_snapshot_mem_pool_;
-    common::MemoryPool<Exchange::BusEventRequestDiffOrderBook>
-        request_bus_event_diff_mem_pool_;
-    common::MemoryPool<Exchange::RequestDiffOrderBook> request_diff_mem_pool_;
+    Exchange::BusEventRequestNewSnapshotPool request_bus_event_snapshot_mem_pool_;
+    Exchange::RequestSnapshotPool request_snapshot_mem_pool_;
+    
+    Exchange::BusEventRequestDiffOrderBookPool request_bus_event_diff_mem_pool_;
+    Exchange::RequestDiffOrderBookPool request_diff_mem_pool_;
+    
+    Exchange::MEMarketUpdate2Pool out_diff_mem_pool_;
+    Exchange::BusEventMEMarketUpdate2Pool out_bus_event_diff_mem_pool_;
 
-    //  public:
-    explicit BidAskGeneratorComponent(Executor&& executor, aot::CoBus& bus,
-                                      const unsigned int number_snapshots,
-                                      const unsigned int number_diff)
+    /**
+     * @brief Construct a new Bid Ask Generator Component object
+     *
+     * @param executor
+     * @param bus
+     * @param number_snapshots
+     * @param number_diff
+     * @param max_number_event_per_tick how much diff events produce from
+     * BidAskGeneratorComponent per tick. need this variable for mem pool
+     */
+    explicit BidAskGeneratorComponent(
+        Executor&& executor, aot::CoBus& bus,
+        const unsigned int number_snapshots, const unsigned int number_diff,
+        const unsigned int max_number_event_per_tick)
         : executor_(std::move(executor)),
           bus_(bus),
           request_bus_event_snapshot_mem_pool_(number_snapshots),
           request_snapshot_mem_pool_(number_snapshots),
           request_bus_event_diff_mem_pool_(number_diff),
-          request_diff_mem_pool_(number_diff) {};
+          request_diff_mem_pool_(number_diff),
+          out_diff_mem_pool_(max_number_event_per_tick),
+          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {};
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
@@ -2000,13 +2013,14 @@ class BidAskGeneratorComponent : public bus::Component {
     };
     void AsyncStop() override {};
 
-    void RegisterSnapshotCallback(BidAskGeneratorComponent::SnapshotCallback* callback) {
-        snapshot_callback_ = callback;
+    void RegisterSnapshotCallback(
+        BidAskGeneratorComponent::SnapshotCallback callback) {
+        snapshot_callback_ = std::move(callback);
     }
 
     // External API to register diff callback
-    void RegisterDiffCallback(BidAskGeneratorComponent::DiffCallback* callback) {
-        diff_callback_ = callback;
+    void RegisterDiffCallback(BidAskGeneratorComponent::DiffCallback callback) {
+        diff_callback_ = std::move(callback);
     }
 
   private:
@@ -2128,13 +2142,12 @@ class BidAskGeneratorComponent : public bus::Component {
                 trading_pair.ToString(), state.snapshot.lastUpdateId);
             state.need_process_current_snapshot = false;
             state.need_process_current_diff     = true;
-            if (!snapshot_callback_){
+            if (!snapshot_callback_) {
                 loge("[SNAPSHOT CALLBACK NOT FOUND]");
                 co_return;
             }
             try {
-                auto& function = *snapshot_callback_;
-                function(state.snapshot); // Call the snapshot callback
+                snapshot_callback_(state.snapshot);
             } catch (const std::exception& e) {
                 loge("Exception in snapshot callback: {}", e.what());
             } catch (...) {
@@ -2148,13 +2161,12 @@ class BidAskGeneratorComponent : public bus::Component {
                 "Snapshot LastUpdateId: {}",
                 trading_pair.ToString(), diff.first_id, diff.last_id,
                 state.snapshot.lastUpdateId);
-            if (!diff_callback_){
+            if (!diff_callback_) {
                 loge("[DIFF CALLBACK NOT FOUND]");
                 co_return;
             }
             try {
-                auto& function = *diff_callback_;
-                function(diff);
+                diff_callback_(diff);
             } catch (const std::exception& e) {
                 loge("Exception in snapshot callback: {}", e.what());
             } catch (...) {

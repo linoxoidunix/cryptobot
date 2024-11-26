@@ -49,7 +49,7 @@ using MEMarketUpdate2Pool = common::MemoryPool<MEMarketUpdate2>;
 
 /**
  * @brief this class for work bus
- * 
+ *
  */
 struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
@@ -62,13 +62,28 @@ struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
 
     auto ToString() const {
         return fmt::format(
-            "MEMarketUpdate[exch_id:{} {} oid:{} side:{} qty:{} price:{}]", exchange_id,
-            trading_pair.ToString(),
+            "MEMarketUpdate[exch_id:{} {} oid:{} side:{} qty:{} price:{}]",
+            exchange_id, trading_pair.ToString(),
             common::orderIdToString(order_id), sideToString(side),
             common::qtyToString(qty), common::priceToString(price));
     };
-    explicit MEMarketUpdate2(): aot::Event<MEMarketUpdate2Pool>(nullptr){};
-    friend void intrusive_ptr_release(Exchange::MEMarketUpdate2* ptr){
+    explicit MEMarketUpdate2() : aot::Event<MEMarketUpdate2Pool>(nullptr) {};
+    explicit MEMarketUpdate2(MEMarketUpdate2Pool* pool,
+                             common::ExchangeId _exchange_id,
+                             common::TradingPair _trading_pair,
+                             MarketUpdateType _type, common::OrderId _order_id,
+                             common::Side _side, common::Price _price,
+                             common::Qty _qty)
+        : aot::Event<MEMarketUpdate2Pool>(pool),
+          exchange_id(_exchange_id),
+          trading_pair(_trading_pair),
+          type(_type),
+          order_id(_order_id),
+          side(_side),
+          price(_price),
+          qty(_qty) {};
+
+    friend void intrusive_ptr_release(Exchange::MEMarketUpdate2* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -81,23 +96,21 @@ struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
 };
 
 struct BusEventMEMarketUpdate2;
-using BusEventMEMarketUpdate2Pool =
-    common::MemoryPool<BusEventMEMarketUpdate2>;
+using BusEventMEMarketUpdate2Pool = common::MemoryPool<BusEventMEMarketUpdate2>;
 /**
  * @brief it is wrapper above MEMarketUpdate2
- * 
+ *
  */
 struct BusEventMEMarketUpdate2
     : public bus::Event2<BusEventMEMarketUpdate2Pool> {
     explicit BusEventMEMarketUpdate2(
         BusEventMEMarketUpdate2Pool* mem_pool,
         boost::intrusive_ptr<Exchange::MEMarketUpdate2> ptr)
-        : bus::Event2<BusEventMEMarketUpdate2Pool>(
-              mem_pool),
+        : bus::Event2<BusEventMEMarketUpdate2Pool>(mem_pool),
           wrapped_event_(ptr) {};
     ~BusEventMEMarketUpdate2() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
-    friend void intrusive_ptr_release(Exchange::BusEventMEMarketUpdate2* ptr){
+    friend void intrusive_ptr_release(Exchange::BusEventMEMarketUpdate2* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -108,8 +121,7 @@ struct BusEventMEMarketUpdate2
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
     Exchange::MEMarketUpdate2* WrappedEvent() {
-        if(!wrapped_event_)
-            return nullptr;
+        if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
     }
 
@@ -150,7 +162,7 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
           bids(std::move(_bids)),
           asks(std::move(_asks)),
           lastUpdateId(_lastUpdateId) {};
-    friend void intrusive_ptr_release(Exchange::BookSnapshot2* ptr){
+    friend void intrusive_ptr_release(Exchange::BookSnapshot2* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -249,24 +261,24 @@ struct BusEventResponseNewSnapshot
     explicit BusEventResponseNewSnapshot(
         BusEventResponseNewSnapshotPool* mem_pool,
         boost::intrusive_ptr<Exchange::BookSnapshot2> _response)
-        : bus::Event2<BusEventResponseNewSnapshotPool>(
-              mem_pool),
+        : bus::Event2<BusEventResponseNewSnapshotPool>(mem_pool),
           wrapped_event_(_response) {};
     ~BusEventResponseNewSnapshot() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
-    friend void intrusive_ptr_release(Exchange::BusEventResponseNewSnapshot* ptr){
+    friend void intrusive_ptr_release(
+        Exchange::BusEventResponseNewSnapshot* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(Exchange::BusEventResponseNewSnapshot* ptr) {
+    friend void intrusive_ptr_add_ref(
+        Exchange::BusEventResponseNewSnapshot* ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
     Exchange::BookSnapshot2* WrappedEvent() {
-        if(!wrapped_event_)
-            return nullptr;
+        if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
     }
 
@@ -287,7 +299,7 @@ class RequestSnapshot : public aot::Event<RequestSnapshotPool> {
         return fmt::format("RequestSnapshot[{}, {}, depth:{}]", exchange_id,
                            trading_pair.ToString(), depth);
     }
-    friend void intrusive_ptr_release(Exchange::RequestSnapshot* ptr){
+    friend void intrusive_ptr_release(Exchange::RequestSnapshot* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -315,29 +327,31 @@ using BusEventRequestNewSnapshotPool =
 struct BusEventRequestNewSnapshot
     : public bus::Event2<BusEventRequestNewSnapshotPool> {
     explicit BusEventRequestNewSnapshot(
-        BusEventRequestNewSnapshotPool* mem_pool, boost::intrusive_ptr<RequestSnapshot> request)
-        : bus::Event2<BusEventRequestNewSnapshotPool>(
-              mem_pool),
+        BusEventRequestNewSnapshotPool* mem_pool,
+        boost::intrusive_ptr<RequestSnapshot> request)
+        : bus::Event2<BusEventRequestNewSnapshotPool>(mem_pool),
           wrapped_event_(request) {};
     ~BusEventRequestNewSnapshot() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
 
-    friend void intrusive_ptr_release(Exchange::BusEventRequestNewSnapshot* ptr){
+    friend void intrusive_ptr_release(
+        Exchange::BusEventRequestNewSnapshot* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(Exchange::BusEventRequestNewSnapshot* ptr) {
+    friend void intrusive_ptr_add_ref(
+        Exchange::BusEventRequestNewSnapshot* ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 
     RequestSnapshot* WrappedEvent() {
-        if(!wrapped_event_)
-            return nullptr;
-        return wrapped_event_.get();  
+        if (!wrapped_event_) return nullptr;
+        return wrapped_event_.get();
     }
+
   private:
     boost::intrusive_ptr<RequestSnapshot> wrapped_event_;
 };
@@ -371,7 +385,7 @@ struct BookDiffSnapshot2 : public aot::Event<BookDiff2SnapshotPool> {
         return fmt::format("BookDiffSnapshot2[first_id:{} last_id:{}]",
                            first_id, last_id);
     };
-    friend void intrusive_ptr_release(Exchange::BookDiffSnapshot2* ptr){
+    friend void intrusive_ptr_release(Exchange::BookDiffSnapshot2* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -427,21 +441,20 @@ using BusEventBookDiffSnapshotPool =
 
 struct BusEventBookDiffSnapshot
     : public bus::Event2<BusEventBookDiffSnapshotPool> {
-    explicit BusEventBookDiffSnapshot(BusEventBookDiffSnapshotPool* mem_pool,
-                                      boost::intrusive_ptr<BookDiffSnapshot2> response)
-        : bus::Event2<BusEventBookDiffSnapshotPool>(
-              mem_pool),
+    explicit BusEventBookDiffSnapshot(
+        BusEventBookDiffSnapshotPool* mem_pool,
+        boost::intrusive_ptr<BookDiffSnapshot2> response)
+        : bus::Event2<BusEventBookDiffSnapshotPool>(mem_pool),
           wrapped_event_(response) {};
     ~BusEventBookDiffSnapshot() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
-    
+
     BookDiffSnapshot2* WrappedEvent() {
-        if(!wrapped_event_)
-            return nullptr;
+        if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
     }
-    
-    friend void intrusive_ptr_release(Exchange::BusEventBookDiffSnapshot* ptr){
+
+    friend void intrusive_ptr_release(Exchange::BusEventBookDiffSnapshot* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -472,7 +485,7 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
           frequency(_frequency) {}
-     friend void intrusive_ptr_release(Exchange::RequestDiffOrderBook* ptr){
+    friend void intrusive_ptr_release(Exchange::RequestDiffOrderBook* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -496,19 +509,20 @@ struct BusEventRequestDiffOrderBook
           wrapped_event_(request) {};
     ~BusEventRequestDiffOrderBook() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
-    friend void intrusive_ptr_release(Exchange::BusEventRequestDiffOrderBook* ptr){
+    friend void intrusive_ptr_release(
+        Exchange::BusEventRequestDiffOrderBook* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(Exchange::BusEventRequestDiffOrderBook* ptr) {
+    friend void intrusive_ptr_add_ref(
+        Exchange::BusEventRequestDiffOrderBook* ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
     RequestDiffOrderBook* WrappedEvent() {
-        if(!wrapped_event_)
-            return nullptr;
+        if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
     }
 

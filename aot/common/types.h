@@ -125,6 +125,10 @@ inline auto priorityToString(Priority priority) -> std::string {
     return std::to_string(priority);
 }
 
+/**
+ * @brief side as taker
+ * 
+ */
 enum class Side : int8_t { INVALID = 0, BUY = 1, SELL = -1, MAX = 2 };
 
 enum class TradeAction {
