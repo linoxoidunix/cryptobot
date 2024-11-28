@@ -440,7 +440,6 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
                 boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
                     bus_event);
 
-            // fmtlog::poll();
             bus.AsyncSend(&component, intr_ptr_bus_snapsot);
         };
     component.RegisterCallback(request.trading_pair, &cb);

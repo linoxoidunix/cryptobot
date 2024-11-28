@@ -1,11 +1,12 @@
-#include "aot/Binance.h"
 
 #include <string_view>
 #include <unordered_set>
 
-#include "aot/Logger.h"
 #include "nlohmann/json.hpp"
 #include "simdjson.h"
+
+#include "aot/Logger.h"
+#include "aot/Binance.h"
 
 using namespace std::literals;
 
@@ -441,8 +442,6 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
             loge("pairs_reverse not contain {}", trading_pair);
             return {};
         }
-        if(book_diff_snapshot.trading_pair.first != 2 || book_diff_snapshot.trading_pair.second != 1 )
-            int x = 0;
         auto price_prec = std::pow(
             10, pairs_[book_diff_snapshot.trading_pair].price_precission);
         auto qty_prec = std::pow(
