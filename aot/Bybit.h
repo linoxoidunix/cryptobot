@@ -741,6 +741,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
                           const OnWssResponse* callback) {
         callback_map_[trading_pair] = callback;
     }
+
+
   private:
     bybit::testnet::HttpsExchange binance_test_net_;
     bybit::mainnet::HttpsExchange binance_main_net_;
@@ -751,6 +753,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
                                  public BookEventGetter3<Executor> {
+    static constexpr std::string_view name_component_ = "bybit::BookEventGetterComponent";  
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot2> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
@@ -794,6 +797,9 @@ class BookEventGetterComponent : public bus::Component,
                 boost::asio::cancellation_type::all);
         });
     }
+        std::string_view GetName() const override{
+        return BookEventGetterComponent<Executor>::name_component_;
+    };
 };
 
 namespace detail {
@@ -1040,6 +1046,7 @@ class BidAskGeneratorComponent : public bus::Component {
         std::function<void(const Exchange::BookDiffSnapshot2&)>;
 
   private:
+    static constexpr std::string_view name_component_ = "bybit::BidAskGeneratorComponent";  
     BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
     BidAskGeneratorComponent::DiffCallback diff_callback_         = nullptr;
     std::unordered_map<common::TradingPair, BidAskState,
@@ -1111,7 +1118,9 @@ class BidAskGeneratorComponent : public bus::Component {
     void RegisterDiffCallback(BidAskGeneratorComponent::DiffCallback callback) {
         diff_callback_ = std::move(callback);
     }
-
+    std::string_view GetName() const override{
+        return BidAskGeneratorComponent<Executor>::name_component_;
+    };
   private:
     boost::asio::awaitable<void> HandleTrackingNewTradingPair(
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) {
@@ -1154,13 +1163,17 @@ class BidAskGeneratorComponent : public bus::Component {
         // The snapshot is moved into the state to avoid unnecessary copies.
         auto wrapped_event = event->WrappedEvent();
         state.snapshot     = std::move(*wrapped_event);
+        state.last_id_diff_book_event = state.snapshot.lastUpdateId;
 
         // End the coroutine since the snapshot update is complete.
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         Exchange::BusEventBookDiffSnapshot* event) {
-        const auto& diff = *event->WrappedEvent();
+        //auto diff_intr = event->WrappedEventIntrusive();
+        //auto& diff = *diff_intr.get();
+        auto& diff = *event->WrappedEvent();
+
         logi("[DIFF ACCEPTED] {}, Diff Last ID Range: [{}]",
              diff.trading_pair.ToString(), diff.last_id);
 
@@ -1186,6 +1199,7 @@ class BidAskGeneratorComponent : public bus::Component {
                 "First ID: {}",
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
                 diff.last_id);
+                std::exit(1);
         }
 
         if (state.need_make_snapshot) {
@@ -1201,10 +1215,6 @@ class BidAskGeneratorComponent : public bus::Component {
             }
         }
 
-        if(state.diff_packet_lost){
-            loge("[DIFF PACKET LOST] need resubscribe to channel");
-            co_return;
-        }
         // Determine if a new snapshot is needed
         // const bool need_snapshot =
         //     (state.need_make_snapshot || state.diff_packet_lost);

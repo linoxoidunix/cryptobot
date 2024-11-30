@@ -5,16 +5,16 @@
 #include "aot/Exchange.h"
 #include "aot/WS.h"
 #include "aot/common/types.h"
+#include "aot/strategy/market_order_book.h"
 #include "boost/asio.hpp"
 #include "boost/asio/io_context.hpp"
-#include "aot/strategy/market_order_book.h"
 
 struct LogPolling {
     std::shared_ptr<boost::asio::steady_timer> timer;
     std::function<void(const boost::system::error_code&)> poll;
 
     LogPolling(boost::asio::thread_pool& pool,
-               std::chrono::milliseconds interval)
+               std::chrono::microseconds interval)
         : timer(std::make_shared<boost::asio::steady_timer>(pool)) {
         StartPolling(interval);
     }
@@ -26,7 +26,7 @@ struct LogPolling {
     }
 
   private:
-    void StartPolling(std::chrono::milliseconds interval) {
+    void StartPolling(std::chrono::microseconds interval) {
         poll = [this, self = timer,
                 interval](const boost::system::error_code& ec) mutable {
             if (!ec) {
@@ -82,14 +82,14 @@ class BookEventGetterComponentTest : public ::testing::Test {
 // Test case for AsyncHandleEvent
 /**
  * @brief Construct a new test f object
- * 
- * 
+ *
+ *
  */
 TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     // boost::asio::steady_timer timer(io_context, std::chrono::seconds(20));
 
     fmtlog::setLogLevel(fmtlog::DBG);
-    LogPolling log_polling(thread_pool, std::chrono::milliseconds(100));
+    LogPolling log_polling(thread_pool, std::chrono::microseconds(1));
     aot::CoBus bus(thread_pool);
 
     common::TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pairs);
@@ -105,27 +105,28 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
         boost::asio::make_strand(thread_pool), number_responses,
         TypeExchange::TESTNET, pairs, &session_pool, cancel_signal);
 
-    //Exchange::RequestDiffOrderBook request;
-    //request.exchange_id  = common::ExchangeId::kBybit;
-    //request.trading_pair = {2, 1};
+    // Exchange::RequestDiffOrderBook request;
+    // request.exchange_id  = common::ExchangeId::kBybit;
+    // request.trading_pair = {2, 1};
     /**
      * @brief
      * https://bybit-exchange.github.io/docs/v5/websocket/public/orderbook for
      * bybit depth = freq
      */
-    //request.frequency    = 50;
+    // request.frequency    = 50;
 
-    //Exchange::BusEventRequestDiffOrderBook bus_event_request(nullptr, &request);
+    // Exchange::BusEventRequestDiffOrderBook bus_event_request(nullptr,
+    // &request);
 
     uint64_t counter_successfull   = 0;
     uint64_t counter_unsuccessfull = 0;
 
-    OnWssResponse wss_cb               = [&component, &counter_successfull,
-                        &counter_unsuccessfull, this,
-                        &pair_reverse, &bus](boost::beast::flat_buffer& fb) {
+    OnWssResponse wss_cb           = [&component, &counter_successfull,
+                            &counter_unsuccessfull, this, &pair_reverse,
+                            &bus](boost::beast::flat_buffer& fb) {
         auto data     = fb.data();  // returns a const_buffer
         auto response = std::string_view(static_cast<const char*>(data.data()),
-                                                       data.size());
+                                                   data.size());
         bybit::detail::FamilyBookEventGetter::ParserResponse parser(
             pairs, pair_reverse);
         auto result = parser.Parse(response);
@@ -135,9 +136,8 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
                 [&](auto&& snapshot) {
                     using T = std::decay_t<decltype(snapshot)>;
                     if constexpr (std::is_same_v<T,
-                                                               Exchange::BookDiffSnapshot>) {
-                        std::cout << "Received a BookDiffSnapshot!"
-                                  << std::endl;
+                                                           Exchange::BookDiffSnapshot>) {
+                        logi("Received a BookDiffSnapshot!");
                         Exchange::BookDiffSnapshot& diffSnapshot = snapshot;
                         auto request = component.book_diff_mem_pool_.Allocate(
                             &component.book_diff_mem_pool_,
@@ -156,38 +156,45 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
                                          .bus_event_book_diff_snapshot_mem_pool_,
                                     intr_ptr_request);
                         auto intr_ptr_bus_request = boost::intrusive_ptr<
-                                          Exchange::BusEventBookDiffSnapshot>(bus_event);
-
+                                      Exchange::BusEventBookDiffSnapshot>(bus_event);
+                        logi(
+                            "SEND DIFFSNAPSOT EVENT TO BUS FROM CB "
+                                      "EVENTGETTER");
                         bus.AsyncSend(&component, intr_ptr_bus_request);
 
                         // Use diffSnapshot
                     } else if constexpr (std::is_same_v<
-                                                           T, Exchange::BookSnapshot>) {
-                        std::cout << "Received a BookSnapshot!" << std::endl;
+                                                       T, Exchange::BookSnapshot>) {
+                        logi("Received a BookSnapshot!");
                         Exchange::BookSnapshot& book_snapshot = snapshot;
                         // Use bookSnapshot
-                        book_snapshot.trading_pair = {2, 1};
-                        auto ptr              = component.snapshot_mem_pool_.Allocate(
-                            &component.snapshot_mem_pool_, book_snapshot.exchange_id,
-                            book_snapshot.trading_pair, std::move(book_snapshot.bids),
-                            std::move(book_snapshot.asks), book_snapshot.lastUpdateId);
+                        book_snapshot.trading_pair            = {2, 1};
+                        auto ptr = component.snapshot_mem_pool_.Allocate(
+                            &component.snapshot_mem_pool_,
+                            book_snapshot.exchange_id,
+                            book_snapshot.trading_pair,
+                            std::move(book_snapshot.bids),
+                            std::move(book_snapshot.asks),
+                            book_snapshot.lastUpdateId);
                         auto intr_ptr_snapsot =
                             boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
 
                         auto bus_event =
-                            component.bus_event_response_snapshot_mem_pool_.Allocate(
-                                &component.bus_event_response_snapshot_mem_pool_,
-                                intr_ptr_snapsot);
-                        auto intr_ptr_bus_snapshot =
-                            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
-                                bus_event);
-
+                            component.bus_event_response_snapshot_mem_pool_
+                                .Allocate(
+                                    &component
+                                         .bus_event_response_snapshot_mem_pool_,
+                                    intr_ptr_snapsot);
+                        auto intr_ptr_bus_snapshot = boost::intrusive_ptr<
+                                      Exchange::BusEventResponseNewSnapshot>(bus_event);
+                        logi("SEND SNAPSOT EVENT TO BUS FROM CB EVENTGETTER");
                         bus.AsyncSend(&component, intr_ptr_bus_snapshot);
                     }
                 },
                 result);
         } else {
-            std::cout << "Invalid or unknown response." << std::endl;
+            logw("Invalid or unknown response.");
+            //std::cout << "Invalid or unknown response." << std::endl;
         }
 
         // if ((result.exchange_id ==
@@ -202,22 +209,30 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
         // }
     };
     auto cancelation_slot = cancel_signal.slot();
-    component.RegisterCallback({2,1}, &wss_cb);
-        //--------------------------Order book component--------------------------------
-    Trading::OrderBookComponent order_book_component(boost::asio::make_strand(thread_pool));
-    common::TradingPair trading_pair{2,1};
+    component.RegisterCallback({2, 1}, &wss_cb);
+    //--------------------------Order book
+    //component--------------------------------
+    Trading::OrderBookComponent order_book_component(
+        boost::asio::make_strand(thread_pool));
+    common::TradingPair trading_pair{2, 1};
     order_book_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
     //------------------------------------------------------------------------------
     //------------------------------------------------------------------------------
     bybit::BidAskGeneratorComponent bid_ask_generator(
         boost::asio::make_strand(thread_pool), bus, 100, 1000, 10000);
     // Register the snapshot callback
-    auto ProcessBookEntries = [&bid_ask_generator, &bus](const auto& entries,
-                                                        common::ExchangeId exchange_id,
-                                                        common::TradingPair trading_pair,
-                                                         common::Side side) {
+    std::function<void(const std::list<Exchange::BookSnapshotElem>& entries,
+                       common::ExchangeId exchange_id,
+                       common::TradingPair trading_pair, common::Side side)>
+        ProcessBookEntries;
+    ProcessBookEntries = [&bid_ask_generator, &bus](
+                             const auto& entries,
+                             common::ExchangeId exchange_id,
+                             common::TradingPair trading_pair,
+                             common::Side side) {
         boost::for_each(entries, [&](const auto& bid) {
-            Exchange::MEMarketUpdate2* ptr = bid_ask_generator.out_diff_mem_pool_.Allocate(
+            Exchange::MEMarketUpdate2* ptr =
+            bid_ask_generator.out_diff_mem_pool_.Allocate(
                 &bid_ask_generator.out_diff_mem_pool_, exchange_id,
                 trading_pair, Exchange::MarketUpdateType::DEFAULT,
                 common::kOrderIdInvalid, side, bid.price, bid.qty);
@@ -225,28 +240,54 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
                 boost::intrusive_ptr<Exchange::MEMarketUpdate2>(ptr);
             auto bus_event =
                 bid_ask_generator.out_bus_event_diff_mem_pool_.Allocate(
-                    &bid_ask_generator.out_bus_event_diff_mem_pool_, intr_ptr);
+                    &bid_ask_generator.out_bus_event_diff_mem_pool_,
+                    intr_ptr);
             auto intr_ptr_bus_event =
                 boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>(
                     bus_event);
             bus.AsyncSend(&bid_ask_generator, intr_ptr_bus_event);
         });
+        // for (const auto& bid : entries) {
+        //     Exchange::MEMarketUpdate2* ptr =
+        //         bid_ask_generator.out_diff_mem_pool_.Allocate(
+        //             &bid_ask_generator.out_diff_mem_pool_, exchange_id,
+        //             trading_pair, Exchange::MarketUpdateType::DEFAULT,
+        //             common::kOrderIdInvalid, side, bid.price, bid.qty);
+
+        //     auto intr_ptr =
+        //         boost::intrusive_ptr<Exchange::MEMarketUpdate2>(ptr);
+
+        //     auto bus_event =
+        //         bid_ask_generator.out_bus_event_diff_mem_pool_.Allocate(
+        //             &bid_ask_generator.out_bus_event_diff_mem_pool_, intr_ptr);
+
+        //     auto intr_ptr_bus_event =
+        //         boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>(
+        //             bus_event);
+
+        //     bus.AsyncSend(&bid_ask_generator, intr_ptr_bus_event);
+        // }
     };
     bid_ask_generator.RegisterSnapshotCallback(
         [&ProcessBookEntries](const Exchange::BookSnapshot& snapshot) {
-            ProcessBookEntries(snapshot.bids, snapshot.exchange_id, snapshot.trading_pair, common::Side::SELL);
-            ProcessBookEntries(snapshot.asks, snapshot.exchange_id, snapshot.trading_pair, common::Side::BUY);
+            ProcessBookEntries(snapshot.bids, snapshot.exchange_id,
+                               snapshot.trading_pair, common::Side::SELL);
+            ProcessBookEntries(snapshot.asks, snapshot.exchange_id,
+                               snapshot.trading_pair, common::Side::BUY);
         });
     // Register the diff callback
     bid_ask_generator.RegisterDiffCallback(
         [&ProcessBookEntries](const Exchange::BookDiffSnapshot2& diff) {
-            //ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::SELL);
-            //ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::BUY);
+            ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair,
+                               common::Side::SELL);
+            ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair,
+                               common::Side::BUY);
         });
-    //---------------------------init bus-------------------------------------------
+    //---------------------------init
+    //bus-------------------------------------------
     bus.Subscribe(&bid_ask_generator, &component);
     bus.Subscribe(&component, &bid_ask_generator);
-    //bus.Subscribe(&bid_ask_generator, &order_book_component);
+    bus.Subscribe(&bid_ask_generator, &order_book_component);
     //------------------------------------------------------------------------------
     BusEventRequestBBOPrice request_bbo_btc;
     request_bbo_btc.exchange_id    = common::ExchangeId::kBybit;

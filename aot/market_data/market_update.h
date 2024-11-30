@@ -87,6 +87,7 @@ struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+                logd("free MEMarketUpdate2 ptr");
             }
         }
     }
@@ -114,6 +115,7 @@ struct BusEventMEMarketUpdate2
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+                logd("free BusEventMEMarketUpdate2 ptr");
             }
         }
     }
@@ -452,6 +454,9 @@ struct BusEventBookDiffSnapshot
     BookDiffSnapshot2* WrappedEvent() {
         if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
+    }
+    boost::intrusive_ptr<Exchange::BookDiffSnapshot2> WrappedEventIntrusive() {
+        return wrapped_event_;
     }
 
     friend void intrusive_ptr_release(Exchange::BusEventBookDiffSnapshot* ptr) {

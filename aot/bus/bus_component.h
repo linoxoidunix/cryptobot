@@ -40,7 +40,8 @@ class Component {
     virtual void AsyncStop(){
         //it is empty class
     };
-
+    virtual std::string_view GetName() const { return {};
+    }
     /**
      * @brief update position keeper when OrderBook emit new signal updateBBO
      * 

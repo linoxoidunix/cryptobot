@@ -91,6 +91,10 @@ bybit::detail::FamilyBookEventGetter::ParserResponse::Parse(
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     std::string_view type;
     try {
+        if (doc.find_field_unordered("data").error() != simdjson::SUCCESS) {
+            logw("Field 'data' is missing in the JSON document");
+            return {};
+        }
         auto data                  = doc["data"];
 
         auto get_value_s = [&](const char* key, std::string_view& variable,
@@ -149,29 +153,78 @@ bybit::detail::FamilyBookEventGetter::ParserResponse::Parse(
             10, pairs_[trading_pair].price_precission);
         auto qty_prec = std::pow(
             10, pairs_[trading_pair].qty_precission);
-        for (auto all : data["b"]) {
-            simdjson::ondemand::array arr = all.get_array();
-            std::array<double, 2> pair;
-            uint8_t i = 0;
-            for (auto number : arr) {
-                pair[i] = number.get_double_in_string();
-                i++;
+        if (data["b"].error() == simdjson::SUCCESS) {
+
+            for (auto all : data["b"]) {
+                simdjson::ondemand::array arr = all.get_array();
+                std::array<double, 2> pair;
+                uint8_t i = 0;
+                for (auto number : arr) {
+                    if (i >= 2){
+                        logw("Ensure no out-of-bounds access");
+                        break;
+                    }
+                    auto num_result = number.get_double_in_string();
+                    if (num_result.error() == simdjson::SUCCESS) {
+                        pair[i] = num_result.value();
+                        i++;
+                    } else {
+                        // Handle invalid number format (log or skip)
+                        break;
+                    }
+                }
+                if (i == 2) { // Ensure we have both price and quantity
+                    bids.emplace_back(
+                        static_cast<int>(pair[0] * price_prec),
+                        static_cast<int>(pair[1] * qty_prec));
+                } else {
+                    logw("pair is incomplete");
+                    // Handle case where pair is incomplete
+                }
             }
-            bids.emplace_back(
-                static_cast<int>(pair[0] * price_prec),
-                static_cast<int>(pair[1] * qty_prec));
+        } else {
+            logw("missing 'b' in responce");
+            // Handle missing or invalid "a"
+            // Log or handle accordingly
         }
-        for (auto all : data["a"]) {
-            simdjson::ondemand::array arr = all.get_array();
-            std::array<double, 2> pair;
-            uint8_t i = 0;
-            for (auto number : arr) {
-                pair[i] = number.get_double_in_string();
-                i++;
+        if (data["a"].error() == simdjson::SUCCESS) {
+            for (auto all : data["a"]) {
+                auto arr_result = all.get_array();
+                if (arr_result.error() == simdjson::SUCCESS) {
+                    simdjson::ondemand::array arr = arr_result.value();
+                    std::array<double, 2> pair;
+                    uint8_t i = 0;
+
+                    for (auto number : arr) {
+                        if (i >= 2) break; // Ensure no out-of-bounds access
+                        auto num_result = number.get_double_in_string();
+                        if (num_result.error() == simdjson::SUCCESS) {
+                            pair[i] = num_result.value();
+                            i++;
+                        } else {
+                            // Handle invalid number format (log or skip)
+                            break;
+                        }
+                    }
+
+                    if (i == 2) { // Ensure we have both price and quantity
+                        asks.emplace_back(
+                            static_cast<int>(pair[0] * price_prec),
+                            static_cast<int>(pair[1] * qty_prec));
+                    } else {
+                        logw("pair is incomplete");
+                        // Handle case where pair is incomplete
+                        // Log or handle accordingly
+                    }
+                } else {
+                    // Handle invalid array in "a"
+                    // Log or handle accordingly
+                }
             }
-            asks.emplace_back(
-                static_cast<int>(pair[0] * price_prec),
-                static_cast<int>(pair[1] * qty_prec));
+        } else {
+            logw("missing 'a' in responce");
+            // Handle missing or invalid "a"
+            // Log or handle accordingly
         }
 //-----------------------------------------------------------------
         if(is_snapshot){
