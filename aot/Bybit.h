@@ -681,7 +681,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     };
     ~BookEventGetter3() override = default;
     boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestDiffOrderBook*
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
         if (bus_event_request_diff_order_book == nullptr) {
@@ -781,7 +781,7 @@ class BookEventGetterComponent : public bus::Component,
     ~BookEventGetterComponent() override = default;
 
     void AsyncHandleEvent(
-        Exchange::BusEventRequestDiffOrderBook* event) override {
+        boost::intrusive_ptr< Exchange::BusEventRequestDiffOrderBook> event) override {
         boost::asio::co_spawn(BookEventGetter3<Executor>::executor_,
                               BookEventGetter3<Executor>::CoExec(event),
                               boost::asio::detached);
@@ -1161,8 +1161,8 @@ class BidAskGeneratorComponent : public bus::Component {
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         Exchange::BusEventBookDiffSnapshot* event) {
         const auto& diff = *event->WrappedEvent();
-        logi("[DIFF ACCEPTED] {}, Diff ID Range: [{}-{}]",
-             diff.trading_pair.ToString(), diff.first_id, diff.last_id);
+        logi("[DIFF ACCEPTED] {}, Diff Last ID Range: [{}]",
+             diff.trading_pair.ToString(), diff.last_id);
 
         const auto& exchange_id = diff.exchange_id;
         if (exchange_id != common::ExchangeId::kBybit) {
@@ -1177,21 +1177,20 @@ class BidAskGeneratorComponent : public bus::Component {
 
         // Check for packet loss
         state.diff_packet_lost =
-            (diff.first_id != state.last_id_diff_book_event + 1);
+            (diff.last_id != state.last_id_diff_book_event + 1);
         state.last_id_diff_book_event = diff.last_id;
 
         if (state.diff_packet_lost) {
             logw(
-                "[PACKET LOSS] {}, Expected First ID: {}, Actual "
+                "[PACKET LOSS] {}, Expected last ID: {}, Actual "
                 "First ID: {}",
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
-                diff.first_id);
+                diff.last_id);
         }
 
         if (state.need_make_snapshot) {
             const bool snapshot_and_diff_now_sync =
-                (diff.first_id <= state.snapshot.lastUpdateId + 1) &&
-                (diff.last_id >= state.snapshot.lastUpdateId + 1);
+                (diff.last_id == state.snapshot.lastUpdateId + 1);
             if (snapshot_and_diff_now_sync) {
                 state.need_make_snapshot            = false;
                 state.need_process_current_snapshot = true;
@@ -1202,27 +1201,32 @@ class BidAskGeneratorComponent : public bus::Component {
             }
         }
 
-        // Determine if a new snapshot is needed
-        const bool need_snapshot =
-            (state.need_make_snapshot || state.diff_packet_lost);
-        if (need_snapshot) {
-            if (diff.last_id <= state.snapshot.lastUpdateId) {
-                logw(
-                    "[OUTDATED DIFF] {}, Diff Last ID: {}, "
-                    "Snapshot LastUpdateId: {}. Awaiting newer diff.",
-                    trading_pair.ToString(), diff.last_id,
-                    state.snapshot.lastUpdateId);
-                co_return;
-            }
-
-            logd(
-                "[REQUESTING NEW SNAPSHOT] {}, Current Snapshot "
-                "LastUpdateId: {}",
-                trading_pair.ToString(), state.snapshot.lastUpdateId);
-            state.need_make_snapshot = true;
-            co_await RequestNewSnapshot(trading_pair);
+        if(state.diff_packet_lost){
+            loge("[DIFF PACKET LOST] need resubscribe to channel");
             co_return;
         }
+        // Determine if a new snapshot is needed
+        // const bool need_snapshot =
+        //     (state.need_make_snapshot || state.diff_packet_lost);
+        // if (need_snapshot) {
+        //     if (diff.last_id <= state.snapshot.lastUpdateId) {
+        //         logw(
+        //             "[OUTDATED DIFF] {}, Diff Last ID: {}, "
+        //             "Snapshot LastUpdateId: {}. Awaiting newer diff.",
+        //             trading_pair.ToString(), diff.last_id,
+        //             state.snapshot.lastUpdateId);
+        //         co_return;
+        //     }
+
+        //     logd(
+        //         "[REQUESTING NEW SNAPSHOT] {}, Current Snapshot "
+        //         "LastUpdateId: {}",
+        //         trading_pair.ToString(), state.snapshot.lastUpdateId);
+        //     state.need_make_snapshot = true;
+        //     //not sure that i need comment this
+        //     //co_await RequestNewSnapshot(trading_pair);
+        //     co_return;
+        // }
 
         if (state.need_process_current_snapshot) {
             logd(
@@ -1246,9 +1250,9 @@ class BidAskGeneratorComponent : public bus::Component {
 
         if (!state.diff_packet_lost && state.need_process_current_diff) {
             logd(
-                "[PROCESSING DIFF] {}, Diff ID Range: [{}-{}], "
+                "[PROCESSING DIFF] {}, Diff ID Range: [{}], "
                 "Snapshot LastUpdateId: {}",
-                trading_pair.ToString(), diff.first_id, diff.last_id,
+                trading_pair.ToString(), diff.last_id,
                 state.snapshot.lastUpdateId);
             if (!diff_callback_) {
                 loge("[DIFF CALLBACK NOT FOUND]");
@@ -1264,32 +1268,32 @@ class BidAskGeneratorComponent : public bus::Component {
         }
         co_return;
     }
-    boost::asio::awaitable<void> RequestNewSnapshot(
-        common::TradingPair trading_pair) {
-        if (!request_bbo_.count(trading_pair)) {
-            loge(
-                "can't find info to prepare request new snapshot for this "
-                "pair:{} request_bbo.size():{}",
-                trading_pair.ToString(), request_bbo_.size());
-            co_return;
-        }
-        auto& info = request_bbo_[trading_pair];
+    // boost::asio::awaitable<void> RequestNewSnapshot(
+    //     common::TradingPair trading_pair) {
+    //     if (!request_bbo_.count(trading_pair)) {
+    //         loge(
+    //             "can't find info to prepare request new snapshot for this "
+    //             "pair:{} request_bbo.size():{}",
+    //             trading_pair.ToString(), request_bbo_.size());
+    //         co_return;
+    //     }
+    //     auto& info = request_bbo_[trading_pair];
 
-        auto* ptr  = request_snapshot_mem_pool_.Allocate(
-            &request_snapshot_mem_pool_, info.exchange_id, info.trading_pair,
-            info.snapshot_depth);
-        auto intr_ptr_request =
-            boost::intrusive_ptr<Exchange::RequestSnapshot>(ptr);
+    //     auto* ptr  = request_snapshot_mem_pool_.Allocate(
+    //         &request_snapshot_mem_pool_, info.exchange_id, info.trading_pair,
+    //         info.snapshot_depth);
+    //     auto intr_ptr_request =
+    //         boost::intrusive_ptr<Exchange::RequestSnapshot>(ptr);
 
-        auto* bus_evt_request = request_bus_event_snapshot_mem_pool_.Allocate(
-            &request_bus_event_snapshot_mem_pool_, intr_ptr_request);
-        auto intr_ptr_bus_event_request =
-            boost::intrusive_ptr<Exchange::BusEventRequestNewSnapshot>(
-                bus_evt_request);
+    //     auto* bus_evt_request = request_bus_event_snapshot_mem_pool_.Allocate(
+    //         &request_bus_event_snapshot_mem_pool_, intr_ptr_request);
+    //     auto intr_ptr_bus_event_request =
+    //         boost::intrusive_ptr<Exchange::BusEventRequestNewSnapshot>(
+    //             bus_evt_request);
 
-        bus_.AsyncSend(this, intr_ptr_bus_event_request);
-        co_return;
-    }
+    //     bus_.AsyncSend(this, intr_ptr_bus_event_request);
+    //     co_return;
+    // }
     boost::asio::awaitable<void> RequestSubscribeToDiff(
         common::TradingPair trading_pair) {
         if (!request_bbo_.count(trading_pair)) {
@@ -1304,7 +1308,7 @@ class BidAskGeneratorComponent : public bus::Component {
         // common::kFrequencyMSInvalid to info
         auto* ptr  = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            common::kFrequencyMSInvalid);
+            info.snapshot_depth);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 

@@ -1050,8 +1050,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         }
     };
     ~BookEventGetter3() override = default;
-    boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestDiffOrderBook*
+    boost::asio::awaitable<void> CoExec(boost::intrusive_ptr<
+        Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
         if (bus_event_request_diff_order_book == nullptr) {
@@ -1139,7 +1139,7 @@ class BookEventGetterComponent : public bus::Component,
     ~BookEventGetterComponent() override = default;
 
     void AsyncHandleEvent(
-        Exchange::BusEventRequestDiffOrderBook* event) override {
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event) override {
         boost::asio::co_spawn(BookEventGetter3<Executor>::executor_,
                               BookEventGetter3<Executor>::CoExec(event),
                               boost::asio::detached);

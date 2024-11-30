@@ -108,7 +108,7 @@ class Component {
      * @brief
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*){
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>){
         //it is empty class
     };
 

@@ -543,7 +543,7 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     bus.Subscribe(&bid_ask_generator, &event_getter_component);
     bus.Subscribe(&component, &bid_ask_generator);
     bus.Subscribe(&event_getter_component, &bid_ask_generator);
-    bus.Subscribe(&bid_ask_generator, &order_book_component);
+    //bus.Subscribe(&bid_ask_generator, &order_book_component);
 
     //------------------------------------------------------------------------------
     BusEventRequestBBOPrice request_bbo_btc;

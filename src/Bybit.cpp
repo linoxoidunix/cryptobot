@@ -64,7 +64,7 @@ Exchange::BookSnapshot bybit::detail::FamilyBookSnapshot::ParserResponse::Parse(
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
-    book_snapshot.exchange_id = common::ExchangeId::kBinance;
+    book_snapshot.exchange_id = common::ExchangeId::kBybit;
     return book_snapshot;
 }
 
@@ -179,12 +179,14 @@ bybit::detail::FamilyBookEventGetter::ParserResponse::Parse(
             book_snapshot.lastUpdateId = data["u"].get_uint64();
             book_snapshot.bids = std::move(bids);
             book_snapshot.asks = std::move(asks);
+            book_snapshot.exchange_id = common::ExchangeId::kBybit;
             out = book_snapshot;
         } else if(is_diff){
             book_diff_snapshot.trading_pair = trading_pair;
             book_diff_snapshot.last_id = data["u"].get_uint64();
             book_diff_snapshot.bids = std::move(bids);
             book_diff_snapshot.asks = std::move(asks);
+            book_diff_snapshot.exchange_id = common::ExchangeId::kBybit;
             out = book_diff_snapshot;
         }
     } catch (const simdjson::simdjson_error& error) {

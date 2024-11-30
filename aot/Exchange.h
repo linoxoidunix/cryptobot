@@ -368,8 +368,7 @@ class BookSnapshotI {
 class BookEventGetterI {
   public:
     virtual boost::asio::awaitable<void> CoExec(
-        Exchange::BusEventRequestDiffOrderBook
-            *bus_event_request_diff_order_book) {
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> bus_event_request_diff_order_book) {
         co_return;
     }
     virtual void AsyncStop() {}
