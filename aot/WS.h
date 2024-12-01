@@ -8,7 +8,6 @@
 #include <string_view>
 #include <unordered_map>
 // #include <boost/asio/experimental/as_single.hpp>
-#include "boost/asio.hpp"
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
@@ -22,6 +21,7 @@
 
 #include "aot/Logger.h"
 #include "aot/Types.h"
+#include "boost/asio.hpp"
 #include "boost/asio/awaitable.hpp"
 
 namespace beast     = boost::beast;          // from <boost/beast.hpp>
@@ -353,9 +353,9 @@ class WssSession2 {
 };
 
 /**
- * @brief difference btw WssSession2 that WssSession3 support cancel 
- * 
- * @tparam _Timeout 
+ * @brief difference btw WssSession2 that WssSession3 support cancel
+ *
+ * @tparam _Timeout
  */
 template <typename _Timeout>
 class WssSession3 {
@@ -380,6 +380,9 @@ class WssSession3 {
     std::list<const OnWssResponse*> cbs_;
     boost::asio::io_context& ioc_;
     Timeout timeout_;
+    std::string_view host_;
+    std::string_view port_;
+    std::string_view default_endpoint_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
     virtual ~WssSession3() = default;
@@ -391,6 +394,9 @@ class WssSession3 {
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
           timeout_(timeout),
+          host_(host),
+          port_(port),
+          default_endpoint_(default_endpoint),
           timer_(ioc)  // Initialize the timer
     {
         net::co_spawn(ioc_,
@@ -402,24 +408,24 @@ class WssSession3 {
 
     template <typename CompletionHandler>
     net::awaitable<bool> AsyncRequest(std::string&& req,
-                                      const CompletionHandler* handler, 
+                                      const CompletionHandler* handler,
                                       net::cancellation_slot& slot) {
         request_json_ = std::move(req);
         if (!IsConnected()) co_return false;
         if (IsUsed()) co_return false;
-        
+
         slot.assign([this](boost::asio::cancellation_type_t&) {
             logd("Cancellation requested!");
             AsyncCloseSessionGracefully();
         });
 
-        is_used_ = true;
+        is_used_      = true;
         auto write_op = stream_.async_write(
             net::buffer(request_json_),
-            //boost::asio::bind_cancellation_slot(slot, boost::asio::as_tuple(net::use_awaitable)));
+            // boost::asio::bind_cancellation_slot(slot,
+            // boost::asio::as_tuple(net::use_awaitable)));
             boost::asio::as_tuple(boost::asio::use_awaitable));
 
-        
         auto [ec, bytes_written] = co_await std::move(write_op);
         if (ec) {
             if (ec == net::error::operation_aborted) {
@@ -429,11 +435,12 @@ class WssSession3 {
             }
             co_return false;
         }
-        
+
         cbs_.emplace_back(handler);
         while (need_read_) {
             auto [read_ec, n] = co_await stream_.async_read(
-                //buffer_, boost::asio::bind_cancellation_slot(slot, boost::asio::as_tuple(net::use_awaitable)));
+                // buffer_, boost::asio::bind_cancellation_slot(slot,
+                // boost::asio::as_tuple(net::use_awaitable)));
                 buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
             if (read_ec) {
                 if (read_ec == net::error::operation_aborted) {
@@ -464,17 +471,47 @@ class WssSession3 {
 
     // Close the session gracefully
     void AsyncCloseSessionGracefully() {
-        boost::asio::co_spawn(ioc_,
-                              [this]()-> boost::asio::awaitable<void> {
-                                    need_read_ = false;
-                                    co_return;
-                              },
-                              boost::asio::detached);
+        boost::asio::co_spawn(
+            ioc_,
+            [this]() -> boost::asio::awaitable<void> {
+                need_read_ = false;
+                co_return;
+            },
+            boost::asio::detached);
     }
 
     inline bool IsConnected() const { return is_connected_; }
     inline bool IsExpired() const { return is_expired_; }
     inline bool IsUsed() const { return is_used_; }
+    void RestartSession() {
+        //don't check it this function
+        boost::asio::co_spawn(
+            ioc_,
+            [this]() -> boost::asio::awaitable<void> {
+                // Close the existing session gracefully
+                AsyncCloseSessionGracefully();
+                boost::system::error_code ec; // Define a valid error_code object
+                // Wait for the session to close
+                co_await stream_.async_close(
+                    websocket::close_code::normal,
+                    net::redirect_error(net::use_awaitable,
+                                        ec));
+
+                // Reset internal state
+                is_connected_ = false;
+                is_used_      = false;
+                is_expired_   = false;
+                buffer_.consume(buffer_.size());
+
+                // Reinitialize the connection
+                net::co_spawn(ioc_,
+                      Run(host_.data(), port_.data(), default_endpoint_.data()),
+                      [](std::exception_ptr e) {
+                          if (e) std::rethrow_exception(e);
+                      });
+            },
+            boost::asio::detached);
+    }
 
   private:
     // Start the asynchronous operation
@@ -483,9 +520,10 @@ class WssSession3 {
         beast::error_code ec;
 
         auto results = co_await resolver_.async_resolve(
-                host, port, net::redirect_error(net::use_awaitable, ec));
+            host, port, net::redirect_error(net::use_awaitable, ec));
         if (ec) {
-            loge("Failed to resolve host '{}:{}': {}", host, port, ec.message());
+            loge("Failed to resolve host '{}:{}': {}", host, port,
+                 ec.message());
             co_return;
         }
         if (!SSL_set_tlsext_host_name(stream_.next_layer().native_handle(),
@@ -496,8 +534,8 @@ class WssSession3 {
             co_return;
         }
         start_timer();
-        auto ep = co_await beast::get_lowest_layer(stream_)
-                          .async_connect(results, net::redirect_error(net::use_awaitable, ec));
+        auto ep = co_await beast::get_lowest_layer(stream_).async_connect(
+            results, net::redirect_error(net::use_awaitable, ec));
         if (ec) {
             loge("Failed to connect to endpoint: {}", ec.message());
             co_return;
@@ -506,8 +544,9 @@ class WssSession3 {
         // the websocket stream has its own timeout system.
         beast::get_lowest_layer(stream_).expires_never();
 
-        co_await stream_.next_layer().async_handshake(ssl::stream_base::client,
-                                                          net::redirect_error(net::use_awaitable, ec));
+        co_await stream_.next_layer().async_handshake(
+            ssl::stream_base::client,
+            net::redirect_error(net::use_awaitable, ec));
         if (ec) {
             loge("SSL handshake failed: {}", ec.message());
             co_return;
@@ -522,8 +561,9 @@ class WssSession3 {
                         std::string(BOOST_BEAST_VERSION_STRING) +
                             " websocket-client-async-ssl");
             }));
-        co_await stream_.async_handshake(host, default_end_point,
-                                             net::redirect_error(net::use_awaitable, ec));
+        co_await stream_.async_handshake(
+            host, default_end_point,
+            net::redirect_error(net::use_awaitable, ec));
         if (ec) {
             loge("WebSocket handshake failed: {}", ec.message());
             co_return;

@@ -75,7 +75,6 @@ void MarketOrderBook2::OnMarketUpdate(
     const Exchange::MEMarketUpdate2 *market_update) noexcept {
     if (market_update->type == Exchange::MarketUpdateType::CLEAR) [[unlikely]] {
         ClearOrderBook();
-        return;
     }
 
     const auto bid_will_be_updated =

@@ -1199,7 +1199,6 @@ class BidAskGeneratorComponent : public bus::Component {
                 "First ID: {}",
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
                 diff.last_id);
-                std::exit(1);
         }
 
         if (state.need_make_snapshot) {

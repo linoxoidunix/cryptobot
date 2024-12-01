@@ -223,18 +223,20 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     // Register the snapshot callback
     std::function<void(const std::list<Exchange::BookSnapshotElem>& entries,
                        common::ExchangeId exchange_id,
-                       common::TradingPair trading_pair, common::Side side)>
+                       common::TradingPair trading_pair, common::Side side,
+                       Exchange::MarketUpdateType type)>
         ProcessBookEntries;
     ProcessBookEntries = [&bid_ask_generator, &bus](
                              const auto& entries,
                              common::ExchangeId exchange_id,
                              common::TradingPair trading_pair,
-                             common::Side side) {
+                             common::Side side,
+                             Exchange::MarketUpdateType type) {
         boost::for_each(entries, [&](const auto& bid) {
             Exchange::MEMarketUpdate2* ptr =
             bid_ask_generator.out_diff_mem_pool_.Allocate(
                 &bid_ask_generator.out_diff_mem_pool_, exchange_id,
-                trading_pair, Exchange::MarketUpdateType::DEFAULT,
+                trading_pair, type,
                 common::kOrderIdInvalid, side, bid.price, bid.qty);
             auto intr_ptr =
                 boost::intrusive_ptr<Exchange::MEMarketUpdate2>(ptr);
@@ -270,18 +272,22 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     };
     bid_ask_generator.RegisterSnapshotCallback(
         [&ProcessBookEntries](const Exchange::BookSnapshot& snapshot) {
+            Exchange::MarketUpdateType type = Exchange::MarketUpdateType::DEFAULT;
+            if(snapshot.lastUpdateId == 1)
+                type = Exchange::MarketUpdateType::CLEAR;
             ProcessBookEntries(snapshot.bids, snapshot.exchange_id,
-                               snapshot.trading_pair, common::Side::SELL);
+                               snapshot.trading_pair, common::Side::SELL, type);
             ProcessBookEntries(snapshot.asks, snapshot.exchange_id,
-                               snapshot.trading_pair, common::Side::BUY);
+                               snapshot.trading_pair, common::Side::BUY, type);
         });
     // Register the diff callback
     bid_ask_generator.RegisterDiffCallback(
         [&ProcessBookEntries](const Exchange::BookDiffSnapshot2& diff) {
+            Exchange::MarketUpdateType type = Exchange::MarketUpdateType::DEFAULT;
             ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair,
-                               common::Side::SELL);
+                               common::Side::SELL, type);
             ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair,
-                               common::Side::BUY);
+                               common::Side::BUY, type);
         });
     //---------------------------init
     //bus-------------------------------------------
