@@ -307,7 +307,7 @@ class FamilyBookEventGetter {
             auto status = false;
             if (pairs_reverse_.count(trading_pair)) [[likely]] {
                 t.trading_pair = pairs_reverse_.find(trading_pair)->second;
-                status           = true;
+                status         = true;
             } else {
                 loge("pairs_reverse not contain {}", trading_pair);
             }
@@ -368,27 +368,34 @@ class FamilyBookEventGetter {
         ArgsBody(const Exchange::RequestDiffOrderBook* request,
                  common::TradingPairHashMap& pairs, unsigned int id)
             : bybit::ArgsBody(), pairs_(pairs), id_(id) {
-            SetMethod();
+            // SetMethod();
             SetParams(request);
             SetId(id_);
         }
-
       private:
-        void SetMethod() { storage["op"] = "\"subscribe\""; };
+        void Subscribe(){
+            storage["op"] = "\"subscribe\"";
+        }
+        void UnSubscribe(){
+            storage["op"] = "\"unsubscribe\"";
+        }
         void SetParams(const Exchange::RequestDiffOrderBook* request) {
             /**
-             * @brief frequency = depth 
+             * @brief frequency = depth
              * https://bybit-exchange.github.io/docs/v5/websocket/public/orderbook
-             * 
+             *
              */
             auto depth = request->frequency;
-            if (depth == common::kFrequencyMSInvalid){
+            if (depth == common::kFrequencyMSInvalid) {
                 return;
             }
-            storage["args"] = fmt::format(
-                    "{}.{}.{}","orderbook", depth, pairs_[request->trading_pair].https_json_request);
-                    return;
-            
+            storage["args"] =
+                fmt::format("{}.{}.{}", "orderbook", depth,
+                            pairs_[request->trading_pair].https_json_request);
+            if(request->subscribe)
+                Subscribe();
+            else
+                UnSubscribe();
         };
         void SetId(unsigned int id) {
             // i don't want process an id now because for binance an id is
@@ -655,21 +662,40 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     std::unordered_map<common::TradingPair, const OnWssResponse*,
                        common::TradingPairHash, common::TradingPairEqual>
         callback_map_;
+    /**
+     * @brief now BookEventGetter3 has only 1 active session at each time
+     *
+     */
+    std::atomic<WSSesionType3*> active_session{nullptr};
+
   protected:
     Executor executor_;
     boost::asio::cancellation_signal& signal_;
+    boost::asio::cancellation_signal& restart_signal_;
 
   public:
+    /**
+     * @brief Construct a new Book Event Getter 3 object
+     *
+     * @param executor must equal strand
+     * @param session_pool
+     * @param type
+     * @param pairs
+     * @param signal
+     * @param restart_signal
+     */
     BookEventGetter3(
         Executor&& executor,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
         TypeExchange type, common::TradingPairHashMap& pairs,
-        boost::asio::cancellation_signal& signal)
+        boost::asio::cancellation_signal& signal,
+        boost::asio::cancellation_signal& restart_signal)
         : executor_(std::move(executor)),
           session_pool_(session_pool),
           pairs_(pairs),
-          signal_(signal) {
+          signal_(signal),
+          restart_signal_(restart_signal) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_main_net_;
@@ -697,34 +723,44 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             [this, bus_event_request_diff_order_book]()
                 -> boost::asio::awaitable<void> {
                 logd("start book event getter for bybit");
-                auto& trading_pair =
-                    bus_event_request_diff_order_book->WrappedEvent()
-                        ->trading_pair;
-                auto callback_it = callback_map_.find(trading_pair);
+                auto* wrapped_event =
+                    bus_event_request_diff_order_book->WrappedEvent();
+                if (!wrapped_event) {
+                    loge("wrapped event equal nullptr");
+                    co_return;
+                }
+                auto& trading_pair = wrapped_event->trading_pair;
+                auto callback_it   = callback_map_.find(trading_pair);
                 if (callback_it == callback_map_.end()) {
                     loge("No callback registered for trading pair: {}",
                          trading_pair.ToString());
                     co_return;
                 }
-                detail::FamilyBookEventGetter::ArgsBody args(
-                    bus_event_request_diff_order_book->WrappedEvent(), pairs_,
-                    1);
+                detail::FamilyBookEventGetter::ArgsBody args(wrapped_event,
+                                                             pairs_, 1);
                 logd("start prepare event getter for bybit request");
                 auto req = args.Body();
                 logd("end prepare event getter for bybit request");
 
                 // bus_event_request_diff_order_book->Release();
                 // bus_event_request_diff_order_book->WrappedEvent()->Release();
-                auto session = session_pool_->AcquireConnection();
+                // Critical section using atomic operation
+                WSSesionType3* expected = nullptr;
+                if (active_session.compare_exchange_strong(
+                        expected, session_pool_->AcquireConnection())) {
+                    logd("Active session acquired");
+                }
                 logd("start send event getter for bybit request");
 
-                auto slot      = signal_.slot();
-                auto& callback = callback_it->second;
-                if (auto status = co_await session->AsyncRequest(
-                        std::move(req), callback, slot);
-                    status == false)
-                    loge("AsyncRequest finished unsuccessfully");
-
+                auto slot         = signal_.slot();
+                auto restart_slot = restart_signal_.slot();
+                auto& callback    = callback_it->second;
+                // if (auto status = co_await active_session.load()->AsyncRequest(
+                //         std::move(req), callback, slot, restart_slot);
+                //     status == false)
+                //     loge("AsyncRequest finished unsuccessfully");
+                // // i don't need in release connection. session_pool_ do it
+                // active_session.store(nullptr);
                 logd("end send event getter for bybit request");
                 co_return;
             },
@@ -742,7 +778,6 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         callback_map_[trading_pair] = callback;
     }
 
-
   private:
     bybit::testnet::HttpsExchange binance_test_net_;
     bybit::mainnet::HttpsExchange binance_main_net_;
@@ -753,7 +788,9 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
                                  public BookEventGetter3<Executor> {
-    static constexpr std::string_view name_component_ = "bybit::BookEventGetterComponent";  
+    static constexpr std::string_view name_component_ =
+        "bybit::BookEventGetterComponent";
+
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot2> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
@@ -766,25 +803,28 @@ class BookEventGetterComponent : public bus::Component,
         common::TradingPairHashMap& pairs,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
-        boost::asio::cancellation_signal& cancel_signal)
+        boost::asio::cancellation_signal& cancel_signal,
+        boost::asio::cancellation_signal& restart_signal)
         : BookEventGetter3<Executor>(std::move(executor), session_pool, type,
-                                     pairs, cancel_signal),
+                                     pairs, cancel_signal, restart_signal),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses),
           /**
            * @brief snapshot_mem_pool_ size can be less. it is just snapsot
-           * 
+           *
            */
           snapshot_mem_pool_(number_responses),
           /**
-           * @brief bus_event_response_snapshot_mem_pool_ size can be less. it is just snapsot
-           * 
+           * @brief bus_event_response_snapshot_mem_pool_ size can be less. it
+           * is just snapsot
+           *
            */
           bus_event_response_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
 
     void AsyncHandleEvent(
-        boost::intrusive_ptr< Exchange::BusEventRequestDiffOrderBook> event) override {
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event)
+        override {
         boost::asio::co_spawn(BookEventGetter3<Executor>::executor_,
                               BookEventGetter3<Executor>::CoExec(event),
                               boost::asio::detached);
@@ -797,7 +837,7 @@ class BookEventGetterComponent : public bus::Component,
                 boost::asio::cancellation_type::all);
         });
     }
-        std::string_view GetName() const override{
+    std::string_view GetName() const override {
         return BookEventGetterComponent<Executor>::name_component_;
     };
 };
@@ -1046,7 +1086,8 @@ class BidAskGeneratorComponent : public bus::Component {
         std::function<void(const Exchange::BookDiffSnapshot2&)>;
 
   private:
-    static constexpr std::string_view name_component_ = "bybit::BidAskGeneratorComponent";  
+    static constexpr std::string_view name_component_ =
+        "bybit::BidAskGeneratorComponent";
     BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
     BidAskGeneratorComponent::DiffCallback diff_callback_         = nullptr;
     std::unordered_map<common::TradingPair, BidAskState,
@@ -1118,9 +1159,10 @@ class BidAskGeneratorComponent : public bus::Component {
     void RegisterDiffCallback(BidAskGeneratorComponent::DiffCallback callback) {
         diff_callback_ = std::move(callback);
     }
-    std::string_view GetName() const override{
+    std::string_view GetName() const override {
         return BidAskGeneratorComponent<Executor>::name_component_;
     };
+
   private:
     boost::asio::awaitable<void> HandleTrackingNewTradingPair(
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) {
@@ -1132,11 +1174,12 @@ class BidAskGeneratorComponent : public bus::Component {
             co_return;
         }
         // copy info
-        request_bbo_[trading_pair] = *event;
+        request_bbo_[trading_pair]      = *event;
         // start tracking new trading pair
 
         // need send a signal to launch diff
-        co_await RequestSubscribeToDiff(trading_pair);
+        constexpr bool need_subcription = true;
+        co_await RequestToDiff<need_subcription>(trading_pair);
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
@@ -1161,17 +1204,24 @@ class BidAskGeneratorComponent : public bus::Component {
 
         // Update the state with the new snapshot.
         // The snapshot is moved into the state to avoid unnecessary copies.
-        auto wrapped_event = event->WrappedEvent();
-        state.snapshot     = std::move(*wrapped_event);
-        state.last_id_diff_book_event = state.snapshot.lastUpdateId;
+        auto wrapped_event                    = event->WrappedEvent();
+        auto previous_last_id_diff_book_event = state.snapshot.lastUpdateId;
+        state.need_process_current_snapshot =
+            (previous_last_id_diff_book_event != wrapped_event->lastUpdateId)
+                ? true
+                : false;
+        if (state.need_process_current_snapshot) {
+            state.snapshot                = std::move(*wrapped_event);
+            state.last_id_diff_book_event = state.snapshot.lastUpdateId;
+        }
 
         // End the coroutine since the snapshot update is complete.
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         Exchange::BusEventBookDiffSnapshot* event) {
-        //auto diff_intr = event->WrappedEventIntrusive();
-        //auto& diff = *diff_intr.get();
+        // auto diff_intr = event->WrappedEventIntrusive();
+        // auto& diff = *diff_intr.get();
         auto& diff = *event->WrappedEvent();
 
         logi("[DIFF ACCEPTED] {}, Diff Last ID Range: [{}]",
@@ -1199,6 +1249,10 @@ class BidAskGeneratorComponent : public bus::Component {
                 "First ID: {}",
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
                 diff.last_id);
+            // Unsubscribe channel and than
+            co_await RequestToDiff<false>(trading_pair);
+            // subscribe to it
+            co_await RequestToDiff<true>(trading_pair);
         }
 
         if (state.need_make_snapshot) {
@@ -1213,29 +1267,6 @@ class BidAskGeneratorComponent : public bus::Component {
                     trading_pair.ToString());
             }
         }
-
-        // Determine if a new snapshot is needed
-        // const bool need_snapshot =
-        //     (state.need_make_snapshot || state.diff_packet_lost);
-        // if (need_snapshot) {
-        //     if (diff.last_id <= state.snapshot.lastUpdateId) {
-        //         logw(
-        //             "[OUTDATED DIFF] {}, Diff Last ID: {}, "
-        //             "Snapshot LastUpdateId: {}. Awaiting newer diff.",
-        //             trading_pair.ToString(), diff.last_id,
-        //             state.snapshot.lastUpdateId);
-        //         co_return;
-        //     }
-
-        //     logd(
-        //         "[REQUESTING NEW SNAPSHOT] {}, Current Snapshot "
-        //         "LastUpdateId: {}",
-        //         trading_pair.ToString(), state.snapshot.lastUpdateId);
-        //     state.need_make_snapshot = true;
-        //     //not sure that i need comment this
-        //     //co_await RequestNewSnapshot(trading_pair);
-        //     co_return;
-        // }
 
         if (state.need_process_current_snapshot) {
             logd(
@@ -1277,33 +1308,9 @@ class BidAskGeneratorComponent : public bus::Component {
         }
         co_return;
     }
-    // boost::asio::awaitable<void> RequestNewSnapshot(
-    //     common::TradingPair trading_pair) {
-    //     if (!request_bbo_.count(trading_pair)) {
-    //         loge(
-    //             "can't find info to prepare request new snapshot for this "
-    //             "pair:{} request_bbo.size():{}",
-    //             trading_pair.ToString(), request_bbo_.size());
-    //         co_return;
-    //     }
-    //     auto& info = request_bbo_[trading_pair];
 
-    //     auto* ptr  = request_snapshot_mem_pool_.Allocate(
-    //         &request_snapshot_mem_pool_, info.exchange_id, info.trading_pair,
-    //         info.snapshot_depth);
-    //     auto intr_ptr_request =
-    //         boost::intrusive_ptr<Exchange::RequestSnapshot>(ptr);
-
-    //     auto* bus_evt_request = request_bus_event_snapshot_mem_pool_.Allocate(
-    //         &request_bus_event_snapshot_mem_pool_, intr_ptr_request);
-    //     auto intr_ptr_bus_event_request =
-    //         boost::intrusive_ptr<Exchange::BusEventRequestNewSnapshot>(
-    //             bus_evt_request);
-
-    //     bus_.AsyncSend(this, intr_ptr_bus_event_request);
-    //     co_return;
-    // }
-    boost::asio::awaitable<void> RequestSubscribeToDiff(
+    template <bool subscribe>
+    boost::asio::awaitable<void> RequestToDiff(
         common::TradingPair trading_pair) {
         if (!request_bbo_.count(trading_pair)) {
             loge(
@@ -1311,13 +1318,14 @@ class BidAskGeneratorComponent : public bus::Component {
                 "pair");
             co_return;
         }
-        auto& info = request_bbo_[trading_pair];
+        auto& info             = request_bbo_[trading_pair];
 
         // TODO need process common::kFrequencyMSInvalid, need add
         // common::kFrequencyMSInvalid to info
-        auto* ptr  = request_diff_mem_pool_.Allocate(
+        bool need_subscription = (subscribe) ? true : false;
+        auto* ptr              = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            info.snapshot_depth);
+            info.snapshot_depth, need_subscription);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 

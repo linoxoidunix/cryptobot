@@ -9,38 +9,6 @@
 #include "boost/asio.hpp"
 #include "boost/asio/io_context.hpp"
 
-struct LogPolling {
-    std::shared_ptr<boost::asio::steady_timer> timer;
-    std::function<void(const boost::system::error_code&)> poll;
-
-    LogPolling(boost::asio::thread_pool& pool,
-               std::chrono::microseconds interval)
-        : timer(std::make_shared<boost::asio::steady_timer>(pool)) {
-        StartPolling(interval);
-    }
-
-    void Stop() {
-        if (timer) {
-            timer->cancel();  // Stop polling by canceling the timer
-        }
-    }
-
-  private:
-    void StartPolling(std::chrono::microseconds interval) {
-        poll = [this, self = timer,
-                interval](const boost::system::error_code& ec) mutable {
-            if (!ec) {
-                fmtlog::poll();  // Perform log polling
-                self->expires_after(interval);
-                self->async_wait(poll);  // Schedule the next poll
-            }
-        };
-
-        timer->expires_after(interval);
-        timer->async_wait(poll);
-    }
-};
-
 // Handler function to be called when the timer expires
 void StopIoContext(boost::asio::io_context& io,
                    const boost::system::error_code& ec) {
@@ -89,7 +57,7 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     // boost::asio::steady_timer timer(io_context, std::chrono::seconds(20));
 
     fmtlog::setLogLevel(fmtlog::DBG);
-    LogPolling log_polling(thread_pool, std::chrono::microseconds(1));
+    //LogPolling log_polling(thread_pool, std::chrono::microseconds(1));
     aot::CoBus bus(thread_pool);
 
     common::TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pairs);
@@ -100,10 +68,12 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     // timer.async_wait(std::bind(&StopIoContext, std::ref(io_context),
     // std::placeholders::_1));
     boost::asio::cancellation_signal cancel_signal;
+    boost::asio::cancellation_signal restart_signal;
 
     bybit::BookEventGetterComponent component(
         boost::asio::make_strand(thread_pool), number_responses,
-        TypeExchange::TESTNET, pairs, &session_pool, cancel_signal);
+        TypeExchange::TESTNET, pairs, &session_pool, cancel_signal,
+        restart_signal);
 
     // Exchange::RequestDiffOrderBook request;
     // request.exchange_id  = common::ExchangeId::kBybit;

@@ -216,6 +216,7 @@ struct BookSnapshot {
     common::TradingPair trading_pair;
     std::list<BookSnapshotElem> bids;
     std::list<BookSnapshotElem> asks;
+    // i think lastUpdateId must negotiate number
     uint64_t lastUpdateId = 0;
 
     BookSnapshot()        = default;
@@ -480,16 +481,19 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     common::TradingPair trading_pair;
     common::FrequencyMS frequency = common::kFrequencyMSInvalid;
+    bool subscribe = true;
     RequestDiffOrderBook() : aot::Event<RequestDiffOrderBookPool>(nullptr) {};
 
     RequestDiffOrderBook(RequestDiffOrderBookPool* mem_pool,
                          common::ExchangeId _exchange_id,
                          common::TradingPair _trading_pair,
-                         common::FrequencyMS _frequency)
+                         common::FrequencyMS _frequency,
+                         bool _subscribe)
         : aot::Event<RequestDiffOrderBookPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
-          frequency(_frequency) {}
+          frequency(_frequency),
+          subscribe(_subscribe) {}
     friend void intrusive_ptr_release(Exchange::RequestDiffOrderBook* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {

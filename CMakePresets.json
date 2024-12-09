@@ -5,6 +5,7 @@
             "name": "cryptobot_dbg",
             "displayName": "GCC Debug",
             "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
@@ -16,6 +17,7 @@
             "name": "cryptobot_release",
             "displayName": "GCC Release",
             "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
@@ -27,6 +29,7 @@
             "name": "cryptobot_dbg_local",
             "displayName": "GCC Debug Local",
             "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
@@ -39,6 +42,7 @@
             "name": "cryptobot_release_local",
             "displayName": "GCC Release Local",
             "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
@@ -46,26 +50,129 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "LOCAL_TEST": "ON"
             }
+        },
+        {
+            "name": "debug_binance",
+            "displayName": "gcc debug binance",
+            "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON",
+                "BUILD_TARGET": "unit_test_binance"
+            }
+        },
+        {
+            "name": "cryptobot_dbg_clang",
+            "displayName": "Clang Debug",
+            "description": "Using compilers: C = /usr/bin/clang++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "cryptobot_release_clang",
+            "displayName": "Clang Release",
+            "description": "Using compilers: C = /usr/bin/clang++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "cryptobot_dbg_local_clang",
+            "displayName": "Clang Debug Local",
+            "description": "Using compilers: C = /usr/bin/clang++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON"
+            }
+        },
+        {
+            "name": "cryptobot_release_local_clang",
+            "displayName": "Clang Release Local",
+            "description": "Using compilers: C = /usr/bin/clang++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Release",
+                "LOCAL_TEST": "ON"
+            }
+        },
+        {
+            "name": "debug_binance_clang",
+            "displayName": "Clang Debug Binance",
+            "description": "Using compilers: C = /usr/bin/clang++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON",
+                "BUILD_TARGET": "unit_test_binance"
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "build_dbg",
             "configurePreset": "cryptobot_dbg",
-            "jobs": 18
+            "jobs": 10
+        },
+        {
+            "name": "build_dbg_binance",
+            "configurePreset": "debug_binance",
+            "jobs": 10
         },
         {
             "name": "build_release",
             "configurePreset": "cryptobot_release",
-            "jobs": 18
+            "jobs": 10
+        },
+        {
+            "name": "build_dbg_clang",
+            "configurePreset": "cryptobot_dbg_clang",
+            "jobs": 10
+        },
+        {
+            "name": "build_release_clang",
+            "configurePreset": "cryptobot_release_clang",
+            "jobs": 10
+        },
+        {
+            "name": "build_dbg_binance_clang",
+            "configurePreset": "debug_binance_clang",
+            "jobs": 10
         }
     ],
     "testPresets": [
-    {
-      "name": "tests",
-      "configurePreset": "cryptobot_release",
-      "output": {"outputOnFailure": true},
-      "execution": {"noTestsAction": "error", "stopOnFailure": true}
-    }
-  ]
+        {
+            "name": "tests",
+            "configurePreset": "cryptobot_release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        }
+    ]
 }

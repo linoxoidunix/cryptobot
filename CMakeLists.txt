@@ -2,11 +2,36 @@ cmake_minimum_required(VERSION 3.28)
 set (PROJECT_NAME aot)
 project(${PROJECT_NAME} C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+
+# if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+#     message(STATUS "Configuring ${PROJECT_NAME} for GNU or Clang with modules and debug info.")
+#     add_compile_options(-fmodules-ts)  # Enable modules support for GCC/Clang
+# elseif(MSVC)
+#     message(STATUS "Configuring ${PROJECT_NAME} for MSVC with modules and debug info.")
+#     add_compile_options(/experimental:module)  # Enable modules support for MSVC
+# endif()
+
+#set(CMAKE_CXX_EXTENSIONS FALSE)
+#set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+#set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
+
+#for valgrind
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0")
+
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+# SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+# SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+
 find_package(OpenSSL)
+
 #add_subdirectory(clickhouse-cpp)
+
 add_subdirectory(aot_data)
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)
+
 #find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUV REQUIRED libuv)
 include(FetchContent)
@@ -51,9 +76,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)  
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+
 
 FetchContent_Declare(
     tomlplusplus
@@ -109,7 +132,7 @@ else()
 endif()
 
 find_package(Python COMPONENTS Interpreter Development)
-find_package(concurrentqueue)
+#find_package(concurrentqueue)
 
 file(GLOB LIST_H
      "aot/*.h"
@@ -126,23 +149,46 @@ file(GLOB LIST_H
 file(GLOB LIST_CPP
      "src/*.cpp"
 )
-set(ALL_FILES ${LIST_H} ${LIST_CPP})
-message (${LIST_CPP})
+
+#for support modules
+# file(GLOB LIST_CXX
+#     "aot/*.cxx"
+#     "aot/bus/*.cxx"
+#     "aot/common/*.cxx"
+#     "aot/market_data/*.cxx"
+#     "aot/order_gw/*.cxx"
+#     "aot/prometheus/*.cxx"
+#     "aot/strategy/*.cxx"
+#     "aot/strategy/cross_arbitrage/*.cxx"
+#     "aot/third_party/*.cxx"
+#     "aot/python/*.cxx"
+# )
+
+# Replace semicolons with newlines for better readability
+string(REPLACE ";" "\n" LIST_CPP_WITH_NEWLINES "${LIST_CPP}")
+
+# Display the formatted list
+message(STATUS "Source files:\n${LIST_CPP_WITH_NEWLINES}")
 
 set (PROJECT_NAME aot)
 project(${PROJECT_NAME})
 
 
-file(GLOB SRC
-     "src/*.cpp"
-)
-
+#file(GLOB SRC
+#     "src/*.cpp"
+#)
+#set(ALL_FILES ${LIST_H} ${LIST_CPP})
 #set(CMAKE_CXX_CLANG_TIDY clang-tidy ${ALL_FILES}, -header-filter=, -checks=cppcoreguidlines-*, -warnings-as-errors=*, -p build)
 
 add_library (${PROJECT_NAME}
     ${LIST_H} #for use emhash library need add LIST_H
-    ${SRC}
+    ${LIST_CPP}
 )
+#for support modules
+# target_sources(${PROJECT_NAME} PUBLIC
+#     FILE_SET all_my_modules TYPE CXX_MODULES FILES
+#     ${LIST_CXX}
+# )
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -176,7 +222,7 @@ target_link_libraries(${PROJECT_NAME}
     tomlplusplus::tomlplusplus
 )
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ROOT_PATH=\"${CMAKE_CURRENT_LIST_DIR}\"")
@@ -193,6 +239,7 @@ add_subdirectory(example)
 #else()
 #    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
 #endif()
+
 
 
 

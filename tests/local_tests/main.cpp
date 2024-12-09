@@ -13,39 +13,6 @@
 char** argv = nullptr;
 int argc    = 0;
 
-
-struct LogPolling {
-    std::shared_ptr<boost::asio::steady_timer> timer;
-    std::function<void(const boost::system::error_code&)> poll;
-
-    LogPolling(boost::asio::thread_pool& pool, std::chrono::milliseconds interval)
-        : timer(std::make_shared<boost::asio::steady_timer>(pool)) {
-        StartPolling(interval);
-    }
-
-    void Stop() {
-        if (timer) {
-            timer->cancel(); // Stop polling by canceling the timer
-        }
-    }
-
-private:
-    void StartPolling(std::chrono::milliseconds interval) {
-        
-        poll = [this, self = timer, interval](const boost::system::error_code& ec) mutable {
-            if (!ec) {
-                fmtlog::poll(); // Perform log polling
-                self->expires_after(interval);
-                self->async_wait(poll); // Schedule the next poll
-            }
-        };
-
-        timer->expires_after(interval);
-        timer->async_wait(poll);
-    }
-};
-
-
 // Google Test Fixture for the BookEventGetterComponent test
 class BookSnapshotComponentTest : public ::testing::Test {
   protected:
@@ -379,7 +346,7 @@ void OnDiffCallback(const Exchange::BookDiffSnapshot2& diff) {
 TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     fmtlog::setLogLevel(fmtlog::DBG);
     ASSERT_GE(argc, 2);
-    LogPolling log_polling(thread_pool, std::chrono::milliseconds(100));
+    //LogPolling log_polling(thread_pool, std::chrono::milliseconds(100));
     aot::CoBus bus(thread_pool);
 
     config::ApiSecretKey config(argv[1]);
@@ -446,10 +413,11 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     //-----------------------------------------------------------------
     //--------------------------Depth stream component----------------
     boost::asio::cancellation_signal cancel_signal;
+    boost::asio::cancellation_signal restart_signal;
 
     binance::BookEventGetterComponent event_getter_component(
-        boost::asio::make_strand(thread_pool), number_responses,
-        TypeExchange::TESTNET, pairs, &session_pool_wss, cancel_signal);
+        thread_pool, number_responses,
+        TypeExchange::TESTNET, pairs, &session_pool_wss, cancel_signal,restart_signal);
 
     Exchange::RequestDiffOrderBook request_diff_order_book;
     request.exchange_id            = common::ExchangeId::kBinance;

@@ -21,8 +21,10 @@
 
 #include "aot/Logger.h"
 #include "aot/Types.h"
+#include "aot/cb_manager.h"
 #include "boost/asio.hpp"
 #include "boost/asio/awaitable.hpp"
+#include "concurrentqueue.h"
 
 namespace beast     = boost::beast;          // from <boost/beast.hpp>
 namespace http      = beast::http;           // from <boost/beast/http.hpp>
@@ -117,9 +119,6 @@ class WssSession {
         co_return true;
     }
 
-    // Close the session gracefully
-    void AsyncCloseSessionGracefully() { need_read_ = false; }
-
     inline bool IsConnected() const { return is_connected_; }
     inline bool IsExpired() const { return is_expired_; }
     inline bool IsUsed() const { return is_used_; }
@@ -191,7 +190,7 @@ class WssSession {
         is_expired_ = true;
     }
 };
-
+//-----------------------------------------------------------------
 template <typename _Timeout>
 class WssSession2 {
   public:
@@ -364,9 +363,11 @@ class WssSession3 {
 
   private:
     std::atomic<bool> need_read_ = true;
-    bool is_connected_           = false;
-    bool is_used_                = false;
-    bool is_expired_             = false;
+    std::atomic<bool> read_started_ =
+        false;  // Флаг для отслеживания состояния чтения
+    bool is_connected_ = false;
+    bool is_used_      = false;
+    bool is_expired_   = false;
 
     /**
      * @brief req variable must manage only via SetRequest() method
@@ -378,12 +379,27 @@ class WssSession3 {
     std::string end_point_;
     std::string request_json_;
     std::list<const OnWssResponse*> cbs_;
+    /**
+     * @brief manage all callbacks when need response
+     *
+     */
+    LockFreeCallbackManager<boost::beast::flat_buffer> cb_on_response_manager_;
+    /**
+     * @brief manage all callbacks when session is closed
+     *
+     */
+    LockFreeCallbackManager<void> cb_on_close_session_manager_;
+
     boost::asio::io_context& ioc_;
     Timeout timeout_;
     std::string_view host_;
     std::string_view port_;
     std::string_view default_endpoint_;
     boost::asio::steady_timer timer_;  // Timer to track session expiration
+    moodycamel::ConcurrentQueue<std::string> queue_requests_;
+    // signal to cancel all coroutines
+    boost::asio::cancellation_signal cancel_signal_;
+
   public:
     virtual ~WssSession3() = default;
     explicit WssSession3(boost::asio::io_context& ioc, ssl::context& ctx,
@@ -399,121 +415,113 @@ class WssSession3 {
           default_endpoint_(default_endpoint),
           timer_(ioc)  // Initialize the timer
     {
+        // Register cancellation handler for the entire session
+        cancel_signal_.slot().assign(
+            [this](boost::asio::cancellation_type_t type) {
+                logd("Cancellation requested for WSSession!");
+                HandleCancellation(type);
+            });
+
         net::co_spawn(ioc_,
                       Run(host.data(), port.data(), default_endpoint.data()),
                       [](std::exception_ptr e) {
                           if (e) std::rethrow_exception(e);
                       });
     }
-
-    template <typename CompletionHandler>
-    net::awaitable<bool> AsyncRequest(std::string&& req,
-                                      const CompletionHandler* handler,
-                                      net::cancellation_slot& slot) {
-        request_json_ = std::move(req);
+    LockFreeCallbackManager<boost::beast::flat_buffer>::CallbackID
+    RegisterCallbackOnResponse(
+        const LockFreeCallbackManager<boost::beast::flat_buffer>::Callback cb) {
+        return cb_on_response_manager_.RegisterCallback(cb);
+    }
+    bool UnRegisterCallbackOnResponse(
+        LockFreeCallbackManager<boost::beast::flat_buffer>::CallbackID id) {
+        return cb_on_response_manager_.UnregisterCallback(id);
+    }
+    LockFreeCallbackManager<void>::CallbackID RegisterCallbackOnCloseSession(
+        const LockFreeCallbackManager<void>::Callback cb) {
+        return cb_on_close_session_manager_.RegisterCallback(cb);
+    }
+    bool UnRegisterCallbackOnCloseSession(
+        LockFreeCallbackManager<void>::CallbackID id) {
+        return cb_on_close_session_manager_.UnregisterCallback(id);
+    }
+    net::awaitable<bool> AsyncRequest(std::string&& req) {
+        queue_requests_.enqueue(std::move(req));
         if (!IsConnected()) co_return false;
-        if (IsUsed()) co_return false;
 
-        slot.assign([this](boost::asio::cancellation_type_t&) {
-            logd("Cancellation requested!");
-            AsyncCloseSessionGracefully();
-        });
-
-        is_used_      = true;
-        auto write_op = stream_.async_write(
-            net::buffer(request_json_),
-            // boost::asio::bind_cancellation_slot(slot,
-            // boost::asio::as_tuple(net::use_awaitable)));
+        // Schedule the write operation on the strand
+        std::string req_new;
+        if (!queue_requests_.try_dequeue(req_new)) {
+            loge("can't dequeu request");
+        }
+        auto [write_ec, bytes_written] = co_await stream_.async_write(
+            net::buffer(req_new),
             boost::asio::as_tuple(boost::asio::use_awaitable));
 
-        auto [ec, bytes_written] = co_await std::move(write_op);
-        if (ec) {
-            if (ec == net::error::operation_aborted) {
-                logd("Operation cancelled");
+        if (write_ec) {
+            if (write_ec == net::error::operation_aborted) {
+                logd("Write operation cancelled");
             } else {
-                close_session();
+                CloseSessionFast();
+            }
+            co_return true;
+        }
+        if (!read_started_) {
+            read_started_ =
+                true;  // Устанавливаем флаг, чтобы не запускать цикл снова
+            co_spawn(ioc_, ReadLoop(), net::detached);
+        }
+    }
+
+    net::awaitable<bool> AsyncRequest(std::string&& req,
+                                      const OnWssResponse* handler) {
+        if (!IsConnected()) co_return false;
+
+        // Добавление запроса в очередь
+        queue_requests_.enqueue(std::move(req));
+        if (handler) {
+            cbs_.emplace_back(handler);
+        }
+
+        std::string req_new;
+        if (!queue_requests_.try_dequeue(req_new)) {
+            loge("can't dequeu request");
+        }
+        // Написание запроса в WebSocket
+        auto [write_ec, bytes_written] = co_await stream_.async_write(
+            net::buffer(req_new),
+            boost::asio::as_tuple(boost::asio::use_awaitable));
+
+        if (write_ec) {
+            if (write_ec == net::error::operation_aborted) {
+                logd("Write operation cancelled");
+            } else {
+                CloseSessionFast();
             }
             co_return false;
         }
-
-        cbs_.emplace_back(handler);
-        while (need_read_) {
-            auto [read_ec, n] = co_await stream_.async_read(
-                // buffer_, boost::asio::bind_cancellation_slot(slot,
-                // boost::asio::as_tuple(net::use_awaitable)));
-                buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
-            if (read_ec) {
-                if (read_ec == net::error::operation_aborted) {
-                    logd("Operation cancelled");
-                } else {
-                    close_session();
-                }
-                co_return false;
-            }
-            for (auto& cb_ptr : cbs_) {
-                if (cb_ptr) {
-                    try {
-                        auto& cb = *cb_ptr;
-                        cb(buffer_);  // Call the handler with the buffer
-                                      // content
-                    } catch (const std::exception& e) {
-                        logi("Handler exception: {}", e.what());
-                    }
-                }
-            }
-            buffer_.consume(n);
+        if (!read_started_) {
+            read_started_ =
+                true;  // Устанавливаем флаг, чтобы не запускать цикл снова
+            co_spawn(ioc_, ReadLoop(), net::detached);
         }
-        co_await stream_.async_close(websocket::close_code::normal,
-                                     net::use_awaitable);
-
+        // Возвращаем результат запроса
         co_return true;
-    }
-
-    // Close the session gracefully
-    void AsyncCloseSessionGracefully() {
-        boost::asio::co_spawn(
-            ioc_,
-            [this]() -> boost::asio::awaitable<void> {
-                need_read_ = false;
-                co_return;
-            },
-            boost::asio::detached);
     }
 
     inline bool IsConnected() const { return is_connected_; }
     inline bool IsExpired() const { return is_expired_; }
     inline bool IsUsed() const { return is_used_; }
-    void RestartSession() {
-        //don't check it this function
-        boost::asio::co_spawn(
-            ioc_,
-            [this]() -> boost::asio::awaitable<void> {
-                // Close the existing session gracefully
-                AsyncCloseSessionGracefully();
-                boost::system::error_code ec; // Define a valid error_code object
-                // Wait for the session to close
-                co_await stream_.async_close(
-                    websocket::close_code::normal,
-                    net::redirect_error(net::use_awaitable,
-                                        ec));
-
-                // Reset internal state
-                is_connected_ = false;
-                is_used_      = false;
-                is_expired_   = false;
-                buffer_.consume(buffer_.size());
-
-                // Reinitialize the connection
-                net::co_spawn(ioc_,
-                      Run(host_.data(), port_.data(), default_endpoint_.data()),
-                      [](std::exception_ptr e) {
-                          if (e) std::rethrow_exception(e);
-                      });
-            },
-            boost::asio::detached);
+    void AsyncCloseSessionGracefully() {
+        cancel_signal_.emit(boost::asio::cancellation_type::all);
     }
 
   private:
+    // Handles cancellation by closing the session
+    void HandleCancellation(boost::asio::cancellation_type_t type) {
+        logd("Cancellation requested: type {}", static_cast<int>(type));
+        CloseSessionFast();
+    }
     // Start the asynchronous operation
     net::awaitable<void> Run(const char* host, const char* port,
                              const char* default_end_point) {
@@ -580,11 +588,11 @@ class WssSession3 {
 
         // Set up the handler to catch when the timer expires
         timer_.async_wait([this](beast::error_code ec) {
-            if (ec !=
-                boost::asio::error::operation_aborted) {  // Ignore if the timer
-                                                          // was canceled
+            if (ec != boost::asio::error::operation_aborted) {  // Ignore if the
+                                                                // timer was
+                                                                // canceled
                 fail(ec, "session expired. it is closed by async timer");
-                close_session();
+                CloseSessionFast();
             }
         });
     }
@@ -592,12 +600,69 @@ class WssSession3 {
     // Handle session expiration or failure
     void fail(beast::error_code ec, const char* what) {
         logi("{}: {}", what, ec.message());
-        close_session();
+        CloseSessionFast();
     }
 
     // Close the session gracefully
-    void close_session() {
+    void CloseSessionFast() {
         beast::get_lowest_layer(stream_).close();
         is_expired_ = true;
+
+        // Invoke all callbacks for session close
+        cb_on_close_session_manager_.InvokeAll();
+    }
+    net::awaitable<void> CloseSessionSlow() {
+        try {
+            // Асинхронное закрытие WebSocket-соединения
+            co_await stream_.async_close(websocket::close_code::normal,
+                                         net::use_awaitable);
+
+            // После завершения закрытия можно безопасно установить флаг
+            is_expired_ = true;
+        } catch (const std::exception& e) {
+            // Логирование или обработка ошибок, если они возникнут при закрытии
+            logd("Error closing session: {}", e.what());
+        }
+        cb_on_close_session_manager_.InvokeAll();
+    }
+
+    net::awaitable<void> ReadLoop() {
+        while (need_read_) {
+            logi("start async read");
+
+            // Ожидание асинхронного чтения с поддержкой отмены
+            boost::system::error_code read_ec;
+            std::size_t n = 0;
+            try {
+                // Чтение данных с проверкой на отмену
+                auto result = co_await stream_.async_read(
+                    buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
+                read_ec = std::get<0>(result);
+                n       = std::get<1>(result);
+            } catch (const boost::system::system_error& e) {
+                read_ec = e.code();
+            }
+
+            logi("end async read");
+
+            if (read_ec) {
+                CloseSessionFast();
+                co_return;
+            }
+
+            logi("invoke callback");
+
+            // execute all callbacks
+            if (n > 0) {
+                cb_on_response_manager_.InvokeAll(buffer_);
+            } else {
+                logd("No data was read");
+            }
+            buffer_.consume(n);  // Освобождаем потребленные данные из буфера
+        }
+        logi("finished read");
+
+        // Close the session after the read loop ends
+        CloseSessionFast();
     }
 };

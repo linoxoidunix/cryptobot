@@ -623,6 +623,7 @@ class ConnectionPool {
     // Release a connection back to the pool
     void CloseAllSessions() {
     // Stop the helper thread and wait for it to finish
+        logd("[START CLOSE ALL SESSION]");
         timeout_thread_->request_stop();
         block_until_helper_thread_finished.wait();
         // Now proceed to close all sessions
@@ -630,6 +631,8 @@ class ConnectionPool {
         CloseQueueSessions(after_handshake_connections_);
         CloseQueueSessions(used_connections_);
         CloseQueueSessions(expired_connections_);
+        logd("[END CLOSE ALL SESSION]");
+
     }
 
   private:

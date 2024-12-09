@@ -2,6 +2,8 @@
 set (PROJECT_NAME unit_test)
 project(${PROJECT_NAME})
 
+set(CMAKE_CXX_STANDARD 23)
+
 macro(cxx_executable_extended prjname src)
   set(prj ${PROJECT_NAME}_${prjname})
   add_executable(${prj} ${src})

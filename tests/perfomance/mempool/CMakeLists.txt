@@ -14,6 +14,8 @@ add_executable (${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
 benchmark::benchmark
+OpenSSL::SSL
+OpenSSL::Crypto
 )
 
 target_include_directories(${PROJECT_NAME}
