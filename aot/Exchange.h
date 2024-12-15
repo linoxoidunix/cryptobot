@@ -1,13 +1,21 @@
 #pragma once
 
-#include <openssl/hmac.h>
-#include <openssl/sha.h>
-
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+
+#include "boost/algorithm/string.hpp"
+#include "boost/asio/awaitable.hpp"
+#include "boost/beast/http.hpp"
+
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+
+#include "magic_enum/magic_enum.hpp"
+
+#include "concurrentqueue.h"
 
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -16,14 +24,22 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
-#include "boost/algorithm/string.hpp"
-#include "boost/asio/awaitable.hpp"
-#include "boost/beast/http.hpp"
-#include "concurrentqueue.h"
+
 
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
 
+/**
+ * @brief Enum for response types that the parser can handle.
+ */
+enum class ResponseType {
+    kDepthUpdate,      ///< Represents a Depth Update response.
+    kApiResponse,      ///< Represents a generic API response.
+    kErrorResponse,    ///< Represents an error response.
+    kNonQueryResponse,  ///< Represents a success response for non-query requests
+                       ///< (e.g., subscribing/unsubscribing).
+    kUnknown           ///< Represents an unknown response type.
+};
 namespace https {
 class ExchangeI {
   public:
@@ -453,10 +469,10 @@ class HttpsConnectionPoolFactory2 {
  * This enum defines the status codes that indicate the result of an API request.
  */
 enum class ApiResponseStatus {
-    kSuccess = 0, ///< The API request was successful.
-    kFailure = 1, ///< The API request failed.
-    kPending = 2, ///< The API request is pending.
-    kError = 3,   ///< There was an error in processing the API request.
+    kSuccess, ///< The API request was successful.
+    // kFailure, ///< The API request failed.
+    // kPending, ///< The API request is pending.
+    kError,   ///< There was an error in processing the API request.
 };
 
 /**
@@ -474,7 +490,7 @@ struct ApiResponseData {
      * This field contains the status code returned by the API, represented by an enum.
      * It can be used to determine the success or failure of the API request.
      */
-    ApiResponseStatus status;
+    ApiResponseStatus status = ApiResponseStatus::kError;
 
     /**
      * @brief ID associated with the API request.
@@ -482,12 +498,25 @@ struct ApiResponseData {
      * This field holds the unique identifier for the API request.
      * It allows tracking of the request across systems.
      */
-    uint64_t id;
+    uint64_t id = 0;
 };
 
 // A type to represent any parsed data.
 struct ParsedData {
     int error_code;         // For error responses
     // Other fields for different responses can be added here
+};
+
+template <>
+class fmt::formatter<ApiResponseData> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const ApiResponseData& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(),
+                              "ApiResponseData[status:{} id:{}]",
+                              magic_enum::enum_name(foo.status), foo.id);
+    }
 };
 

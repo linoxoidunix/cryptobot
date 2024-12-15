@@ -6,13 +6,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "boost/asio.hpp"
-#include "boost/beast/http.hpp"
-#include "boost/beast/http/message.hpp"
-#include "boost/beast/version.hpp"
-
-#include "simdjson.h"
-
 #include "aot/Exchange.h"
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -25,7 +18,11 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
-
+#include "boost/asio.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/http/message.hpp"
+#include "boost/beast/version.hpp"
+#include "simdjson.h"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -469,6 +466,7 @@ class FamilyBookEventGetter {
 
         Exchange::BookDiffSnapshot Parse(std::string_view response);
         Exchange::BookDiffSnapshot Parse(simdjson::ondemand::document& doc);
+
       private:
         common::TradingPairHashMap& pairs_;
         common::TradingPairReverseHashMap& pairs_reverse_;
@@ -1035,8 +1033,9 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
     common::TradingPairHashMap& pairs_;
-    
-    // Callback maps to handle trading pair-specific responses and session closures
+
+    // Callback maps to handle trading pair-specific responses and session
+    // closures
     std::unordered_map<common::TradingPair, const OnWssResponse*,
                        common::TradingPairHash, common::TradingPairEqual>
         callback_map_;
@@ -1055,7 +1054,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
   public:
     BookEventGetter3(
         Executor& executor,
-        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool,
+        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
+            session_pool,
         TypeExchange type, common::TradingPairHashMap& pairs,
         boost::asio::cancellation_signal& signal,
         boost::asio::cancellation_signal& restart_signal)
@@ -1069,7 +1069,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     ~BookEventGetter3() override = default;
 
     boost::asio::awaitable<void> CoExec(
-        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> bus_event_request_diff_order_book) override {
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
+            bus_event_request_diff_order_book) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
 
         // Handle invalid input early
@@ -1083,11 +1084,13 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     }
 
     // Function to register callbacks for trading pairs
-    void RegisterCallback(common::TradingPair trading_pair, const OnWssResponse* callback) {
+    void RegisterCallback(common::TradingPair trading_pair,
+                          const OnWssResponse* callback) {
         callback_map_[trading_pair] = callback;
     }
 
-    void RegisterCallbackOnCloseSession(common::TradingPair trading_pair, const OnCloseSession* callback) {
+    void RegisterCallbackOnCloseSession(common::TradingPair trading_pair,
+                                        const OnCloseSession* callback) {
         callback_on_close_session_map_[trading_pair] = callback;
     }
 
@@ -1108,8 +1111,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 
     // Main logic for handling the book event
     boost::asio::awaitable<void> HandleBookEvent(
-        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> bus_event_request_diff_order_book) {
-        
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
+            bus_event_request_diff_order_book) {
         auto* wrapped_event = bus_event_request_diff_order_book->WrappedEvent();
         if (!wrapped_event) {
             loge("Wrapped event is null");
@@ -1117,16 +1120,18 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         }
 
         auto& trading_pair = wrapped_event->trading_pair;
-        detail::FamilyBookEventGetter::ArgsBody args(bus_event_request_diff_order_book->WrappedEvent(), pairs_, 1);
+        detail::FamilyBookEventGetter::ArgsBody args(
+            bus_event_request_diff_order_book->WrappedEvent(), pairs_, 1);
 
         auto req = args.Body();
         logd("Prepared event getter for binance request");
 
         // Try to acquire an active session
         WSSesionType3* expected = nullptr;
-        auto restart_slot = restart_signal_.slot();
+        auto restart_slot       = restart_signal_.slot();
 
-        if (active_session.compare_exchange_strong(expected, session_pool_->AcquireConnection())) {
+        if (active_session.compare_exchange_strong(
+                expected, session_pool_->AcquireConnection())) {
             logd("Active session acquired");
 
             // Register callback for response and session close
@@ -1154,7 +1159,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     bool RegisterCallbacksForTradingPair(common::TradingPair& trading_pair) {
         auto callback_it = callback_map_.find(trading_pair);
         if (callback_it == callback_map_.end()) {
-            loge("No callback on response is registered for trading pair: {}", trading_pair.ToString());
+            loge("No callback on response is registered for trading pair: {}",
+                 trading_pair.ToString());
             return false;
         }
 
@@ -1162,23 +1168,32 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         active_session.load()->RegisterCallbackOnResponse(*callback);
 
         // Handle callback for session closure
-        auto callback_on_close_session_it = callback_on_close_session_map_.find(trading_pair);
-        if (callback_on_close_session_it == callback_on_close_session_map_.end()) {
-            logw("No callback on close session is registered for trading pair: {}", trading_pair.ToString());
+        auto callback_on_close_session_it =
+            callback_on_close_session_map_.find(trading_pair);
+        if (callback_on_close_session_it ==
+            callback_on_close_session_map_.end()) {
+            logw(
+                "No callback on close session is registered for trading pair: "
+                "{}",
+                trading_pair.ToString());
         } else {
-            auto& callback_on_close_session = callback_on_close_session_it->second;
-            active_session.load()->RegisterCallbackOnCloseSession(*callback_on_close_session);
+            auto& callback_on_close_session =
+                callback_on_close_session_it->second;
+            active_session.load()->RegisterCallbackOnCloseSession(
+                *callback_on_close_session);
         }
 
         // Register the default callback when session is closed
-        active_session.load()->RegisterCallbackOnCloseSession([this]() { DefaultCBOnCloseSession(); });
+        active_session.load()->RegisterCallbackOnCloseSession(
+            [this]() { DefaultCBOnCloseSession(); });
 
         return true;
     }
 
     // Function to send the asynchronous request
     boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
-        auto result = co_await active_session.load()->AsyncRequest(std::move(req));
+        auto result =
+            co_await active_session.load()->AsyncRequest(std::move(req));
         co_return result;
     }
 
@@ -1187,7 +1202,6 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         active_session.store(nullptr, std::memory_order_release);
     }
 };
-
 
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
@@ -2333,97 +2347,70 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
 };
 
 /**
- * @brief Represents parsed data which could be either a BookDiffSnapshot or ApiResponseData.
+ * @brief Represents parsed data which could be either a BookDiffSnapshot or
+ * ApiResponseData.
  */
 using ParsedData = std::variant<Exchange::BookDiffSnapshot, ApiResponseData>;
 
 /**
- * @brief Enum for response types that the parser can handle.
- */
-enum class ResponseType {
-    kDepthUpdate,     ///< Represents a Depth Update response.
-    kApiResponse,     ///< Represents a generic API response.
-    kErrorResponse,   ///< Represents an error response.
-    kSuccessResponse, ///< Represents a success response for non-query requests (e.g., subscribing/unsubscribing).
-    kUnknown          ///< Represents an unknown response type.
-};
-
-/**
- * @brief Manages JSON parsing and dispatches processing based on response types.
+ * @brief Manages JSON parsing and dispatches processing based on response
+ * types.
  */
 class ParserManager {
     /**
      * @brief A map of handlers for each response type.
      *
-     * This map associates a `ResponseType` with a handler function that processes a `simdjson::ondemand::document`
-     * and returns `ParsedData`. The appropriate handler function is called during parsing based on the response type.
+     * This map associates a `ResponseType` with a handler function that
+     * processes a `simdjson::ondemand::document` and returns `ParsedData`. The
+     * appropriate handler function is called during parsing based on the
+     * response type.
      */
-    std::unordered_map<ResponseType, std::function<ParsedData(simdjson::ondemand::document&)>> handlers_;
+    std::unordered_map<ResponseType,
+                       std::function<ParsedData(simdjson::ondemand::document&)>>
+        handlers_;
 
-public:
+  public:
     /**
      * @brief Registers a handler for a specific response type.
      *
-     * Associates a handler function with a particular `ResponseType`. The handler is invoked to process
-     * the JSON document when the corresponding response type is parsed.
+     * Associates a handler function with a particular `ResponseType`. The
+     * handler is invoked to process the JSON document when the corresponding
+     * response type is parsed.
      *
      * @param type The `ResponseType` to associate with the handler.
-     * @param handler A function that processes a `simdjson::ondemand::document` and returns `ParsedData`.
+     * @param handler A function that processes a `simdjson::ondemand::document`
+     * and returns `ParsedData`.
      */
-    void RegisterHandler(ResponseType type, std::function<ParsedData(simdjson::ondemand::document&)> handler) {
+    void RegisterHandler(
+        ResponseType type,
+        std::function<ParsedData(simdjson::ondemand::document&)> handler) {
         handlers_[type] = handler;
     }
 
-    /**
-     * @brief Determines the response type from the JSON response.
-     *
-     * Analyzes the given JSON response and determines the appropriate `ResponseType` by inspecting specific fields.
-     *
-     * @param response A string view of the JSON response to analyze.
-     * @param parser The `simdjson::ondemand::parser` used to parse the response.
-     * @return std::pair<ResponseType, simdjson::ondemand::document&&> The determined response type and the parsed document.
-     */
-    std::pair<ResponseType, simdjson::ondemand::document&&> DetermineType(
-        std::string_view response, simdjson::ondemand::parser& parser) {
-        simdjson::padded_string padded_response(response);
-        auto doc = parser.iterate(padded_response);
-
-        // Check if this is a depth update response
-        if (doc["e"].error() == simdjson::SUCCESS && doc["e"].is_string() && doc["e"] == "depthUpdate") {
-            return {ResponseType::kDepthUpdate, std::move(doc)};
-        }
-
-        // Check if this is an error response (contains "code" and "msg")
-        if (doc["code"].error() == simdjson::SUCCESS && doc["code"].type() == simdjson::ondemand::json_type::number &&
-            doc["msg"].error() == simdjson::SUCCESS && doc["msg"].type() == simdjson::ondemand::json_type::string) {
-            return {ResponseType::kErrorResponse, std::move(doc)};
-        }
-
-        // Check if this is a success response (contains "result": null)
-        if (doc["result"].error() == simdjson::SUCCESS && doc["result"].is_null()) {
-            return {ResponseType::kSuccessResponse, std::move(doc)};
-        }
-
-        return {ResponseType::kUnknown, std::move(doc)};  // Default case if no match
-    }
+    
 
     /**
-     * @brief Parses the JSON response for the appropriate response type based on registered handlers.
+     * @brief Parses the JSON response for the appropriate response type based
+     * on registered handlers.
      *
-     * This method parses the provided JSON response using SIMDJSON and invokes the registered handler
-     * for the corresponding response type, as determined by `DetermineType`.
-     * The handler processes the parsed document and returns the parsed data as a `ParsedData` variant.
+     * This method parses the provided JSON response using SIMDJSON and invokes
+     * the registered handler for the corresponding response type, as determined
+     * by `DetermineType`. The handler processes the parsed document and returns
+     * the parsed data as a `ParsedData` variant.
      *
      * @param response A string view of the JSON response to be parsed.
      * @return ParsedData The parsed data wrapped in a `ParsedData` variant.
-     * @throws std::runtime_error If no handler is registered for the response type or if parsing fails.
+     * @throws std::runtime_error If no handler is registered for the response
+     * type or if parsing fails.
      */
     ParsedData Parse(std::string_view response) {
         simdjson::ondemand::parser parser;
-        auto [type, doc] = DetermineType(response, parser);
+        simdjson::padded_string padded_response(response);
+        simdjson::ondemand::document doc = parser.iterate(padded_response);
+        auto type = DetermineType(doc);
 
         // Find the handler for the determined response type
-        auto it = handlers_.find(type);
+        auto it          = handlers_.find(type);
         if (it == handlers_.end()) {
             loge("No handler registered for this response type");
             return {};  // Return empty if no handler is registered
@@ -2432,5 +2419,77 @@ public:
         // Call the handler function for the determined response type
         return it->second(doc);
     }
+    private:
+    
+    ResponseType DetermineType(
+        simdjson::ondemand::document& doc) {
+
+        // Check if this is a depth update response
+        if (doc["e"].error() == simdjson::SUCCESS && doc["e"].is_string() &&
+            doc["e"] == "depthUpdate") {
+            return ResponseType::kDepthUpdate;
+        }
+
+        // Check if this is an error response (contains "code" and "msg")
+        if (doc["code"].error() == simdjson::SUCCESS &&
+            doc["code"].type() == simdjson::ondemand::json_type::number &&
+            doc["msg"].error() == simdjson::SUCCESS &&
+            doc["msg"].type() == simdjson::ondemand::json_type::string) {
+            return ResponseType::kErrorResponse;
+        }
+
+        // Check if this is a success response (contains "result": null)
+        if (doc["result"].error() == simdjson::SUCCESS
+            //&& doc["result"].is_null()
+        ) {
+            return ResponseType::kNonQueryResponse;
+        }
+
+        return ResponseType::kUnknown;  // Default case if no match
+    }
 };
+
+/**
+ * @class ApiResponseParser
+ * @brief Parses API responses from JSON into structured data.
+ *
+ * The ApiResponseParser class is responsible for parsing JSON responses
+ * from an API into an ApiResponseData structure. It supports success responses,
+ * error responses, and responses with an optional ID field.
+ */
+class ApiResponseParser {
+  public:
+    /**
+     * @brief Parses a JSON API response into an ApiResponseData structure.
+     *
+     * This method processes a JSON document and extracts relevant fields such
+     * as:
+     * - `result`: If null, indicates a successful non-query request (e.g.,
+     * subscription).
+     * - `code` and `msg`: Error code and message, if an error response is
+     * present.
+     * - `id`: Optional ID field for specific responses.
+     *
+     * @param doc A reference to a `simdjson::ondemand::document` containing the
+     * API response.
+     * @return An `ApiResponseData` object with the parsed data.
+     */
+    ApiResponseData Parse(simdjson::ondemand::document& doc) {
+        ApiResponseData data;
+
+        // Check for "result": null
+        auto result_field = doc["result"];
+        if (!result_field.error()) {
+            if (result_field.is_null())
+                data.status = ApiResponseStatus::kSuccess;
+
+            auto id_field = doc["id"];
+            if (!id_field.error() && id_field.type() == simdjson::ondemand::json_type::number) {
+                data.id = id_field.get_int64().value_unsafe();
+            }
+        }
+        return data;  // Return populated or empty data
+    }
+};
+
 };  // namespace binance
