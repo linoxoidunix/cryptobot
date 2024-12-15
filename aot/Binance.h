@@ -22,6 +22,7 @@
 #include "boost/beast/http.hpp"
 #include "boost/beast/http/message.hpp"
 #include "boost/beast/version.hpp"
+#include "nlohmann/json.hpp"
 #include "simdjson.h"
 
 // Spot API URL                               Spot Test Network URL
@@ -511,49 +512,87 @@ class FamilyBookEventGetter {
         ArgsOrder& storage = *this;
     };
 
-    class ArgsBody : public binance::ArgsBody {
-        common::TradingPairHashMap& pairs_;
-        /**
-         * @brief id_ need add when send json request to exchange
-         *
-         */
-        unsigned int id_;
-
+    /**
+     * @class ArgsBody
+     * @brief A class to wrap request parameters into a JSON object,
+     * specifically designed for trading pair requests.
+     */
+    class ArgsBody : public nlohmann::json {
       public:
+        /**
+         * @brief Constructs the ArgsBody object and initializes JSON
+         * parameters.
+         * @param request Pointer to the RequestDiffOrderBook object containing
+         * request details.
+         * @param pairs Reference to the trading pair hash map.
+         */
         ArgsBody(const Exchange::RequestDiffOrderBook* request,
-                 common::TradingPairHashMap& pairs, unsigned int id)
-            : binance::ArgsBody(), pairs_(pairs), id_(id) {
-            // SetMethod();
+                 common::TradingPairHashMap& pairs)
+            : nlohmann::json(), pairs_(pairs) {
+            InitializeParams(request);
+        }
+
+        /**
+         * @brief Serializes the JSON object to a string.
+         * @return A string representation of the JSON object.
+         */
+        std::string Body() const { return this->dump(); }
+
+        /**
+         * @brief Virtual destructor for ArgsBody.
+         */
+        virtual ~ArgsBody() = default;
+
+      private:
+        common::TradingPairHashMap&
+            pairs_;  ///< Reference to the trading pair hash map.
+
+        /**
+         * @brief Initializes the parameters of the JSON object based on the
+         * request and trading pairs.
+         * @param request Pointer to the RequestDiffOrderBook object containing
+         * request details.
+         */
+        void InitializeParams(const Exchange::RequestDiffOrderBook* request) {
             SetParams(request);
-            SetId(id_);
+            SetMethod(request->subscribe);
+            SetId(request->id);
         }
 
-      private:
-        void Subscribe() { storage["method"] = "\"SUBSCRIBE\""; }
-        void UnSubscribe() {
-            storage["method"] = "\"UNSUBSCRIBE\"";
-            storage["id"]     = "\"777\"";
-        }
+        /**
+         * @brief Sets the "params" field in the JSON object.
+         * @param request Pointer to the RequestDiffOrderBook object containing
+         * request details.
+         */
         void SetParams(const Exchange::RequestDiffOrderBook* request) {
-            if (request->frequency == common::kFrequencyMSInvalid)
-                storage["params"] = fmt::format(
-                    "{}@{}", pairs_[request->trading_pair].ws_query_request,
-                    "depth");
-            if (request->subscribe) {
-                logd("init subscribe");
-                Subscribe();
-            } else {
-                logd("init unsubscribe");
-                UnSubscribe();
+            if (request->frequency == common::kFrequencyMSInvalid) {
+                nlohmann::json params_array = nlohmann::json::array();
+                params_array.push_back(fmt::format(
+                    "{}@{}", pairs_.at(request->trading_pair).ws_query_request,
+                    "depth"));
+                (*this)["params"] = params_array;
             }
-        };
-        void SetId(unsigned int id) {
-            // i don't want process an id now because for binance an id is
-            // integer, but for ArgsBody value is a string
-        };
+        }
 
-      private:
-        ArgsBody& storage = *this;
+        /**
+         * @brief Sets the "method" field in the JSON object based on the
+         * subscription type.
+         * @param subscribe Boolean indicating whether the request is a
+         * subscription.
+         */
+        void SetMethod(bool subscribe) {
+            (*this)["method"] = subscribe ? "SUBSCRIBE" : "UNSUBSCRIBE";
+        }
+
+        /**
+         * @brief Sets the "id" field in the JSON object using a variant type.
+         * @param id Variant containing the ID as a string, int, or unsigned
+         * int.
+         */
+        void SetId(const std::variant<std::string, int, unsigned int>& id) {
+            std::visit([this](const auto& value) { (*this)["id"] = value; },
+                       id);
+        }
     };
     virtual ~FamilyBookEventGetter() = default;
 };
@@ -998,8 +1037,7 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
                 logd("start book event getter for binance");
 
                 detail::FamilyBookEventGetter::ArgsBody args(
-                    bus_event_request_diff_order_book->WrappedEvent(), pairs_,
-                    1);
+                    bus_event_request_diff_order_book->WrappedEvent(), pairs_);
                 logd("start prepare event getter for binance request");
                 auto req = args.Body();
                 logd("end prepare event getter for binance request");
@@ -1121,7 +1159,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 
         auto& trading_pair = wrapped_event->trading_pair;
         detail::FamilyBookEventGetter::ArgsBody args(
-            bus_event_request_diff_order_book->WrappedEvent(), pairs_, 1);
+            bus_event_request_diff_order_book->WrappedEvent(), pairs_);
 
         auto req = args.Body();
         logd("Prepared event getter for binance request");
@@ -2387,8 +2425,6 @@ class ParserManager {
         handlers_[type] = handler;
     }
 
-    
-
     /**
      * @brief Parses the JSON response for the appropriate response type based
      * on registered handlers.
@@ -2407,10 +2443,10 @@ class ParserManager {
         simdjson::ondemand::parser parser;
         simdjson::padded_string padded_response(response);
         simdjson::ondemand::document doc = parser.iterate(padded_response);
-        auto type = DetermineType(doc);
+        auto type                        = DetermineType(doc);
 
         // Find the handler for the determined response type
-        auto it          = handlers_.find(type);
+        auto it                          = handlers_.find(type);
         if (it == handlers_.end()) {
             loge("No handler registered for this response type");
             return {};  // Return empty if no handler is registered
@@ -2419,11 +2455,9 @@ class ParserManager {
         // Call the handler function for the determined response type
         return it->second(doc);
     }
-    private:
-    
-    ResponseType DetermineType(
-        simdjson::ondemand::document& doc) {
 
+  private:
+    ResponseType DetermineType(simdjson::ondemand::document& doc) {
         // Check if this is a depth update response
         if (doc["e"].error() == simdjson::SUCCESS && doc["e"].is_string() &&
             doc["e"] == "depthUpdate") {
@@ -2484,7 +2518,8 @@ class ApiResponseParser {
                 data.status = ApiResponseStatus::kSuccess;
 
             auto id_field = doc["id"];
-            if (!id_field.error() && id_field.type() == simdjson::ondemand::json_type::number) {
+            if (!id_field.error() &&
+                id_field.type() == simdjson::ondemand::json_type::number) {
                 data.id = id_field.get_int64().value_unsafe();
             }
         }

@@ -78,6 +78,7 @@ TEST_F(BookEventGetterComponentTest, TestAsyncHandleEventBybit) {
     // Exchange::RequestDiffOrderBook request;
     // request.exchange_id  = common::ExchangeId::kBybit;
     // request.trading_pair = {2, 1};
+    // request.id = 777;
     /**
      * @brief
      * https://bybit-exchange.github.io/docs/v5/websocket/public/orderbook for

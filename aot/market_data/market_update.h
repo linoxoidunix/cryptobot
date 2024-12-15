@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <list>
+#include <variant>
 
 #include "aot/Logger.h"
 #include "aot/bus/bus_component.h"
@@ -482,18 +483,21 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
     common::TradingPair trading_pair;
     common::FrequencyMS frequency = common::kFrequencyMSInvalid;
     bool subscribe = true;
+    std::variant<std::string, int, unsigned int> id;  // id as a variant
     RequestDiffOrderBook() : aot::Event<RequestDiffOrderBookPool>(nullptr) {};
 
     RequestDiffOrderBook(RequestDiffOrderBookPool* mem_pool,
                          common::ExchangeId _exchange_id,
                          common::TradingPair _trading_pair,
                          common::FrequencyMS _frequency,
-                         bool _subscribe)
+                         bool _subscribe,
+                         const std::variant<std::string, int, unsigned int>& _id = std::string{})
         : aot::Event<RequestDiffOrderBookPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
           frequency(_frequency),
-          subscribe(_subscribe) {}
+          subscribe(_subscribe),
+          id(_id) {}
     friend void intrusive_ptr_release(Exchange::RequestDiffOrderBook* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {

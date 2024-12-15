@@ -136,12 +136,14 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
     request.exchange_id  = common::ExchangeId::kBinance;
     request.trading_pair = {2, 1};
     request.subscribe    = true;
+    request.id    = 777;
     Exchange::BusEventRequestDiffOrderBook bus_event_request(nullptr, &request);
 
     Exchange::RequestDiffOrderBook request_unsuscribe;
     request_unsuscribe.exchange_id  = common::ExchangeId::kBinance;
     request_unsuscribe.trading_pair = {2, 1};
     request_unsuscribe.subscribe    = false;
+    request_unsuscribe.id    = 888;
 
     // Exchange::BusEventRequestDiffOrderBookPool mem_pool(5);
     Exchange::BusEventRequestDiffOrderBook bus_event_request_unsuscribe(
@@ -193,7 +195,7 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
             auto data     = fb.data();  // returns a const_buffer
             auto response = std::string_view(
                 static_cast<const char*>(data.data()), data.size());
-            std::cout << response << std::endl;
+            //std::cout << response << std::endl;
             binance::detail::FamilyBookEventGetter::ParserResponse parser(
                 pairs, pair_reverse);
             auto answer = parser_manager.Parse(response);
@@ -235,7 +237,7 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
                 //     else
                 //         called_10_times++;
                 // }
-                std::cout << "succesful:" << counter_successfull << std::endl;
+                //std::cout << "succesful:" << counter_successfull << std::endl;
                 return;
             }
             if (std::holds_alternative<ApiResponseData>(answer))
@@ -245,7 +247,7 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
                 request_accepted_by_exchange++;
                 return;
             }
-            std::cout << "can't parse response" << std::endl;
+            //std::cout << "can't parse response" << std::endl;
         };
 
     // Register the callback for the trading pair

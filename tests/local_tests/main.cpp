@@ -422,6 +422,8 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     Exchange::RequestDiffOrderBook request_diff_order_book;
     request.exchange_id            = common::ExchangeId::kBinance;
     request.trading_pair           = {2, 1};
+    request.id           = 777;
+
 
     uint64_t counter_successfull   = 0;
     uint64_t counter_unsuccessfull = 0;
