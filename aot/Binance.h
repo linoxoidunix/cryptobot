@@ -6,6 +6,13 @@
 #include <unordered_map>
 #include <utility>
 
+#include "boost/asio.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/http/message.hpp"
+#include "boost/beast/version.hpp"
+
+#include "simdjson.h"
+
 #include "aot/Exchange.h"
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -18,10 +25,7 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
-#include "boost/asio.hpp"
-#include "boost/beast/http.hpp"
-#include "boost/beast/http/message.hpp"
-#include "boost/beast/version.hpp"
+
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -464,7 +468,7 @@ class FamilyBookEventGetter {
             : pairs_reverse_(pairs_reverse), pairs_(pairs) {};
 
         Exchange::BookDiffSnapshot Parse(std::string_view response);
-
+        Exchange::BookDiffSnapshot Parse(simdjson::ondemand::document& doc);
       private:
         common::TradingPairHashMap& pairs_;
         common::TradingPairReverseHashMap& pairs_reverse_;
@@ -2326,5 +2330,107 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
         return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
                               exchange->Port());
     };
+};
+
+/**
+ * @brief Represents parsed data which could be either a BookDiffSnapshot or ApiResponseData.
+ */
+using ParsedData = std::variant<Exchange::BookDiffSnapshot, ApiResponseData>;
+
+/**
+ * @brief Enum for response types that the parser can handle.
+ */
+enum class ResponseType {
+    kDepthUpdate,     ///< Represents a Depth Update response.
+    kApiResponse,     ///< Represents a generic API response.
+    kErrorResponse,   ///< Represents an error response.
+    kSuccessResponse, ///< Represents a success response for non-query requests (e.g., subscribing/unsubscribing).
+    kUnknown          ///< Represents an unknown response type.
+};
+
+/**
+ * @brief Manages JSON parsing and dispatches processing based on response types.
+ */
+class ParserManager {
+    /**
+     * @brief A map of handlers for each response type.
+     *
+     * This map associates a `ResponseType` with a handler function that processes a `simdjson::ondemand::document`
+     * and returns `ParsedData`. The appropriate handler function is called during parsing based on the response type.
+     */
+    std::unordered_map<ResponseType, std::function<ParsedData(simdjson::ondemand::document&)>> handlers_;
+
+public:
+    /**
+     * @brief Registers a handler for a specific response type.
+     *
+     * Associates a handler function with a particular `ResponseType`. The handler is invoked to process
+     * the JSON document when the corresponding response type is parsed.
+     *
+     * @param type The `ResponseType` to associate with the handler.
+     * @param handler A function that processes a `simdjson::ondemand::document` and returns `ParsedData`.
+     */
+    void RegisterHandler(ResponseType type, std::function<ParsedData(simdjson::ondemand::document&)> handler) {
+        handlers_[type] = handler;
+    }
+
+    /**
+     * @brief Determines the response type from the JSON response.
+     *
+     * Analyzes the given JSON response and determines the appropriate `ResponseType` by inspecting specific fields.
+     *
+     * @param response A string view of the JSON response to analyze.
+     * @param parser The `simdjson::ondemand::parser` used to parse the response.
+     * @return std::pair<ResponseType, simdjson::ondemand::document&&> The determined response type and the parsed document.
+     */
+    std::pair<ResponseType, simdjson::ondemand::document&&> DetermineType(
+        std::string_view response, simdjson::ondemand::parser& parser) {
+        simdjson::padded_string padded_response(response);
+        auto doc = parser.iterate(padded_response);
+
+        // Check if this is a depth update response
+        if (doc["e"].error() == simdjson::SUCCESS && doc["e"].is_string() && doc["e"] == "depthUpdate") {
+            return {ResponseType::kDepthUpdate, std::move(doc)};
+        }
+
+        // Check if this is an error response (contains "code" and "msg")
+        if (doc["code"].error() == simdjson::SUCCESS && doc["code"].type() == simdjson::ondemand::json_type::number &&
+            doc["msg"].error() == simdjson::SUCCESS && doc["msg"].type() == simdjson::ondemand::json_type::string) {
+            return {ResponseType::kErrorResponse, std::move(doc)};
+        }
+
+        // Check if this is a success response (contains "result": null)
+        if (doc["result"].error() == simdjson::SUCCESS && doc["result"].is_null()) {
+            return {ResponseType::kSuccessResponse, std::move(doc)};
+        }
+
+        return {ResponseType::kUnknown, std::move(doc)};  // Default case if no match
+    }
+
+    /**
+     * @brief Parses the JSON response for the appropriate response type based on registered handlers.
+     *
+     * This method parses the provided JSON response using SIMDJSON and invokes the registered handler
+     * for the corresponding response type, as determined by `DetermineType`.
+     * The handler processes the parsed document and returns the parsed data as a `ParsedData` variant.
+     *
+     * @param response A string view of the JSON response to be parsed.
+     * @return ParsedData The parsed data wrapped in a `ParsedData` variant.
+     * @throws std::runtime_error If no handler is registered for the response type or if parsing fails.
+     */
+    ParsedData Parse(std::string_view response) {
+        simdjson::ondemand::parser parser;
+        auto [type, doc] = DetermineType(response, parser);
+
+        // Find the handler for the determined response type
+        auto it = handlers_.find(type);
+        if (it == handlers_.end()) {
+            loge("No handler registered for this response type");
+            return {};  // Return empty if no handler is registered
+        }
+
+        // Call the handler function for the determined response type
+        return it->second(doc);
+    }
 };
 };  // namespace binance

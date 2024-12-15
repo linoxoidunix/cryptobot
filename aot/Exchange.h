@@ -445,3 +445,49 @@ class HttpsConnectionPoolFactory2 {
         boost::asio::io_context &io_context, HTTPSesionType3::Timeout timeout,
         std::size_t pool_size, https::ExchangeI *exchange) = 0;
 };
+
+/**
+ * @enum ApiResponseStatus
+ * @brief Represents the possible status values for an API response.
+ *
+ * This enum defines the status codes that indicate the result of an API request.
+ */
+enum class ApiResponseStatus {
+    kSuccess = 0, ///< The API request was successful.
+    kFailure = 1, ///< The API request failed.
+    kPending = 2, ///< The API request is pending.
+    kError = 3,   ///< There was an error in processing the API request.
+};
+
+/**
+ * @struct ApiResponseData
+ * @brief Represents the response data for API responses.
+ *
+ * This structure holds the status and ID fields from the API response.
+ * It is used to store data returned from the API call, providing an easy way to access
+ * the status of the response and the associated identifier.
+ */
+struct ApiResponseData {
+    /**
+     * @brief Status code of the API response.
+     * 
+     * This field contains the status code returned by the API, represented by an enum.
+     * It can be used to determine the success or failure of the API request.
+     */
+    ApiResponseStatus status;
+
+    /**
+     * @brief ID associated with the API request.
+     * 
+     * This field holds the unique identifier for the API request.
+     * It allows tracking of the request across systems.
+     */
+    uint64_t id;
+};
+
+// A type to represent any parsed data.
+struct ParsedData {
+    int error_code;         // For error responses
+    // Other fields for different responses can be added here
+};
+
