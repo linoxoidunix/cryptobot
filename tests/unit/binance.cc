@@ -125,12 +125,9 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
         io_context.run();
         int x = 0; });
 
-    boost::asio::cancellation_signal cancel_signal;
-    boost::asio::cancellation_signal resubscribe_signal;
-
     binance::BookEventGetterComponent component(
         thread_pool, number_responses, TypeExchange::TESTNET, pairs,
-        &session_pool, cancel_signal, resubscribe_signal);
+        &session_pool);
 
     Exchange::RequestDiffOrderBook request;
     request.exchange_id  = common::ExchangeId::kBinance;
@@ -208,21 +205,7 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
                     (result.trading_pair == common::TradingPair(2, 1))) {
                     counter_successfull++;
                 }
-                // if (counter_successfull == 5) {
-                //     component.AsyncStop();
-                // }
-                //};
-                // // Simulate the re-subscription condition after a failure (e.g.,
-                // first failure) if (request_accepted_by_exchange == 1 &&
-                // !resubscribe_called &&
-                // counter_successfull == 3) {
-                //     // Trigger re-subscription signal
-                //     resubscribe_called = true;
-                //     component.AsyncStop();
-                //     component.AsyncHandleEvent(&bus_event_request);
-                //     //resubscribe_signal.emit(boost::asio::cancellation_type::all);
-                // }
-
+               
                 // Stop after 5 successful responses
                 if (!is_unsubscribed_happened)
                     if (counter_successfull == 5) {
@@ -231,13 +214,6 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
                         is_unsubscribed_happened = true;
                         // component.AsyncHandleEvent(&bus_event_request);
                     }
-                // if (counter_successfull > 5) {
-                //     if (called_10_times)
-                //         component.AsyncStop();
-                //     else
-                //         called_10_times++;
-                // }
-                //std::cout << "succesful:" << counter_successfull << std::endl;
                 return;
             }
             if (std::holds_alternative<ApiResponseData>(answer))
@@ -245,6 +221,8 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
                 const auto& result = std::get<ApiResponseData>(answer);
                 logi("{}", result);
                 request_accepted_by_exchange++;
+                if(request_accepted_by_exchange == 2)
+                    component.AsyncStop();
                 return;
             }
             //std::cout << "can't parse response" << std::endl;
@@ -253,18 +231,26 @@ TEST_F(BookEventGetterComponentTest, TestReSubscribeChannel) {
     // Register the callback for the trading pair
     component.RegisterCallback(request.trading_pair, &cb);
 
+    OnCloseSession cb_on_close_session = [this,
+     //&log_polling,
+      &work_guard](){
+        session_pool.CloseAllSessions();
+        work_guard.reset();
+    };
+    component.RegisterCallbackOnCloseSession(request.trading_pair, &cb_on_close_session);
+
     // Start handling the event asynchronously
     component.AsyncHandleEvent(&bus_event_request);
 
     // thread_pool.join();
-    using namespace std::literals::chrono_literals;
-    std::this_thread::sleep_for(10s);
-    session_pool.CloseAllSessions();
-    log_polling.Stop();
-    work_guard.reset();
-    thread_pool.join();
+    //using namespace std::literals::chrono_literals;
+    //std::this_thread::sleep_for(10s);
+    //session_pool.CloseAllSessions();
+    //work_guard.reset();
+    //
     t.join();
-
+    log_polling.Stop();
+    thread_pool.join();
 
     // Check that 5 successful responses were received and 1 unsuccessful (due
     // to status response)

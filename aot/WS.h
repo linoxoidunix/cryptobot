@@ -18,13 +18,15 @@
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/ssl.hpp>
 #include <boost/system/error_code.hpp>
+#include "boost/asio.hpp"
+#include "boost/asio/awaitable.hpp"
+
+#include "concurrentqueue.h"
 
 #include "aot/Logger.h"
 #include "aot/Types.h"
 #include "aot/cb_manager.h"
-#include "boost/asio.hpp"
-#include "boost/asio/awaitable.hpp"
-#include "concurrentqueue.h"
+
 
 namespace beast     = boost::beast;          // from <boost/beast.hpp>
 namespace http      = beast::http;           // from <boost/beast/http.hpp>
@@ -417,8 +419,8 @@ class WssSession3 {
     {
         // Register cancellation handler for the entire session
         cancel_signal_.slot().assign(
-            [this](boost::asio::cancellation_type_t type) {
-                logd("Cancellation requested for WSSession!");
+            [this](boost::asio::cancellation_type type) {
+                logd("Cancellation requested");
                 HandleCancellation(type);
             });
 
@@ -519,7 +521,6 @@ class WssSession3 {
   private:
     // Handles cancellation by closing the session
     void HandleCancellation(boost::asio::cancellation_type_t type) {
-        logd("Cancellation requested: type {}", static_cast<int>(type));
         CloseSessionFast();
     }
     // Start the asynchronous operation

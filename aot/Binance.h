@@ -1066,88 +1066,128 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
     https::ExchangeI* current_exchange_;
 };
 
+/**
+ * @brief Template class for managing and handling book events asynchronously.
+ *
+ * @tparam Executor The executor type used for asynchronous operations.
+ */
 template <typename Executor>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
+    // using TradingPair = common::TradingPair;
+    using CallbackMap =
+        std::unordered_map<common::TradingPair, const OnWssResponse*,
+                           common::TradingPairHash, common::TradingPairEqual>;
+    using CloseSessionCallbackMap =
+        std::unordered_map<common::TradingPair, const OnCloseSession*,
+                           common::TradingPairHash, common::TradingPairEqual>;
+
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
     common::TradingPairHashMap& pairs_;
-
-    // Callback maps to handle trading pair-specific responses and session
-    // closures
-    std::unordered_map<common::TradingPair, const OnWssResponse*,
-                       common::TradingPairHash, common::TradingPairEqual>
-        callback_map_;
-
-    std::unordered_map<common::TradingPair, const OnCloseSession*,
-                       common::TradingPairHash, common::TradingPairEqual>
-        callback_on_close_session_map_;
-
-    std::atomic<WSSesionType3*> active_session{nullptr};
+    CallbackMap callback_map_;
+    CloseSessionCallbackMap callback_on_close_session_map_;
+    std::atomic<WSSesionType3*> active_session_{nullptr};
+    testnet::HttpsExchange binance_test_net_;
+    mainnet::HttpsExchange binance_main_net_;
+    https::ExchangeI* current_exchange_;
 
   protected:
     Executor& executor_;
-    boost::asio::cancellation_signal& signal_;
-    boost::asio::cancellation_signal& restart_signal_;
 
   public:
+    /**
+     * @brief Constructor for BookEventGetter3.
+     *
+     * @param executor The executor for asynchronous operations.
+     * @param session_pool Pointer to the WebSocket session pool.
+     * @param type The type of exchange (mainnet or testnet).
+     * @param pairs Reference to the trading pair hash map.
+     */
     BookEventGetter3(
         Executor& executor,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
-        TypeExchange type, common::TradingPairHashMap& pairs,
-        boost::asio::cancellation_signal& signal,
-        boost::asio::cancellation_signal& restart_signal)
-        : executor_(executor),
-          session_pool_(session_pool),
+        TypeExchange type, common::TradingPairHashMap& pairs)
+        : session_pool_(session_pool),
           pairs_(pairs),
-          signal_(signal),
-          restart_signal_(restart_signal),
+          executor_(executor),
           current_exchange_(GetExchange(type)) {}
-
+    /**
+     * @brief Default destructor.
+     */
     ~BookEventGetter3() override = default;
-
+    /**
+     * @brief Asynchronously handles book events.
+     *
+     * @param bus_event_request_diff_order_book Pointer to the event request for
+     * the order book.
+     */
     boost::asio::awaitable<void> CoExec(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
 
-        // Handle invalid input early
         if (!bus_event_request_diff_order_book || !session_pool_) {
             loge("Invalid bus_event_request_diff_order_book or session_pool");
             co_return;
         }
 
         co_await HandleBookEvent(bus_event_request_diff_order_book);
-        co_return;
     }
-
-    // Function to register callbacks for trading pairs
+    /**
+     * @brief Registers a callback for a specific trading pair's WebSocket
+     * response.
+     *
+     * @param trading_pair The trading pair to register the callback for.
+     * @param callback Pointer to the callback function.
+     */
     void RegisterCallback(common::TradingPair trading_pair,
                           const OnWssResponse* callback) {
         callback_map_[trading_pair] = callback;
     }
-
+    /**
+     * @brief Registers a callback for a specific trading pair when a session is
+     * closed.
+     *
+     * @param trading_pair The trading pair to register the callback for.
+     * @param callback Pointer to the close session callback function.
+     */
     void RegisterCallbackOnCloseSession(common::TradingPair trading_pair,
                                         const OnCloseSession* callback) {
         callback_on_close_session_map_[trading_pair] = callback;
     }
 
-  private:
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
-    https::ExchangeI* current_exchange_;
-
-    // Function to choose the exchange based on the type
-    https::ExchangeI* GetExchange(TypeExchange type) {
-        switch (type) {
-            case TypeExchange::MAINNET:
-                return &binance_main_net_;
-            default:
-                return &binance_test_net_;
+    /**
+     * @brief Asynchronously stops the active WebSocket session gracefully.
+     */
+    void AsyncStop() {
+        if (auto session = active_session_.load()) {
+            session->AsyncCloseSessionGracefully();
+        } else {
+            logw("No active session to stop");
         }
     }
 
-    // Main logic for handling the book event
+  private:
+    /**
+     * @brief Returns the appropriate exchange object based on the type of
+     * exchange.
+     *
+     * @param type The type of exchange (mainnet or testnet).
+     * @return Pointer to the selected exchange object.
+     */
+    https::ExchangeI* GetExchange(TypeExchange type) {
+        return type == TypeExchange::MAINNET
+                   ? static_cast<https::ExchangeI*>(&binance_main_net_)
+                   : static_cast<https::ExchangeI*>(&binance_test_net_);
+    }
+
+    /**
+     * @brief Handles book events by processing the provided event request.
+     *
+     * @param bus_event_request_diff_order_book Pointer to the event request for
+     * the order book.
+     */
     boost::asio::awaitable<void> HandleBookEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) {
@@ -1160,84 +1200,126 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         auto& trading_pair = wrapped_event->trading_pair;
         detail::FamilyBookEventGetter::ArgsBody args(
             bus_event_request_diff_order_book->WrappedEvent(), pairs_);
-
         auto req = args.Body();
-        logd("Prepared event getter for binance request");
 
-        // Try to acquire an active session
-        WSSesionType3* expected = nullptr;
-        auto restart_slot       = restart_signal_.slot();
-
-        if (active_session.compare_exchange_strong(
-                expected, session_pool_->AcquireConnection())) {
-            logd("Active session acquired");
-
-            // Register callback for response and session close
+        if (AcquireActiveSession()) {
             if (!RegisterCallbacksForTradingPair(trading_pair)) {
                 co_return;
             }
-
-            // Send the request asynchronously
-            if (auto result = co_await SendAsyncRequest(req); result == false) {
-                loge("AsyncRequest finished unsuccessfully");
-            }
-        } else {
-            // If no session was acquired, send the request anyway
-            logd("No active session, sending request without session");
-            if (auto result = co_await SendAsyncRequest(req); result == false) {
-                loge("AsyncRequest finished unsuccessfully");
-            }
         }
 
-        logd("Finished sending event getter for binance request");
-        co_return;
+        if (auto result = co_await SendAsyncRequest(req); !result) {
+            loge("AsyncRequest finished unsuccessfully");
+        }
+
+        logd("Finished sending event getter for Binance request");
     }
 
-    // Function to register the callbacks for the response and session close
-    bool RegisterCallbacksForTradingPair(common::TradingPair& trading_pair) {
-        auto callback_it = callback_map_.find(trading_pair);
-        if (callback_it == callback_map_.end()) {
-            loge("No callback on response is registered for trading pair: {}",
+    /**
+     * @brief Acquires an active session from the session pool.
+     *
+     * @return True if a session was successfully acquired, otherwise false.
+     */
+    bool AcquireActiveSession() {
+        WSSesionType3* expected = nullptr;
+        auto session            = session_pool_->AcquireConnection();
+        if (active_session_.compare_exchange_strong(expected, session)) {
+            logd("Active session acquired");
+            return true;
+        }
+        return false;
+    }
+    /**
+     * @brief Registers callbacks for a specific trading pair.
+     *
+     * @param trading_pair The trading pair to register callbacks for.
+     * @return True if registration was successful, otherwise false.
+     */
+    bool RegisterCallbacksForTradingPair(
+        const common::TradingPair& trading_pair) {
+        if (auto callback = FindCallback(callback_map_, trading_pair)) {
+            RegisterCallbackOnSession(callback);
+        } else {
+            loge("No callback on response registered for trading pair: {}",
                  trading_pair.ToString());
             return false;
         }
 
-        auto& callback = callback_it->second;
-        active_session.load()->RegisterCallbackOnResponse(*callback);
-
-        // Handle callback for session closure
-        auto callback_on_close_session_it =
-            callback_on_close_session_map_.find(trading_pair);
-        if (callback_on_close_session_it ==
-            callback_on_close_session_map_.end()) {
-            logw(
-                "No callback on close session is registered for trading pair: "
-                "{}",
-                trading_pair.ToString());
+        if (auto callback =
+                FindCallback(callback_on_close_session_map_, trading_pair)) {
+            RegisterCallbackOnSessionClose(callback);
         } else {
-            auto& callback_on_close_session =
-                callback_on_close_session_it->second;
-            active_session.load()->RegisterCallbackOnCloseSession(
-                *callback_on_close_session);
+            logw("No callback on close session registered for trading pair: {}",
+                 trading_pair.ToString());
         }
 
-        // Register the default callback when session is closed
-        active_session.load()->RegisterCallbackOnCloseSession(
-            [this]() { DefaultCBOnCloseSession(); });
-
+        RegisterDefaultCallbackOnSessionClose();
         return true;
     }
-
-    // Function to send the asynchronous request
-    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
-        auto result =
-            co_await active_session.load()->AsyncRequest(std::move(req));
-        co_return result;
+    /**
+     * @brief Finds a callback in the specified map for a given trading pair.
+     *
+     * @tparam MapType The type of the callback map.
+     * @param map The map to search for the callback.
+     * @param trading_pair The trading pair to search for.
+     * @return Pointer to the callback if found, otherwise nullptr.
+     */
+    template <typename MapType>
+    typename MapType::mapped_type FindCallback(
+        const MapType& map, const common::TradingPair& trading_pair) const {
+        auto it = map.find(trading_pair);
+        return it != map.end() ? it->second : nullptr;
+    }
+    /**
+     * @brief Registers a response callback on the active session.
+     *
+     * @param callback The callback to register.
+     */
+    void RegisterCallbackOnSession(const OnWssResponse* callback) {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnResponse(*callback);
+        }
+    }
+    /**
+     * @brief Registers a close session callback on the active session.
+     *
+     * @param callback The callback to register.
+     */
+    void RegisterCallbackOnSessionClose(const OnCloseSession* callback) {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnCloseSession(*callback);
+        }
+    }
+    /**
+     * @brief Registers the default callback to execute when a session is
+     * closed.
+     */
+    void RegisterDefaultCallbackOnSessionClose() {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnCloseSession(
+                [this]() { DefaultCBOnCloseSession(); });
+        }
     }
 
-    // Default callback for session closure
+    /**
+     * @brief Sends an asynchronous request using the active session.
+     *
+     * @tparam RequestType The type of the request.
+     * @param req The request to send.
+     * @return True if the request was sent successfully, otherwise false.
+     */
+    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
+        if (auto session = active_session_.load()) {
+            co_return co_await session->AsyncRequest(std::move(req));
+        }
+        co_return false;
+    }
+
+    /**
+     * @brief Default callback executed when a session is closed.
+     */
     void DefaultCBOnCloseSession() {
-        active_session.store(nullptr, std::memory_order_release);
+        active_session_.store(nullptr, std::memory_order_release);
     }
 };
 
@@ -1252,11 +1334,8 @@ class BookEventGetterComponent : public bus::Component,
         Executor& executor, size_t number_responses, TypeExchange type,
         common::TradingPairHashMap& pairs,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
-            session_pool,
-        boost::asio::cancellation_signal& cancel_signal,
-        boost::asio::cancellation_signal& restart_signal)
-        : BookEventGetter3<Executor>(executor, session_pool, type, pairs,
-                                     cancel_signal, restart_signal),
+            session_pool)
+        : BookEventGetter3<Executor>(executor, session_pool, type, pairs),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
@@ -1268,14 +1347,7 @@ class BookEventGetterComponent : public bus::Component,
                               BookEventGetter3<Executor>::CoExec(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override {
-        net::steady_timer delay_timer(BookEventGetter3<Executor>::executor_,
-                                      std::chrono::nanoseconds(1));
-        delay_timer.async_wait([&](const boost::system::error_code&) {
-            BookEventGetter3<Executor>::signal_.emit(
-                boost::asio::cancellation_type::all);
-        });
-    }
+    void AsyncStop() override { BookEventGetter3<Executor>::AsyncStop(); }
 };
 
 class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
@@ -1976,8 +2048,7 @@ class BookSnapshotComponent : public bus::Component,
         Executor&& executor, size_t number_responses, SignerI* signer,
         TypeExchange type, common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
-        ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
-        boost::asio::cancellation_signal& signal)
+        ::V2::ConnectionPool<HTTPSesionType3>* session_pool)
         : BookSnapshot2<Executor>(std::move(executor), signer, session_pool,
                                   type, pairs, signal),
           snapshot_mem_pool_(number_responses),
@@ -1991,12 +2062,13 @@ class BookSnapshotComponent : public bus::Component,
                               boost::asio::detached);
     };
     void AsyncStop() override {
-        net::steady_timer delay_timer(BookSnapshot2<Executor>::executor_,
-                                      std::chrono::nanoseconds(1));
-        delay_timer.async_wait([&](const boost::system::error_code&) {
-            BookSnapshot2<Executor>::signal_.emit(
-                boost::asio::cancellation_type::all);
-        });
+        // TODO: need impl Async Stop for session
+        //  net::steady_timer delay_timer(BookSnapshot2<Executor>::executor_,
+        //                                std::chrono::nanoseconds(1));
+        //  delay_timer.async_wait([&](const boost::system::error_code&) {
+        //      BookSnapshot2<Executor>::signal_.emit(
+        //          boost::asio::cancellation_type::all);
+        //  });
     }
 };
 
@@ -2136,7 +2208,9 @@ class BidAskGeneratorComponent : public bus::Component {
         boost::asio::co_spawn(executor_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override {};
+    void AsyncStop() override {
+
+    };
 
     void RegisterSnapshotCallback(
         BidAskGeneratorComponent::SnapshotCallback callback) {
