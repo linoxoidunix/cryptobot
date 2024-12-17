@@ -230,11 +230,43 @@ struct TradeEngineCfg {
 
 // using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
 
+// struct StringHash {
+//     using is_transparent = void;
+//     std::size_t operator()(const char* key) const {
+//         return std::hash<std::string_view>()(
+//             std::string_view(key, strlen(key)));
+//     }
+//     std::size_t operator()(const std::string& key) const {
+//         return std::hash<std::string_view>()(key);
+//     }
+//     std::size_t operator()(const std::string_view& key) const {
+//         return std::hash<std::string_view>()(key);
+//     }
+// };
+
+// struct StringEqual {
+//     using is_transparent = int;
+
+//     bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+//         return lhs == std::string_view(rhs);
+//     }
+
+//     bool operator()(const std::string& lhs, const std::string& rhs) const {
+//         return lhs == rhs;
+//     }
+
+//     bool operator()(const char* lhs, const std::string& rhs) const {
+//         return std::strcmp(lhs, rhs.data()) == 0;
+//     }
+//     bool operator()(const std::string& rhs, const char* lhs) const {
+//         return std::strcmp(lhs, rhs.data()) == 0;
+//     }
+// };
+
 struct StringHash {
     using is_transparent = void;
     std::size_t operator()(const char* key) const {
-        return std::hash<std::string_view>()(
-            std::string_view(key, strlen(key)));
+        return std::hash<std::string_view>()(std::string_view(key));
     }
     std::size_t operator()(const std::string& key) const {
         return std::hash<std::string_view>()(key);
@@ -245,21 +277,28 @@ struct StringHash {
 };
 
 struct StringEqual {
-    using is_transparent = int;
+    using is_transparent = void;
 
-    bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+    bool operator()(const std::string_view& lhs, const std::string_view& rhs) const {
         return lhs == rhs;
     }
-
+    bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+        return lhs == std::string_view(rhs);
+    }
     bool operator()(const std::string& lhs, const std::string& rhs) const {
         return lhs == rhs;
     }
-
     bool operator()(const char* lhs, const std::string& rhs) const {
-        return std::strcmp(lhs, rhs.data()) == 0;
+        return std::string_view(lhs) == rhs;
     }
-    bool operator()(const std::string& rhs, const char* lhs) const {
-        return std::strcmp(lhs, rhs.data()) == 0;
+    bool operator()(const std::string& lhs, const char* rhs) const {
+        return lhs == std::string_view(rhs);
+    }
+    bool operator()(const char* lhs, const std::string_view& rhs) const {
+        return std::string_view(lhs) == rhs;
+    }
+    bool operator()(const std::string_view& lhs, const char* rhs) const {
+        return lhs == std::string_view(rhs);
     }
 };
 
