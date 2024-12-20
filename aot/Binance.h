@@ -6,6 +6,14 @@
 #include <unordered_map>
 #include <utility>
 
+#include "boost/asio.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/http/message.hpp"
+#include "boost/beast/version.hpp"
+
+#include "nlohmann/json.hpp"
+#include "simdjson.h"
+
 #include "aot/Exchange.h"
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -18,12 +26,7 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
-#include "boost/asio.hpp"
-#include "boost/beast/http.hpp"
-#include "boost/beast/http/message.hpp"
-#include "boost/beast/version.hpp"
-#include "nlohmann/json.hpp"
-#include "simdjson.h"
+
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -589,7 +592,7 @@ class FamilyBookEventGetter {
          * @param id Variant containing the ID as a string, int, or unsigned
          * int.
          */
-        void SetId(const std::variant<std::string, int, unsigned int>& id) {
+        void SetId(const std::variant<std::string, long int, long unsigned int>& id) {
             std::visit([this](const auto& value) { (*this)["id"] = value; },
                        id);
         }
@@ -1074,7 +1077,6 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
 template <typename Executor>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
-    // using TradingPair = common::TradingPair;
     using CallbackMap =
         std::unordered_map<common::TradingPair, const OnWssResponse*,
                            common::TradingPairHash, common::TradingPairEqual>;
@@ -1326,6 +1328,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
                                  public BookEventGetter3<Executor> {
+static constexpr std::string_view name_component_ =
+        "binance::BookEventGetterComponent";
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot2> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
@@ -2592,13 +2596,46 @@ class ApiResponseParser {
                 data.status = ApiResponseStatus::kSuccess;
 
             auto id_field = doc["id"];
-            if (!id_field.error() &&
-                id_field.type() == simdjson::ondemand::json_type::number) {
-                data.id = id_field.get_int64().value_unsafe();
+            if (!id_field.error()) {
+                if (id_field.type() == simdjson::ondemand::json_type::string) {
+                    std::string_view id_value;
+                    if (id_field.get_string().get(id_value) == simdjson::SUCCESS) {
+                        data.id = std::string(id_value);  // Store as string
+                    }
+                } else if (id_field.type() == simdjson::ondemand::json_type::number) {
+                    simdjson::ondemand::number number = id_field.get_number();
+                    simdjson::ondemand::number_type t = number.get_number_type();
+                    switch (t) {
+                        case simdjson::ondemand::number_type::signed_integer:
+                            if (number.is_int64()) {
+                                data.id = number.get_int64();
+                            } else {
+                                loge("Unexpected signed integer size.");
+                            }
+                            break;
+                        case simdjson::ondemand::number_type::unsigned_integer:
+                            if (number.is_uint64()) {
+                                data.id = number.get_uint64();
+                            } else {
+                                loge("Unexpected unsigned integer size.");
+                            }
+                            break;
+                        case simdjson::ondemand::number_type::floating_point_number:
+                            // If it's a floating point, you can get the value as a double
+                            loge("Unexpected double");
+                            break;
+                        case simdjson::ondemand::number_type::big_integer:
+                            // Handle big integers (e.g., large numbers out of int64_t range)
+                            loge("Big integer value detected.");
+                            break;
+                        default:
+                            loge("Unknown number type.");
+                            break;
+                    }
+                }
             }
+            return data;  // Return populated or empty data
         }
-        return data;  // Return populated or empty data
-    }
+    };
 };
-
 };  // namespace binance

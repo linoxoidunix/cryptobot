@@ -22,6 +22,8 @@
 #include "boost/beast/http.hpp"
 #include "boost/beast/http/message.hpp"
 #include "boost/beast/version.hpp"
+#include "nlohmann/json.hpp"
+#include "simdjson.h"
 
 namespace bybit {
 enum class Type { LIMIT, MARKET };
@@ -292,7 +294,7 @@ class FamilyBookEventGetter {
 
       public:
         using ResponseVariant =
-            std::variant<std::monostate, Exchange::BookSnapshot,
+            std::variant<Exchange::BookSnapshot,
                          Exchange::BookDiffSnapshot>;
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
@@ -300,6 +302,7 @@ class FamilyBookEventGetter {
             : pairs_reverse_(pairs_reverse), pairs_(pairs) {};
 
         ResponseVariant Parse(std::string_view response);
+        ResponseVariant Parse(simdjson::ondemand::document& doc);
 
       private:
         template <typename T>
@@ -355,56 +358,134 @@ class FamilyBookEventGetter {
     //   private:
     //     ArgsOrder& storage = *this;
     // };
+    // OLD CODE. but it is work. need delete this code
+    // class ArgsBody : public bybit::ArgsBody {
+    //     common::TradingPairHashMap& pairs_;
+    //     /**
+    //      * @brief id_ need add when send json request to exchange
+    //      *
+    //      */
+    //     unsigned int id_;
 
-    class ArgsBody : public bybit::ArgsBody {
-        common::TradingPairHashMap& pairs_;
-        /**
-         * @brief id_ need add when send json request to exchange
-         *
-         */
-        unsigned int id_;
+    //   public:
+    //     ArgsBody(const Exchange::RequestDiffOrderBook* request,
+    //              common::TradingPairHashMap& pairs, unsigned int id)
+    //         : bybit::ArgsBody(), pairs_(pairs), id_(id) {
+    //         // SetMethod();
+    //         SetParams(request);
+    //         SetId(id_);
+    //     }
+    //   private:
+    //     void Subscribe(){
+    //         storage["op"] = "\"subscribe\"";
+    //     }
+    //     void UnSubscribe(){
+    //         storage["op"] = "\"unsubscribe\"";
+    //     }
+    //     void SetParams(const Exchange::RequestDiffOrderBook* request) {
+    //         /**
+    //          * @brief frequency = depth
+    //          * https://bybit-exchange.github.io/docs/v5/websocket/public/orderbook
+    //          *
+    //          */
+    //         auto depth = request->frequency;
+    //         if (depth == common::kFrequencyMSInvalid) {
+    //             return;
+    //         }
+    //         storage["args"] =
+    //             fmt::format("{}.{}.{}", "orderbook", depth,
+    //                         pairs_[request->trading_pair].https_json_request);
+    //         if(request->subscribe)
+    //             Subscribe();
+    //         else
+    //             UnSubscribe();
+    //     };
+    //     void SetId(unsigned int id) {
+    //         // i don't want process an id now because for binance an id is
+    //         // integer, but for ArgsBody value is a string
+    //     };
+
+    //   private:
+    //     ArgsBody& storage = *this;
+    // };
+    /**
+     * @class ArgsBody
+     * @brief A class that encapsulates parameters for WebSocket requests to the
+     * Bybit API, inheriting from nlohmann::json for direct JSON manipulation.
+     */
+    class ArgsBody : public nlohmann::json {
+        common::TradingPairHashMap&
+            pairs_;  ///< Reference to the trading pair hash map.
 
       public:
+        /**
+         * @brief Constructs an ArgsBody object and initializes JSON parameters.
+         * @param request Pointer to the RequestDiffOrderBook object containing
+         * request details.
+         * @param pairs Reference to the trading pair hash map.
+         * @param id Unique identifier for the request.
+         */
         ArgsBody(const Exchange::RequestDiffOrderBook* request,
-                 common::TradingPairHashMap& pairs, unsigned int id)
-            : bybit::ArgsBody(), pairs_(pairs), id_(id) {
-            // SetMethod();
+                 common::TradingPairHashMap& pairs)
+            : nlohmann::json(), pairs_(pairs) {
+            if (!request) return;
             SetParams(request);
-            SetId(id_);
+            SetMethod(request->subscribe);
+            SetId(request->id);
         }
-      private:
-        void Subscribe(){
-            storage["op"] = "\"subscribe\"";
-        }
-        void UnSubscribe(){
-            storage["op"] = "\"unsubscribe\"";
-        }
-        void SetParams(const Exchange::RequestDiffOrderBook* request) {
-            /**
-             * @brief frequency = depth
-             * https://bybit-exchange.github.io/docs/v5/websocket/public/orderbook
-             *
-             */
-            auto depth = request->frequency;
-            if (depth == common::kFrequencyMSInvalid) {
-                return;
-            }
-            storage["args"] =
-                fmt::format("{}.{}.{}", "orderbook", depth,
-                            pairs_[request->trading_pair].https_json_request);
-            if(request->subscribe)
-                Subscribe();
-            else
-                UnSubscribe();
-        };
-        void SetId(unsigned int id) {
-            // i don't want process an id now because for binance an id is
-            // integer, but for ArgsBody value is a string
-        };
+
+        /**
+         * @brief Returns the JSON object serialized as a string.
+         * @return A string representation of the JSON object.
+         */
+        std::string Body() const { return this->dump(); }
+
+        /**
+         * @brief Virtual destructor for ArgsBody.
+         */
+        virtual ~ArgsBody() = default;
 
       private:
-        ArgsBody& storage = *this;
+        /**
+         * @brief Sets the "method" field in the JSON object based on the
+         * subscription type.
+         * @param subscribe Boolean indicating whether the request is a
+         * subscription.
+         */
+        void SetMethod(bool subscribe) {
+            (*this)["op"] = subscribe ? "subscribe" : "unsubscribe";
+        }
+
+        /**
+         * @brief Sets the "args" field in the JSON object based on the request
+         * details.
+         * @param request Pointer to the RequestDiffOrderBook object containing
+         * request details.
+         */
+        void SetParams(const Exchange::RequestDiffOrderBook* request) {
+            if (!request) return;
+            if (request->frequency == common::kFrequencyMSInvalid) {
+                loge("Invalid frequency in request, skipping parameter setup");
+                return;
+            }
+            nlohmann::json params_array = nlohmann::json::array();
+            params_array.push_back(fmt::format("{}.{}.{}", "orderbook", request->frequency,
+                            pairs_[request->trading_pair].https_json_request));
+            // Build the "args" string using trading pair and frequency.
+            (*this)["args"] = params_array;
+        }
+
+        /**
+         * @brief Sets the "id" field in the JSON object using a variant type.
+         * @param id Variant containing the ID as a string, int, or unsigned
+         * int.
+         */
+        void SetId(const std::variant<std::string, long int, long unsigned int>& id) {
+            std::visit([this](const auto& value) { (*this)["req_id"] = value; },
+                       id);
+        }
     };
+
     virtual ~FamilyBookEventGetter() = default;
 };
 };  // namespace detail
@@ -653,136 +734,392 @@ class FactoryRequestJson {
 //     common::TradingPairHashMap& pairs_;
 // };
 
+// CODE BELOW IS OLD, BUT IT IS WORK. NEED DELETE THIS
+//  template <typename Executor>
+//  class BookEventGetter3 : public detail::FamilyBookEventGetter,
+//                           public inner::BookEventGetterI {
+//      ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
+//      session_pool_; common::TradingPairHashMap& pairs_;
+//      // Add a callback map to store parsing callbacks for each trading pair
+//      std::unordered_map<common::TradingPair, const OnWssResponse*,
+//                         common::TradingPairHash, common::TradingPairEqual>
+//          callback_map_;
+//      /**
+//       * @brief now BookEventGetter3 has only 1 active session at each time
+//       *
+//       */
+//      std::atomic<WSSesionType3*> active_session{nullptr};
+
+//   protected:
+//     Executor executor_;
+//   public:
+//     /**
+//      * @brief Construct a new Book Event Getter 3 object
+//      *
+//      * @param executor must equal strand
+//      * @param session_pool
+//      * @param type
+//      * @param pairs
+//      * @param signal
+//      * @param restart_signal
+//      */
+//     BookEventGetter3(
+//         Executor&& executor,
+//         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
+//             session_pool,
+//         TypeExchange type, common::TradingPairHashMap& pairs,
+//         boost::asio::cancellation_signal& signal,
+//         boost::asio::cancellation_signal& restart_signal)
+//         : executor_(std::move(executor)),
+//           session_pool_(session_pool),
+//           pairs_(pairs),
+//           signal_(signal),
+//           restart_signal_(restart_signal) {
+//         switch (type) {
+//             case TypeExchange::MAINNET:
+//                 current_exchange_ = &binance_main_net_;
+//                 break;
+//             default:
+//                 current_exchange_ = &binance_test_net_;
+//                 break;
+//         }
+//     };
+//     ~BookEventGetter3() override = default;
+//     boost::asio::awaitable<void> CoExec(
+//         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
+//             bus_event_request_diff_order_book) override {
+//         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+//         if (bus_event_request_diff_order_book == nullptr) {
+//             loge("bus_event_request_diff_order_book == nullptr");
+//             co_return;
+//         }
+//         if (session_pool_ == nullptr) {
+//             loge("session_pool_ == nullptr");
+//             co_return;
+//         }
+//         boost::asio::co_spawn(
+//             executor_,
+//             [this, bus_event_request_diff_order_book]()
+//                 -> boost::asio::awaitable<void> {
+//                 logd("start book event getter for bybit");
+//                 auto* wrapped_event =
+//                     bus_event_request_diff_order_book->WrappedEvent();
+//                 if (!wrapped_event) {
+//                     loge("wrapped event equal nullptr");
+//                     co_return;
+//                 }
+//                 auto& trading_pair = wrapped_event->trading_pair;
+//                 auto callback_it   = callback_map_.find(trading_pair);
+//                 if (callback_it == callback_map_.end()) {
+//                     loge("No callback registered for trading pair: {}",
+//                          trading_pair.ToString());
+//                     co_return;
+//                 }
+//                 detail::FamilyBookEventGetter::ArgsBody args(wrapped_event,
+//                                                              pairs_, 1);
+//                 logd("start prepare event getter for bybit request");
+//                 auto req = args.Body();
+//                 logd("end prepare event getter for bybit request");
+
+//                 // bus_event_request_diff_order_book->Release();
+//                 //
+//                 bus_event_request_diff_order_book->WrappedEvent()->Release();
+//                 // Critical section using atomic operation
+//                 WSSesionType3* expected = nullptr;
+//                 if (active_session.compare_exchange_strong(
+//                         expected, session_pool_->AcquireConnection())) {
+//                     logd("Active session acquired");
+//                 }
+//                 logd("start send event getter for bybit request");
+
+//                 auto slot         = signal_.slot();
+//                 auto restart_slot = restart_signal_.slot();
+//                 auto& callback    = callback_it->second;
+//                 // if (auto status = co_await
+//                 active_session.load()->AsyncRequest(
+//                 //         std::move(req), callback, slot, restart_slot);
+//                 //     status == false)
+//                 //     loge("AsyncRequest finished unsuccessfully");
+//                 // // i don't need in release connection. session_pool_ do it
+//                 // active_session.store(nullptr);
+//                 logd("end send event getter for bybit request");
+//                 co_return;
+//             },
+//             boost::asio::detached);
+//         co_return;
+//     }
+//     /**
+//      * @brief Add a function to register callbacks for trading pairs
+//      *
+//      * @param trading_pair
+//      * @param callback
+//      */
+//     void RegisterCallback(common::TradingPair trading_pair,
+//                           const OnWssResponse* callback) {
+//         callback_map_[trading_pair] = callback;
+//     }
+
+//   private:
+//     bybit::testnet::HttpsExchange binance_test_net_;
+//     bybit::mainnet::HttpsExchange binance_main_net_;
+
+//     https::ExchangeI* current_exchange_;
+// };
+
+/**
+ * @brief Template class for managing and handling book events asynchronously.
+ *
+ * @tparam Executor The executor type used for asynchronous operations.
+ */
 template <typename Executor>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
+    using CallbackMap =
+        std::unordered_map<common::TradingPair, const OnWssResponse*,
+                           common::TradingPairHash, common::TradingPairEqual>;
+    using CloseSessionCallbackMap =
+        std::unordered_map<common::TradingPair, const OnCloseSession*,
+                           common::TradingPairHash, common::TradingPairEqual>;
+
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
     common::TradingPairHashMap& pairs_;
-    // Add a callback map to store parsing callbacks for each trading pair
-    std::unordered_map<common::TradingPair, const OnWssResponse*,
-                       common::TradingPairHash, common::TradingPairEqual>
-        callback_map_;
-    /**
-     * @brief now BookEventGetter3 has only 1 active session at each time
-     *
-     */
-    std::atomic<WSSesionType3*> active_session{nullptr};
+    CallbackMap callback_map_;
+    CloseSessionCallbackMap callback_on_close_session_map_;
+    std::atomic<WSSesionType3*> active_session_{nullptr};
+    testnet::HttpsExchange bybit_test_net_;
+    mainnet::HttpsExchange bybit_main_net_;
+    https::ExchangeI* current_exchange_;
 
   protected:
-    Executor executor_;
-    boost::asio::cancellation_signal& signal_;
-    boost::asio::cancellation_signal& restart_signal_;
+    Executor& executor_;
 
   public:
     /**
-     * @brief Construct a new Book Event Getter 3 object
+     * @brief Constructor for BookEventGetter3.
      *
-     * @param executor must equal strand
-     * @param session_pool
-     * @param type
-     * @param pairs
-     * @param signal
-     * @param restart_signal
+     * @param executor The executor for asynchronous operations.
+     * @param session_pool Pointer to the WebSocket session pool.
+     * @param type The type of exchange (mainnet or testnet).
+     * @param pairs Reference to the trading pair hash map.
      */
     BookEventGetter3(
-        Executor&& executor,
+        Executor& executor,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
-        TypeExchange type, common::TradingPairHashMap& pairs,
-        boost::asio::cancellation_signal& signal,
-        boost::asio::cancellation_signal& restart_signal)
-        : executor_(std::move(executor)),
-          session_pool_(session_pool),
+        TypeExchange type, common::TradingPairHashMap& pairs)
+        : session_pool_(session_pool),
           pairs_(pairs),
-          signal_(signal),
-          restart_signal_(restart_signal) {
-        switch (type) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
-        }
-    };
+          executor_(executor),
+          current_exchange_(GetExchange(type)) {}
+    /**
+     * @brief Default destructor.
+     */
     ~BookEventGetter3() override = default;
+    /**
+     * @brief Asynchronously handles book events.
+     *
+     * @param bus_event_request_diff_order_book Pointer to the event request for
+     * the order book.
+     */
     boost::asio::awaitable<void> CoExec(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
         co_await boost::asio::post(executor_, boost::asio::use_awaitable);
-        if (bus_event_request_diff_order_book == nullptr) {
-            loge("bus_event_request_diff_order_book == nullptr");
+
+        if (!bus_event_request_diff_order_book || !session_pool_) {
+            loge("Invalid bus_event_request_diff_order_book or session_pool");
             co_return;
         }
-        if (session_pool_ == nullptr) {
-            loge("session_pool_ == nullptr");
-            co_return;
-        }
-        boost::asio::co_spawn(
-            executor_,
-            [this, bus_event_request_diff_order_book]()
-                -> boost::asio::awaitable<void> {
-                logd("start book event getter for bybit");
-                auto* wrapped_event =
-                    bus_event_request_diff_order_book->WrappedEvent();
-                if (!wrapped_event) {
-                    loge("wrapped event equal nullptr");
-                    co_return;
-                }
-                auto& trading_pair = wrapped_event->trading_pair;
-                auto callback_it   = callback_map_.find(trading_pair);
-                if (callback_it == callback_map_.end()) {
-                    loge("No callback registered for trading pair: {}",
-                         trading_pair.ToString());
-                    co_return;
-                }
-                detail::FamilyBookEventGetter::ArgsBody args(wrapped_event,
-                                                             pairs_, 1);
-                logd("start prepare event getter for bybit request");
-                auto req = args.Body();
-                logd("end prepare event getter for bybit request");
 
-                // bus_event_request_diff_order_book->Release();
-                // bus_event_request_diff_order_book->WrappedEvent()->Release();
-                // Critical section using atomic operation
-                WSSesionType3* expected = nullptr;
-                if (active_session.compare_exchange_strong(
-                        expected, session_pool_->AcquireConnection())) {
-                    logd("Active session acquired");
-                }
-                logd("start send event getter for bybit request");
-
-                auto slot         = signal_.slot();
-                auto restart_slot = restart_signal_.slot();
-                auto& callback    = callback_it->second;
-                // if (auto status = co_await active_session.load()->AsyncRequest(
-                //         std::move(req), callback, slot, restart_slot);
-                //     status == false)
-                //     loge("AsyncRequest finished unsuccessfully");
-                // // i don't need in release connection. session_pool_ do it
-                // active_session.store(nullptr);
-                logd("end send event getter for bybit request");
-                co_return;
-            },
-            boost::asio::detached);
-        co_return;
+        co_await HandleBookEvent(bus_event_request_diff_order_book);
     }
     /**
-     * @brief Add a function to register callbacks for trading pairs
+     * @brief Registers a callback for a specific trading pair's WebSocket
+     * response.
      *
-     * @param trading_pair
-     * @param callback
+     * @param trading_pair The trading pair to register the callback for.
+     * @param callback Pointer to the callback function.
      */
     void RegisterCallback(common::TradingPair trading_pair,
                           const OnWssResponse* callback) {
         callback_map_[trading_pair] = callback;
     }
+    /**
+     * @brief Registers a callback for a specific trading pair when a session is
+     * closed.
+     *
+     * @param trading_pair The trading pair to register the callback for.
+     * @param callback Pointer to the close session callback function.
+     */
+    void RegisterCallbackOnCloseSession(common::TradingPair trading_pair,
+                                        const OnCloseSession* callback) {
+        callback_on_close_session_map_[trading_pair] = callback;
+    }
+
+    /**
+     * @brief Asynchronously stops the active WebSocket session gracefully.
+     */
+    void AsyncStop() {
+        if (auto session = active_session_.load()) {
+            session->AsyncCloseSessionGracefully();
+        } else {
+            logw("No active session to stop");
+        }
+    }
 
   private:
-    bybit::testnet::HttpsExchange binance_test_net_;
-    bybit::mainnet::HttpsExchange binance_main_net_;
+    /**
+     * @brief Returns the appropriate exchange object based on the type of
+     * exchange.
+     *
+     * @param type The type of exchange (mainnet or testnet).
+     * @return Pointer to the selected exchange object.
+     */
+    https::ExchangeI* GetExchange(TypeExchange type) {
+        return type == TypeExchange::MAINNET
+                   ? static_cast<https::ExchangeI*>(&bybit_main_net_)
+                   : static_cast<https::ExchangeI*>(&bybit_test_net_);
+    }
 
-    https::ExchangeI* current_exchange_;
+    /**
+     * @brief Handles book events by processing the provided event request.
+     *
+     * @param bus_event_request_diff_order_book Pointer to the event request for
+     * the order book.
+     */
+    boost::asio::awaitable<void> HandleBookEvent(
+        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
+            bus_event_request_diff_order_book) {
+        auto* wrapped_event = bus_event_request_diff_order_book->WrappedEvent();
+        if (!wrapped_event) {
+            loge("Wrapped event is null");
+            co_return;
+        }
+
+        auto& trading_pair = wrapped_event->trading_pair;
+        detail::FamilyBookEventGetter::ArgsBody args(
+            bus_event_request_diff_order_book->WrappedEvent(), pairs_);
+        auto req = args.Body();
+
+        if (AcquireActiveSession()) {
+            if (!RegisterCallbacksForTradingPair(trading_pair)) {
+                co_return;
+            }
+        }
+
+        if (auto result = co_await SendAsyncRequest(req); !result) {
+            loge("AsyncRequest finished unsuccessfully");
+        }
+
+        logd("Finished sending event getter for Binance request");
+    }
+
+    /**
+     * @brief Acquires an active session from the session pool.
+     *
+     * @return True if a session was successfully acquired, otherwise false.
+     */
+    bool AcquireActiveSession() {
+        WSSesionType3* expected = nullptr;
+        auto session            = session_pool_->AcquireConnection();
+        if (active_session_.compare_exchange_strong(expected, session)) {
+            logd("Active session acquired");
+            return true;
+        }
+        return false;
+    }
+    /**
+     * @brief Registers callbacks for a specific trading pair.
+     *
+     * @param trading_pair The trading pair to register callbacks for.
+     * @return True if registration was successful, otherwise false.
+     */
+    bool RegisterCallbacksForTradingPair(
+        const common::TradingPair& trading_pair) {
+        if (auto callback = FindCallback(callback_map_, trading_pair)) {
+            RegisterCallbackOnSession(callback);
+        } else {
+            loge("No callback on response registered for trading pair: {}",
+                 trading_pair.ToString());
+            return false;
+        }
+
+        if (auto callback =
+                FindCallback(callback_on_close_session_map_, trading_pair)) {
+            RegisterCallbackOnSessionClose(callback);
+        } else {
+            logw("No callback on close session registered for trading pair: {}",
+                 trading_pair.ToString());
+        }
+
+        RegisterDefaultCallbackOnSessionClose();
+        return true;
+    }
+    /**
+     * @brief Finds a callback in the specified map for a given trading pair.
+     *
+     * @tparam MapType The type of the callback map.
+     * @param map The map to search for the callback.
+     * @param trading_pair The trading pair to search for.
+     * @return Pointer to the callback if found, otherwise nullptr.
+     */
+    template <typename MapType>
+    typename MapType::mapped_type FindCallback(
+        const MapType& map, const common::TradingPair& trading_pair) const {
+        auto it = map.find(trading_pair);
+        return it != map.end() ? it->second : nullptr;
+    }
+    /**
+     * @brief Registers a response callback on the active session.
+     *
+     * @param callback The callback to register.
+     */
+    void RegisterCallbackOnSession(const OnWssResponse* callback) {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnResponse(*callback);
+        }
+    }
+    /**
+     * @brief Registers a close session callback on the active session.
+     *
+     * @param callback The callback to register.
+     */
+    void RegisterCallbackOnSessionClose(const OnCloseSession* callback) {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnCloseSession(*callback);
+        }
+    }
+    /**
+     * @brief Registers the default callback to execute when a session is
+     * closed.
+     */
+    void RegisterDefaultCallbackOnSessionClose() {
+        if (auto session = active_session_.load()) {
+            session->RegisterCallbackOnCloseSession(
+                [this]() { DefaultCBOnCloseSession(); });
+        }
+    }
+
+    /**
+     * @brief Sends an asynchronous request using the active session.
+     *
+     * @tparam RequestType The type of the request.
+     * @param req The request to send.
+     * @return True if the request was sent successfully, otherwise false.
+     */
+    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
+        if (auto session = active_session_.load()) {
+            co_return co_await session->AsyncRequest(std::move(req));
+        }
+        co_return false;
+    }
+
+    /**
+     * @brief Default callback executed when a session is closed.
+     */
+    void DefaultCBOnCloseSession() {
+        active_session_.store(nullptr, std::memory_order_release);
+    }
 };
 
 template <typename Executor>
@@ -799,14 +1136,11 @@ class BookEventGetterComponent : public bus::Component,
     Exchange::BusEventResponseNewSnapshotPool
         bus_event_response_snapshot_mem_pool_;
     explicit BookEventGetterComponent(
-        Executor&& executor, size_t number_responses, TypeExchange type,
+        Executor& executor, size_t number_responses, TypeExchange type,
         common::TradingPairHashMap& pairs,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
-            session_pool,
-        boost::asio::cancellation_signal& cancel_signal,
-        boost::asio::cancellation_signal& restart_signal)
-        : BookEventGetter3<Executor>(std::move(executor), session_pool, type,
-                                     pairs, cancel_signal, restart_signal),
+            session_pool)
+        : BookEventGetter3<Executor>(executor, session_pool, type, pairs),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses),
           /**
@@ -829,14 +1163,8 @@ class BookEventGetterComponent : public bus::Component,
                               BookEventGetter3<Executor>::CoExec(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override {
-        net::steady_timer delay_timer(BookEventGetter3<Executor>::executor_,
-                                      std::chrono::nanoseconds(1));
-        delay_timer.async_wait([&](const boost::system::error_code&) {
-            BookEventGetter3<Executor>::signal_.emit(
-                boost::asio::cancellation_type::all);
-        });
-    }
+    void AsyncStop() override { BookEventGetter3<Executor>::AsyncStop(); }
+
     std::string_view GetName() const override {
         return BookEventGetterComponent<Executor>::name_component_;
     };
@@ -1078,7 +1406,7 @@ class BookSnapshotComponent : public bus::Component,
     }
 };
 
-template <typename Executor>
+template <typename ThreadPool>
 class BidAskGeneratorComponent : public bus::Component {
   public:
     using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
@@ -1097,7 +1425,10 @@ class BidAskGeneratorComponent : public bus::Component {
                        common::TradingPairHash, common::TradingPairEqual>
         request_bbo_;
 
-    Executor executor_;
+    ThreadPool& thread_pool_;
+    //boost::asio::strand<ThreadPool> strand_; //strand for sequence handle messages
+    boost::asio::strand<typename ThreadPool::executor_type> strand_;
+    boost::asio::thread_pool pool_;
     aot::CoBus& bus_;
 
   public:
@@ -1122,11 +1453,12 @@ class BidAskGeneratorComponent : public bus::Component {
      * BidAskGeneratorComponent per tick. need this variable for mem pool
      */
     explicit BidAskGeneratorComponent(
-        Executor&& executor, aot::CoBus& bus,
+        ThreadPool& thread_pool, aot::CoBus& bus,
         const unsigned int number_snapshots, const unsigned int number_diff,
         const unsigned int max_number_event_per_tick)
-        : executor_(std::move(executor)),
-          bus_(bus),
+        : thread_pool_(thread_pool),
+        strand_(boost::asio::make_strand(thread_pool)),
+        bus_(bus),
           request_bus_event_snapshot_mem_pool_(number_snapshots),
           request_snapshot_mem_pool_(number_snapshots),
           request_bus_event_diff_mem_pool_(number_diff),
@@ -1136,16 +1468,24 @@ class BidAskGeneratorComponent : public bus::Component {
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
-        boost::asio::co_spawn(executor_, HandleNewSnapshotEvent(event),
+        auto& snap = *event->WrappedEvent();
+        logi("ACCEPT SNAPSHOT IN BID ASK SERVICE WITH LAST_ID:{}",snap.lastUpdateId);
+        //need extend lifetime object
+        auto event_ptr = boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
+        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot* event) override {
-        boost::asio::co_spawn(executor_, HandleBookDiffSnapshotEvent(event),
+        auto& diff = *event->WrappedEvent();
+        logi("ACCEPT DIFF EVENT IN BID ASK SERVICE WITH LAST_ID:{}",diff.last_id);
+        //need extend lifetime object
+        auto event_ptr = boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
+        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) override {
-        boost::asio::co_spawn(executor_, HandleTrackingNewTradingPair(event),
+        boost::asio::co_spawn(strand_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
     void AsyncStop() override {};
@@ -1160,7 +1500,7 @@ class BidAskGeneratorComponent : public bus::Component {
         diff_callback_ = std::move(callback);
     }
     std::string_view GetName() const override {
-        return BidAskGeneratorComponent<Executor>::name_component_;
+        return BidAskGeneratorComponent<ThreadPool>::name_component_;
     };
 
   private:
@@ -1183,7 +1523,7 @@ class BidAskGeneratorComponent : public bus::Component {
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
-        Exchange::BusEventResponseNewSnapshot* event) {
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) {
         // Extract the exchange ID from the event.
         const auto& exchange_id = event->WrappedEvent()->exchange_id;
 
@@ -1200,11 +1540,12 @@ class BidAskGeneratorComponent : public bus::Component {
         auto& state       = state_map_[trading_pair];
 
         // Log that a new snapshot is being processed for the trading pair.
-        logd("[PROCESSING NEW SNAPSHOT] {}", trading_pair.ToString());
 
         // Update the state with the new snapshot.
         // The snapshot is moved into the state to avoid unnecessary copies.
         auto wrapped_event                    = event->WrappedEvent();
+        logd("[PROCESSING NEW SNAPSHOT] {} last_id:{}", trading_pair.ToString(),wrapped_event->lastUpdateId);
+
         auto previous_last_id_diff_book_event = state.snapshot.lastUpdateId;
         state.need_process_current_snapshot =
             (previous_last_id_diff_book_event != wrapped_event->lastUpdateId)
@@ -1219,7 +1560,7 @@ class BidAskGeneratorComponent : public bus::Component {
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
-        Exchange::BusEventBookDiffSnapshot* event) {
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) {
         // auto diff_intr = event->WrappedEventIntrusive();
         // auto& diff = *diff_intr.get();
         auto& diff = *event->WrappedEvent();
@@ -1250,9 +1591,10 @@ class BidAskGeneratorComponent : public bus::Component {
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
                 diff.last_id);
             // Unsubscribe channel and than
-            co_await RequestToDiff<false>(trading_pair);
+            boost::asio::co_spawn(pool_, RequestToDiff<false>(trading_pair), boost::asio::detached);
             // subscribe to it
-            co_await RequestToDiff<true>(trading_pair);
+            boost::asio::co_spawn(pool_, RequestToDiff<true>(trading_pair), boost::asio::detached);
+            co_return;
         }
 
         if (state.need_make_snapshot) {
@@ -1325,7 +1667,7 @@ class BidAskGeneratorComponent : public bus::Component {
         bool need_subscription = (subscribe) ? true : false;
         auto* ptr              = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            info.snapshot_depth, need_subscription);
+            info.snapshot_depth, need_subscription, info.id);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 
@@ -1354,4 +1696,182 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
                               exchange->Port());
     };
 };
+
+/**
+ * @brief Represents parsed data which could be either a BookDiffSnapshot or
+ * ApiResponseData.
+ */
+using ParsedData = std::variant<Exchange::BookDiffSnapshot,
+                                Exchange::BookSnapshot, ApiResponseData>;
+
+/**
+ * @brief Manages JSON parsing and dispatches processing based on response
+ * types.
+ */
+class ParserManager {
+    /**
+     * @brief A map of handlers for each response type.
+     *
+     * This map associates a `ResponseType` with a handler function that
+     * processes a `simdjson::ondemand::document` and returns `ParsedData`. The
+     * appropriate handler function is called during parsing based on the
+     * response type.
+     */
+    std::unordered_map<ResponseType,
+                       std::function<ParsedData(simdjson::ondemand::document&)>>
+        handlers_;
+
+  public:
+    /**
+     * @brief Registers a handler for a specific response type.
+     *
+     * Associates a handler function with a particular `ResponseType`. The
+     * handler is invoked to process the JSON document when the corresponding
+     * response type is parsed.
+     *
+     * @param type The `ResponseType` to associate with the handler.
+     * @param handler A function that processes a `simdjson::ondemand::document`
+     * and returns `ParsedData`.
+     */
+    void RegisterHandler(
+        ResponseType type,
+        std::function<ParsedData(simdjson::ondemand::document&)> handler) {
+        handlers_[type] = handler;
+    }
+
+    /**
+     * @brief Parses the JSON response for the appropriate response type based
+     * on registered handlers.
+     *
+     * This method parses the provided JSON response using SIMDJSON and invokes
+     * the registered handler for the corresponding response type, as determined
+     * by `DetermineType`. The handler processes the parsed document and returns
+     * the parsed data as a `ParsedData` variant.
+     *
+     * @param response A string view of the JSON response to be parsed.
+     * @return ParsedData The parsed data wrapped in a `ParsedData` variant.
+     * @throws std::runtime_error If no handler is registered for the response
+     * type or if parsing fails.
+     */
+    ParsedData Parse(std::string_view response) {
+        simdjson::ondemand::parser parser;
+        simdjson::padded_string padded_response(response);
+        simdjson::ondemand::document doc = parser.iterate(padded_response);
+        auto type                        = DetermineType(doc);
+
+        // Find the handler for the determined response type
+        auto it                          = handlers_.find(type);
+        if (it == handlers_.end()) {
+            loge("No handler registered for this response type");
+            return {};  // Return empty if no handler is registered
+        }
+
+        // Call the handler function for the determined response type
+        return it->second(doc);
+    }
+
+  private:
+    ResponseType DetermineType(simdjson::ondemand::document& doc) {
+        // Check if this is a depth update response
+        if (doc["type"].error() == simdjson::SUCCESS &&
+            doc["type"].is_string() && doc["type"] == "delta") {
+            return ResponseType::kDepthUpdate;
+        }
+        if (doc["type"].error() == simdjson::SUCCESS &&
+            doc["type"].is_string() && doc["type"] == "snapshot") {
+            return ResponseType::kSnapshot;
+        }
+        // Check if this is a success response (contains "result": "success" or "false")
+        if (doc["success"].error() == simdjson::SUCCESS) {
+            return ResponseType::kNonQueryResponse;
+        }
+
+        return ResponseType::kUnknown;  // Default case if no match
+    }
+};
+
+/**
+ * @class ApiResponseParser
+ * @brief Parses API responses from JSON into structured data.
+ *
+ * The ApiResponseParser class is responsible for parsing JSON responses
+ * from an API into an ApiResponseData structure. It supports success responses,
+ * error responses, and responses with an optional ID field.
+ */
+class ApiResponseParser {
+  public:
+    /**
+     * @brief Parses a JSON API response into an ApiResponseData structure.
+     *
+     * This method processes a JSON document and extracts relevant fields such
+     * as:
+     * - `result`: If null, indicates a successful non-query request (e.g.,
+     * subscription).
+     * - `code` and `msg`: Error code and message, if an error response is
+     * present.
+     * - `id`: Optional ID field for specific responses.
+     *
+     * @param doc A reference to a `simdjson::ondemand::document` containing the
+     * API response.
+     * @return An `ApiResponseData` object with the parsed data.
+     */
+    ApiResponseData Parse(simdjson::ondemand::document& doc) {
+        ApiResponseData data;
+
+        // Check for "success": "true"
+        auto success_field = doc["success"];
+        if (!success_field.error() &&
+            success_field.type() == simdjson::ondemand::json_type::boolean) {
+            bool success_value;
+            if (success_field.get_bool().get(success_value) == simdjson::SUCCESS) {
+                data.status = success_value ? ApiResponseStatus::kSuccess
+                                            : ApiResponseStatus::kError;
+            }
+        }
+
+        // Check for "req_id"
+        auto id_field = doc["req_id"];
+        if (!id_field.error()) {
+            if (id_field.type() == simdjson::ondemand::json_type::string) {
+                std::string_view id_value;
+                if (id_field.get_string().get(id_value) == simdjson::SUCCESS) {
+                    data.id = std::string(id_value);  // Store as string
+                }
+            } else if (id_field.type() ==
+                       simdjson::ondemand::json_type::number) {
+                simdjson::ondemand::number number = id_field.get_number();
+                    simdjson::ondemand::number_type t = number.get_number_type();
+                    switch (t) {
+                        case simdjson::ondemand::number_type::signed_integer:
+                            if (number.is_int64()) {
+                                data.id = number.get_int64();
+                            } else {
+                                loge("Unexpected signed integer size.");
+                            }
+                            break;
+                        case simdjson::ondemand::number_type::unsigned_integer:
+                            if (number.is_uint64()) {
+                                data.id = number.get_uint64();
+                            } else {
+                                loge("Unexpected unsigned integer size.");
+                            }
+                            break;
+                        case simdjson::ondemand::number_type::floating_point_number:
+                            // If it's a floating point, you can get the value as a double
+                            loge("Unexpected double");
+                            break;
+                        case simdjson::ondemand::number_type::big_integer:
+                            // Handle big integers (e.g., large numbers out of int64_t range)
+                            loge("Big integer value detected.");
+                            break;
+                        default:
+                            loge("Unknown number type.");
+                            break;
+                    }
+            }
+        }
+        return data;  // Return populated or empty data
+    }
+};
+
 };  // namespace bybit

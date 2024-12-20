@@ -33,6 +33,7 @@ enum class TypeExchange { TESTNET, MAINNET };
  * @brief Enum for response types that the parser can handle.
  */
 enum class ResponseType {
+    kSnapshot, ///< Represents a snapshot response.
     kDepthUpdate,      ///< Represents a Depth Update response.
     kApiResponse,      ///< Represents a generic API response.
     kErrorResponse,    ///< Represents an error response.
@@ -421,6 +422,8 @@ struct BusEventRequestBBOPrice{
   common::ExchangeId exchange_id = common::kExchangeIdInvalid;
   common::TradingPair trading_pair;
   unsigned int snapshot_depth = 1000;
+  //id request
+  std::variant<std::string, long int, long unsigned int> id;
   explicit BusEventRequestBBOPrice() = default;
   friend void intrusive_ptr_release(BusEventRequestBBOPrice* ptr){
   }
@@ -498,7 +501,7 @@ struct ApiResponseData {
      * This field holds the unique identifier for the API request.
      * It allows tracking of the request across systems.
      */
-    uint64_t id = 0;
+    std::variant<std::string, long int, long unsigned int> id = 0;
 };
 
 // A type to represent any parsed data.
@@ -514,9 +517,18 @@ class fmt::formatter<ApiResponseData> {
     template <typename Context>
     constexpr auto format(const ApiResponseData& foo,
                           Context& ctx) const {
+        std::string id_str;
+        std::visit([&id_str](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::string>) {
+                id_str = arg;  // If it's a string, store it
+            } else {
+                id_str = std::to_string(arg);  // If it's an int or unsigned int, convert to string
+            }
+        }, foo.id);
         return fmt::format_to(ctx.out(),
                               "ApiResponseData[status:{} id:{}]",
-                              magic_enum::enum_name(foo.status), foo.id);
+                              magic_enum::enum_name(foo.status), id_str);
     }
 };
 

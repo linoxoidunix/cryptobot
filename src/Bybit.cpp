@@ -247,3 +247,168 @@ bybit::detail::FamilyBookEventGetter::ParserResponse::Parse(
     }
     return out;
 }
+
+bybit::detail::FamilyBookEventGetter::ParserResponse::ResponseVariant
+bybit::detail::FamilyBookEventGetter::ParserResponse::Parse(
+    simdjson::ondemand::document& doc) {
+    bybit::detail::FamilyBookEventGetter::ParserResponse::ResponseVariant out;
+    Exchange::BookDiffSnapshot book_diff_snapshot;
+    Exchange::BookSnapshot book_snapshot;
+    std::string_view type;
+    try {
+        if (doc.find_field_unordered("data").error() != simdjson::SUCCESS) {
+            logw("Field 'data' is missing in the JSON document");
+            return {};
+        }
+        auto data                  = doc["data"];
+
+        auto get_value_s = [&](const char* key, std::string_view& variable,
+                               const char* error_msg, bool from_data = true) -> bool {
+            if (from_data) {
+                // Handling data, which is an object
+                auto error = doc["data"][key].get_string().get(variable);
+                if (error != simdjson::SUCCESS) [[unlikely]] {
+                    loge("{}", error_msg);
+                    return false;
+                }
+            } else {
+                // Handling doc, which is a document
+                auto error = doc[key].get_string().get(variable);
+                if (error != simdjson::SUCCESS) [[unlikely]] {
+                    loge("{}", error_msg);
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        
+        if (!get_value_s("type", type, "no trading_pair in response", false)) {
+            return {};  // Early return if any value fetch fails
+        }
+
+        // Validate type and handle accordingly
+        if (!IsValidType(type)) {
+            loge("Unexpected type:{}", type);
+            return {};  // Return early if type is not "snapshot" or "delta"
+        }
+        
+
+        
+        std::string_view trading_pair_string;
+        if (!get_value_s("s", trading_pair_string, "no trading_pair in response")) {
+            return {};  // Early return if any value fetch fails
+        }
+
+        // Resolve trading pair
+        common::TradingPair trading_pair;
+        if (pairs_reverse_.count(trading_pair_string)){
+            trading_pair = pairs_reverse_.find(trading_pair_string)->second;
+        } else {
+            loge("pairs_reverse not contain {}", trading_pair.ToString());
+            return {};
+        }
+
+        auto is_snapshot = IsSnapshot(type);
+        auto is_diff = IsDelta(type);
+        std::list<Exchange::BookSnapshotElem> bids;
+        std::list<Exchange::BookSnapshotElem> asks;
+//------------------------
+        auto price_prec = std::pow(
+            10, pairs_[trading_pair].price_precission);
+        auto qty_prec = std::pow(
+            10, pairs_[trading_pair].qty_precission);
+        if (data["b"].error() == simdjson::SUCCESS) {
+
+            for (auto all : data["b"]) {
+                simdjson::ondemand::array arr = all.get_array();
+                std::array<double, 2> pair;
+                uint8_t i = 0;
+                for (auto number : arr) {
+                    if (i >= 2){
+                        logw("Ensure no out-of-bounds access");
+                        break;
+                    }
+                    auto num_result = number.get_double_in_string();
+                    if (num_result.error() == simdjson::SUCCESS) {
+                        pair[i] = num_result.value();
+                        i++;
+                    } else {
+                        // Handle invalid number format (log or skip)
+                        break;
+                    }
+                }
+                if (i == 2) { // Ensure we have both price and quantity
+                    bids.emplace_back(
+                        static_cast<int>(pair[0] * price_prec),
+                        static_cast<int>(pair[1] * qty_prec));
+                } else {
+                    logw("pair is incomplete");
+                    // Handle case where pair is incomplete
+                }
+            }
+        } else {
+            logw("missing 'b' in responce");
+            // Handle missing or invalid "a"
+            // Log or handle accordingly
+        }
+        if (data["a"].error() == simdjson::SUCCESS) {
+            for (auto all : data["a"]) {
+                auto arr_result = all.get_array();
+                if (arr_result.error() == simdjson::SUCCESS) {
+                    simdjson::ondemand::array arr = arr_result.value();
+                    std::array<double, 2> pair;
+                    uint8_t i = 0;
+
+                    for (auto number : arr) {
+                        if (i >= 2) break; // Ensure no out-of-bounds access
+                        auto num_result = number.get_double_in_string();
+                        if (num_result.error() == simdjson::SUCCESS) {
+                            pair[i] = num_result.value();
+                            i++;
+                        } else {
+                            // Handle invalid number format (log or skip)
+                            break;
+                        }
+                    }
+
+                    if (i == 2) { // Ensure we have both price and quantity
+                        asks.emplace_back(
+                            static_cast<int>(pair[0] * price_prec),
+                            static_cast<int>(pair[1] * qty_prec));
+                    } else {
+                        logw("pair is incomplete");
+                        // Handle case where pair is incomplete
+                        // Log or handle accordingly
+                    }
+                } else {
+                    // Handle invalid array in "a"
+                    // Log or handle accordingly
+                }
+            }
+        } else {
+            logw("missing 'a' in responce");
+            // Handle missing or invalid "a"
+            // Log or handle accordingly
+        }
+//-----------------------------------------------------------------
+        if(is_snapshot){
+            book_snapshot.trading_pair = trading_pair;
+            book_snapshot.lastUpdateId = data["u"].get_uint64();
+            book_snapshot.bids = std::move(bids);
+            book_snapshot.asks = std::move(asks);
+            book_snapshot.exchange_id = common::ExchangeId::kBybit;
+            out = book_snapshot;
+        } else if(is_diff){
+            book_diff_snapshot.trading_pair = trading_pair;
+            book_diff_snapshot.last_id = data["u"].get_uint64();
+            book_diff_snapshot.bids = std::move(bids);
+            book_diff_snapshot.asks = std::move(asks);
+            book_diff_snapshot.exchange_id = common::ExchangeId::kBybit;
+            out = book_diff_snapshot;
+        }
+    } catch (const simdjson::simdjson_error& error) {
+        loge("JSON error: {}", error.what());
+    }
+    return out;
+}

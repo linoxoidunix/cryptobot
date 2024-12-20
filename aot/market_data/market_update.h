@@ -483,7 +483,7 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
     common::TradingPair trading_pair;
     common::FrequencyMS frequency = common::kFrequencyMSInvalid;
     bool subscribe = true;
-    std::variant<std::string, int, unsigned int> id;  // id as a variant
+    std::variant<std::string, long int, long unsigned int> id;  // id as a variant
     RequestDiffOrderBook() : aot::Event<RequestDiffOrderBookPool>(nullptr) {};
 
     RequestDiffOrderBook(RequestDiffOrderBookPool* mem_pool,
@@ -491,7 +491,7 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
                          common::TradingPair _trading_pair,
                          common::FrequencyMS _frequency,
                          bool _subscribe,
-                         const std::variant<std::string, int, unsigned int>& _id = std::string{})
+                         const std::variant<std::string, long int, long unsigned int>& _id = std::string{})
         : aot::Event<RequestDiffOrderBookPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
