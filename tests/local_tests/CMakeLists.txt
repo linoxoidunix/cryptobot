@@ -19,6 +19,8 @@ gmock_main
 concurrentqueue
 magic_enum::magic_enum
 tomlplusplus::tomlplusplus
+nlohmann_json::nlohmann_json
+simdjson::simdjson
 )
 
 target_include_directories(${PROJECT_NAME}

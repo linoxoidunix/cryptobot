@@ -294,8 +294,7 @@ class FamilyBookEventGetter {
 
       public:
         using ResponseVariant =
-            std::variant<Exchange::BookSnapshot,
-                         Exchange::BookDiffSnapshot>;
+            std::variant<Exchange::BookSnapshot, Exchange::BookDiffSnapshot>;
         explicit ParserResponse(
             common::TradingPairHashMap& pairs,
             common::TradingPairReverseHashMap& pairs_reverse)
@@ -469,7 +468,8 @@ class FamilyBookEventGetter {
                 return;
             }
             nlohmann::json params_array = nlohmann::json::array();
-            params_array.push_back(fmt::format("{}.{}.{}", "orderbook", request->frequency,
+            params_array.push_back(
+                fmt::format("{}.{}.{}", "orderbook", request->frequency,
                             pairs_[request->trading_pair].https_json_request));
             // Build the "args" string using trading pair and frequency.
             (*this)["args"] = params_array;
@@ -480,9 +480,20 @@ class FamilyBookEventGetter {
          * @param id Variant containing the ID as a string, int, or unsigned
          * int.
          */
-        void SetId(const std::variant<std::string, long int, long unsigned int>& id) {
-            std::visit([this](const auto& value) { (*this)["req_id"] = value; },
-                       id);
+        void SetId(
+            const std::variant<std::string, long int, long unsigned int>& id) {
+            std::visit(
+                [this](const auto& value) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>,
+                                                 std::string>) {
+                        if (value.empty()) {
+                            logw("ID request is empty");
+                            return;
+                        }
+                    }
+                    (*this)["req_id"] = value;
+                },
+                id);
         }
     };
 
@@ -1341,9 +1352,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
 
-                auto slot = signal_.slot();
-                if (auto status = co_await session->AsyncRequest(
-                        std::move(req), callback, slot);
+                if (auto status = co_await session->AsyncRequest(std::move(req),
+                                                                 callback);
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -1426,9 +1436,7 @@ class BidAskGeneratorComponent : public bus::Component {
         request_bbo_;
 
     ThreadPool& thread_pool_;
-    //boost::asio::strand<ThreadPool> strand_; //strand for sequence handle messages
     boost::asio::strand<typename ThreadPool::executor_type> strand_;
-    boost::asio::thread_pool pool_;
     aot::CoBus& bus_;
 
   public:
@@ -1457,8 +1465,8 @@ class BidAskGeneratorComponent : public bus::Component {
         const unsigned int number_snapshots, const unsigned int number_diff,
         const unsigned int max_number_event_per_tick)
         : thread_pool_(thread_pool),
-        strand_(boost::asio::make_strand(thread_pool)),
-        bus_(bus),
+          strand_(boost::asio::make_strand(thread_pool)),
+          bus_(bus),
           request_bus_event_snapshot_mem_pool_(number_snapshots),
           request_snapshot_mem_pool_(number_snapshots),
           request_bus_event_diff_mem_pool_(number_diff),
@@ -1468,18 +1476,16 @@ class BidAskGeneratorComponent : public bus::Component {
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
-        auto& snap = *event->WrappedEvent();
-        logi("ACCEPT SNAPSHOT IN BID ASK SERVICE WITH LAST_ID:{}",snap.lastUpdateId);
-        //need extend lifetime object
-        auto event_ptr = boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
+        // need extend lifetime object
+        auto event_ptr =
+            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
         boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot* event) override {
-        auto& diff = *event->WrappedEvent();
-        logi("ACCEPT DIFF EVENT IN BID ASK SERVICE WITH LAST_ID:{}",diff.last_id);
-        //need extend lifetime object
-        auto event_ptr = boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
+        // need extend lifetime object
+        auto event_ptr =
+            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
         boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
@@ -1519,7 +1525,7 @@ class BidAskGeneratorComponent : public bus::Component {
 
         // need send a signal to launch diff
         constexpr bool need_subcription = true;
-        co_await RequestToDiff<need_subcription>(trading_pair);
+        co_await RequestSubscribeToDiff<need_subcription>(trading_pair);
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
@@ -1534,17 +1540,18 @@ class BidAskGeneratorComponent : public bus::Component {
         }
 
         // Extract the trading pair from the event.
-        auto trading_pair = event->WrappedEvent()->trading_pair;
+        auto trading_pair  = event->WrappedEvent()->trading_pair;
 
         // Retrieve the state associated with the trading pair.
-        auto& state       = state_map_[trading_pair];
+        auto& state        = state_map_[trading_pair];
 
         // Log that a new snapshot is being processed for the trading pair.
 
         // Update the state with the new snapshot.
         // The snapshot is moved into the state to avoid unnecessary copies.
-        auto wrapped_event                    = event->WrappedEvent();
-        logd("[PROCESSING NEW SNAPSHOT] {} last_id:{}", trading_pair.ToString(),wrapped_event->lastUpdateId);
+        auto wrapped_event = event->WrappedEvent();
+        logd("[PROCESSING NEW SNAPSHOT] {} last_id:{}", trading_pair.ToString(),
+             wrapped_event->lastUpdateId);
 
         auto previous_last_id_diff_book_event = state.snapshot.lastUpdateId;
         state.need_process_current_snapshot =
@@ -1591,9 +1598,11 @@ class BidAskGeneratorComponent : public bus::Component {
                 trading_pair.ToString(), state.last_id_diff_book_event + 1,
                 diff.last_id);
             // Unsubscribe channel and than
-            boost::asio::co_spawn(pool_, RequestToDiff<false>(trading_pair), boost::asio::detached);
+            boost::asio::co_spawn(strand_, RequestSubscribeToDiff<false>(trading_pair),
+                                  boost::asio::detached);
             // subscribe to it
-            boost::asio::co_spawn(pool_, RequestToDiff<true>(trading_pair), boost::asio::detached);
+            boost::asio::co_spawn(strand_, RequestSubscribeToDiff<true>(trading_pair),
+                                  boost::asio::detached);
             co_return;
         }
 
@@ -1652,7 +1661,7 @@ class BidAskGeneratorComponent : public bus::Component {
     }
 
     template <bool subscribe>
-    boost::asio::awaitable<void> RequestToDiff(
+    boost::asio::awaitable<void> RequestSubscribeToDiff(
         common::TradingPair trading_pair) {
         if (!request_bbo_.count(trading_pair)) {
             loge(
@@ -1781,7 +1790,8 @@ class ParserManager {
             doc["type"].is_string() && doc["type"] == "snapshot") {
             return ResponseType::kSnapshot;
         }
-        // Check if this is a success response (contains "result": "success" or "false")
+        // Check if this is a success response (contains "result": "success" or
+        // "false")
         if (doc["success"].error() == simdjson::SUCCESS) {
             return ResponseType::kNonQueryResponse;
         }
@@ -1823,7 +1833,8 @@ class ApiResponseParser {
         if (!success_field.error() &&
             success_field.type() == simdjson::ondemand::json_type::boolean) {
             bool success_value;
-            if (success_field.get_bool().get(success_value) == simdjson::SUCCESS) {
+            if (success_field.get_bool().get(success_value) ==
+                simdjson::SUCCESS) {
                 data.status = success_value ? ApiResponseStatus::kSuccess
                                             : ApiResponseStatus::kError;
             }
@@ -1840,38 +1851,45 @@ class ApiResponseParser {
             } else if (id_field.type() ==
                        simdjson::ondemand::json_type::number) {
                 simdjson::ondemand::number number = id_field.get_number();
-                    simdjson::ondemand::number_type t = number.get_number_type();
-                    switch (t) {
-                        case simdjson::ondemand::number_type::signed_integer:
-                            if (number.is_int64()) {
-                                data.id = number.get_int64();
-                            } else {
-                                loge("Unexpected signed integer size.");
-                            }
-                            break;
-                        case simdjson::ondemand::number_type::unsigned_integer:
-                            if (number.is_uint64()) {
-                                data.id = number.get_uint64();
-                            } else {
-                                loge("Unexpected unsigned integer size.");
-                            }
-                            break;
-                        case simdjson::ondemand::number_type::floating_point_number:
-                            // If it's a floating point, you can get the value as a double
-                            loge("Unexpected double");
-                            break;
-                        case simdjson::ondemand::number_type::big_integer:
-                            // Handle big integers (e.g., large numbers out of int64_t range)
-                            loge("Big integer value detected.");
-                            break;
-                        default:
-                            loge("Unknown number type.");
-                            break;
-                    }
+                simdjson::ondemand::number_type t = number.get_number_type();
+                switch (t) {
+                    case simdjson::ondemand::number_type::signed_integer:
+                        if (number.is_int64()) {
+                            data.id = number.get_int64();
+                        } else {
+                            loge("Unexpected signed integer size.");
+                        }
+                        break;
+                    case simdjson::ondemand::number_type::unsigned_integer:
+                        if (number.is_uint64()) {
+                            data.id = number.get_uint64();
+                        } else {
+                            loge("Unexpected unsigned integer size.");
+                        }
+                        break;
+                    case simdjson::ondemand::number_type::floating_point_number:
+                        // If it's a floating point, you can get the value as a
+                        // double
+                        loge("Unexpected double");
+                        break;
+                    case simdjson::ondemand::number_type::big_integer:
+                        // Handle big integers (e.g., large numbers out of
+                        // int64_t range)
+                        loge("Big integer value detected.");
+                        break;
+                    default:
+                        loge("Unknown number type.");
+                        break;
+                }
             }
         }
         return data;  // Return populated or empty data
     }
 };
 
+ParserManager InitParserManager(
+    common::TradingPairHashMap& pairs,
+    common::TradingPairReverseHashMap& pair_reverse,
+    ApiResponseParser& api_response_parser,
+    detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff);
 };  // namespace bybit

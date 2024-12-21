@@ -449,14 +449,14 @@ public:
     }
 
     template <typename CompletionHandler>
-    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req, const CompletionHandler* handler, net::cancellation_slot& slot) {
+    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req, const CompletionHandler* handler) {
         if (!IsConnected() || IsUsed()) co_return false;
         req_ = std::move(req);
         cb_ = handler;
         is_used_ = true;
-        slot.assign([this](boost::asio::cancellation_type_t) {
-            AsyncCloseSessionGracefully();
-        });
+        // slot.assign([this](boost::asio::cancellation_type_t) {
+        //     AsyncCloseSessionGracefully();
+        // });
         auto [ec_write, bytes_written] = co_await http::async_write(stream_, req_, net::as_tuple(net::use_awaitable));
         if (ec_write) {
             if (ec_write == net::error::operation_aborted) {
@@ -484,7 +484,6 @@ public:
             co_return false;
         }
         AsyncCloseSessionGracefully();
-        slot.clear();
         co_return true;
     }
 

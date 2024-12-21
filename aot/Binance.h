@@ -6,14 +6,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include "boost/asio.hpp"
-#include "boost/beast/http.hpp"
-#include "boost/beast/http/message.hpp"
-#include "boost/beast/version.hpp"
-
-#include "nlohmann/json.hpp"
-#include "simdjson.h"
-
 #include "aot/Exchange.h"
 #include "aot/Https.h"
 #include "aot/Logger.h"
@@ -26,7 +18,12 @@
 #include "aot/common/types.h"
 #include "aot/market_data/market_update.h"
 #include "aot/prometheus/event.h"
-
+#include "boost/asio.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/http/message.hpp"
+#include "boost/beast/version.hpp"
+#include "nlohmann/json.hpp"
+#include "simdjson.h"
 
 // Spot API URL                               Spot Test Network URL
 // https://api.binance.com/api https://testnet.binance.vision/api
@@ -592,9 +589,20 @@ class FamilyBookEventGetter {
          * @param id Variant containing the ID as a string, int, or unsigned
          * int.
          */
-        void SetId(const std::variant<std::string, long int, long unsigned int>& id) {
-            std::visit([this](const auto& value) { (*this)["id"] = value; },
-                       id);
+        void SetId(
+            const std::variant<std::string, long int, long unsigned int>& id) {
+            std::visit(
+                [this](const auto& value) {
+                    if constexpr (std::is_same_v<std::decay_t<decltype(value)>,
+                                                 std::string>) {
+                        if (value.empty()) {
+                            logw("ID request is empty");
+                            return;
+                        }
+                    }
+                    (*this)["id"] = value;
+                },
+                id);
         }
     };
     virtual ~FamilyBookEventGetter() = default;
@@ -1328,8 +1336,9 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
 template <typename Executor>
 class BookEventGetterComponent : public bus::Component,
                                  public BookEventGetter3<Executor> {
-static constexpr std::string_view name_component_ =
+    static constexpr std::string_view name_component_ =
         "binance::BookEventGetterComponent";
+
   public:
     common::MemoryPool<Exchange::BookDiffSnapshot2> book_diff_mem_pool_;
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
@@ -1923,7 +1932,7 @@ class BookSnapshot : public inner::BookSnapshotI,
 
 template <typename Executor>
 class BookSnapshot2 : public inner::BookSnapshotI {
-    SignerI* signer_;
+    SignerI* signer_ = nullptr;
     ::V2::ConnectionPool<HTTPSesionType3>* session_pool_;
     common::TradingPairHashMap& pairs_;
     // Add a callback map to store parsing callbacks for each trading pair
@@ -1933,18 +1942,15 @@ class BookSnapshot2 : public inner::BookSnapshotI {
 
   protected:
     Executor executor_;
-    boost::asio::cancellation_signal& signal_;
 
   public:
     explicit BookSnapshot2(Executor&& executor, SignerI* signer,
                            ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
-                           TypeExchange type, common::TradingPairHashMap& pairs,
-                           boost::asio::cancellation_signal& signal)
+                           TypeExchange type, common::TradingPairHashMap& pairs)
         : executor_(std::move(executor)),
           signer_(signer),
           session_pool_(session_pool),
-          pairs_(pairs),
-          signal_(signal) {
+          pairs_(pairs) {
         switch (type) {
             case TypeExchange::MAINNET:
                 current_exchange_ = &binance_main_net_;
@@ -2011,9 +2017,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
 
-                auto slot = signal_.slot();
-                if (auto status = co_await session->AsyncRequest(
-                        std::move(req), callback, slot);
+                if (auto status = co_await session->AsyncRequest(std::move(req),
+                                                                 callback);
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -2054,7 +2059,7 @@ class BookSnapshotComponent : public bus::Component,
         common::TradingPairReverseHashMap& pairs_reverse,
         ::V2::ConnectionPool<HTTPSesionType3>* session_pool)
         : BookSnapshot2<Executor>(std::move(executor), signer, session_pool,
-                                  type, pairs, signal),
+                                  type, pairs),
           snapshot_mem_pool_(number_responses),
           bus_event_response_snapshot_mem_pool_(number_responses) {}
     ~BookSnapshotComponent() override = default;
@@ -2144,7 +2149,7 @@ class GeneratorBidAskService {
     auto Run() noexcept -> void;
 };
 
-template <typename Executor>
+template <typename ThreadPool>
 class BidAskGeneratorComponent : public bus::Component {
   public:
     using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
@@ -2161,7 +2166,8 @@ class BidAskGeneratorComponent : public bus::Component {
                        common::TradingPairHash, common::TradingPairEqual>
         request_bbo_;
 
-    Executor executor_;
+    ThreadPool& thread_pool_;
+    boost::asio::strand<typename ThreadPool::executor_type> strand_;
     aot::CoBus& bus_;
 
   public:
@@ -2186,10 +2192,11 @@ class BidAskGeneratorComponent : public bus::Component {
      * BidAskGeneratorComponent per tick. need this variable for mem pool
      */
     explicit BidAskGeneratorComponent(
-        Executor&& executor, aot::CoBus& bus,
+        ThreadPool& thread_pool, aot::CoBus& bus,
         const unsigned int number_snapshots, const unsigned int number_diff,
         const unsigned int max_number_event_per_tick)
-        : executor_(std::move(executor)),
+        : thread_pool_(thread_pool),
+          strand_(boost::asio::make_strand(thread_pool)),
           bus_(bus),
           request_bus_event_snapshot_mem_pool_(number_snapshots),
           request_snapshot_mem_pool_(number_snapshots),
@@ -2200,16 +2207,22 @@ class BidAskGeneratorComponent : public bus::Component {
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
-        boost::asio::co_spawn(executor_, HandleNewSnapshotEvent(event),
+        // need extend lifetime object
+        auto event_ptr =
+            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
+        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot* event) override {
-        boost::asio::co_spawn(executor_, HandleBookDiffSnapshotEvent(event),
+        // need extend lifetime object
+        auto event_ptr =
+            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
+        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event_ptr),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) override {
-        boost::asio::co_spawn(executor_, HandleTrackingNewTradingPair(event),
+        boost::asio::co_spawn(strand_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
     void AsyncStop() override {
@@ -2245,7 +2258,7 @@ class BidAskGeneratorComponent : public bus::Component {
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
-        Exchange::BusEventResponseNewSnapshot* event) {
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) {
         // Extract the exchange ID from the event.
         const auto& exchange_id = event->WrappedEvent()->exchange_id;
 
@@ -2273,7 +2286,7 @@ class BidAskGeneratorComponent : public bus::Component {
         co_return;
     }
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
-        Exchange::BusEventBookDiffSnapshot* event) {
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) {
         const auto& diff = *event->WrappedEvent();
         logi("[DIFF ACCEPTED] {}, Diff ID Range: [{}-{}]",
              diff.trading_pair.ToString(), diff.first_id, diff.last_id);
@@ -2334,7 +2347,8 @@ class BidAskGeneratorComponent : public bus::Component {
                 "LastUpdateId: {}",
                 trading_pair.ToString(), state.snapshot.lastUpdateId);
             state.need_make_snapshot = true;
-            co_await RequestNewSnapshot(trading_pair);
+            boost::asio::co_spawn(strand_, RequestNewSnapshot(trading_pair),
+                                  boost::asio::detached);
             co_return;
         }
 
@@ -2418,7 +2432,7 @@ class BidAskGeneratorComponent : public bus::Component {
         // common::kFrequencyMSInvalid to info
         auto* ptr  = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            common::kFrequencyMSInvalid, true);
+            common::kFrequencyMSInvalid, true, info.id);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 
@@ -2599,12 +2613,15 @@ class ApiResponseParser {
             if (!id_field.error()) {
                 if (id_field.type() == simdjson::ondemand::json_type::string) {
                     std::string_view id_value;
-                    if (id_field.get_string().get(id_value) == simdjson::SUCCESS) {
+                    if (id_field.get_string().get(id_value) ==
+                        simdjson::SUCCESS) {
                         data.id = std::string(id_value);  // Store as string
                     }
-                } else if (id_field.type() == simdjson::ondemand::json_type::number) {
+                } else if (id_field.type() ==
+                           simdjson::ondemand::json_type::number) {
                     simdjson::ondemand::number number = id_field.get_number();
-                    simdjson::ondemand::number_type t = number.get_number_type();
+                    simdjson::ondemand::number_type t =
+                        number.get_number_type();
                     switch (t) {
                         case simdjson::ondemand::number_type::signed_integer:
                             if (number.is_int64()) {
@@ -2620,12 +2637,15 @@ class ApiResponseParser {
                                 loge("Unexpected unsigned integer size.");
                             }
                             break;
-                        case simdjson::ondemand::number_type::floating_point_number:
-                            // If it's a floating point, you can get the value as a double
+                        case simdjson::ondemand::number_type::
+                            floating_point_number:
+                            // If it's a floating point, you can get the value
+                            // as a double
                             loge("Unexpected double");
                             break;
                         case simdjson::ondemand::number_type::big_integer:
-                            // Handle big integers (e.g., large numbers out of int64_t range)
+                            // Handle big integers (e.g., large numbers out of
+                            // int64_t range)
                             loge("Big integer value detected.");
                             break;
                         default:
@@ -2634,8 +2654,14 @@ class ApiResponseParser {
                     }
                 }
             }
-            return data;  // Return populated or empty data
         }
+        return data;  // Return populated or empty data
     };
 };
+
+ParserManager InitParserManager(
+    common::TradingPairHashMap& pairs,
+    common::TradingPairReverseHashMap& pair_reverse,
+    ApiResponseParser& api_response_parser,
+    detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff);
 };  // namespace binance

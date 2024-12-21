@@ -346,7 +346,7 @@ void OnDiffCallback(const Exchange::BookDiffSnapshot2& diff) {
 TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     fmtlog::setLogLevel(fmtlog::DBG);
     ASSERT_GE(argc, 2);
-    //LogPolling log_polling(thread_pool, std::chrono::milliseconds(100));
+    LogPolling log_polling(thread_pool, std::chrono::milliseconds(100));
     aot::CoBus bus(thread_pool);
 
     config::ApiSecretKey config(argv[1]);
@@ -368,6 +368,12 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
 
     common::TradingPairReverseHashMap pair_reverse = common::InitTPsJR(pairs);
 
+    binance::ApiResponseParser api_response_parser;
+    binance::detail::FamilyBookEventGetter::ParserResponse parser_ob_diff(
+            pairs, pair_reverse);
+    binance::ParserManager parser_manager = InitParserManager(pairs, pair_reverse, api_response_parser, parser_ob_diff);
+
+
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
         work_guard(io_context.get_executor());
     std::thread t([this] { io_context.run(); });
@@ -375,18 +381,14 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     //------------------Snapshot component------------------------------------
     binance::BookSnapshotComponent component(
         boost::asio::make_strand(thread_pool), number_responses, &signer,
-        TypeExchange::TESTNET, pairs, pair_reverse, session_pool,
-        cancel_signal);
-
-    Exchange::RequestSnapshot request;
-    request.exchange_id  = common::ExchangeId::kBinance;
-    request.trading_pair = {2, 1};
+        TypeExchange::TESTNET, pairs, pair_reverse, session_pool);
 
     OnHttpsResponce cb =
         [&component, &bus, this, &pair_reverse](
             boost::beast::http::response<boost::beast::http::string_body>&
                 buffer) {
             const auto& result = buffer.body();
+            //std::cout << result << std::endl;
 
             binance::detail::FamilyBookSnapshot::ParserResponse parser(
                 pairs[{2, 1}]);
@@ -409,51 +411,104 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
 
             bus.AsyncSend(&component, intr_ptr_bus_snapsot);
         };
-    component.RegisterCallback(request.trading_pair, &cb);
+    component.RegisterCallback({2,1}, &cb);
     //-----------------------------------------------------------------
     //--------------------------Depth stream component----------------
-    boost::asio::cancellation_signal cancel_signal;
-    boost::asio::cancellation_signal restart_signal;
 
     binance::BookEventGetterComponent event_getter_component(
         thread_pool, number_responses,
-        TypeExchange::TESTNET, pairs, &session_pool_wss, cancel_signal,restart_signal);
+        TypeExchange::TESTNET, pairs, &session_pool_wss);
 
-    Exchange::RequestDiffOrderBook request_diff_order_book;
-    request.exchange_id            = common::ExchangeId::kBinance;
-    request.trading_pair           = {2, 1};
-    request.id           = 777;
-
+    // Exchange::RequestDiffOrderBook request_diff_order_book;
+    // request.exchange_id            = common::ExchangeId::kBinance;
+    // request.trading_pair           = {2, 1};
 
     uint64_t counter_successfull   = 0;
     uint64_t counter_unsuccessfull = 0;
+    uint64_t request_accepted_by_exchange = 0;
+    bool accept_subscribe_successfully = false;
+    bool accept_unsubscribe_successfully = false;
+
 
     OnWssResponse cb_wss = [&event_getter_component, &bus, &counter_successfull,
                             &counter_unsuccessfull, this,
-                            &pair_reverse](boost::beast::flat_buffer& fb) {
-        auto data     = fb.data();  // returns a const_buffer
-        auto response = std::string_view(static_cast<const char*>(data.data()),
-                                         data.size());
-        binance::detail::FamilyBookEventGetter::ParserResponse parser(
-            pairs, pair_reverse);
-        auto result  = parser.Parse(response);
+                            &pair_reverse,
+                            &parser_manager,
+                            &request_accepted_by_exchange,
+                            &accept_subscribe_successfully](boost::beast::flat_buffer& fb) {
+        //auto data     = fb.data();  // returns a const_buffer
+        // auto response = std::string_view(static_cast<const char*>(data.data()),
+        //                                  data.size());
+        auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
+        auto answer = parser_manager.Parse(response);
 
-        auto request = event_getter_component.book_diff_mem_pool_.Allocate(
-            &event_getter_component.book_diff_mem_pool_, result.exchange_id,
-            result.trading_pair, std::move(result.bids), std::move(result.asks),
-            result.first_id, result.last_id);
-        auto intr_ptr_request =
-            boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
+        std::cout << response << std::endl;
 
-        auto bus_event =
-            event_getter_component.bus_event_book_diff_snapshot_mem_pool_
-                .Allocate(&event_getter_component
-                               .bus_event_book_diff_snapshot_mem_pool_,
-                          intr_ptr_request);
-        auto intr_ptr_bus_request =
-            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(bus_event);
+        // binance::detail::FamilyBookEventGetter::ParserResponse parser(
+        //     pairs, pair_reverse);
+        // auto result  = parser.Parse(response);
+        //--------------------------------------------
+        if (std::holds_alternative<Exchange::BookDiffSnapshot>(answer)) {
+            std::visit(
+                [&](auto&& element) {
+                    using T = std::decay_t<decltype(element)>;
+                    if constexpr (std::is_same_v<T,
+                                                        Exchange::BookDiffSnapshot>) {
+                        logi("Received a BookDiffSnapshot!");
+                        Exchange::BookDiffSnapshot& result = element;
+                        auto request = event_getter_component.book_diff_mem_pool_.Allocate(
+                                        &event_getter_component.book_diff_mem_pool_, result.exchange_id,
+                                        result.trading_pair, std::move(result.bids), std::move(result.asks),
+                                        result.first_id, result.last_id);
+                    auto intr_ptr_request =
+                        boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
 
-        bus.AsyncSend(&event_getter_component, intr_ptr_bus_request);
+                    auto bus_event =
+                        event_getter_component.bus_event_book_diff_snapshot_mem_pool_
+                            .Allocate(&event_getter_component
+                                        .bus_event_book_diff_snapshot_mem_pool_,
+                                    intr_ptr_request);
+                    auto intr_ptr_bus_request =
+                        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(bus_event);
+
+                    bus.AsyncSend(&event_getter_component, intr_ptr_bus_request);
+                        // Use diffSnapshot
+                    }
+                },
+                answer);
+                counter_successfull++;
+        }
+        if (std::holds_alternative<ApiResponseData>(answer)) {
+            const auto& result = std::get<ApiResponseData>(answer);
+            logi("{}", result);
+
+            request_accepted_by_exchange++;
+            if (auto id_value = std::get_if<long int>(&result.id)) {
+                if (*id_value == 777) {
+                    accept_subscribe_successfully = true;
+                }
+            } 
+            // if (request_accepted_by_exchange == 1 &&
+            // counter_successfull > 5) component.AsyncStop();
+        }
+    };
+        //--------------------------------------------
+                                                                    // auto request = event_getter_component.book_diff_mem_pool_.Allocate(
+                                                                    //     &event_getter_component.book_diff_mem_pool_, result.exchange_id,
+                                                                    //     result.trading_pair, std::move(result.bids), std::move(result.asks),
+                                                                    //     result.first_id, result.last_id);
+                                                                    // auto intr_ptr_request =
+                                                                    //     boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
+
+                                                                    // auto bus_event =
+                                                                    //     event_getter_component.bus_event_book_diff_snapshot_mem_pool_
+                                                                    //         .Allocate(&event_getter_component
+                                                                    //                     .bus_event_book_diff_snapshot_mem_pool_,
+                                                                    //                 intr_ptr_request);
+                                                                    // auto intr_ptr_bus_request =
+                                                                    //     boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(bus_event);
+
+                                                                    // bus.AsyncSend(&event_getter_component, intr_ptr_bus_request);
 
         // if ((result.exchange_id ==
         //         common::ExchangeId::kBinance) &&
@@ -465,17 +520,23 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
         // if (counter_successfull == 5) {
         //     component.AsyncStop();
         // }
+    //};
+    event_getter_component.RegisterCallback({2,1}, &cb_wss);
+     OnCloseSession cb_on_close_session = [this,
+    &work_guard](){
+        session_pool->CloseAllSessions();
+        work_guard.reset();
     };
-    auto cancelation_slot = cancel_signal.slot();
-    event_getter_component.RegisterCallback(request.trading_pair, &cb_wss);
+
+    event_getter_component.RegisterCallbackOnCloseSession(
+        {2,1}, &cb_on_close_session);
     //------------------------------------------------------------------------------
     //--------------------------Order book component--------------------------------
     Trading::OrderBookComponent order_book_component(boost::asio::make_strand(thread_pool));
-    order_book_component.AddOrderBook(common::ExchangeId::kBinance, request.trading_pair);
+    order_book_component.AddOrderBook(common::ExchangeId::kBinance, {2,1});
     //------------------------------------------------------------------------------
 
-    binance::BidAskGeneratorComponent bid_ask_generator(
-        boost::asio::make_strand(thread_pool), bus, 100, 1000, 10000);
+    binance::BidAskGeneratorComponent bid_ask_generator(thread_pool, bus, 100, 1000, 10000);
     // Register the snapshot callback
     auto ProcessBookEntries = [&bid_ask_generator, &bus](const auto& entries,
                                                         common::ExchangeId exchange_id,
@@ -513,22 +574,21 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     bus.Subscribe(&bid_ask_generator, &event_getter_component);
     bus.Subscribe(&component, &bid_ask_generator);
     bus.Subscribe(&event_getter_component, &bid_ask_generator);
-    //bus.Subscribe(&bid_ask_generator, &order_book_component);
+    bus.Subscribe(&bid_ask_generator, &order_book_component);
 
     //------------------------------------------------------------------------------
     BusEventRequestBBOPrice request_bbo_btc;
     request_bbo_btc.exchange_id    = common::ExchangeId::kBinance;
     request_bbo_btc.trading_pair   = {2, 1};
     request_bbo_btc.snapshot_depth = 1000;
+    request_bbo_btc.id = 777;
     auto intr_bus_request =
         boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc);
     bid_ask_generator.AsyncHandleEvent(intr_bus_request);
 
-    thread_pool.join();
-    session_pool->CloseAllSessions();
-    work_guard.reset();
     t.join();
-    int z = 0;
+    log_polling.Stop();
+    thread_pool.join();
 }
 
 int main(int _argc, char** _argv) {

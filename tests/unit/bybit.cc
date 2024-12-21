@@ -10,30 +10,7 @@
 #include "boost/asio/io_context.hpp"
 
 // Helper function to initialize the parser manager
-bybit::ParserManager InitParserManager(
-    common::TradingPairHashMap& pairs,
-    common::TradingPairReverseHashMap& pair_reverse,
-    bybit::ApiResponseParser& api_response_parser,
-    bybit::detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff) {
-    bybit::ParserManager parser_manager;
 
-    parser_manager.RegisterHandler(ResponseType::kNonQueryResponse,
-        [&api_response_parser](simdjson::ondemand::document& doc) {
-            return api_response_parser.Parse(doc);
-        });
-
-    parser_manager.RegisterHandler(ResponseType::kDepthUpdate,
-        [&parser_ob_diff](simdjson::ondemand::document& doc) {
-            return std::get<Exchange::BookDiffSnapshot>(parser_ob_diff.Parse(doc));  // Ensure it returns BookDiffSnapshot
-        });
-
-    parser_manager.RegisterHandler(ResponseType::kSnapshot,
-        [&parser_ob_diff](simdjson::ondemand::document& doc) {
-            return std::get<Exchange::BookSnapshot>(parser_ob_diff.Parse(doc));  // Ensure it returns BookSnapshot
-        });
-
-    return parser_manager;
-}
 
 // Google Test Fixture for the BookEventGetterComponent test
 class BookEventGetterComponentTest : public ::testing::Test {
@@ -103,7 +80,7 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                                         &request_accepted_by_exchange,
                                                                                         &parser_manager](boost::beast::flat_buffer& fb) {
                                                                     auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
-                                                                    std::cout << response << std::endl;
+                                                                    //std::cout << response << std::endl;
                                                                     auto answer = parser_manager.Parse(response);
 
                                                                     if (std::holds_alternative<Exchange::BookSnapshot>(answer) ||

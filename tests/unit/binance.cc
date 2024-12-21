@@ -137,25 +137,25 @@ class BookEventGetterComponentTest : public ::testing::Test {
 };
 
 // Helper function to initialize the parser manager
-binance::ParserManager InitParserManager(
-    common::TradingPairHashMap& pairs,
-    common::TradingPairReverseHashMap& pair_reverse,
-    binance::ApiResponseParser& api_response_parser,
-    binance::detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff) {
-    binance::ParserManager parser_manager;
+// binance::ParserManager InitParserManager(
+//     common::TradingPairHashMap& pairs,
+//     common::TradingPairReverseHashMap& pair_reverse,
+//     binance::ApiResponseParser& api_response_parser,
+//     binance::detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff) {
+//     binance::ParserManager parser_manager;
 
-    parser_manager.RegisterHandler(ResponseType::kNonQueryResponse,
-        [&api_response_parser](simdjson::ondemand::document& doc) {
-            return api_response_parser.Parse(doc);
-        });
+//     parser_manager.RegisterHandler(ResponseType::kNonQueryResponse,
+//         [&api_response_parser](simdjson::ondemand::document& doc) {
+//             return api_response_parser.Parse(doc);
+//         });
 
-    parser_manager.RegisterHandler(ResponseType::kDepthUpdate,
-        [&parser_ob_diff](simdjson::ondemand::document& doc) {
-            return parser_ob_diff.Parse(doc);
-        });
+//     parser_manager.RegisterHandler(ResponseType::kDepthUpdate,
+//         [&parser_ob_diff](simdjson::ondemand::document& doc) {
+//             return parser_ob_diff.Parse(doc);
+//         });
 
-    return parser_manager;
-}
+//     return parser_manager;
+// }
 
 // // Test case for unsubscribe functionality
 TEST_F(BookEventGetterComponentTest, TestUnSubscribeChannelBinance) {
