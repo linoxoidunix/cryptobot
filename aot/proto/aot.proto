@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package aot.proto;
+
+// Example message
+message Wallet {
+    string exchange = 1;
+    string ticker = 2;
+    double balance = 3;
+}
+
+message Pnl {
+    string exchange = 1;
+    string trading_pair = 2;
+    double realized = 3;
+    double unrealized = 4;
+}
+
+message OrderBook {
+    string exchange = 1;
+    string trading_pair = 2;
+    double best_bid = 3;
+    double best_offer = 4;
+    double spread = 5;
+}

@@ -233,8 +233,18 @@ TEST_F(BookEventGetterComponentTest, TestUnSubscribeChannelBinance) {
             logi("{}", result);
 
             request_accepted_by_exchange++;
-            if (result.id == 777) accept_subscribe_successfully = true;
-            if (result.id == 888) accept_unsubscribe_successfully = true;
+            if (auto value = std::get_if<long int>(&result.id)) {
+                if (*value == 777L) {
+                    accept_subscribe_successfully = true;
+                }
+            }
+            if (auto value = std::get_if<long int>(&result.id)) {
+                if (*value == 888L) {
+                    accept_unsubscribe_successfully = true;
+                }
+            }    
+            // if (result.id == 777L) accept_subscribe_successfully = true;
+            // if (result.id == 888L) accept_unsubscribe_successfully = true;
 
             if (request_accepted_by_exchange == 2) component.AsyncStop();
         }

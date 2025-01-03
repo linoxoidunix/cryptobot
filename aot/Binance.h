@@ -2169,6 +2169,7 @@ class BidAskGeneratorComponent : public bus::Component {
     ThreadPool& thread_pool_;
     boost::asio::strand<typename ThreadPool::executor_type> strand_;
     aot::CoBus& bus_;
+    boost::asio::cancellation_signal cancel_signal_;
 
   public:
     Exchange::BusEventRequestNewSnapshotPool
@@ -2203,7 +2204,13 @@ class BidAskGeneratorComponent : public bus::Component {
           request_bus_event_diff_mem_pool_(number_diff),
           request_diff_mem_pool_(number_diff),
           out_diff_mem_pool_(max_number_event_per_tick),
-          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {};
+          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {
+                    cancel_signal_.slot().assign(
+            [this](boost::asio::cancellation_type type) {
+                logd("Cancellation requested for binance::BidAskGeneratorComponent");
+                HandleCancellation(type);
+            });
+          };
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
@@ -2225,8 +2232,12 @@ class BidAskGeneratorComponent : public bus::Component {
         boost::asio::co_spawn(strand_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
+    //stop allinner coroutine
+    //clear inner states
     void AsyncStop() override {
-
+        // Trigger cancellation signal for all coroutines
+        logd("Stopping all inner coroutines in binance::BidAskGeneratorComponent");
+        cancel_signal_.emit(boost::asio::cancellation_type::all);
     };
 
     void RegisterSnapshotCallback(
@@ -2254,7 +2265,7 @@ class BidAskGeneratorComponent : public bus::Component {
         // start tracking new trading pair
 
         // need send a signal to launch diff
-        co_await RequestSubscribeToDiff(trading_pair);
+        co_await RequestSubscribeToDiff<true>(trading_pair);
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
@@ -2418,6 +2429,7 @@ class BidAskGeneratorComponent : public bus::Component {
         bus_.AsyncSend(this, intr_ptr_bus_event_request);
         co_return;
     }
+    template <bool subscribe>
     boost::asio::awaitable<void> RequestSubscribeToDiff(
         common::TradingPair trading_pair) {
         if (!request_bbo_.count(trading_pair)) {
@@ -2432,7 +2444,7 @@ class BidAskGeneratorComponent : public bus::Component {
         // common::kFrequencyMSInvalid to info
         auto* ptr  = request_diff_mem_pool_.Allocate(
             &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            common::kFrequencyMSInvalid, true, info.id);
+            common::kFrequencyMSInvalid, subscribe, info.id);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 
@@ -2444,6 +2456,12 @@ class BidAskGeneratorComponent : public bus::Component {
 
         bus_.AsyncSend(this, intr_ptr_bus_event_request);
         co_return;
+    }
+    void HandleCancellation(boost::asio::cancellation_type_t type) {
+        bus_.StopSubscribersForPublisher(this);
+        // Optionally clear any state if necessary
+        state_map_.clear();
+        request_bbo_.clear();
     }
 };
 

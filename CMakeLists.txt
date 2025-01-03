@@ -87,6 +87,19 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable( simdjson magic_enum nlohmann_json prometheus-cpp tomlplusplus)
 
+
+# # Find rdkafka (ensure it is installed on your system)
+# find_package(RdKafka REQUIRED)
+
+
+# Fetch cppkafka
+FetchContent_Declare(
+    cppkafka
+    GIT_REPOSITORY https://github.com/mfontanini/cppkafka
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(cppkafka)
+
 FetchContent_Declare(
     benchmark
     GIT_REPOSITORY https://github.com/google/benchmark.git
@@ -133,6 +146,7 @@ endif()
 
 find_package(Python COMPONENTS Interpreter Development)
 #find_package(concurrentqueue)
+find_package(Protobuf REQUIRED)
 
 file(GLOB LIST_H
      "aot/*.h"
@@ -141,6 +155,7 @@ file(GLOB LIST_H
      "aot/market_data/*.h"
      "aot/order_gw/*.h"
      "aot/prometheus/*.h"
+     "aot/proto/classes/*.h"
      "aot/strategy/*.h"
      "aot/strategy/cross_arbitrage/*.h"
      "aot/third_party/*.h"
@@ -180,15 +195,37 @@ project(${PROJECT_NAME})
 #set(ALL_FILES ${LIST_H} ${LIST_CPP})
 #set(CMAKE_CXX_CLANG_TIDY clang-tidy ${ALL_FILES}, -header-filter=, -checks=cppcoreguidlines-*, -warnings-as-errors=*, -p build)
 
+file(GLOB_RECURSE PROTO_FILES
+     "aot/proto/*.proto"
+)
+
+# Укажите каталоги для вывода сгенерированных файлов
+set(PROTO_OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated")
+set(PROTO_INCLUDE_DIR "${PROTO_OUTPUT_DIR}/include")
+set(PROTO_SRC_DIR "${PROTO_OUTPUT_DIR}/src")
+
+# Создайте папки для сгенерированных файлов
+file(MAKE_DIRECTORY ${PROTO_INCLUDE_DIR})
+file(MAKE_DIRECTORY ${PROTO_SRC_DIR})
+
+# Генерация исходных файлов C++ из .proto
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+
 add_library (${PROJECT_NAME}
     ${LIST_H} #for use emhash library need add LIST_H
     ${LIST_CPP}
+    ${PROTO_SRCS}
+    # ${PROTO_HDRS}
 )
 #for support modules
 # target_sources(${PROJECT_NAME} PUBLIC
 #     FILE_SET all_my_modules TYPE CXX_MODULES FILES
 #     ${LIST_CXX}
 # )
+
+
+
+# file(GLOB_RECURSE PROTO_FILES "${PROTO_DIR}/*.proto")
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -197,6 +234,9 @@ target_include_directories(
     ${Boost_INCLUDE_DIRS}
     PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+           $<INSTALL_INTERFACE:include>
+           ${CMAKE_BINARY_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -220,6 +260,7 @@ target_link_libraries(${PROJECT_NAME}
     absl::base
     re2::re2
     tomlplusplus::tomlplusplus
+    protobuf
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

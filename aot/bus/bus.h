@@ -1,20 +1,23 @@
 #pragma once
 
 #include <atomic>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/algorithm/for_each.hpp>
-#include <boost/range/algorithm/transform.hpp>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-#include "aot/Logger.h"
-#include "aot/bus/bus_component.h"
-#include "aot/bus/bus_event.h"
 #include "boost/asio.hpp"
 #include "boost/asio/awaitable.hpp"
 #include "boost/asio/strand.hpp"
 #include "boost/thread.hpp"
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/algorithm/for_each.hpp>
+#include <boost/range/algorithm/transform.hpp>
+
+#include "aot/Logger.h"
+#include "aot/bus/bus_component.h"
+#include "aot/bus/bus_event.h"
+
 
 // namespace bus{
 //     class Component;
@@ -148,12 +151,12 @@ class CoBus {
             return;
         }
 
-        //logd("Start sending event from name:{} with addr:{}",
-        //publisher->GetName(), static_cast<void*>(publisher));
+        // logd("Start sending event from name:{} with addr:{}",
+        // publisher->GetName(), static_cast<void*>(publisher));
 
         auto it = subscribers_.find(publisher);
         if (it != subscribers_.end()) {
-            //logd("Found {} subscribers", it->second.size());
+            // logd("Found {} subscribers", it->second.size());
 
             // Visit all subscribers and directly handle the event
             for (auto* component : it->second) {
@@ -161,8 +164,7 @@ class CoBus {
                     try {
                         event->Accept(component);
                     } catch (const std::exception& ex) {
-                        loge("Exception while handling event: {}",
-                        ex.what());
+                        loge("Exception while handling event: {}", ex.what());
                     } catch (...) {
                         loge("Unknown error occurred while handling event.");
                     }
@@ -172,7 +174,7 @@ class CoBus {
             }
         } else {
             logd("No subscribers found for publisher {}",
-            static_cast<void*>(publisher));
+                 static_cast<void*>(publisher));
         }
     }
     // template <class T>
@@ -200,7 +202,8 @@ class CoBus {
     //                              ex.what());
     //                     } catch (...) {
     //                         loge(
-    //                             "Unknown error occurred while handling event.");
+    //                             "Unknown error occurred while handling
+    //                             event.");
     //                     }
     //                 });
     //             } else {
@@ -221,6 +224,66 @@ class CoBus {
         AsyncSend(publisher, event);
         co_return;
     }
+
+    void StopAllSubscribers() {
+        std::unordered_set<bus::Component*> processed_subscribers;
+
+        for (auto& [publisher, subscribers] : subscribers_) {
+            for (auto* subscriber : subscribers) {
+                if (subscriber && processed_subscribers.find(subscriber) ==
+                                      processed_subscribers.end()) {
+                    try {
+                        subscriber->AsyncStop();
+                        processed_subscribers.insert(subscriber);
+                    } catch (const std::exception& ex) {
+                        loge("Exception while stopping subscriber: {}",
+                             ex.what());
+                    } catch (...) {
+                        loge(
+                            "Unknown error occurred while stopping "
+                            "subscriber.");
+                    }
+                } else if (!subscriber) {
+                    logw("Subscriber is nullptr, skipping.");
+                }
+            }
+        }
+    }
+
+    void StopSubscribersForPublisher(bus::Component* publisher) {
+        if (!publisher) {
+            logw("Publisher is nullptr, skipping.");
+            return;
+        }
+
+        auto it = subscribers_.find(publisher);
+        if (it != subscribers_.end()) {
+            std::unordered_set<bus::Component*> processed_subscribers;
+
+            for (auto* subscriber : it->second) {
+                if (subscriber && processed_subscribers.find(subscriber) ==
+                                      processed_subscribers.end()) {
+                    try {
+                        subscriber->AsyncStop();
+                        processed_subscribers.insert(subscriber);
+                    } catch (const std::exception& ex) {
+                        loge("Exception while stopping subscriber: {}",
+                             ex.what());
+                    } catch (...) {
+                        loge(
+                            "Unknown error occurred while stopping "
+                            "subscriber.");
+                    }
+                } else if (!subscriber) {
+                    logw("Subscriber is nullptr, skipping.");
+                }
+            }
+        } else {
+            logd("No subscribers found for publisher {}",
+                 static_cast<void*>(publisher));
+        }
+    }
+
     void Join() { pool_.join(); }
     virtual ~CoBus() { logd("dtor Bus"); }
 };

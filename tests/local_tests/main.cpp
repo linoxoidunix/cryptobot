@@ -492,35 +492,6 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
             // counter_successfull > 5) component.AsyncStop();
         }
     };
-        //--------------------------------------------
-                                                                    // auto request = event_getter_component.book_diff_mem_pool_.Allocate(
-                                                                    //     &event_getter_component.book_diff_mem_pool_, result.exchange_id,
-                                                                    //     result.trading_pair, std::move(result.bids), std::move(result.asks),
-                                                                    //     result.first_id, result.last_id);
-                                                                    // auto intr_ptr_request =
-                                                                    //     boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
-
-                                                                    // auto bus_event =
-                                                                    //     event_getter_component.bus_event_book_diff_snapshot_mem_pool_
-                                                                    //         .Allocate(&event_getter_component
-                                                                    //                     .bus_event_book_diff_snapshot_mem_pool_,
-                                                                    //                 intr_ptr_request);
-                                                                    // auto intr_ptr_bus_request =
-                                                                    //     boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(bus_event);
-
-                                                                    // bus.AsyncSend(&event_getter_component, intr_ptr_bus_request);
-
-        // if ((result.exchange_id ==
-        //         common::ExchangeId::kBinance) &&
-        //     (result.trading_pair ==
-        //         common::TradingPair(2, 1)))
-        //     counter_successfull++;
-        // else
-        //     counter_unsuccessfull++;
-        // if (counter_successfull == 5) {
-        //     component.AsyncStop();
-        // }
-    //};
     event_getter_component.RegisterCallback({2,1}, &cb_wss);
      OnCloseSession cb_on_close_session = [this,
     &work_guard](){
@@ -581,7 +552,7 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     request_bbo_btc.exchange_id    = common::ExchangeId::kBinance;
     request_bbo_btc.trading_pair   = {2, 1};
     request_bbo_btc.snapshot_depth = 1000;
-    request_bbo_btc.id = 777;
+    request_bbo_btc.id = 777L;
     auto intr_bus_request =
         boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc);
     bid_ask_generator.AsyncHandleEvent(intr_bus_request);
