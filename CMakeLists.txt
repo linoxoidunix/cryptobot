@@ -39,6 +39,7 @@ include(FetchContent)
 FetchContent_Declare(
     simdjson
     GIT_REPOSITORY https://github.com/simdjson/simdjson.git
+    GIT_TAG        master
 )
 FetchContent_Declare(
     magic_enum

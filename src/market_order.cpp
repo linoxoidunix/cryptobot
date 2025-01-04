@@ -1,6 +1,7 @@
 #include "aot/strategy/market_order.h"
 
 #include "aot/common/types.h"
+#include "aot/bus/bus_component.h"
 
 namespace Trading {
 auto MarketOrder::toString() const -> std::string {
@@ -12,4 +13,9 @@ auto MarketOrder::toString() const -> std::string {
 
     return ss.str();
 };
+
+void BusEventNewBBO::Accept(bus::Component* comp) {
+     comp->AsyncHandleEvent(this); 
+}
+
 }  // namespace Trading

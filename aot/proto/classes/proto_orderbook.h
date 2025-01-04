@@ -9,7 +9,7 @@ namespace models {
 // OrderBook class to represent market order book data
 class OrderBook {
   public:
-    OrderBook(std::string_view& exchange, std::string_view& tradingPair,
+    OrderBook(std::string_view exchange, std::string_view tradingPair,
               double bestBid, double bestOffer, double spread)
         : exchange(exchange),
           tradingPair(tradingPair),
@@ -33,6 +33,18 @@ class OrderBook {
         // Serialize the message into the output vector
         message.SerializeToArray(output.data(), size);
     }
+    void SerializeToJson(nlohmann::json& json) const {
+    json = {
+        {"orderbook", {
+            {"exchange", exchange},
+            {"trading_pair", tradingPair},
+            {"best_bid", bestBid},
+            {"best_offer", bestOffer},
+            {"spread", spread},
+        }}
+    };
+
+}
 
   private:
     std::string exchange;

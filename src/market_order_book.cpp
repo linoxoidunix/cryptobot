@@ -99,7 +99,10 @@ void MarketOrderBook2::OnMarketUpdate(
     }
 
     UpdateBBO(bid_will_be_updated, ask_will_be_updated);
-    if (bid_will_be_updated || ask_will_be_updated) logi("{}", bbo_.ToString());
+    if (bid_will_be_updated || ask_will_be_updated){
+        logi("{}", bbo_.ToString());
+        bbo_signal_emitter_.Emit(bbo_);
+    }
     //logd("{}", market_update->ToString());
 }
 }  // namespace Trading

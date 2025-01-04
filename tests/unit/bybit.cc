@@ -173,7 +173,7 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                 //--------------------------Order book
                                                                 //component--------------------------------
                                                                 Trading::OrderBookComponent order_book_component(
-                                                                    boost::asio::make_strand(thread_pool));
+                                                                    boost::asio::make_strand(thread_pool), bus, 1000);
                                                                 common::TradingPair trading_pair{2, 1};
                                                                 order_book_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
                                                                 //------------------------------------------------------------------------------

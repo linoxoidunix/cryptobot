@@ -33,6 +33,11 @@ namespace Exchange{
   struct BusEventMEMarketUpdate2;
 }
 
+namespace Trading{
+    struct NewBBO;
+    struct BusEventNewBBO;
+}
+
 namespace bus{
 class Component {
   public:
@@ -130,7 +135,13 @@ class Component {
     virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>){
         //it is empty class
     };
-    
+    /**
+     * @brief this event when new bbo occure 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Trading::BusEventNewBBO>){
+        //it is empty class
+    };
     
 };
 };

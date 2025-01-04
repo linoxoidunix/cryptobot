@@ -1218,7 +1218,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             }
         }
 
-        if (auto result = co_await SendAsyncRequest(req); !result) {
+        if (auto result = co_await SendAsyncRequest(std::move(req)); !result) {
             loge("AsyncRequest finished unsuccessfully");
         }
 
@@ -1414,66 +1414,87 @@ class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
     common::TradingPairReverseHashMap& pairs_reverse_;
 };
 
-class OrderNewLimit2 : public inner::OrderNewI,
-                       public detail::FamilyLimitOrder {
-  public:
-    explicit OrderNewLimit2(SignerI* signer, TypeExchange type,
-                            common::TradingPairHashMap& pairs,
-                            common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs),
-          pairs_reverse_(pairs_reverse),
-          session_pool_(session_pool) {};
-    void Exec(Exchange::RequestNewOrder* new_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        if (response_lfqueue == nullptr) {
-            loge("response_lfqueue == nullptr");
-            return;
-        }
-        if (session_pool_ == nullptr) {
-            loge("session_pool_ == nullptr");
-            return;
-        }
-        logd("start exec");
-        ArgsOrder args(new_order, pairs_);
+// class OrderNewLimit2 : public inner::OrderNewI,
+//                        public detail::FamilyLimitOrder {
+//   public:
+//     explicit OrderNewLimit2(SignerI* signer, TypeExchange type,
+//                             common::TradingPairHashMap& pairs,
+//                             common::TradingPairReverseHashMap& pairs_reverse,
+//                             ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+//         : current_exchange_(exchange_.Get(type)),
+//           signer_(signer),
+//           pairs_(pairs),
+//           pairs_reverse_(pairs_reverse),
+//           session_pool_(session_pool) {};
+//     void Exec(Exchange::RequestNewOrder* new_order,
+//               Exchange::ClientResponseLFQueue* response_lfqueue) override {
+//         if (response_lfqueue == nullptr) {
+//             loge("response_lfqueue == nullptr");
+//             return;
+//         }
+//         if (session_pool_ == nullptr) {
+//             loge("session_pool_ == nullptr");
+//             return;
+//         }
+//         logd("start exec");
+//         ArgsOrder args(new_order, pairs_);
 
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyLimitOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::post,
-                                       signer_,
-                                       need_sign};
-        logd("start prepare new limit order request");
-        auto req = factory();
-        logd("end prepare new limit order request");
+//         bool need_sign = true;
+//         detail::FactoryRequest factory{current_exchange_,
+//                                        detail::FamilyLimitOrder::end_point,
+//                                        args,
+//                                        boost::beast::http::verb::post,
+//                                        signer_,
+//                                        need_sign};
+//         logd("start prepare new limit order request");
+//         auto req = factory();
+//         logd("end prepare new limit order request");
 
-        auto cb =
-            [response_lfqueue, this](
-                boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
-                const auto& resut = buffer.body();
-                logi("{}", resut);
-                ParserResponse parser(pairs_, pairs_reverse_);
-                auto answer    = parser.Parse(resut);
-                bool status_op = response_lfqueue->try_enqueue(answer);
-                if (!status_op) [[unlikely]]
-                    loge("my queuee is full. need clean my queue");
-            };
-        auto session = session_pool_->AcquireConnection();
-        logd("start send new limit order request");
+//         auto cb =
+//             [response_lfqueue, this](
+//                 boost::beast::http::response<boost::beast::http::string_body>&
+//                     buffer) {
+//                 const auto& resut = buffer.body();
+//                 logi("{}", resut);
+//                 ParserResponse parser(pairs_, pairs_reverse_);
+//                 auto answer    = parser.Parse(resut);
+//                 bool status_op = response_lfqueue->try_enqueue(answer);
+//                 if (!status_op) [[unlikely]]
+//                     loge("my queuee is full. need clean my queue");
+//             };
+//         auto session = session_pool_->AcquireConnection();
+//         logd("start send new limit order request");
+//         session->RegisterOnResponse(cb);
+//         if (auto status = session->AsyncRequest(std::move(req));
+//             status == false)
+//             loge("AsyncRequest wasn't sent in io_context");
 
-        if (auto status = session->AsyncRequest(std::move(req), cb);
-            status == false)
-            loge("AsyncRequest wasn't sent in io_context");
+//         logd("end send new limit order request");
+//     };
+//     ~OrderNewLimit2() override = default;
 
-        logd("end send new limit order request");
-    };
-    ~OrderNewLimit2() override = default;
+//   private:
+//     ExchangeChooser exchange_;
+//     // pass pairs_ without const due to i want [] operator
+//     // pass pairs_reverse_ without const due to i want [] operator
+//     common::TradingPairReverseHashMap& pairs_reverse_;
 
-  private:
+//   protected:
+//     SignerI* signer_;
+//     common::TradingPairHashMap& pairs_;
+//     https::ExchangeI* current_exchange_;
+//     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+// };
+
+/**
+ * @brief OrderNewLimit3 is wrapper above OrderNewLimit2 with coroutine CoExec
+ *
+ * @tparam Executor
+ */
+template <typename Executor>
+class OrderNewLimit3 : public detail::FamilyLimitOrder{
+  protected:
+    Executor& executor_;
     ExchangeChooser exchange_;
     // pass pairs_ without const due to i want [] operator
     // pass pairs_reverse_ without const due to i want [] operator
@@ -1484,26 +1505,19 @@ class OrderNewLimit2 : public inner::OrderNewI,
     common::TradingPairHashMap& pairs_;
     https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
-};
-
-/**
- * @brief OrderNewLimit3 is wrapper above OrderNewLimit2 with coroutine CoExec
- *
- * @tparam Executor
- */
-template <typename Executor>
-class OrderNewLimit3 : public OrderNewLimit2 {
-  protected:
-    Executor executor_;
 
   public:
-    explicit OrderNewLimit3(Executor&& executor, SignerI* signer,
+    explicit OrderNewLimit3(Executor& executor, SignerI* signer,
                             TypeExchange type,
                             common::TradingPairHashMap& pairs,
                             common::TradingPairReverseHashMap& pairs_reverse,
                             ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : executor_(std::move(executor)),
-          OrderNewLimit2(signer, type, pairs, pairs_reverse, session_pool) {};
+        : executor_(executor),
+         current_exchange_(exchange_.Get(type)),
+          signer_(signer),
+          pairs_(pairs),
+          pairs_reverse_(pairs_reverse),
+          session_pool_(session_pool) {}; 
 
     ~OrderNewLimit3() override = default;
     boost::asio::awaitable<void> CoExec(
@@ -1541,9 +1555,9 @@ class OrderNewLimit3 : public OrderNewLimit2 {
                 bus_event_request_new_order->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("Start sending new limit order request");
-
+                session->RegisterOnResponse(callback);
                 if (auto status =
-                        session->AsyncRequest(std::move(req), callback);
+                        co_await session->AsyncRequest(std::move(req));
                     status == false) {
                     loge("AsyncRequest wasn't sent in io_context");
                 }
@@ -1581,123 +1595,123 @@ class OrderNewLimitComponent : public bus::Component,
     };
 };
 
-class CancelOrder : public inner::CancelOrderI,
-                    public detail::FamilyCancelOrder {
-  public:
-    explicit CancelOrder(SignerI* signer, TypeExchange type,
-                         common::TradingPairHashMap& pairs)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs) {};
-    void Exec(Exchange::RequestCancelOrder* request_cancel_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(request_cancel_order, pairs_);
+// class CancelOrder : public inner::CancelOrderI,
+//                     public detail::FamilyCancelOrder {
+//   public:
+//     explicit CancelOrder(SignerI* signer, TypeExchange type,
+//                          common::TradingPairHashMap& pairs)
+//         : current_exchange_(exchange_.Get(type)),
+//           signer_(signer),
+//           pairs_(pairs) {};
+//     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
+//               Exchange::ClientResponseLFQueue* response_lfqueue) override {
+//         ArgsOrder args(request_cancel_order, pairs_);
 
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyCancelOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::delete_,
-                                       signer_,
-                                       need_sign};
-        boost::asio::io_context ioc;
-        OnHttpsResponce cb;
-        cb = [response_lfqueue, this](
-                 boost::beast::http::response<boost::beast::http::string_body>&
-                     buffer) {
-            const auto& resut = buffer.body();
-            logi("{}", resut);
-            ParserResponse parser(pairs_reverse_);
-            auto answer    = parser.Parse(resut);
-            bool status_op = response_lfqueue->try_enqueue(answer);
-            if (!status_op) [[unlikely]]
-                loge("my queue is full. need clean my queue");
-        };
-        std::make_shared<Https>(ioc, cb)->Run(
-            factory.Host().data(), factory.Port().data(),
-            factory.EndPoint().data(), factory());
-        ioc.run();
-    };
-    ~CancelOrder() override = default;
+//         bool need_sign = true;
+//         detail::FactoryRequest factory{current_exchange_,
+//                                        detail::FamilyCancelOrder::end_point,
+//                                        args,
+//                                        boost::beast::http::verb::delete_,
+//                                        signer_,
+//                                        need_sign};
+//         boost::asio::io_context ioc;
+//         OnHttpsResponce cb;
+//         cb = [response_lfqueue, this](
+//                  boost::beast::http::response<boost::beast::http::string_body>&
+//                      buffer) {
+//             const auto& resut = buffer.body();
+//             logi("{}", resut);
+//             ParserResponse parser(pairs_reverse_);
+//             auto answer    = parser.Parse(resut);
+//             bool status_op = response_lfqueue->try_enqueue(answer);
+//             if (!status_op) [[unlikely]]
+//                 loge("my queue is full. need clean my queue");
+//         };
+//         std::make_shared<Https>(ioc, cb)->Run(
+//             factory.Host().data(), factory.Port().data(),
+//             factory.EndPoint().data(), factory());
+//         ioc.run();
+//     };
+//     ~CancelOrder() override = default;
 
-  private:
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap pairs_reverse_;
-};
+//   private:
+//     ExchangeChooser exchange_;
+//     https::ExchangeI* current_exchange_;
+//     SignerI* signer_;
+//     common::TradingPairHashMap& pairs_;
+//     common::TradingPairReverseHashMap pairs_reverse_;
+// };
 
-class CancelOrder2 : public inner::CancelOrderI,
-                     public detail::FamilyCancelOrder {
-  public:
-    explicit CancelOrder2(SignerI* signer, TypeExchange type,
-                          common::TradingPairHashMap& pairs,
-                          common::TradingPairReverseHashMap& pairs_reverse,
-                          ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs),
-          pairs_reverse_(pairs_reverse),
-          session_pool_(session_pool) {};
-    void Exec(Exchange::RequestCancelOrder* request_cancel_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        if (response_lfqueue == nullptr) {
-            loge("response_lfqueue == nullptr");
-            return;
-        }
-        if (session_pool_ == nullptr) {
-            loge("session_pool_ == nullptr");
-            return;
-        }
-        logd("start exec");
-        ArgsOrder args(request_cancel_order, pairs_);
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyCancelOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::delete_,
-                                       signer_,
-                                       need_sign};
-        logd("start prepare cancel request");
-        auto req = factory();
-        logd("end prepare cancel request");
+// class CancelOrder2 : public inner::CancelOrderI,
+//                      public detail::FamilyCancelOrder {
+//   public:
+//     explicit CancelOrder2(SignerI* signer, TypeExchange type,
+//                           common::TradingPairHashMap& pairs,
+//                           common::TradingPairReverseHashMap& pairs_reverse,
+//                           ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+//         : current_exchange_(exchange_.Get(type)),
+//           signer_(signer),
+//           pairs_(pairs),
+//           pairs_reverse_(pairs_reverse),
+//           session_pool_(session_pool) {};
+//     void Exec(Exchange::RequestCancelOrder* request_cancel_order,
+//               Exchange::ClientResponseLFQueue* response_lfqueue) override {
+//         if (response_lfqueue == nullptr) {
+//             loge("response_lfqueue == nullptr");
+//             return;
+//         }
+//         if (session_pool_ == nullptr) {
+//             loge("session_pool_ == nullptr");
+//             return;
+//         }
+//         logd("start exec");
+//         ArgsOrder args(request_cancel_order, pairs_);
+//         bool need_sign = true;
+//         detail::FactoryRequest factory{current_exchange_,
+//                                        detail::FamilyCancelOrder::end_point,
+//                                        args,
+//                                        boost::beast::http::verb::delete_,
+//                                        signer_,
+//                                        need_sign};
+//         logd("start prepare cancel request");
+//         auto req = factory();
+//         logd("end prepare cancel request");
 
-        auto cb =
-            [response_lfqueue, this](
-                boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer) {
-                const auto& resut = buffer.body();
-                logi("{}", resut);
-                ParserResponse parser(pairs_reverse_);
-                auto answer    = parser.Parse(resut);
-                bool status_op = response_lfqueue->try_enqueue(answer);
-                if (!status_op) [[unlikely]]
-                    loge("my queue is full. need clean my queue");
-            };
+//         auto cb =
+//             [response_lfqueue, this](
+//                 boost::beast::http::response<boost::beast::http::string_body>&
+//                     buffer) {
+//                 const auto& resut = buffer.body();
+//                 logi("{}", resut);
+//                 ParserResponse parser(pairs_reverse_);
+//                 auto answer    = parser.Parse(resut);
+//                 bool status_op = response_lfqueue->try_enqueue(answer);
+//                 if (!status_op) [[unlikely]]
+//                     loge("my queue is full. need clean my queue");
+//             };
 
-        auto session = session_pool_->AcquireConnection();
-        logd("start send cancel request");
+//         auto session = session_pool_->AcquireConnection();
+//         logd("start send cancel request");
+//         session->RegisterOnResponse(cb);
+//         if (auto status = session->AsyncRequest(std::move(req));
+//             status == false)
+//             loge("AsyncRequest wasn't sent in io_context");
 
-        if (auto status = session->AsyncRequest(std::move(req), cb);
-            status == false)
-            loge("AsyncRequest wasn't sent in io_context");
+//         logd("end send cancel request");
+//         // session_pool_->ReleaseConnection(session);
+//     };
+//     ~CancelOrder2() override = default;
 
-        logd("end send cancel request");
-        // session_pool_->ReleaseConnection(session);
-    };
-    ~CancelOrder2() override = default;
+//   private:
+//     ExchangeChooser exchange_;
+//     common::TradingPairReverseHashMap& pairs_reverse_;
 
-  private:
-    ExchangeChooser exchange_;
-    common::TradingPairReverseHashMap& pairs_reverse_;
-
-  protected:
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    https::ExchangeI* current_exchange_;
-    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
-};
+//   protected:
+//     SignerI* signer_;
+//     common::TradingPairHashMap& pairs_;
+//     https::ExchangeI* current_exchange_;
+//     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+// };
 
 /**
  * @brief CancelOrder3 is wrapper above CancelOrder2 with coroutine CoExec
@@ -1705,7 +1719,13 @@ class CancelOrder2 : public inner::CancelOrderI,
  * @tparam Executor
  */
 template <typename Executor>
-class CancelOrder3 : public CancelOrder2 {
+class CancelOrder3 : public detail::FamilyCancelOrder{
+    ExchangeChooser exchange_;
+    common::TradingPairReverseHashMap& pairs_reverse_;
+    SignerI* signer_;
+    common::TradingPairHashMap& pairs_;
+    https::ExchangeI* current_exchange_;
+    ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
   protected:
     Executor executor_;
 
@@ -1715,7 +1735,11 @@ class CancelOrder3 : public CancelOrder2 {
                           common::TradingPairReverseHashMap& pairs_reverse,
                           ::V2::ConnectionPool<HTTPSesionType>* session_pool)
         : executor_(std::move(executor)),
-          CancelOrder2(signer, type, pairs, pairs_reverse, session_pool) {};
+        current_exchange_(exchange_.Get(type)),
+           signer_(signer),
+           pairs_(pairs),
+           pairs_reverse_(pairs_reverse),
+           session_pool_(session_pool) {};
     boost::asio::awaitable<void> CoExec(
         Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
         const OnHttpsResponce& callback) override {
@@ -1751,9 +1775,10 @@ class CancelOrder3 : public CancelOrder2 {
 
                 auto session = session_pool_->AcquireConnection();
                 logd("start send cancel request");
+                session->RegisterOnResponse(callback);
 
                 if (auto status =
-                        session->AsyncRequest(std::move(req), callback);
+                        co_await session->AsyncRequest(std::move(req));
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -2016,9 +2041,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 // bus_event_request_new_snapshot->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
-
-                if (auto status = co_await session->AsyncRequest(std::move(req),
-                                                                 callback);
+                session->RegisterOnResponse(*callback);
+                if (auto status = co_await session->AsyncRequest(std::move(req));
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -2465,20 +2489,20 @@ class BidAskGeneratorComponent : public bus::Component {
     }
 };
 
-class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
-    common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
+// class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
+//     common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
 
-  public:
-    explicit HttpsConnectionPoolFactory(size_t default_number_session = 10)
-        : pool_(default_number_session) {};
-    ~HttpsConnectionPoolFactory() override = default;
-    virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
-        boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
-        std::size_t pool_size, https::ExchangeI* exchange) override {
-        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
-                              exchange->Port());
-    };
-};
+//   public:
+//     explicit HttpsConnectionPoolFactory(size_t default_number_session = 10)
+//         : pool_(default_number_session) {};
+//     ~HttpsConnectionPoolFactory() override = default;
+//     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
+//         boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
+//         std::size_t pool_size, https::ExchangeI* exchange) override {
+//         return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
+//                               exchange->Port());
+//     };
+// };
 class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     common::MemoryPool<::V2::ConnectionPool<HTTPSesionType3>> pool_;
 

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "aot/Exchange.h"
+#include "aot/bus/bus.h"
 #include "aot/Logger.h"
 #include "aot/common/mem_pool.h"
 #include "aot/common/thread_utils.h"
@@ -161,6 +162,25 @@ class MarketOrderBook {
 };
 
 class MarketOrderBook2 {
+    //template class to store all subscribers on MarketOrderBook2 signals
+    template <typename SignalType>
+    class SignalEmitter {
+        using SignalCallback = std::function<void(const SignalType&)>;
+        std::vector<SignalCallback> subscribers_;
+
+    public:
+        void Subscribe(SignalCallback callback) {
+            subscribers_.emplace_back(std::move(callback));
+        }
+
+        void Emit(const SignalType& signal) {
+            for (const auto& subscriber : subscribers_) {
+                if (subscriber) {
+                    subscriber(signal);
+                }
+            }
+        }
+    };
     /// Pointers to beginning / best prices / top of book of buy and sell price
     /// levels.
     /// Hash map from Price -> MarketOrdersAtPrice.
@@ -173,7 +193,7 @@ class MarketOrderBook2 {
     /// Memory pool to manage MarketOrdersAtPrice objects.
     common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_{
         common::ME_MAX_ORDERS_AT_PRICE};
-
+    SignalEmitter<BBO> bbo_signal_emitter_;
   public:
     explicit MarketOrderBook2(common::ExchangeId exchange_id,
                               common::TradingPair trading_pair)
@@ -219,6 +239,10 @@ class MarketOrderBook2 {
     }
     const common::TradingPair &GetTradingPair() const noexcept {
         return trading_pair_;
+    }
+    // Подписчики на BBO
+    void SubscribeToBBO(std::function<void(const BBO&)> callback) {
+        bbo_signal_emitter_.Subscribe(std::move(callback));
     }
     void ClearOrderBook() {
         logi("found {} bids in order book", bids_at_price_map_.size());
@@ -359,11 +383,17 @@ class OrderBookComponent : public bus::Component {
                            common::TradingPairHash, common::TradingPairEqual>>;
 
     Executor executor_;
+    aot::CoBus& bus_;
     OrderBookMap order_books_;
+    Trading::NewBBOPool new_bbo_pool_;
+    Trading::BusEventNewBBOPool bus_event_new_bbo_pool_;
 
   public:
-    explicit OrderBookComponent(Executor &&executor)
-        : executor_(std::move(executor)) {}
+    explicit OrderBookComponent(Executor &&executor, aot::CoBus& bus, uint64_t max_new_bbo_)
+        : executor_(std::move(executor)),
+        bus_(bus),
+        new_bbo_pool_{max_new_bbo_},
+        bus_event_new_bbo_pool_{max_new_bbo_} {}
     ~OrderBookComponent() override = default;
 
     void AsyncHandleEvent(
@@ -396,6 +426,14 @@ class OrderBookComponent : public bus::Component {
         if (result.second) {
             logi("[MarketOrderBook2 inserted successfully!] with {} {}",
                  exchange_id, trading_pair.ToString());
+            MarketOrderBook2& order_book = result.first->second;
+
+            // Подписка на сигналы BBO
+            order_book.SubscribeToBBO([this, exchange_id, trading_pair](const BBO& bbo) {
+                SendBBOToBus(exchange_id, trading_pair, bbo);
+            });
+            logi("add subscription to BBO for ob with {} {}", exchange_id, trading_pair.ToString());
+
         } else {
             logi(
                 "[MarketOrderBook2 already exists in the inner map!] with {} {}",
@@ -451,6 +489,21 @@ class OrderBookComponent : public bus::Component {
         order_book.OnMarketUpdate(wrapped_event);
 
         co_return;
+    }
+    void SendBBOToBus(common::ExchangeId exchange_id,
+                      const common::TradingPair& trading_pair,
+                      const BBO& bbo) {
+        auto request = new_bbo_pool_.Allocate(
+            &new_bbo_pool_, exchange_id, trading_pair, bbo);
+        auto intr_ptr_request =
+            boost::intrusive_ptr<NewBBO>(request);
+
+        auto bus_event = bus_event_new_bbo_pool_.Allocate(
+            &bus_event_new_bbo_pool_, intr_ptr_request);
+        auto intr_ptr_bus_request =
+            boost::intrusive_ptr<BusEventNewBBO>(bus_event);
+
+        bus_.AsyncSend(this, intr_ptr_bus_request);
     }
 };
 

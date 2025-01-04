@@ -10,7 +10,7 @@ namespace aot{
         // Wallet class to represent wallet data
         class Wallet {
         public:
-            Wallet(std::string_view& exchange, std::string_view& ticker, double balance)
+            Wallet(std::string_view exchange, std::string_view ticker, double balance)
                 : exchange(exchange), ticker(ticker), balance(balance) {}
 
             // Serialize to protobuf

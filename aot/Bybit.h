@@ -1351,9 +1351,8 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 // bus_event_request_new_snapshot->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
-
-                if (auto status = co_await session->AsyncRequest(std::move(req),
-                                                                 callback);
+                session->RegisterOnResponse(*callback);
+                if (auto status = co_await session->AsyncRequest(std::move(req));
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 

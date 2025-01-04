@@ -8,6 +8,7 @@
 #include "aot/WS.h"
 #include "aot/config/config.h"
 #include "aot/strategy/market_order_book.h"
+#include "aot/redpanda_client/redpanda_client.h"
 
 
 char** argv = nullptr;
@@ -503,7 +504,7 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
         {2,1}, &cb_on_close_session);
     //------------------------------------------------------------------------------
     //--------------------------Order book component--------------------------------
-    Trading::OrderBookComponent order_book_component(boost::asio::make_strand(thread_pool));
+    Trading::OrderBookComponent order_book_component(boost::asio::make_strand(thread_pool), bus, 1000);
     order_book_component.AddOrderBook(common::ExchangeId::kBinance, {2,1});
     //------------------------------------------------------------------------------
 
@@ -540,12 +541,17 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
             ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::SELL);
             ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::BUY);
         });
-
+    //--------------------------red panda component--------------------------------
+    std::string_view brokers = "localhost:19092";  // Specify your Redpanda broker address here
+    auto redpanda_executor = boost::asio::make_strand(thread_pool);
+    aot::RedPandaComponent red_panda_component(redpanda_executor, brokers);
+    //------------------------------------------------------------------------------
     bus.Subscribe(&bid_ask_generator, &component);
     bus.Subscribe(&bid_ask_generator, &event_getter_component);
     bus.Subscribe(&component, &bid_ask_generator);
     bus.Subscribe(&event_getter_component, &bid_ask_generator);
     bus.Subscribe(&bid_ask_generator, &order_book_component);
+    bus.Subscribe(&order_book_component, &red_panda_component);
 
     //------------------------------------------------------------------------------
     BusEventRequestBBOPrice request_bbo_btc;

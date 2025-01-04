@@ -9,7 +9,7 @@ namespace models {
 // Pnl class to represent profit and loss data
 class Pnl {
   public:
-    Pnl(std::string_view& exchange, std::string_view& tradingPair,
+    Pnl(std::string_view exchange, std::string_view tradingPair,
         double realized, double unrealized)
         : exchange(exchange),
           tradingPair(tradingPair),

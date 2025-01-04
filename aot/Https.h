@@ -1,5 +1,12 @@
 #pragma once
 
+#include <functional>
+#include <future>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+
 #include "boost/asio.hpp"
 #include "boost/asio/as_tuple.hpp"
 #include "boost/asio/co_spawn.hpp"
@@ -11,18 +18,13 @@
 #include "boost/beast/ssl.hpp"
 #include "boost/beast/version.hpp"
 #include "boost/noncopyable.hpp"
-#include <functional>
-#include <future>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <unordered_map>
 
 // #include "aot/Exchange.h"
 #include "aot/Logger.h"
 #include "aot/Types.h"
 #include "aot/common/mem_pool.h"
 #include "aot/root_certificates.hpp"
+#include "aot/session_status.h"
 #include "concurrentqueue.h"
 
 namespace beast = boost::beast;          // from <boost/beast.hpp>
@@ -52,7 +54,7 @@ class Https {
 };
 
 namespace V2 {
-template <typename _Timeout, typename ...AdditionalArgs>
+template <typename _Timeout, typename... AdditionalArgs>
 class HttpsSession {
   public:
     using Timeout = _Timeout;
@@ -78,13 +80,11 @@ class HttpsSession {
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
     virtual ~HttpsSession() = default;
-    explicit HttpsSession(boost::asio::io_context& ioc, 
-                            ssl::context& ctx,
-                             _Timeout timeout, 
-                                
-                            const std::string_view host,
-                          const std::string_view port,
-                          AdditionalArgs&& ...)
+    explicit HttpsSession(boost::asio::io_context& ioc, ssl::context& ctx,
+                          _Timeout timeout,
+
+                          const std::string_view host,
+                          const std::string_view port, AdditionalArgs&&...)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
@@ -104,7 +104,7 @@ class HttpsSession {
         cb_      = handler;
         req_     = std::move(req);
         // Set up the timer for session expiration
-        //start_timer();
+        // start_timer();
 
         // Send the HTTP request asynchronously
         http::async_write(
@@ -144,7 +144,6 @@ class HttpsSession {
             std::cerr << ec.message() << "\n";
             return;
         }
-
 
         // Start the timer for expiration
         start_timer();
@@ -232,7 +231,7 @@ class HttpsSession {
     }
 };
 
-template <typename _Timeout, typename ...AdditionalArgs>
+template <typename _Timeout, typename... AdditionalArgs>
 class HttpsSession2 {
   public:
     using Timeout = _Timeout;
@@ -258,13 +257,11 @@ class HttpsSession2 {
     boost::asio::steady_timer timer_;  // Timer to track session expiration
   public:
     virtual ~HttpsSession2() = default;
-    explicit HttpsSession2(boost::asio::io_context& ioc, 
-                            ssl::context& ctx,
-                             _Timeout timeout, 
-                                
-                            const std::string_view host,
-                          const std::string_view port,
-                          AdditionalArgs&& ...)
+    explicit HttpsSession2(boost::asio::io_context& ioc, ssl::context& ctx,
+                           _Timeout timeout,
+
+                           const std::string_view host,
+                           const std::string_view port, AdditionalArgs&&...)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
@@ -284,7 +281,7 @@ class HttpsSession2 {
         cb_      = handler;
         req_     = std::move(req);
         // Set up the timer for session expiration
-        //start_timer();
+        // start_timer();
 
         // Send the HTTP request asynchronously
         http::async_write(
@@ -324,7 +321,6 @@ class HttpsSession2 {
             std::cerr << ec.message() << "\n";
             return;
         }
-
 
         // Start the timer for expiration
         start_timer();
@@ -413,139 +409,315 @@ class HttpsSession2 {
     }
 };
 
+// template <typename _Timeout, typename... AdditionalArgs>
+// class HttpsSession3 {
+// public:
+//     using Timeout = _Timeout;
+
+// private:
+//     bool is_connected_ = false;
+//     bool is_used_      = false;
+//     bool is_expired_   = false;
+//     bool is_shutting_down_ = false;  // Flag to indicate if shutdown is in
+//     progress
+
+//     boost::beast::http::request<boost::beast::http::string_body> req_;
+//     tcp::resolver resolver_;
+//     beast::ssl_stream<beast::tcp_stream> stream_;
+//     beast::flat_buffer buffer_;
+//     http::response<http::string_body> res_;
+//     const OnHttpsResponce* cb_;
+//     boost::asio::io_context& ioc_;
+//     Timeout timeout_;
+//     boost::asio::steady_timer timer_;
+
+// public:
+//     virtual ~HttpsSession3() = default;
+//     explicit HttpsSession3(boost::asio::io_context& ioc, ssl::context& ctx,
+//     _Timeout timeout, const std::string_view host, const std::string_view
+//     port, AdditionalArgs&&...)
+//         : resolver_(net::make_strand(ioc)),
+//           stream_(net::make_strand(ioc), ctx),
+//           ioc_(ioc),
+//           timeout_(timeout),
+//           timer_(ioc) {
+//         net::co_spawn(ioc_, Run(host.data(), port.data()),
+//         [](std::exception_ptr e) {
+//             if (e) std::rethrow_exception(e);
+//         });
+//     }
+
+//     template <typename CompletionHandler>
+//     net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req,
+//     const CompletionHandler* handler) {
+//         if (!IsConnected() || IsUsed()) co_return false;
+//         req_ = std::move(req);
+//         cb_ = handler;
+//         is_used_ = true;
+//         // slot.assign([this](boost::asio::cancellation_type_t) {
+//         //     AsyncCloseSessionGracefully();
+//         // });
+//         auto [ec_write, bytes_written] = co_await http::async_write(stream_,
+//         req_, net::as_tuple(net::use_awaitable)); if (ec_write) {
+//             if (ec_write == net::error::operation_aborted) {
+//                 logd("Operation cancelled");
+//             } else {
+//                 fail(ec_write, "write");
+//             }
+//             co_return false;
+//         }
+
+//         auto [ec_read, bytes_read] = co_await http::async_read(stream_,
+//         buffer_, res_, net::as_tuple(net::use_awaitable)); if (ec_read) {
+//             if (ec_read == net::error::operation_aborted) {
+//                 logd("Operation cancelled");
+//             } else {
+//                 fail(ec_read, "read");
+//             }
+//             co_return false;
+//         }
+//         try{
+//             if (cb_) (*cb_)(res_);
+//         }
+//         catch (const boost::system::system_error& e) {
+//             logi("Exception in cb: {}", e.what());
+//             co_return false;
+//         }
+//         AsyncCloseSessionGracefully();
+//         co_return true;
+//     }
+
+//     // Close the session gracefully
+//     void AsyncCloseSessionGracefully() {
+//        boost::asio::post(ioc_, [this]() {
+//         if (is_shutting_down_) {
+//             logi("Shutdown is already in progress.");
+//             return;
+//         }
+//         is_shutting_down_ = true;
+
+//         stream_.async_shutdown([this](beast::error_code ec) {
+//             if (ec) {
+//                 // Если `shutdown` завершился с ошибкой, логируем её, но всё
+//                 равно закрываем соединение logi("SSL shutdown failed: {}",
+//                 ec.message());
+//             }
+
+//             // close tcp connection
+//             close_session();
+//         });
+//     });
+//     }
+
+//     inline bool IsConnected() const { return is_connected_; }
+//     inline bool IsExpired() const { return is_expired_; }
+//     inline bool IsUsed() const { return is_used_; }
+
+// private:
+//     net::awaitable<void> Run(const char* host, const char* port) {
+//         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
+//             auto ec = beast::error_code(static_cast<int>(::ERR_get_error()),
+//             net::error::get_ssl_category()); loge("{}", ec.message());
+//             co_return;
+//         }
+//         boost::beast::error_code ec;
+//         start_timer();
+//         auto results = co_await resolver_.async_resolve(host, port,
+//         net::use_awaitable);
+
+//         auto ep = co_await
+//         beast::get_lowest_layer(stream_).async_connect(results,
+//         net::use_awaitable);
+//         beast::get_lowest_layer(stream_).expires_never();
+
+//         co_await stream_.async_handshake(ssl::stream_base::client,
+//                                               boost::asio::redirect_error(boost::asio::use_awaitable,
+//                                               ec));
+
+//         if (ec) {
+//             loge("fail handshake");
+//             co_return;
+//         }
+
+//         is_connected_ = true;
+//     }
+
+//     void start_timer() {
+//         timer_.expires_after(timeout_);
+//         timer_.async_wait([this](beast::error_code ec) {
+//             if (ec != boost::asio::error::operation_aborted) {
+//                 fail(ec, "session expired. it is closed by async timer");
+//                 close_session();
+//             }
+//         });
+//     }
+
+//     void fail(beast::error_code ec, const char* what) {
+//         logi("{}: {}", what, ec.message());
+//         close_session();
+//     }
+
+//     void close_session() {
+//         beast::get_lowest_layer(stream_).close();
+//         is_expired_ = true;
+//     }
+// };
+
 template <typename _Timeout, typename... AdditionalArgs>
 class HttpsSession3 {
-public:
+  public:
     using Timeout = _Timeout;
 
-private:
-    bool is_connected_ = false;
-    bool is_used_      = false;
-    bool is_expired_   = false;
-    bool is_shutting_down_ = false;  // Flag to indicate if shutdown is in progress
-
-
+  private:
     boost::beast::http::request<boost::beast::http::string_body> req_;
     tcp::resolver resolver_;
     beast::ssl_stream<beast::tcp_stream> stream_;
     beast::flat_buffer buffer_;
     http::response<http::string_body> res_;
-    const OnHttpsResponce* cb_;
     boost::asio::io_context& ioc_;
     Timeout timeout_;
     boost::asio::steady_timer timer_;
+    aot::StatusSession status_ = aot::StatusSession::Resolving;
 
-public:
+    // Callback functions
+    std::function<void(http::response<http::string_body>&)> on_response_;
+    std::function<void()> on_ready_;
+    std::function<void()> on_expired_;
+    std::function<void()> on_closed_;
+
+  public:
     virtual ~HttpsSession3() = default;
-    explicit HttpsSession3(boost::asio::io_context& ioc, ssl::context& ctx, _Timeout timeout, const std::string_view host, const std::string_view port, AdditionalArgs&&...)
+
+    explicit HttpsSession3(boost::asio::io_context& ioc, ssl::context& ctx,
+                           _Timeout timeout, const std::string_view host,
+                           const std::string_view port, AdditionalArgs&&...)
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
           timeout_(timeout),
           timer_(ioc) {
-        net::co_spawn(ioc_, Run(host.data(), port.data()), [](std::exception_ptr e) {
-            if (e) std::rethrow_exception(e);
-        });
+        net::co_spawn(ioc_, Run(host.data(), port.data()),
+                      [](std::exception_ptr e) {
+                          if (e) std::rethrow_exception(e);
+                      });
     }
 
-    template <typename CompletionHandler>
-    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req, const CompletionHandler* handler) {
-        if (!IsConnected() || IsUsed()) co_return false;
-        req_ = std::move(req);
-        cb_ = handler;
-        is_used_ = true;
-        // slot.assign([this](boost::asio::cancellation_type_t) {
-        //     AsyncCloseSessionGracefully();
-        // });
-        auto [ec_write, bytes_written] = co_await http::async_write(stream_, req_, net::as_tuple(net::use_awaitable));
+    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req) {
+        if (status_ != aot::StatusSession::Ready) co_return false;
+        req_                           = std::move(req);
+
+        auto [ec_write, bytes_written] = co_await http::async_write(
+            stream_, req_, net::as_tuple(net::use_awaitable));
         if (ec_write) {
-            if (ec_write == net::error::operation_aborted) {
-                logd("Operation cancelled");
-            } else {
-                fail(ec_write, "write");
-            }
+            fail(ec_write, "write");
             co_return false;
         }
 
-        auto [ec_read, bytes_read] = co_await http::async_read(stream_, buffer_, res_, net::as_tuple(net::use_awaitable));
+        auto [ec_read, bytes_read] = co_await http::async_read(
+            stream_, buffer_, res_, net::as_tuple(net::use_awaitable));
         if (ec_read) {
-            if (ec_read == net::error::operation_aborted) {
-                logd("Operation cancelled");
-            } else {
-                fail(ec_read, "read");
-            }
+            fail(ec_read, "read");
             co_return false;
         }
-        try{
-            if (cb_) (*cb_)(res_);
-        }
-        catch (const boost::system::system_error& e) {
-            logi("Exception in cb: {}", e.what());
-            co_return false;
-        }
+
+        if (on_response_) on_response_(res_);
         AsyncCloseSessionGracefully();
         co_return true;
     }
 
-    // Close the session gracefully
     void AsyncCloseSessionGracefully() {
-       boost::asio::post(ioc_, [this]() {
-        if (is_shutting_down_) {
-            logi("Shutdown is already in progress.");
+        // if session already closed don't need in close
+        if (status_ == aot::StatusSession::Closing ||
+            status_ == aot::StatusSession::Expired)
             return;
-        }
-        is_shutting_down_ = true;
 
-        stream_.async_shutdown([this](beast::error_code ec) {
-            if (ec) {
-                // Если `shutdown` завершился с ошибкой, логируем её, но всё равно закрываем соединение
-                logi("SSL shutdown failed: {}", ec.message());
-            }
-
-            // close tcp connection
-            close_session();
+        status_ = aot::StatusSession::Closing;
+        boost::asio::post(ioc_, [this]() {
+            stream_.async_shutdown([this](beast::error_code ec) {
+                if (ec) logi("SSL shutdown failed: {}", ec.message());
+                close_session();
+            });
         });
-    });
     }
 
-    inline bool IsConnected() const { return is_connected_; }
-    inline bool IsExpired() const { return is_expired_; }
-    inline bool IsUsed() const { return is_used_; }
+    inline aot::StatusSession GetStatus() const { return status_; }
 
-private:
+    // Register/Unregister callbacks
+    void RegisterOnResponse(
+        std::function<void(http::response<http::string_body>&)>
+            callback) {
+        on_response_ = std::move(callback);
+    }
+
+    void UnregisterOnResponse() { on_response_ = nullptr; }
+
+    void RegisterOnReady(std::function<void()> callback) {
+        on_ready_ = std::move(callback);
+    }
+
+    void UnregisterOnReady() { on_ready_ = nullptr; }
+
+    void RegisterOnExpired(std::function<void()> callback) {
+        on_expired_ = std::move(callback);
+    }
+
+    void UnregisterOnExpired() { on_expired_ = nullptr; }
+
+    void RegisterOnClosed(std::function<void()> callback) {
+        on_closed_ = std::move(callback);
+    }
+
+    void UnregisterOnClosed() { on_closed_ = nullptr; }
+
+  private:
     net::awaitable<void> Run(const char* host, const char* port) {
         if (!SSL_set_tlsext_host_name(stream_.native_handle(), host)) {
-            auto ec = beast::error_code(static_cast<int>(::ERR_get_error()), net::error::get_ssl_category());
-            loge("{}", ec.message());
+            fail(beast::error_code(static_cast<int>(::ERR_get_error()),
+                                   net::error::get_ssl_category()),
+                 "SSL set host");
             co_return;
         }
+
         boost::beast::error_code ec;
         start_timer();
-        auto results = co_await resolver_.async_resolve(host, port, net::use_awaitable);
 
-        auto ep = co_await beast::get_lowest_layer(stream_).async_connect(results, net::use_awaitable);
-        beast::get_lowest_layer(stream_).expires_never();
+        status_ = aot::StatusSession::Resolving;
+        auto results =
+            co_await resolver_.async_resolve(host, port, net::use_awaitable);
 
+        status_ = aot::StatusSession::Connecting;
+        co_await beast::get_lowest_layer(stream_).async_connect(
+            results, net::use_awaitable);
 
-        co_await stream_.async_handshake(ssl::stream_base::client,
-                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-
+        status_ = aot::StatusSession::Handshaking;
+        co_await stream_.async_handshake(
+            ssl::stream_base::client,
+            boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec) {
-            loge("fail handshake");
+            fail(ec, "handshake");
             co_return;
         }
 
-        is_connected_ = true;
+        status_ = aot::StatusSession::Ready;
+        if (on_ready_) on_ready_();
+        cancel_timer();
     }
 
     void start_timer() {
         timer_.expires_after(timeout_);
         timer_.async_wait([this](beast::error_code ec) {
             if (ec != boost::asio::error::operation_aborted) {
-                fail(ec, "session expired. it is closed by async timer");
+                fail(ec, "session expired");
+                status_ = aot::StatusSession::Expired;
+                if (on_expired_) on_expired_();
                 close_session();
             }
         });
+    }
+
+    void cancel_timer() {
+        boost::system::error_code ec;
+        timer_.cancel(ec);
     }
 
     void fail(beast::error_code ec, const char* what) {
@@ -555,20 +727,14 @@ private:
 
     void close_session() {
         beast::get_lowest_layer(stream_).close();
-        is_expired_ = true;
+        status_ = aot::StatusSession::Expired;
+        if (on_closed_) on_closed_();
     }
 };
 
 template <typename HTTPSessionType, typename... Args>
 class ConnectionPool {
-    moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
-    moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
-    moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
-    moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
-
-    std::unique_ptr<std::jthread> timeout_thread_;
-    std::promise<void> helper_thread_finished;
-    std::future<void> block_until_helper_thread_finished;
+    moodycamel::ConcurrentQueue<HTTPSessionType*> awaiable_connections_;
 
     boost::asio::io_context& ioc_;
     ssl::context ssl_ctx_{ssl::context::sslv23};
@@ -578,10 +744,13 @@ class ConnectionPool {
     common::MemoryPool<HTTPSessionType> session_pool_;
     HTTPSessionType::Timeout timeout_;
     std::tuple<std::decay_t<Args>...> ctor_args_;
+
   public:
-    ConnectionPool(boost::asio::io_context& ioc, HTTPSessionType::Timeout timeout, size_t pool_size, const std::string_view host, const std::string_view port, Args&&... args)
-        : block_until_helper_thread_finished(
-              helper_thread_finished.get_future()),
+    ConnectionPool(boost::asio::io_context& ioc,
+                   HTTPSessionType::Timeout timeout, size_t pool_size,
+                   const std::string_view host, const std::string_view port,
+                   Args&&... args)
+        : 
           ioc_(ioc),
           host_(host),
           port_(port),
@@ -591,185 +760,296 @@ class ConnectionPool {
           ctor_args_(std::forward<Args>(args)...) {
         for (std::size_t i = 0; i < pool_size; ++i) {
             auto session = CreateSession();
-            until_handshake_connections_.enqueue(session);
-        }
-        timeout_thread_ =
-            std::make_unique<std::jthread>([this](std::stop_token stoken) {
-                this->MonitorConnections(stoken);
+            session->RegisterOnReady([this, session]() {
+                awaiable_connections_.try_enqueue(session);
             });
+            session->RegisterOnClosed([this, session]() {
+                auto session = CreateSession();
+                session->RegisterOnReady([this, session]() {
+                    awaiable_connections_.try_enqueue(session);
+                });
+                awaiable_connections_.try_enqueue(session);
+            });
+        }
     }
-
-    ~ConnectionPool() {
-        timeout_thread_->request_stop();
-        block_until_helper_thread_finished.wait();
-        // Deallocate all HttpsSession objects
-        FreeQueue(until_handshake_connections_);
-        FreeQueue(after_handshake_connections_);
-        FreeQueue(used_connections_);
-        FreeQueue(expired_connections_);
-    }
-
     // Acquire a connection from the pool
     HTTPSessionType* AcquireConnection() {
         HTTPSessionType* session = nullptr;
-        while (!after_handshake_connections_.try_dequeue(session)) {
-            //block until get new handshaked connection;
-        }
-        ReleaseConnection(session);
-        return session;
-    }
-
-    // Release a connection back to the pool
-    void CloseAllSessions() {
-    // Stop the helper thread and wait for it to finish
-        logd("[START CLOSE ALL SESSION]");
-        timeout_thread_->request_stop();
-        block_until_helper_thread_finished.wait();
-        // Now proceed to close all sessions
-        CloseQueueSessions(until_handshake_connections_);
-        CloseQueueSessions(after_handshake_connections_);
-        CloseQueueSessions(used_connections_);
-        CloseQueueSessions(expired_connections_);
-        logd("[END CLOSE ALL SESSION]");
-
-    }
-
-  private:
-      void ReleaseConnection(HTTPSessionType* session) {
-        if (!session) return;
-        if(auto status = used_connections_.try_enqueue(session); !status)
-            loge("can't enque session in used_connections_");
-    }
-    void MonitorConnections(std::stop_token stoken) {
-        HTTPSessionType* until_handshake_session[100];
-        HTTPSessionType* after_handshake_session[100];
-        HTTPSessionType* used_session[100];
-
-        while (!stoken.stop_requested()) {
-            size_t count_until_handshake = until_handshake_connections_.try_dequeue_bulk(until_handshake_session, 100);
-            for (size_t i = 0; i < count_until_handshake; i++)
-                ProcessSessionUntilHandshake(until_handshake_session[i]);
-
-            size_t count_after_handshake = after_handshake_connections_.try_dequeue_bulk(after_handshake_session, 100);
-            for (size_t i = 0; i < count_after_handshake; i++)
-                ProcessSessionAfterHandshake(after_handshake_session[i]);
-
-            // Process expired connections
-            // if expired due to long waiting
-            HTTPSessionType* expired_session = nullptr;
-            while (expired_connections_.try_dequeue(expired_session)) {
-                ReplaceTimedOutConnection(expired_session);
-            }
-
-            size_t count_used =
-                used_connections_.try_dequeue_bulk(used_session, 100);
-            for (size_t i = 0; i < count_used; i++)
-                ProcessUsedSession(used_session[i]);
-
-            auto ready_connection = after_handshake_connections_.size_approx();
-            auto almost_ready_connection = until_handshake_connections_.size_approx();
-            
-            if(int needed_new_connection = pool_size_ - ready_connection - almost_ready_connection; needed_new_connection > 0){
-                logd("add {} new session where ready:{} almost_ready:{}", needed_new_connection, ready_connection, almost_ready_connection);
-                for(auto k = 0; k < needed_new_connection; k++) {
-                    auto new_session = CreateSession();//session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, ctor_args_);
-                    if(auto status = until_handshake_connections_.try_enqueue(new_session); !status)
-                        loge("can't enque connection");
-                }
-            }
-            // Sleep briefly to avoid busy waiting
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
-        }
-        helper_thread_finished.set_value();
-    }
-
-    // Replace a timed-out connection by deleting it and adding a new one
-    void ReplaceTimedOutConnection(HTTPSessionType* session) {
-        session_pool_.Deallocate(session);  // Deallocate the old session
-        //  Create a new session and add it back to the pool
-        auto new_session = CreateSession();
-        until_handshake_connections_.enqueue(new_session);
-    }
-
-    template <typename T>
-    void FreeQueue(T& t) {
-        HTTPSessionType* session;
-        logi("dealocate queue size:{}", t.size_approx());
-        while (t.try_dequeue(session)) {
-            session_pool_.Deallocate(session);
-        }
-    };
-
-    inline void ProcessSessionUntilHandshake(HTTPSessionType* session) {
-        if (session->IsExpired()) {
-            if (!expired_connections_.try_enqueue(session)) {
-                loge("loss session");
-            }
-            return;
-        }
-
-        if (session->IsConnected()) {
-            if (!after_handshake_connections_.try_enqueue(session)) {
-                loge("loss session");
-            }
-            return;
-        }
-
-        if (!until_handshake_connections_.try_enqueue(session)) {
-            loge("loss session");
-        }  // Return active connection back to the
-           // available_connections_
-    }
-
-    inline void ProcessSessionAfterHandshake(HTTPSessionType* session) {
-        if (session->IsExpired()) {
-            expired_connections_.enqueue(
-                session);  // Enqueue expired or already used connections
-        } else {
-            // Return active connection back to the
-            // available_connections_
-            if (auto status = after_handshake_connections_.try_enqueue(session);
-                !status) {
-                loge("loss connection");
-            }
-        }
-    }
-
-    inline void ProcessUsedSession(HTTPSessionType* session) {
-        if(!session->IsUsed())
-        {
-            if (auto status = after_handshake_connections_.try_enqueue(session); !status) {
-                loge("can't enque connection to after_handshake_connections_");
-            }
-            return;
-        }
-        if (session->IsExpired()) {
-            ReplaceTimedOutConnection(session);  // Handle expired connections
-            return;
-        }
         
-            // Return active connection back to the
-            // available_connections_
-        if (auto status = used_connections_.try_enqueue(session); !status) {
-            loge("loss connection");
-        }
-    }
+        // Block until we get a ready session
+        while (session == nullptr || session->GetStatus() != aot::StatusSession::Ready) {
+            // Try to dequeue a session from the available connections
+            while (!awaiable_connections_.try_dequeue(session)) {
+                // Block until a ready session is available
+            }
 
-    template <typename QueueType>
-    void CloseQueueSessions(QueueType& queue) {
-        HTTPSessionType* session = nullptr;
-        while (queue.try_dequeue(session)) {
-            if (session) {
-                session->AsyncCloseSessionGracefully();
+            // Check the status of the session
+            auto status = session->GetStatus();
+            
+            // If the session is expired or closing, release it and try another one
+            if (status == aot::StatusSession::Expired || status == aot::StatusSession::Closing) {
+                session_pool_.Deallocate(session);
+                session = nullptr; // Try to get a new session
+            }
+            // If the session is not ready, enqueue it back to the queue for a retry
+            else if (status != aot::StatusSession::Ready) {
+                awaiable_connections_.try_enqueue(session);
+                session = nullptr; // Try to get another session
             }
         }
+    return session;
     }
 
+    ~ConnectionPool() {}
+    void CloseAllSessions() {
+        // Stop the helper thread and wait for it to finish
+        assert(false);
+    }
+  private:
     HTTPSessionType* CreateSession() {
         // If args are provided, they will be forwarded to Allocate
-        return std::apply([this](auto&&... unpacked_args) {
-            return session_pool_.Allocate(ioc_, ssl_ctx_, timeout_, host_, port_, std::forward<decltype(unpacked_args)>(unpacked_args)...);
-        }, ctor_args_);
+        return std::apply(
+            [this](auto&&... unpacked_args) {
+                return session_pool_.Allocate(
+                    ioc_, ssl_ctx_, timeout_, host_, port_,
+                    std::forward<decltype(unpacked_args)>(unpacked_args)...);
+            },
+            ctor_args_);
     }
 };
+
+// template <typename HTTPSessionType, typename... Args>
+// class ConnectionPool {
+//     moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
+//     moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
+//     moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
+//     moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
+
+//     std::unique_ptr<std::jthread> timeout_thread_;
+//     std::promise<void> helper_thread_finished;
+//     std::future<void> block_until_helper_thread_finished;
+
+//     boost::asio::io_context& ioc_;
+//     ssl::context ssl_ctx_{ssl::context::sslv23};
+//     std::string host_;
+//     std::string port_;
+//     size_t pool_size_;
+//     common::MemoryPool<HTTPSessionType> session_pool_;
+//     HTTPSessionType::Timeout timeout_;
+//     std::tuple<std::decay_t<Args>...> ctor_args_;
+
+//   public:
+//     ConnectionPool(boost::asio::io_context& ioc,
+//                    HTTPSessionType::Timeout timeout, size_t pool_size,
+//                    const std::string_view host, const std::string_view port,
+//                    Args&&... args)
+//         : block_until_helper_thread_finished(
+//               helper_thread_finished.get_future()),
+//           ioc_(ioc),
+//           host_(host),
+//           port_(port),
+//           pool_size_(pool_size),
+//           session_pool_(pool_size),
+//           timeout_(timeout),
+//           ctor_args_(std::forward<Args>(args)...) {
+//         for (std::size_t i = 0; i < pool_size; ++i) {
+//             auto session = CreateSession();
+//             until_handshake_connections_.enqueue(session);
+//         }
+//         timeout_thread_ =
+//             std::make_unique<std::jthread>([this](std::stop_token stoken) {
+//                 this->MonitorConnections(stoken);
+//             });
+//     }
+
+//     ~ConnectionPool() {
+//         timeout_thread_->request_stop();
+//         block_until_helper_thread_finished.wait();
+//         // Deallocate all HttpsSession objects
+//         FreeQueue(until_handshake_connections_);
+//         FreeQueue(after_handshake_connections_);
+//         FreeQueue(used_connections_);
+//         FreeQueue(expired_connections_);
+//     }
+
+//     // Acquire a connection from the pool
+//     HTTPSessionType* AcquireConnection() {
+//         HTTPSessionType* session = nullptr;
+//         while (!after_handshake_connections_.try_dequeue(session)) {
+//             // block until get new handshaked connection;
+//         }
+//         ReleaseConnection(session);
+//         return session;
+//     }
+
+//     // Release a connection back to the pool
+//     void CloseAllSessions() {
+//         // Stop the helper thread and wait for it to finish
+//         logd("[START CLOSE ALL SESSION]");
+//         timeout_thread_->request_stop();
+//         block_until_helper_thread_finished.wait();
+//         // Now proceed to close all sessions
+//         CloseQueueSessions(until_handshake_connections_);
+//         CloseQueueSessions(after_handshake_connections_);
+//         CloseQueueSessions(used_connections_);
+//         CloseQueueSessions(expired_connections_);
+//         logd("[END CLOSE ALL SESSION]");
+//     }
+
+//   private:
+//     void ReleaseConnection(HTTPSessionType* session) {
+//         if (!session) return;
+//         if (auto status = used_connections_.try_enqueue(session); !status)
+//             loge("can't enque session in used_connections_");
+//     }
+//     void MonitorConnections(std::stop_token stoken) {
+//         HTTPSessionType* until_handshake_session[100];
+//         HTTPSessionType* after_handshake_session[100];
+//         HTTPSessionType* used_session[100];
+
+//         while (!stoken.stop_requested()) {
+//             size_t count_until_handshake =
+//                 until_handshake_connections_.try_dequeue_bulk(
+//                     until_handshake_session, 100);
+//             for (size_t i = 0; i < count_until_handshake; i++)
+//                 ProcessSessionUntilHandshake(until_handshake_session[i]);
+
+//             size_t count_after_handshake =
+//                 after_handshake_connections_.try_dequeue_bulk(
+//                     after_handshake_session, 100);
+//             for (size_t i = 0; i < count_after_handshake; i++)
+//                 ProcessSessionAfterHandshake(after_handshake_session[i]);
+
+//             // Process expired connections
+//             // if expired due to long waiting
+//             HTTPSessionType* expired_session = nullptr;
+//             while (expired_connections_.try_dequeue(expired_session)) {
+//                 ReplaceTimedOutConnection(expired_session);
+//             }
+
+//             size_t count_used =
+//                 used_connections_.try_dequeue_bulk(used_session, 100);
+//             for (size_t i = 0; i < count_used; i++)
+//                 ProcessUsedSession(used_session[i]);
+
+//             auto ready_connection = after_handshake_connections_.size_approx();
+//             auto almost_ready_connection =
+//                 until_handshake_connections_.size_approx();
+
+//             if (int needed_new_connection =
+//                     pool_size_ - ready_connection - almost_ready_connection;
+//                 needed_new_connection > 0) {
+//                 logd("add {} new session where ready:{} almost_ready:{}",
+//                      needed_new_connection, ready_connection,
+//                      almost_ready_connection);
+//                 for (auto k = 0; k < needed_new_connection; k++) {
+//                     auto new_session =
+//                         CreateSession();  // session_pool_.Allocate(ioc_,
+//                                           // ssl_ctx_, timeout_, host_, port_,
+//                                           // ctor_args_);
+//                     if (auto status = until_handshake_connections_.try_enqueue(
+//                             new_session);
+//                         !status)
+//                         loge("can't enque connection");
+//                 }
+//             }
+//             // Sleep briefly to avoid busy waiting
+//             std::this_thread::sleep_for(std::chrono::microseconds(10));
+//         }
+//         helper_thread_finished.set_value();
+//     }
+
+//     // Replace a timed-out connection by deleting it and adding a new one
+//     void ReplaceTimedOutConnection(HTTPSessionType* session) {
+//         session_pool_.Deallocate(session);  // Deallocate the old session
+//         //  Create a new session and add it back to the pool
+//         auto new_session = CreateSession();
+//         until_handshake_connections_.enqueue(new_session);
+//     }
+
+//     template <typename T>
+//     void FreeQueue(T& t) {
+//         HTTPSessionType* session;
+//         logi("dealocate queue size:{}", t.size_approx());
+//         while (t.try_dequeue(session)) {
+//             session_pool_.Deallocate(session);
+//         }
+//     };
+
+//     inline void ProcessSessionUntilHandshake(HTTPSessionType* session) {
+//         if (session->IsExpired()) {
+//             if (!expired_connections_.try_enqueue(session)) {
+//                 loge("loss session");
+//             }
+//             return;
+//         }
+
+//         if (session->IsConnected()) {
+//             if (!after_handshake_connections_.try_enqueue(session)) {
+//                 loge("loss session");
+//             }
+//             return;
+//         }
+
+//         if (!until_handshake_connections_.try_enqueue(session)) {
+//             loge("loss session");
+//         }  // Return active connection back to the
+//            // available_connections_
+//     }
+
+//     inline void ProcessSessionAfterHandshake(HTTPSessionType* session) {
+//         if (session->IsExpired()) {
+//             expired_connections_.enqueue(
+//                 session);  // Enqueue expired or already used connections
+//         } else {
+//             // Return active connection back to the
+//             // available_connections_
+//             if (auto status = after_handshake_connections_.try_enqueue(session);
+//                 !status) {
+//                 loge("loss connection");
+//             }
+//         }
+//     }
+
+//     inline void ProcessUsedSession(HTTPSessionType* session) {
+//         if (!session->IsUsed()) {
+//             if (auto status = after_handshake_connections_.try_enqueue(session);
+//                 !status) {
+//                 loge("can't enque connection to after_handshake_connections_");
+//             }
+//             return;
+//         }
+//         if (session->IsExpired()) {
+//             ReplaceTimedOutConnection(session);  // Handle expired connections
+//             return;
+//         }
+
+//         // Return active connection back to the
+//         // available_connections_
+//         if (auto status = used_connections_.try_enqueue(session); !status) {
+//             loge("loss connection");
+//         }
+//     }
+
+//     template <typename QueueType>
+//     void CloseQueueSessions(QueueType& queue) {
+//         HTTPSessionType* session = nullptr;
+//         while (queue.try_dequeue(session)) {
+//             if (session) {
+//                 session->AsyncCloseSessionGracefully();
+//             }
+//         }
+//     }
+
+//     HTTPSessionType* CreateSession() {
+//         // If args are provided, they will be forwarded to Allocate
+//         return std::apply(
+//             [this](auto&&... unpacked_args) {
+//                 return session_pool_.Allocate(
+//                     ioc_, ssl_ctx_, timeout_, host_, port_,
+//                     std::forward<decltype(unpacked_args)>(unpacked_args)...);
+//             },
+//             ctor_args_);
+//     }
+// };
 };  // namespace V2

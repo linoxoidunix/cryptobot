@@ -421,6 +421,6 @@ class fmt::formatter<common::ExchangeId> {
     template <typename Context>
     constexpr auto format(const common::ExchangeId& foo,
                           Context& ctx) const {
-        return fmt::format_to(ctx.out(), "Exchange:{}]", magic_enum::enum_name(foo));
+        return fmt::format_to(ctx.out(), "Exchange:{}", magic_enum::enum_name(foo));
     }
 };

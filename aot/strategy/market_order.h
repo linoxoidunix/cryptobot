@@ -1,14 +1,21 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <sstream>
 #include <vector>
 
-#include "aot/common/types.h"
-#include "aot/Logger.h"
-#include "aot/third_party/emhash/hash_table7.hpp"
 #include "boost/intrusive/avltree.hpp"
 
+#include "aot/common/types.h"
+#include "aot/common/mem_pool.h"
+#include "aot/Logger.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/bus/bus_event.h"
+
+namespace bus {
+    class Component;
+}
 struct BBOI {
     virtual common::Price GetWeightedPrice() const = 0;
     virtual ~BBOI() = default;
@@ -133,7 +140,80 @@ struct BBO : BBOI {
     explicit BBO() = default;
     ~BBO() override = default;
 };
-}  // namespace Trading
+
+struct NewBBO;
+using NewBBOPool = common::MemoryPool<NewBBO>;
+
+/*
+this signal was emitted when BBO updated
+*/
+struct NewBBO : public aot::Event<NewBBOPool> {
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
+    Trading::BBO bbo;
+    NewBBO() : aot::Event<NewBBOPool>(nullptr) {};
+
+    NewBBO(NewBBOPool* mem_pool,
+                      common::ExchangeId _exchange_id,
+                      common::TradingPair _trading_pair,
+                      const Trading::BBO& _bbo)
+        : aot::Event<NewBBOPool>(mem_pool),
+          exchange_id(_exchange_id),
+          trading_pair(_trading_pair),
+          bbo(_bbo){}
+    auto ToString() const {
+        return fmt::format("NewBBO[{} {}]",
+                           exchange_id, trading_pair.ToString());
+    };
+    friend void intrusive_ptr_release(Trading::NewBBO* ptr) {
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(Trading::NewBBO* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+};
+
+struct BusEventNewBBO;
+using BusEventNewBBOPool =
+    common::MemoryPool<BusEventNewBBO>;
+
+struct BusEventNewBBO
+    : public bus::Event2<BusEventNewBBOPool> {
+    explicit BusEventNewBBO(
+        BusEventNewBBOPool* mem_pool,
+        boost::intrusive_ptr<NewBBO> response)
+        : bus::Event2<BusEventNewBBOPool>(mem_pool),
+          wrapped_event_(response) {};
+    ~BusEventNewBBO() override = default;
+    void Accept(bus::Component* comp) override;
+
+    NewBBO* WrappedEvent() {
+        if (!wrapped_event_) return nullptr;
+        return wrapped_event_.get();
+    }
+    boost::intrusive_ptr<NewBBO> WrappedEventIntrusive() {
+        return wrapped_event_;
+    }
+
+    friend void intrusive_ptr_release(BusEventNewBBO* ptr) {
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(BusEventNewBBO* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+  private:
+    boost::intrusive_ptr<NewBBO> wrapped_event_;
+};
+};  // namespace Trading
 
 namespace backtesting {
 
