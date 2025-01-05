@@ -110,14 +110,25 @@ jobs:
     - name: Download Boost
       if: env.BOOST_CACHE_HIT != 'true'
       run: |
-          wget https://boostorg.jfrog.io/artifactory/main/release/1.83.0/source/boost_1_83_0.tar.gz
-          tar -xzf boost_1_83_0.tar.gz
+          BOOST_VERSION=$(wget -qO- https://www.boost.org/users/download/ | grep -oP 'boost_1_\d+\d+_\d+' | head -n 1)
+          echo "Downloading latest Boost version: $BOOST_VERSION"
+          
+          # Составляем URL и скачиваем Boost
+          MAJOR=$(echo $BOOST_VERSION | grep -oP '\d+' | head -n 1)
+          MINOR=$(echo $BOOST_VERSION | grep -oP '\d+' | head -n 2 | tail -n 1)
+          PATCH=$(echo $BOOST_VERSION | grep -oP '\d+' | tail -n 1)
+          BOOST_URL="https://archives.boost.io/release/${MAJOR}.${MINOR}.${PATCH}/source/${BOOST_VERSION}.tar.gz"
+          wget $BOOST_URL -O ${BOOST_VERSION}.tar.gz
+
+          # Распаковка архива Boost
+          echo "Extracting Boost archive: ${BOOST_VERSION}.tar.gz"
+          tar -xzf ${BOOST_VERSION}.tar.gz
 
     # Build and Install Boost if cache not restored
     - name: Build and install Boost 
       if: env.BOOST_CACHE_HIT != 'true'
       run: |
-        cd boost_1_83_0
+        cd $BOOST_VERSION
         ./bootstrap.sh
         sudo ./b2 install --prefix=$GITHUB_WORKSPACE/boost_libs
 
