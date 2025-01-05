@@ -135,7 +135,7 @@ FetchContent_MakeAvailable(abseil)
 FetchContent_MakeAvailable(re2)
 
 
-find_package(Boost 1.83.0 REQUIRED) 
+find_package(Boost 1.87.0 REQUIRED) 
 
 if (Boost_FOUND)
     message(STATUS "Boost found: ${Boost_VERSION}")

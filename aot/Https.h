@@ -644,8 +644,7 @@ class HttpsSession3 {
 
     // Register/Unregister callbacks
     void RegisterOnResponse(
-        std::function<void(http::response<http::string_body>&)>
-            callback) {
+        std::function<void(http::response<http::string_body>&)> callback) {
         on_response_ = std::move(callback);
     }
 
@@ -716,8 +715,13 @@ class HttpsSession3 {
     }
 
     void cancel_timer() {
-        boost::system::error_code ec;
-        timer_.cancel(ec);
+        try {
+            // Try to cancel the timer        timer_.cancel();
+            std::cout << "Timer cancelled" << std::endl;
+        } catch (const boost::system::system_error& e) {
+            // Обрабатываем исключение, если возникла ошибка
+            logw("Error while canceling timer:{}", e.what());
+        }
     }
 
     void fail(beast::error_code ec, const char* what) {
@@ -750,8 +754,7 @@ class ConnectionPool {
                    HTTPSessionType::Timeout timeout, size_t pool_size,
                    const std::string_view host, const std::string_view port,
                    Args&&... args)
-        : 
-          ioc_(ioc),
+        : ioc_(ioc),
           host_(host),
           port_(port),
           pool_size_(pool_size),
@@ -775,9 +778,10 @@ class ConnectionPool {
     // Acquire a connection from the pool
     HTTPSessionType* AcquireConnection() {
         HTTPSessionType* session = nullptr;
-        
+
         // Block until we get a ready session
-        while (session == nullptr || session->GetStatus() != aot::StatusSession::Ready) {
+        while (session == nullptr ||
+               session->GetStatus() != aot::StatusSession::Ready) {
             // Try to dequeue a session from the available connections
             while (!awaiable_connections_.try_dequeue(session)) {
                 // Block until a ready session is available
@@ -785,19 +789,22 @@ class ConnectionPool {
 
             // Check the status of the session
             auto status = session->GetStatus();
-            
-            // If the session is expired or closing, release it and try another one
-            if (status == aot::StatusSession::Expired || status == aot::StatusSession::Closing) {
+
+            // If the session is expired or closing, release it and try another
+            // one
+            if (status == aot::StatusSession::Expired ||
+                status == aot::StatusSession::Closing) {
                 session_pool_.Deallocate(session);
-                session = nullptr; // Try to get a new session
+                session = nullptr;  // Try to get a new session
             }
-            // If the session is not ready, enqueue it back to the queue for a retry
+            // If the session is not ready, enqueue it back to the queue for a
+            // retry
             else if (status != aot::StatusSession::Ready) {
                 awaiable_connections_.try_enqueue(session);
-                session = nullptr; // Try to get another session
+                session = nullptr;  // Try to get another session
             }
         }
-    return session;
+        return session;
     }
 
     ~ConnectionPool() {}
@@ -805,6 +812,7 @@ class ConnectionPool {
         // Stop the helper thread and wait for it to finish
         assert(false);
     }
+
   private:
     HTTPSessionType* CreateSession() {
         // If args are provided, they will be forwarded to Allocate
@@ -820,8 +828,10 @@ class ConnectionPool {
 
 // template <typename HTTPSessionType, typename... Args>
 // class ConnectionPool {
-//     moodycamel::ConcurrentQueue<HTTPSessionType*> until_handshake_connections_;
-//     moodycamel::ConcurrentQueue<HTTPSessionType*> after_handshake_connections_;
+//     moodycamel::ConcurrentQueue<HTTPSessionType*>
+//     until_handshake_connections_;
+//     moodycamel::ConcurrentQueue<HTTPSessionType*>
+//     after_handshake_connections_;
 //     moodycamel::ConcurrentQueue<HTTPSessionType*> used_connections_;
 //     moodycamel::ConcurrentQueue<HTTPSessionType*> expired_connections_;
 
@@ -932,8 +942,9 @@ class ConnectionPool {
 //             for (size_t i = 0; i < count_used; i++)
 //                 ProcessUsedSession(used_session[i]);
 
-//             auto ready_connection = after_handshake_connections_.size_approx();
-//             auto almost_ready_connection =
+//             auto ready_connection =
+//             after_handshake_connections_.size_approx(); auto
+//             almost_ready_connection =
 //                 until_handshake_connections_.size_approx();
 
 //             if (int needed_new_connection =
@@ -945,9 +956,11 @@ class ConnectionPool {
 //                 for (auto k = 0; k < needed_new_connection; k++) {
 //                     auto new_session =
 //                         CreateSession();  // session_pool_.Allocate(ioc_,
-//                                           // ssl_ctx_, timeout_, host_, port_,
+//                                           // ssl_ctx_, timeout_, host_,
+//                                           port_,
 //                                           // ctor_args_);
-//                     if (auto status = until_handshake_connections_.try_enqueue(
+//                     if (auto status =
+//                     until_handshake_connections_.try_enqueue(
 //                             new_session);
 //                         !status)
 //                         loge("can't enque connection");
@@ -1004,7 +1017,8 @@ class ConnectionPool {
 //         } else {
 //             // Return active connection back to the
 //             // available_connections_
-//             if (auto status = after_handshake_connections_.try_enqueue(session);
+//             if (auto status =
+//             after_handshake_connections_.try_enqueue(session);
 //                 !status) {
 //                 loge("loss connection");
 //             }
@@ -1013,15 +1027,17 @@ class ConnectionPool {
 
 //     inline void ProcessUsedSession(HTTPSessionType* session) {
 //         if (!session->IsUsed()) {
-//             if (auto status = after_handshake_connections_.try_enqueue(session);
+//             if (auto status =
+//             after_handshake_connections_.try_enqueue(session);
 //                 !status) {
-//                 loge("can't enque connection to after_handshake_connections_");
+//                 loge("can't enque connection to
+//                 after_handshake_connections_");
 //             }
 //             return;
 //         }
 //         if (session->IsExpired()) {
-//             ReplaceTimedOutConnection(session);  // Handle expired connections
-//             return;
+//             ReplaceTimedOutConnection(session);  // Handle expired
+//             connections return;
 //         }
 
 //         // Return active connection back to the
