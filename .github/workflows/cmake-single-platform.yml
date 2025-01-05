@@ -110,7 +110,7 @@ jobs:
     - name: Download Boost
       if: env.BOOST_CACHE_HIT != 'true'
       run: |
-          BOOST_VERSION=$(wget -qO- https://www.boost.org/users/download/ | grep -oP 'boost_1_\d+\d+_\d+' | head -n 1)
+          export BOOST_VERSION=$(wget -qO- https://www.boost.org/users/download/ | grep -oP 'boost_1_\d+\d+_\d+' | head -n 1)
           echo "Downloading latest Boost version: $BOOST_VERSION"
           
           # Составляем URL и скачиваем Boost
@@ -124,6 +124,7 @@ jobs:
           echo "Extracting Boost archive: ${BOOST_VERSION}.tar.gz"
           tar -xzf ${BOOST_VERSION}.tar.gz
 
+          echo "BOOST_VERSION=$BOOST_VERSION" >> $GITHUB_ENV
     # Build and Install Boost if cache not restored
     - name: Build and install Boost 
       if: env.BOOST_CACHE_HIT != 'true'
