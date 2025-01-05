@@ -87,6 +87,10 @@ jobs:
         sudo apt-get install -y libprotobuf-dev
         echo "libprotobuf-dev installed successfully."
 
+        echo "Installing ninja..."
+        sudo apt-get install -y ninja-build
+        echo "ninja installed successfully."
+
         echo "All packages installed successfully!"
 
     # Cache Boost

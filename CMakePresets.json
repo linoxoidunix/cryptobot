@@ -10,6 +10,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -22,6 +23,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
@@ -34,6 +36,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "LOCAL_TEST": "ON"
             }
@@ -47,6 +50,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Release",
                 "LOCAL_TEST": "ON"
             }
@@ -60,6 +64,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "LOCAL_TEST": "ON",
                 "BUILD_TARGET": "unit_test_binance"
@@ -74,6 +79,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -86,6 +92,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
@@ -98,6 +105,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "LOCAL_TEST": "ON"
             }
@@ -111,6 +119,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Release",
                 "LOCAL_TEST": "ON"
             }
@@ -124,6 +133,7 @@
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
                 "CMAKE_CXX_COMPILER": "/usr/bin/clang++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "LOCAL_TEST": "ON",
                 "BUILD_TARGET": "unit_test_binance"
