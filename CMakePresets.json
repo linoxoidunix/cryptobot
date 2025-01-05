@@ -56,8 +56,8 @@
             }
         },
         {
-            "name": "debug_binance",
-            "displayName": "gcc debug binance",
+            "name": "unit_test_binance_debug",
+            "displayName": "unit_test_binance_debug",
             "description": "Using compilers: C = /usr/bin/g++",
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/${presetName}",
@@ -146,8 +146,8 @@
             "configurePreset": "cryptobot_dbg"
         },
         {
-            "name": "build_dbg_binance",
-            "configurePreset": "debug_binance"
+            "name": "unit_test_binance_debug",
+            "configurePreset": "unit_test_binance_debug"
         },
         {
             "name": "build_release",
