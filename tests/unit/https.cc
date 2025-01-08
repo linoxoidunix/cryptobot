@@ -35,7 +35,8 @@ class HttpsSessionTest : public ::testing::Test {
 // Test to check connection to Binance
 TEST_F(HttpsSessionTest, ConnectToBinance) {
     fmtlog::setLogLevel(fmtlog::DBG);
-    std::string_view host = "testnet.binance.vision";
+    //std::string_view host = "testnet.binance.vision";
+    std::string_view host = "api.binance.com";
     std::string_view port = "443";
     V2::HttpsSession3 session(io_context, ssl_context, std::chrono::seconds(30),
                               host, port);
@@ -61,6 +62,7 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
 
     // Register callback to close the io_context when session closes
     session.RegisterOnUserClosed([&]() { io_context.stop(); });
+    session.RegisterOnExpired([&]() { io_context.stop(); });
     // Create an HTTP GET request
     boost::beast::http::request<boost::beast::http::string_body> req(
         boost::beast::http::verb::get, "/", 11);
@@ -89,7 +91,8 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
 class ConnectionPoolTest : public ::testing::Test {
   protected:
     boost::asio::io_context ioc;
-    std::string_view host = "testnet.binance.vision";
+    //std::string_view host = "testnet.binance.vision";
+    std::string_view host = "api.binance.com";
     std::string_view port = "443";
     std::size_t pool_size = 1;
     using HTTPSes         = V2::HttpsSession3<std::chrono::seconds>;

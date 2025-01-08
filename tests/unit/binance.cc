@@ -118,9 +118,12 @@ class BookEventGetterComponentTest : public ::testing::Test {
   protected:
     boost::asio::io_context io_context;
     boost::asio::thread_pool thread_pool;
+    // ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool{
+    //     io_context, WSSesionType3::Timeout{30},
+    //     1, "testnet.binance.vision", "443", "/ws"};
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool{
         io_context, WSSesionType3::Timeout{30},
-        1, "testnet.binance.vision", "443", "/ws"};
+        1, "stream.binance.com", "443", "/ws"};
 
     size_t number_responses = 100;
     common::TradingPairHashMap pairs;
