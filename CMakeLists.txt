@@ -34,6 +34,7 @@ find_package(CURL REQUIRED)
 
 #find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUV REQUIRED libuv)
+message(STATUS "Starting FetchContent for simdjson...")
 include(FetchContent)
 
 FetchContent_Declare(
@@ -41,6 +42,9 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/simdjson/simdjson.git
     GIT_TAG        master
 )
+message(STATUS "Declared simdjson FetchContent.")
+FetchContent_MakeAvailable(simdjson)
+message(STATUS "simdjson FetchContent is available.")
 FetchContent_Declare(
     magic_enum
     GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
@@ -86,7 +90,7 @@ FetchContent_Declare(
 )
 
 
-FetchContent_MakeAvailable( simdjson magic_enum nlohmann_json prometheus-cpp tomlplusplus)
+FetchContent_MakeAvailable(magic_enum nlohmann_json prometheus-cpp tomlplusplus)
 
 
 # # Find rdkafka (ensure it is installed on your system)

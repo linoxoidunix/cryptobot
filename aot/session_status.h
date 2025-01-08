@@ -7,6 +7,7 @@ enum class StatusSession {
     Handshaking,
     Ready,
     Expired,
-    Closing
+    Closing,
+    Cancelling
 };
 };

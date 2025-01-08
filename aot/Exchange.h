@@ -422,6 +422,7 @@ struct BusEventRequestBBOPrice{
   common::ExchangeId exchange_id = common::kExchangeIdInvalid;
   common::TradingPair trading_pair;
   unsigned int snapshot_depth = 1000;
+  bool subscribe = true;
   //id request
   std::variant<std::string, long int, long unsigned int> id;
   explicit BusEventRequestBBOPrice() = default;

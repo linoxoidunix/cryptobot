@@ -395,64 +395,6 @@ class DiffDepthStream : public DiffDepthStreamI {
     const StreamIntervalI* interval_;
 };
 
-class OHLCVI : public OHLCVGetter {
-    common::TradingPairHashMap& map_;
-    common::TradingPairReverseHashMap pairs_reverse_;
-    common::TradingPair pair_;
-    class ParserResponse {
-      public:
-        explicit ParserResponse(
-            common::TradingPairReverseHashMap& pairs_reverse,
-            common::TradingPairHashMap& map, common::TradingPair pair)
-            : pairs_reverse_(pairs_reverse), map_(map), pair_(pair) {};
-        OHLCVExt Parse(std::string_view response);
-
-      private:
-        common::TradingPairReverseHashMap& pairs_reverse_;
-        common::TradingPairHashMap& map_;
-        common::TradingPair pair_;
-    };
-
-  public:
-    OHLCVI(common::TradingPairHashMap& map,
-           common::TradingPairReverseHashMap& pair_reverse,
-           common::TradingPair pair,
-           const KLineStreamI::ChartInterval* chart_interval,
-           TypeExchange type_exchange)
-        : current_exchange_(exchange_.Get(type_exchange)),
-          map_(map),
-          pairs_reverse_(pair_reverse),
-          pair_(pair),
-          chart_interval_(chart_interval),
-          type_exchange_(type_exchange) {};
-    bool LaunchOne() override {
-        ioc.run_one();
-        return true;
-    };
-    void Init(OHLCVILFQueue& lf_queue) override {
-        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&lf_queue, this](boost::beast::flat_buffer& buffer) {
-            auto result = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser(pairs_reverse_, map_, pair_);
-            lf_queue.try_enqueue(parser.Parse(result));
-        };
-        assert(false);
-        using kls = KLineStream;
-        kls channel(map_[pair_].ws_query_request, chart_interval_);
-        std::string empty_request = "{}";
-        std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run(current_exchange_->Host(), current_exchange_->Port(),
-                  fmt::format("/ws/{0}", channel.ToString()));
-    };
-
-  private:
-    boost::asio::io_context ioc;
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_ = nullptr;
-    const KLineStreamI::ChartInterval* chart_interval_;
-    TypeExchange type_exchange_;
-};
-
 namespace detail {
 class FamilyBookEventGetter {
     static constexpr std::string_view end_point_as_json = "/ws";
@@ -609,56 +551,6 @@ class FamilyBookEventGetter {
 };
 };  // namespace detail
 
-class BookEventGetter : public BookEventGetterI {
-    class ParserResponse {
-        const common::TradingPairInfo& pair_info_;
-
-      public:
-        explicit ParserResponse(const common::TradingPairInfo& pair_info)
-            : pair_info_(pair_info) {};
-        Exchange::BookDiffSnapshot Parse(std::string_view response);
-    };
-
-  public:
-    BookEventGetter(const common::TradingPairInfo& pair_info,
-                    const DiffDepthStream::StreamIntervalI* interval,
-                    TypeExchange type_exchange)
-        : current_exchange_(exchange_.Get(type_exchange)),
-          pair_info_(pair_info),
-          interval_(interval),
-          type_exchange_(type_exchange) {};
-    void Get() override {};
-    void LaunchOne() override { ioc.run_one(); };
-    void Init(Exchange::BookDiffLFQueue& queue) override {
-        std::function<void(boost::beast::flat_buffer & buffer)> OnMessageCB;
-        OnMessageCB = [&queue, this](boost::beast::flat_buffer& buffer) {
-            auto resut = boost::beast::buffers_to_string(buffer.data());
-            ParserResponse parser(pair_info_);
-            auto answer    = parser.Parse(resut);
-            bool status_op = queue.try_enqueue(answer);
-            if (!status_op) [[unlikely]]
-                loge("my queuee is full. need clean my queue");
-        };
-
-        using dds = DiffDepthStream;
-        dds channel(pair_info_, interval_);
-        std::string empty_request = "{}";
-        std::make_shared<WS>(ioc, empty_request, OnMessageCB)
-            ->Run(current_exchange_->Host(), current_exchange_->Port(),
-                  fmt::format("/ws/{0}", channel.ToString()));
-    };
-
-    ~BookEventGetter() override = default;
-
-  private:
-    boost::asio::io_context ioc;
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    const common::TradingPairInfo& pair_info_;
-    const DiffDepthStream::StreamIntervalI* interval_;
-    bool callback_execute_ = false;
-    TypeExchange type_exchange_;
-};
 
 namespace detail {
 /**
@@ -1212,12 +1104,15 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             bus_event_request_diff_order_book->WrappedEvent(), pairs_);
         auto req = args.Body();
 
-        if (AcquireActiveSession()) {
-            if (!RegisterCallbacksForTradingPair(trading_pair)) {
-                co_return;
+        if (!active_session_.load()) { // Check if active session is not already acquired
+            if (AcquireActiveSession()) {
+                if (!RegisterCallbacksForTradingPair(trading_pair)) {
+                    co_return;
+                }
             }
+        } else {
+            logd("Using existing active session");
         }
-
         if (auto result = co_await SendAsyncRequest(std::move(req)); !result) {
             loge("AsyncRequest finished unsuccessfully");
         }
@@ -1902,59 +1797,6 @@ class FamilyBookSnapshot {
 };
 };  // namespace detail
 
-class BookSnapshot : public inner::BookSnapshotI,
-                     public detail::FamilyBookSnapshot {
-  public:
-    explicit BookSnapshot(detail::FamilyBookSnapshot::ArgsOrder&& args,
-                          TypeExchange type, Exchange::BookSnapshot* snapshot,
-                          const common::TradingPairInfo& pair_info)
-        : args_(std::move(args)), snapshot_(snapshot), pair_info_(pair_info) {
-        switch (type) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
-        }
-    };
-    void Exec() override {
-        bool need_sign = false;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyBookSnapshot::end_point,
-                                       args_,
-                                       boost::beast::http::verb::get,
-                                       signer_,
-                                       need_sign};
-        boost::asio::io_context ioc;
-        OnHttpsResponce cb;
-        cb = [this](
-                 boost::beast::http::response<boost::beast::http::string_body>&
-                     buffer) {
-            const auto& resut = buffer.body();
-            detail::FamilyBookSnapshot::ParserResponse parser(pair_info_);
-            auto answer = parser.Parse(resut);
-            // answer.ticker = args_["symbol"];
-            //*snapshot_  = std::move(answer);
-            assert(false);
-        };
-        std::make_shared<Https>(ioc, cb)->Run(
-            factory.Host().data(), factory.Port().data(),
-            factory.EndPoint().data(), factory());
-        ioc.run();
-    };
-
-  private:
-    detail::FamilyBookSnapshot::ArgsOrder args_;
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
-
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_ = nullptr;
-    Exchange::BookSnapshot* snapshot_;
-    const common::TradingPairInfo& pair_info_;
-};
-
 template <typename Executor>
 class BookSnapshot2 : public inner::BookSnapshotI {
     SignerI* signer_ = nullptr;
@@ -2111,68 +1953,6 @@ class BookSnapshotComponent : public bus::Component,
  * NewAskLFQueue
  *
  */
-class GeneratorBidAskService {
-  public:
-    explicit GeneratorBidAskService(
-        Exchange::EventLFQueue* event_lfqueue,
-        prometheus::EventLFQueue* prometheus_event_lfqueue,
-        const common::TradingPairInfo& trading_pair_info,
-        common::TickerHashMap& ticker_hash_map,
-        common::TradingPair trading_pair,
-        const DiffDepthStream::StreamIntervalI* interval, TypeExchange type);
-    auto Start() {
-        run_    = true;
-        thread_ = std::unique_ptr<std::thread>(common::createAndStartThread(
-            -1, "Trading/GeneratorBidAskService", [this]() { Run(); }));
-        ASSERT(thread_ != nullptr, "Failed to start MarketData thread.");
-    };
-    common::Delta GetDownTimeInS() const { return time_manager_.GetDeltaInS(); }
-    ~GeneratorBidAskService() {
-        Stop();
-        using namespace std::literals::chrono_literals;
-        std::this_thread::sleep_for(2s);
-        if (thread_ && thread_->joinable()) [[likely]]
-            thread_->join();
-    }
-    auto Stop() -> void { run_ = false; }
-
-    GeneratorBidAskService()                                          = delete;
-
-    GeneratorBidAskService(const GeneratorBidAskService&)             = delete;
-
-    GeneratorBidAskService(const GeneratorBidAskService&&)            = delete;
-
-    GeneratorBidAskService& operator=(const GeneratorBidAskService&)  = delete;
-
-    GeneratorBidAskService& operator=(const GeneratorBidAskService&&) = delete;
-
-  private:
-    std::unique_ptr<std::thread> thread_;
-
-    volatile bool run_                                  = false;
-
-    Exchange::EventLFQueue* event_lfqueue_              = nullptr;
-    prometheus::EventLFQueue* prometheus_event_lfqueue_ = nullptr;
-    common::TimeManager time_manager_;
-    size_t next_inc_seq_num_                             = 0;
-    std::unique_ptr<BookEventGetterI> book_event_getter_ = nullptr;
-    Exchange::BookDiffLFQueue book_diff_lfqueue_;
-    Exchange::BookSnapshot snapshot_;
-    const common::TradingPairInfo& pair_info_;
-    common::TickerHashMap& ticker_hash_map_;
-    common::TradingPair trading_pair_;
-    const DiffDepthStream::StreamIntervalI* interval_;
-    uint64_t last_id_diff_book_event;
-    TypeExchange type_exchange_;
-
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
-    https::ExchangeI* current_exchange_;
-
-  private:
-    auto Run() noexcept -> void;
-};
-
 template <typename ThreadPool>
 class BidAskGeneratorComponent : public bus::Component {
   public:

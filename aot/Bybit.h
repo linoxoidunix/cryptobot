@@ -1012,17 +1012,21 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             bus_event_request_diff_order_book->WrappedEvent(), pairs_);
         auto req = args.Body();
 
-        if (AcquireActiveSession()) {
-            if (!RegisterCallbacksForTradingPair(trading_pair)) {
-                co_return;
+        if (!active_session_.load()) { // Check if active session is not already acquired
+            if (AcquireActiveSession()) {
+                if (!RegisterCallbacksForTradingPair(trading_pair)) {
+                    co_return;
+                }
             }
+        }else {
+            logd("Using existing active session");
         }
 
         if (auto result = co_await SendAsyncRequest(req); !result) {
             loge("AsyncRequest finished unsuccessfully");
         }
 
-        logd("Finished sending event getter for Binance request");
+        logd("Finished sending event getter for bybit request");
     }
 
     /**
@@ -1437,6 +1441,7 @@ class BidAskGeneratorComponent : public bus::Component {
     ThreadPool& thread_pool_;
     boost::asio::strand<typename ThreadPool::executor_type> strand_;
     aot::CoBus& bus_;
+    boost::asio::cancellation_signal cancel_signal_;
 
   public:
     Exchange::BusEventRequestNewSnapshotPool
@@ -1471,7 +1476,13 @@ class BidAskGeneratorComponent : public bus::Component {
           request_bus_event_diff_mem_pool_(number_diff),
           request_diff_mem_pool_(number_diff),
           out_diff_mem_pool_(max_number_event_per_tick),
-          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {};
+          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {
+             cancel_signal_.slot().assign(
+            [this](boost::asio::cancellation_type type) {
+                logd("Cancellation requested for bybit::BidAskGeneratorComponent");
+                HandleCancellation(type);
+            });
+          };
 
     void AsyncHandleEvent(
         Exchange::BusEventResponseNewSnapshot* event) override {
@@ -1493,7 +1504,11 @@ class BidAskGeneratorComponent : public bus::Component {
         boost::asio::co_spawn(strand_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override {};
+    void AsyncStop() override {
+        // Trigger cancellation signal for all coroutines
+        logd("Stopping all inner coroutines in bybit::BidAskGeneratorComponent");
+        cancel_signal_.emit(boost::asio::cancellation_type::all);
+    };
 
     void RegisterSnapshotCallback(
         BidAskGeneratorComponent::SnapshotCallback callback) {
@@ -1510,21 +1525,27 @@ class BidAskGeneratorComponent : public bus::Component {
 
   private:
     boost::asio::awaitable<void> HandleTrackingNewTradingPair(
+        //there is a problem double inizialization
+        //when subscribe and than unsubscribe
         boost::intrusive_ptr<BusEventRequestBBOPrice> event) {
         auto& evt          = *event.get();
         auto& trading_pair = evt.trading_pair;
-        if (request_bbo_.count(trading_pair)) {
-            loge("request_bbo_ contains trading pair {}",
+        if (!request_bbo_.count(trading_pair)) {
+            request_bbo_[trading_pair]      = *event;
+        }
+        else{
+            loge("it is a problem. request_bbo_ contains trading pair {}",
                  trading_pair.ToString());
-            co_return;
         }
         // copy info
-        request_bbo_[trading_pair]      = *event;
         // start tracking new trading pair
 
         // need send a signal to launch diff
         constexpr bool need_subcription = true;
-        co_await RequestSubscribeToDiff<need_subcription>(trading_pair);
+        if(event->subscribe == true)
+            co_await RequestSubscribeToDiff<true>(trading_pair);
+        else
+            co_await RequestSubscribeToDiff<false>(trading_pair);
         co_return;
     }
     boost::asio::awaitable<void> HandleNewSnapshotEvent(
@@ -1687,6 +1708,12 @@ class BidAskGeneratorComponent : public bus::Component {
 
         bus_.AsyncSend(this, intr_ptr_bus_event_request);
         co_return;
+    }
+    void HandleCancellation(boost::asio::cancellation_type_t type) {
+        bus_.StopSubscribersForPublisher(this);
+        // Optionally clear any state if necessary
+        state_map_.clear();
+        request_bbo_.clear();
     }
 };
 

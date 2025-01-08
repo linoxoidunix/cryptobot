@@ -59,8 +59,7 @@ public:
 
         std::vector<uint8_t> payload;
         object.SerializeTo(payload);
-
-        io_context_.post([this, payload]() mutable {
+        boost::asio::post(io_context_, [this, payload]() mutable {
             try {
                 if constexpr (std::is_same<T, aot::models::OrderBook>::value) {
                     builder_order_book_.payload(payload);
@@ -98,8 +97,7 @@ public:
 
         // Преобразование JSON в строку
         std::string json_string = json_object.dump();
-
-        io_context_.post([this, json_string]() mutable {
+        boost::asio::post(io_context_, [this, json_string]() mutable {
             try {
                 // Определение темы на основе типа объекта
                 if constexpr (std::is_same<T, aot::models::OrderBook>::value) {
@@ -126,8 +124,7 @@ public:
             logw("cppkafka::Producer not initialized");
             return;
         }
-
-        io_context_.post([this] {
+        boost::asio::post(io_context_, [this]() {
             producer_->flush();
         });
     }

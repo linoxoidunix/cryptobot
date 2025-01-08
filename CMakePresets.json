@@ -71,6 +71,36 @@
             }
         },
         {
+            "name": "unit_test_bybit_debug",
+            "displayName": "unit_test_bybit_debug",
+            "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON",
+                "BUILD_TARGET": "unit_test_bybit"
+            }
+        },
+        {
+            "name": "unit_test_https_debug",
+            "displayName": "unit_test_https_debug",
+            "description": "Using compilers: C = /usr/bin/g++",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "LOCAL_TEST": "ON",
+                "BUILD_TARGET": "unit_test_https"
+            }
+        },
+        {
             "name": "cryptobot_dbg_clang",
             "displayName": "Clang Debug",
             "description": "Using compilers: C = /usr/bin/clang++",
@@ -150,6 +180,10 @@
             "configurePreset": "unit_test_binance_debug"
         },
         {
+            "name": "unit_test_bybit_debug",
+            "configurePreset": "unit_test_bybit_debug"
+        },
+        {
             "name": "build_release",
             "configurePreset": "cryptobot_release"
         },
@@ -164,6 +198,10 @@
         {
             "name": "build_dbg_binance_clang",
             "configurePreset": "debug_binance_clang"
+        },
+        {
+            "name": "unit_test_https_debug",
+            "configurePreset": "unit_test_https_debug"
         }
     ],
     "testPresets": [

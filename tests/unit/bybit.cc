@@ -67,17 +67,70 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                     thread_pool, number_responses,
                                                                     TypeExchange::TESTNET, pairs, &session_pool);
 
-                                                                uint64_t counter_successfull   = 0;
-                                                                uint64_t counter_unsuccessfull = 0;
+                                                                 // Setup subscribe and unsubscribe requests
+                                                                // Exchange::RequestDiffOrderBook request_subscribe(
+                                                                //     nullptr,
+                                                                //     common::ExchangeId::kBybit,
+                                                                //     {2, 1},
+                                                                //     50,
+                                                                //     true,
+                                                                //     777);
+
+                                                                // Exchange::RequestDiffOrderBook request_unsubscribe(
+                                                                //     nullptr,
+                                                                //     common::ExchangeId::kBybit,
+                                                                //     {2, 1},
+                                                                //     50,
+                                                                //     false,
+                                                                //     888);
+
+                                                                BusEventRequestBBOPrice request_bbo_btc_sub;
+                                                                request_bbo_btc_sub.exchange_id    = common::ExchangeId::kBybit;
+                                                                request_bbo_btc_sub.trading_pair   = {2, 1};
+                                                                request_bbo_btc_sub.snapshot_depth = 50;
+                                                                request_bbo_btc_sub.subscribe = true;
+                                                                request_bbo_btc_sub.id = 777L;
+
+                                                                auto intr_bus_request_sub =
+                                                                    boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub);
+
+                                                                BusEventRequestBBOPrice request_bbo_btc_unsub;
+                                                                request_bbo_btc_unsub.exchange_id    = common::ExchangeId::kBybit;
+                                                                request_bbo_btc_unsub.trading_pair   = {2, 1};
+                                                                request_bbo_btc_unsub.snapshot_depth = 50;
+                                                                request_bbo_btc_unsub.subscribe = false;
+                                                                //problem with double initialization. TODO
+                                                                //i use previous 777 id. that is stored in 
+                                                                //BidAskGeneratorComponent
+                                                                request_bbo_btc_unsub.id = 888L;
+
+                                                                auto intr_bus_request_unsub =
+                                                                    boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_unsub);
+
+                                                                // Exchange::BusEventRequestDiffOrderBook bus_event_subscribe(nullptr, &request_subscribe);
+                                                                // Exchange::BusEventRequestDiffOrderBook bus_event_unsubscribe(nullptr, &request_unsubscribe);
+
+
+                                                                uint64_t counter_successful   = 0;
+                                                                uint64_t counter_unsuccessful = 0;
                                                                 uint64_t request_accepted_by_exchange = 0;
+                                                                bool is_unsubscribed_happened = false;
                                                                 bool accept_subscribe_successfully = false;
                                                                 bool accept_unsubscribe_successfully = false;
 
-                                                                OnWssResponse wss_cb           = [&component, &counter_successfull,
-                                                                                        &counter_unsuccessfull, this, &pair_reverse,
+                                                                bybit::BidAskGeneratorComponent bid_ask_generator(
+                                                                    thread_pool, bus, 100, 1000, 10000);
+                                                                    
+                                                                OnWssResponse wss_cb           = [&component,
+                                                                                                &bid_ask_generator,
+                                                                                                        &counter_successful,
+                                                                                        &counter_unsuccessful, this, &pair_reverse,
                                                                                         &bus,
+                                                                                        &intr_bus_request_unsub,
                                                                                         &accept_subscribe_successfully,
+                                                                                        &accept_unsubscribe_successfully,
                                                                                         &request_accepted_by_exchange,
+                                                                                        &is_unsubscribed_happened,
                                                                                         &parser_manager](boost::beast::flat_buffer& fb) {
                                                                     auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
                                                                     //std::cout << response << std::endl;
@@ -114,7 +167,12 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                                         "SEND DIFFSNAPSOT EVENT LAST_ID:{} TO BUS FROM CB "
                                                                                                 "EVENTGETTER", diffSnapshot.last_id);
                                                                                     bus.AsyncSend(&component, intr_ptr_bus_request);
-
+                                                                                    
+                                                                                    if (!is_unsubscribed_happened && counter_successful > 5) {
+                                                                                                    logi("Unsubscribing...");
+                                                                                                    bid_ask_generator.AsyncHandleEvent(intr_bus_request_unsub);
+                                                                                                    is_unsubscribed_happened = true;
+                                                                                                }
                                                                                     // Use diffSnapshot
                                                                                 } else if constexpr (std::is_same_v<
                                                                                                                 T, Exchange::BookSnapshot>) {
@@ -145,7 +203,7 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                                 }
                                                                             },
                                                                             answer);
-                                                                            counter_successfull++;
+                                                                            counter_successful++;
                                                                     }
                                                                     if (std::holds_alternative<ApiResponseData>(answer)) {
                                                                         const auto& result = std::get<ApiResponseData>(answer);
@@ -157,8 +215,13 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                                 accept_subscribe_successfully = true;
                                                                             }
                                                                         } 
-                                                                        if (request_accepted_by_exchange == 1 &&
-                                                                        counter_successfull > 5) component.AsyncStop();
+                                                                        if (auto value = std::get_if<long int>(&result.id)) {
+                                                                            if (*value == 888L) {
+                                                                                accept_unsubscribe_successfully = true;
+                                                                            }
+                                                                        }
+                                                                        if (request_accepted_by_exchange == 2) 
+                                                                            bid_ask_generator.AsyncStop();   
                                                                     }
                                                                 };
                                                                 component.RegisterCallback({2, 1}, &wss_cb);
@@ -178,8 +241,7 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                 order_book_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
                                                                 //------------------------------------------------------------------------------
                                                                 //------------------------------------------------------------------------------
-                                                                bybit::BidAskGeneratorComponent bid_ask_generator(
-                                                                    thread_pool, bus, 100, 1000, 10000);
+
                                                                 // Register the snapshot callback
                                                                 std::function<void(const std::list<Exchange::BookSnapshotElem>& entries,
                                                                                 common::ExchangeId exchange_id,
@@ -261,9 +323,9 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                 request_bbo_btc.snapshot_depth = 50;
                                                                 request_bbo_btc.id = 777;
 
-                                                                auto intr_bus_request =
-                                                                    boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc);
-                                                                bid_ask_generator.AsyncHandleEvent(intr_bus_request);
+                                                                // auto intr_bus_request =
+                                                                //     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc);
+                                                                bid_ask_generator.AsyncHandleEvent(intr_bus_request_sub);
 
                                                                 //session_pool.CloseAllSessions();
                                                                 //work_guard.reset();
@@ -271,9 +333,9 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                 log_polling.Stop();
                                                                 thread_pool.join();
                                                                 int z = 0;
-                                                                EXPECT_GE(counter_successfull, 5);
-                                                                EXPECT_EQ(counter_unsuccessfull,
-                                                                        1);  // first response from bybit is status response
+                                                                EXPECT_GE(counter_successful, 5);
+                                                                EXPECT_EQ(request_accepted_by_exchange, 2);
+
                                                             }
 
 int main(int argc, char** argv) {
