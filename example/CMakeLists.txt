@@ -5,5 +5,6 @@ add_subdirectory(cpp_with_python)
 add_subdirectory(prometheus_example)
 add_subdirectory(backtesting)
 add_subdirectory(cross_arbitrage)
+add_subdirectory(check_many_trading_pairs)
 add_subdirectory(send_to_redpanda)
 

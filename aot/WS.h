@@ -394,12 +394,12 @@ class WssSession3 {
      * @brief manage all callbacks when need response
      *
      */
-    LockFreeCallbackManager<boost::beast::flat_buffer> cb_on_response_manager_;
+    aot::LockFreeCallbackManager<aot::CallbackNodeTradingPair<boost::beast::flat_buffer>> cb_on_response_manager_;
     /**
      * @brief manage all callbacks when session is closed
      *
      */
-    LockFreeCallbackManager<void> cb_on_close_session_manager_;
+    aot::LockFreeCallbackManager<aot::CallbackNode<void>> cb_on_close_session_manager_;
     std::function<void()> on_ready_;
     std::function<void()> on_expired_;
     std::function<void()> on_closed_;
@@ -446,21 +446,21 @@ class WssSession3 {
     }
     inline aot::StatusSession GetStatus() const { return status_; }
 
-    LockFreeCallbackManager<boost::beast::flat_buffer>::CallbackID
+    aot::CallbackID
     RegisterCallbackOnResponse(
-        const LockFreeCallbackManager<boost::beast::flat_buffer>::Callback cb) {
-        return cb_on_response_manager_.RegisterCallback(cb);
+        const OnWssResponse cb, common::TradingPair trading_pair) {
+        return cb_on_response_manager_.RegisterCallback(cb, trading_pair);
     }
     bool UnRegisterCallbackOnResponse(
-        LockFreeCallbackManager<boost::beast::flat_buffer>::CallbackID id) {
+        aot::CallbackID id) {
         return cb_on_response_manager_.UnregisterCallback(id);
     }
-    LockFreeCallbackManager<void>::CallbackID RegisterCallbackOnCloseSession(
-        const LockFreeCallbackManager<void>::Callback cb) {
+    aot::CallbackID RegisterCallbackOnCloseSession(
+        const OnCloseSession cb) {
         return cb_on_close_session_manager_.RegisterCallback(cb);
     }
     bool UnRegisterCallbackOnCloseSession(
-        LockFreeCallbackManager<void>::CallbackID id) {
+        aot::CallbackID id) {
         return cb_on_close_session_manager_.UnregisterCallback(id);
     }
 

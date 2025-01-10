@@ -1143,7 +1143,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     bool RegisterCallbacksForTradingPair(
         const common::TradingPair& trading_pair) {
         if (auto callback = FindCallback(callback_map_, trading_pair)) {
-            RegisterCallbackOnSession(callback);
+            RegisterCallbackOnSession(callback, trading_pair);
         } else {
             loge("No callback on response registered for trading pair: {}",
                  trading_pair.ToString());
@@ -1180,9 +1180,9 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssResponse* callback) {
+    void RegisterCallbackOnSession(const OnWssResponse* callback, common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
-            session->RegisterCallbackOnResponse(*callback);
+            session->RegisterCallbackOnResponse(*callback, trading_pair);
         }
     }
     /**

@@ -67,23 +67,6 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                     thread_pool, number_responses,
                                                                     TypeExchange::TESTNET, pairs, &session_pool);
 
-                                                                 // Setup subscribe and unsubscribe requests
-                                                                // Exchange::RequestDiffOrderBook request_subscribe(
-                                                                //     nullptr,
-                                                                //     common::ExchangeId::kBybit,
-                                                                //     {2, 1},
-                                                                //     50,
-                                                                //     true,
-                                                                //     777);
-
-                                                                // Exchange::RequestDiffOrderBook request_unsubscribe(
-                                                                //     nullptr,
-                                                                //     common::ExchangeId::kBybit,
-                                                                //     {2, 1},
-                                                                //     50,
-                                                                //     false,
-                                                                //     888);
-
                                                                 BusEventRequestBBOPrice request_bbo_btc_sub;
                                                                 request_bbo_btc_sub.exchange_id    = common::ExchangeId::kBybit;
                                                                 request_bbo_btc_sub.trading_pair   = {2, 1};
@@ -106,10 +89,6 @@ class BookEventGetterComponentTest : public ::testing::Test {
 
                                                                 auto intr_bus_request_unsub =
                                                                     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_unsub);
-
-                                                                // Exchange::BusEventRequestDiffOrderBook bus_event_subscribe(nullptr, &request_subscribe);
-                                                                // Exchange::BusEventRequestDiffOrderBook bus_event_unsubscribe(nullptr, &request_unsubscribe);
-
 
                                                                 uint64_t counter_successful   = 0;
                                                                 uint64_t counter_unsuccessful = 0;

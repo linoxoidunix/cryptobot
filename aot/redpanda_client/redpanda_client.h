@@ -12,11 +12,11 @@
 #include "aot/bus/bus_component.h"
 #include "aot/Logger.h"
 #include "aot/common/types.h"
+#include "aot/common/exchange_trading_pair.h"
 #include "aot/strategy/market_order.h"
 #include "aot/proto/classes/proto_orderbook.h"
 #include "aot/proto/classes/proto_pnl.h"
 #include "aot/proto/classes/proto_wallet.h"
-
 namespace aot {
 
 class KafkaClient {
@@ -149,49 +149,126 @@ class RedPandaComponent : public bus::Component,
                                  public KafkaClient {
     static constexpr std::string_view name_component_ =
         "RedPandaComponent";
+    common::ExchangeIdPrinter exchange_id_printer_;
     Executor& executor_;
+    aot::ExchangeTradingPairs& exchange_trading_pairs_;
   public:
     explicit RedPandaComponent(
-        Executor& executor, std::string_view broker)
+        Executor& executor,
+        std::string_view broker,
+        aot::ExchangeTradingPairs& exchange_trading_pairs )
         : KafkaClient(broker),
-        executor_(executor)
+        executor_(executor),
+        exchange_trading_pairs_(exchange_trading_pairs)
          {}
     ~RedPandaComponent() override = default;
-
     void AsyncHandleEvent(
-        boost::intrusive_ptr<Trading::BusEventNewBBO> event)
-        override {
+        boost::intrusive_ptr<Trading::BusEventNewBBO> event) override {
         auto wrapped_event = event->WrappedEventIntrusive();
         boost::asio::co_spawn(executor_,
-                              [this, wrapped_event]()-> boost::asio::awaitable<void>{
-                                auto bb = wrapped_event->bbo.bid_price;
-                                auto bo = wrapped_event->bbo.ask_price;
-
-                                const auto exchange = fmt::format("{}", wrapped_event->exchange_id);
-                                const auto trading_pair = wrapped_event->trading_pair.ToString();
-                                if(bb == common::kPriceInvalid)
-                                {
-                                    logw("Invalid best bid price. Skipping event");
-                                    co_return;
-                                }
-                                if(bo == common::kPriceInvalid)
-                                {
-                                    logw("Invalid best offer price. Skipping event");
-                                    co_return;
-                                }
-                                aot::models::OrderBook ob(
-                                    exchange,
-                                    trading_pair,
-                                    bb,
-                                    bo,
-                                    bo-bb);
-                                //SendMessage(ob);
-                                SendMessageAsJson(ob);
-                                co_return;
-                              },
-                              boost::asio::detached);
-    };
+            [this, wrapped_event]() -> boost::asio::awaitable<void> {
+                co_await HandleEventAsync(wrapped_event);
+            },
+            boost::asio::detached);
+    }
     void AsyncStop() override {  }
+    private:
+     boost::asio::awaitable<void> HandleEventAsync(boost::intrusive_ptr<Trading::NewBBO> wrapped_event) {
+        auto exchange_id = wrapped_event->exchange_id;
+        auto trading_pair = wrapped_event->trading_pair;
+
+        auto* info = exchange_trading_pairs_.GetPairInfo(exchange_id, trading_pair);
+        if (!info) {
+            logw("No info for {} {}", exchange_id, trading_pair.ToString());
+            co_return;
+        }
+
+        if (!ValidatePrices(wrapped_event)) {
+            co_return;
+        }
+
+        aot::models::OrderBook ob = PrepareOrderBook(wrapped_event, *info);
+        SendMessageAsJson(ob);
+        co_return;
+    }
+
+    bool ValidatePrices(boost::intrusive_ptr<Trading::NewBBO> event) {
+        if (event->bbo.bid_price == common::kPriceInvalid) {
+            logw("Invalid best bid price. Skipping event");
+            return false;
+        }
+        if (event->bbo.ask_price == common::kPriceInvalid) {
+            logw("Invalid best offer price. Skipping event");
+            return false;
+        }
+        return true;
+    }
+
+    aot::models::OrderBook PrepareOrderBook(
+        boost::intrusive_ptr<Trading::NewBBO> event,
+        const common::TradingPairInfo& info) {
+        int spread = event->bbo.ask_price - event->bbo.bid_price;
+        return aot::models::OrderBook(
+            exchange_id_printer_.ToString(event->exchange_id),
+            info.https_json_request,
+            event->bbo.bid_price,
+            event->bbo.ask_price,
+            spread);
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // void AsyncHandleEvent(
+    //     boost::intrusive_ptr<Trading::BusEventNewBBO> event)
+    //     override {
+    //     auto wrapped_event = event->WrappedEventIntrusive();
+    //     boost::asio::co_spawn(executor_,
+    //                           [this, wrapped_event]()-> boost::asio::awaitable<void>{
+    //                             auto bb = wrapped_event->bbo.bid_price;
+    //                             auto bo = wrapped_event->bbo.ask_price;
+
+    //                             auto exchange_id_base = wrapped_event->exchange_id;
+    //                             auto trading_pair_base = wrapped_event->trading_pair;
+
+    //                             auto* info = exchange_trading_pairs_.GetPairInfo(exchange_id_base, trading_pair_base);
+    //                             if(info == nullptr){
+    //                                 logw("no info for {} {}", exchange_id_base, trading_pair_base.ToString());
+    //                                 co_return;
+    //                             }
+    //                             const auto exchange = fmt::format("{}", wrapped_event->exchange_id);
+    //                             const auto trading_pair = info->https_json_request;
+    //                             if(bb == common::kPriceInvalid)
+    //                             {
+    //                                 logw("Invalid best bid price. Skipping event");
+    //                                 co_return;
+    //                             }
+    //                             if(bo == common::kPriceInvalid)
+    //                             {
+    //                                 logw("Invalid best offer price. Skipping event");
+    //                                 co_return;
+    //                             }
+    //                             auto spread = bo - bb;
+    //                             aot::models::OrderBook ob(
+    //                                 exchange,
+    //                                 trading_pair,
+    //                                 bb,
+    //                                 bo,
+    //                                 spread);
+    //                             //SendMessage(ob);
+    //                             SendMessageAsJson(ob);
+    //                             co_return;
+    //                           },
+    //                           boost::asio::detached);
+    // };
 
 };
-} // namespace aot
+}; // namespace aot

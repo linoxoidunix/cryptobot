@@ -10,7 +10,7 @@ namespace models {
 class OrderBook {
   public:
     OrderBook(std::string_view exchange, std::string_view tradingPair,
-              double bestBid, double bestOffer, double spread)
+              common::Price bestBid, common::Price bestOffer, int spread)
         : exchange(exchange),
           tradingPair(tradingPair),
           bestBid(bestBid),
@@ -49,9 +49,9 @@ class OrderBook {
   private:
     std::string exchange;
     std::string tradingPair;
-    double bestBid;
-    double bestOffer;
-    double spread;
+    common::Price bestBid;
+    common::Price bestOffer;
+    int spread;
 };
 };  // namespace models
 };  // namespace aot

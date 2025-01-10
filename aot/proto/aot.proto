@@ -19,7 +19,7 @@ message Pnl {
 message OrderBook {
     string exchange = 1;
     string trading_pair = 2;
-    double best_bid = 3;
-    double best_offer = 4;
-    double spread = 5;
+    uint64 best_bid = 3;
+    uint64 best_offer = 4;
+    sint64 spread = 5;
 }

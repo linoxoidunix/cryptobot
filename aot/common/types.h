@@ -33,6 +33,19 @@ enum class ExchangeId{
 
 constexpr auto kExchangeIdInvalid = ExchangeId::kInvalid;
 
+class ExchangeIdPrinter {
+public:
+    static std::string_view ToString(ExchangeId exchange_id) {
+        switch (exchange_id) {
+            case ExchangeId::kBinance: return "Binance";
+            case ExchangeId::kBybit: return "Bybit";
+            case ExchangeId::kMexc: return "Mexc";
+            case ExchangeId::kInvalid: return "Invalid";
+            default: return "Unknown";
+        }
+    }
+};
+
 using FrequencyMS = uint64_t;
 constexpr auto kFrequencyMSInvalid   = std::numeric_limits<FrequencyMS>::max();
 
