@@ -29,17 +29,18 @@ struct CallbackNode<void> {
     std::shared_ptr<CallbackNode> next;
 };
 
-template<typename T>
+template<typename... Args>
 struct CallbackNodeTradingPair {
-    using Type = T;
-    CallbackNodeTradingPair(const std::function<void(T&)> cb, common::TradingPair tp) :
+    //using Type = T;
+    using CallbackType = std::function<void(Args...)>;
+    CallbackNodeTradingPair(CallbackType cb, common::TradingPair tp) :
     callback(std::move(cb)),
     trading_pair(tp) {}
     common::TradingPair trading_pair;
-    const std::function<void(T&)> callback;
+    CallbackType callback;
     CallbackID id;
     std::atomic<bool> active{true};
-    std::shared_ptr<CallbackNodeTradingPair<T>> next;
+    std::shared_ptr<CallbackNodeTradingPair<Args...>> next;
 };
 
 template<class Node>
@@ -79,9 +80,13 @@ public:
         auto current = head_.load(std::memory_order_acquire);
         while (current) {
             if (current->active.load(std::memory_order_acquire)) {
-                if (current->callback) {
-                    current->callback(t);
-                }
+            if constexpr (std::is_same_v<decltype(current->trading_pair), common::TradingPair>) {
+                // Если поле trading_pair существует, вызываем callback с дополнительным параметром
+                current->callback(t, current->trading_pair);
+            } else {
+                // Если поля trading_pair нет, вызываем callback как обычно
+                current->callback(t);
+            }
             }
             current = current->next;
         }

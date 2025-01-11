@@ -886,7 +886,7 @@ template <typename Executor>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
     using CallbackMap =
-        std::unordered_map<common::TradingPair, const OnWssResponse*,
+        std::unordered_map<common::TradingPair, const OnWssResponseTradingPair*,
                            common::TradingPairHash, common::TradingPairEqual>;
     using CloseSessionCallbackMap =
         std::unordered_map<common::TradingPair, const OnCloseSession*,
@@ -952,7 +952,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      * @param callback Pointer to the callback function.
      */
     void RegisterCallback(common::TradingPair trading_pair,
-                          const OnWssResponse* callback) {
+                          const OnWssResponseTradingPair* callback) {
         callback_map_[trading_pair] = callback;
     }
     /**
@@ -1021,7 +1021,16 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             }
         } else {
             logd("Using existing active session");
+            if (!RegisterCallbacksForTradingPair(trading_pair)) {
+                    co_return;
+            }
         }
+
+        // boost::asio::co_spawn(executor_, [this, request = std::move(req)]() -> boost::asio::awaitable<void> {
+        //     if (auto result = co_await SendAsyncRequest(request); !result) {
+        //         loge("AsyncRequest finished unsuccessfully");
+        //     }
+        // }, boost::asio::detached);
 
         if (auto result = co_await SendAsyncRequest(req); !result) {
             loge("AsyncRequest finished unsuccessfully");
@@ -1090,7 +1099,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssResponse* callback, common::TradingPair trading_pair) {
+    void RegisterCallbackOnSession(const OnWssResponseTradingPair* callback, common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnResponse(*callback, trading_pair);
         }
@@ -1935,18 +1944,18 @@ class OrderBookWebSocketResponseHandler {
           bus_(bus),
           parser_manager_(parser_manager) {}
 
-    void HandleResponse(boost::beast::flat_buffer& fb) {
+    void HandleResponse(boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
         auto response = std::string_view(
             static_cast<const char*>(fb.data().data()), fb.size());
         auto answer = parser_manager_.Parse(response);
-
+        logi("{}",response);
         std::visit(
             [&](auto&& snapshot) {
                 using T = std::decay_t<decltype(snapshot)>;
                 if constexpr (std::is_same_v<T, Exchange::BookDiffSnapshot>) {
-                    ProcessBookDiffSnapshot(snapshot);
+                    ProcessBookDiffSnapshot(snapshot, trading_pair);
                 } else if constexpr (std::is_same_v<T, Exchange::BookSnapshot>) {
-                    ProcessBookSnapshot(snapshot);
+                    ProcessBookSnapshot(snapshot, trading_pair);
                 } else if constexpr (std::is_same_v<T, ApiResponseData>) {
                     ProcessApiResponse(snapshot);
                 }
@@ -1955,7 +1964,7 @@ class OrderBookWebSocketResponseHandler {
     }
 
 private:
-    void ProcessBookDiffSnapshot(Exchange::BookDiffSnapshot& data) {
+    void ProcessBookDiffSnapshot(Exchange::BookDiffSnapshot& data, common::TradingPair trading_pair) {
             logi("Received a BookDiffSnapshot!");
             auto request = component_.book_diff_mem_pool_.Allocate(
                 &component_.book_diff_mem_pool_, data.exchange_id,
@@ -1974,15 +1983,14 @@ private:
                     bus_event);
             logi(
                 "SEND DIFFSNAPSOT EVENT LAST_ID:{} TO BUS FROM CB "
-                "EVENTGETTER",
-                data.last_id);
+                "EVENTGETTER {}",
+                data.last_id, data.trading_pair.ToString());
             bus_.AsyncSend(&component_, intr_ptr_bus_request);
     }
 
-    void ProcessBookSnapshot(Exchange::BookSnapshot& data) {
+    void ProcessBookSnapshot(Exchange::BookSnapshot& data, common::TradingPair trading_pair) {
             logi("Received a BookSnapshot!");
             // Use bookSnapshot
-            data.trading_pair            = {2, 1};
             auto ptr = component_.snapshot_mem_pool_.Allocate(
                 &component_.snapshot_mem_pool_, data.exchange_id,
                 data.trading_pair, std::move(data.bids),
@@ -1997,8 +2005,8 @@ private:
             auto intr_ptr_bus_snapshot =
                 boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
                     bus_event);
-            logi("SEND SNAPSHOT EVENT LAST_ID:{} TO BUS FROM CB EVENTGETTER",
-                 data.lastUpdateId);
+            logi("SEND SNAPSHOT EVENT LAST_ID:{} TO BUS FROM CB EVENTGETTER {}",
+                 data.lastUpdateId, data.trading_pair.ToString());
             bus_.AsyncSend(&component_, intr_ptr_bus_snapshot);
     }
 

@@ -978,7 +978,7 @@ template <typename Executor>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
     using CallbackMap =
-        std::unordered_map<common::TradingPair, const OnWssResponse*,
+        std::unordered_map<common::TradingPair, const OnWssResponseTradingPair*,
                            common::TradingPairHash, common::TradingPairEqual>;
     using CloseSessionCallbackMap =
         std::unordered_map<common::TradingPair, const OnCloseSession*,
@@ -1044,7 +1044,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      * @param callback Pointer to the callback function.
      */
     void RegisterCallback(common::TradingPair trading_pair,
-                          const OnWssResponse* callback) {
+                          const OnWssResponseTradingPair* callback) {
         callback_map_[trading_pair] = callback;
     }
     /**
@@ -1180,7 +1180,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssResponse* callback, common::TradingPair trading_pair) {
+    void RegisterCallbackOnSession(const OnWssResponseTradingPair* callback, common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnResponse(*callback, trading_pair);
         }

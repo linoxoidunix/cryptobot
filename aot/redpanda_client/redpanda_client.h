@@ -146,34 +146,52 @@ private:
 
 template <typename Executor>
 class RedPandaComponent : public bus::Component,
-                                 public KafkaClient {
-    static constexpr std::string_view name_component_ =
-        "RedPandaComponent";
+                          public KafkaClient {
+    static constexpr std::string_view name_component_ = "RedPandaComponent";
     common::ExchangeIdPrinter exchange_id_printer_;
     Executor& executor_;
     aot::ExchangeTradingPairs& exchange_trading_pairs_;
-  public:
+
+public:
     explicit RedPandaComponent(
         Executor& executor,
         std::string_view broker,
-        aot::ExchangeTradingPairs& exchange_trading_pairs )
+        aot::ExchangeTradingPairs& exchange_trading_pairs)
         : KafkaClient(broker),
-        executor_(executor),
-        exchange_trading_pairs_(exchange_trading_pairs)
-         {}
+          executor_(executor),
+          exchange_trading_pairs_(exchange_trading_pairs) {}
+
     ~RedPandaComponent() override = default;
+
     void AsyncHandleEvent(
         boost::intrusive_ptr<Trading::BusEventNewBBO> event) override {
+        if (!event) {
+            logw("Received nullptr event in AsyncHandleEvent");
+            return;
+        }
+
         auto wrapped_event = event->WrappedEventIntrusive();
+        if (!wrapped_event) {
+            logw("Wrapped event is nullptr in AsyncHandleEvent");
+            return;
+        }
+
         boost::asio::co_spawn(executor_,
-            [this, wrapped_event]() -> boost::asio::awaitable<void> {
-                co_await HandleEventAsync(wrapped_event);
-            },
-            boost::asio::detached);
+                              [this, wrapped_event]() -> boost::asio::awaitable<void> {
+                                  co_await HandleEventAsync(wrapped_event);
+                              },
+                              boost::asio::detached);
     }
-    void AsyncStop() override {  }
-    private:
-     boost::asio::awaitable<void> HandleEventAsync(boost::intrusive_ptr<Trading::NewBBO> wrapped_event) {
+
+    void AsyncStop() override {}
+
+private:
+    boost::asio::awaitable<void> HandleEventAsync(boost::intrusive_ptr<Trading::NewBBO> wrapped_event) {
+        if (!wrapped_event) {
+            logw("Received nullptr wrapped_event in HandleEventAsync");
+            co_return;
+        }
+
         auto exchange_id = wrapped_event->exchange_id;
         auto trading_pair = wrapped_event->trading_pair;
 
@@ -193,82 +211,73 @@ class RedPandaComponent : public bus::Component,
     }
 
     bool ValidatePrices(boost::intrusive_ptr<Trading::NewBBO> event) {
+        if (!event) {
+            logw("Received nullptr event in ValidatePrices");
+            return false;
+        }
+
         if (event->bbo.bid_price == common::kPriceInvalid) {
             logw("Invalid best bid price. Skipping event");
             return false;
         }
+
         if (event->bbo.ask_price == common::kPriceInvalid) {
             logw("Invalid best offer price. Skipping event");
             return false;
         }
+
         return true;
     }
 
     aot::models::OrderBook PrepareOrderBook(
         boost::intrusive_ptr<Trading::NewBBO> event,
         const common::TradingPairInfo& info) {
-        int spread = event->bbo.ask_price - event->bbo.bid_price;
+        if (!event) {
+            logw("PrepareOrderBook received nullptr event");
+            return {};
+        }
+        auto [status_ask, ask_price] = GetFormattedPrice<false>(event);
+        if(!status_ask)
+           return {};
+        auto [status_bid, bid_price] = GetFormattedPrice<true>(event);
+        if(!status_bid)
+            return {};
+        double spread = ask_price - bid_price;
         return aot::models::OrderBook(
             exchange_id_printer_.ToString(event->exchange_id),
             info.https_json_request,
-            event->bbo.bid_price,
-            event->bbo.ask_price,
+            bid_price,
+            ask_price,
             spread);
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    // void AsyncHandleEvent(
-    //     boost::intrusive_ptr<Trading::BusEventNewBBO> event)
-    //     override {
-    //     auto wrapped_event = event->WrappedEventIntrusive();
-    //     boost::asio::co_spawn(executor_,
-    //                           [this, wrapped_event]()-> boost::asio::awaitable<void>{
-    //                             auto bb = wrapped_event->bbo.bid_price;
-    //                             auto bo = wrapped_event->bbo.ask_price;
 
-    //                             auto exchange_id_base = wrapped_event->exchange_id;
-    //                             auto trading_pair_base = wrapped_event->trading_pair;
+    template<bool need_bid>
+    std::pair<bool, double> GetFormattedPrice(boost::intrusive_ptr<Trading::NewBBO> event) {
+        if (!event) {
+            logw("Received nullptr event in GetFormattedPrice");
+            return std::make_pair(false, 0.0);
+        }
 
-    //                             auto* info = exchange_trading_pairs_.GetPairInfo(exchange_id_base, trading_pair_base);
-    //                             if(info == nullptr){
-    //                                 logw("no info for {} {}", exchange_id_base, trading_pair_base.ToString());
-    //                                 co_return;
-    //                             }
-    //                             const auto exchange = fmt::format("{}", wrapped_event->exchange_id);
-    //                             const auto trading_pair = info->https_json_request;
-    //                             if(bb == common::kPriceInvalid)
-    //                             {
-    //                                 logw("Invalid best bid price. Skipping event");
-    //                                 co_return;
-    //                             }
-    //                             if(bo == common::kPriceInvalid)
-    //                             {
-    //                                 logw("Invalid best offer price. Skipping event");
-    //                                 co_return;
-    //                             }
-    //                             auto spread = bo - bb;
-    //                             aot::models::OrderBook ob(
-    //                                 exchange,
-    //                                 trading_pair,
-    //                                 bb,
-    //                                 bo,
-    //                                 spread);
-    //                             //SendMessage(ob);
-    //                             SendMessageAsJson(ob);
-    //                             co_return;
-    //                           },
-    //                           boost::asio::detached);
-    // };
+        bool status = true;
+        auto exchange_id = event->exchange_id;
+        auto trading_pair = event->trading_pair;
 
+        auto* info = exchange_trading_pairs_.GetPairInfo(exchange_id, trading_pair);
+        if (!info) {
+            logw("No info for {} {}", exchange_id, trading_pair.ToString());
+            status = false;
+            return std::make_pair(status, 0.0);
+        }
+
+        double multiplier = std::pow(10, -info->price_precission);
+
+        if (need_bid) {
+            double bid = event->bbo.bid_price * multiplier;
+            return std::make_pair(status, bid);
+        }
+
+        double ask = event->bbo.ask_price * multiplier;
+        return std::make_pair(status, ask);
+    }
 };
 }; // namespace aot

@@ -394,7 +394,7 @@ class WssSession3 {
      * @brief manage all callbacks when need response
      *
      */
-    aot::LockFreeCallbackManager<aot::CallbackNodeTradingPair<boost::beast::flat_buffer>> cb_on_response_manager_;
+    aot::LockFreeCallbackManager<aot::CallbackNodeTradingPair<boost::beast::flat_buffer&, common::TradingPair>> cb_on_response_manager_;
     /**
      * @brief manage all callbacks when session is closed
      *
@@ -448,7 +448,7 @@ class WssSession3 {
 
     aot::CallbackID
     RegisterCallbackOnResponse(
-        const OnWssResponse cb, common::TradingPair trading_pair) {
+        const OnWssResponseTradingPair cb, common::TradingPair trading_pair) {
         return cb_on_response_manager_.RegisterCallback(cb, trading_pair);
     }
     bool UnRegisterCallbackOnResponse(
@@ -499,12 +499,41 @@ class WssSession3 {
             TransitionTo(aot::StatusSession::Closing);
             co_return false;
         }
-        if (!read_started_) {
-            read_started_ =
-                true;  // Устанавливаем флаг, чтобы не запускать цикл снова
+        if (!read_started_.exchange(true)) {
             co_spawn(ioc_, ReadLoop(), net::detached);
         }
         co_return true;
+     //    Wrap everything to ensure all operations are executed on the strand associated with stream_
+    // co_await stream_.strand().wrap([this, req = std::move(req)]() -> net::awaitable<bool> {
+    //     // Check if connected
+    //     if (!IsConnected()) co_return false;
+
+    //     // Perform the asynchronous write operation on the strand
+    //     auto [write_ec, bytes_written] = co_await stream_.async_write(
+    //         net::buffer(req),
+    //         boost::asio::as_tuple(boost::asio::use_awaitable));
+
+    //     if (write_ec) {
+    //         if (write_ec == net::error::operation_aborted) {
+    //             logd("Write operation cancelled");
+    //             CloseSessionFast();
+    //             co_return false;
+    //         } else {
+    //             // Handle other write errors if necessary
+    //         }
+    //         CloseSessionFast();
+    //         TransitionTo(aot::StatusSession::Closing);
+    //         co_return false;
+    //     }
+
+    //     // Ensure that the read operation starts only once
+    //     if (!read_started_) {
+    //         read_started_ = true;  // Set the flag to prevent restarting the read loop
+    //         co_spawn(ioc_, ReadLoop(), net::detached);  // This is also on the strand
+    //     }
+
+    //     co_return true;
+    // });
     }
 
     inline bool IsConnected() const { return is_connected_; }

@@ -33,8 +33,19 @@ int main() {
 
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
                                                                     work_guard(io_context.get_executor());
-    std::thread thread_ioc([&io_context] { io_context.run(); });
+    // std::jthread thread_ioc([&io_context](std::stop_token st) {
+    //     while (!st.stop_requested()) {
+    //         try {
+    //             io_context.run();
+    //         } catch (const std::exception& ex) {
+    //             std::cerr << "Exception in io_context: " << ex.what() << '\n';
+    //         }
+    //     }
+    // });
 
+    std::thread thread_ioc([&io_context]() {
+        io_context.run();
+    });
     // Create a connection pool for Bybit WebSocket sessions with a timeout of 30 seconds,
     // a maximum of 3 concurrent connections, and specific WebSocket details.
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_bybit{
@@ -54,12 +65,23 @@ int main() {
         .ws_query_request     = "btcusdt",  // WebSocket query request string
         .https_query_response = "BTCUSDT"   // HTTPS query response string
     };
-
+    // Define trading pair information for BTC/USDT on Bybit
+    common::TradingPairInfo pair_info_ethusdt_bybit{
+        .price_precission     = 2,  // Price precision
+        .qty_precission       = 5,  // Quantity precision
+        .https_json_request   = "ETHUSDT",  // HTTPS request for JSON responses
+        .https_query_request  = "ETHUSDT",  // HTTPS query request string
+        .ws_query_request     = "ethusdt",  // WebSocket query request string
+        .https_query_response = "ETHUSDT"   // HTTPS query response string
+    };
     // Map the trading pair (Exchange ID: 2, Trading Pair ID: 1) to its configuration
     pairs[{2, 1}] = pair_info_btcusdt_bybit;
+    pairs[{3,1}] = pair_info_ethusdt_bybit;
     common::TradingPair btc_usdt_trading_pair {2,1};
+    common::TradingPair eth_usdt_trading_pair {3,1};
 
     exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBybit, btc_usdt_trading_pair, pair_info_btcusdt_bybit);
+    exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBybit, eth_usdt_trading_pair, pair_info_ethusdt_bybit);
 
 
     // Create an asynchronous event bus with the thread pool
@@ -103,12 +125,13 @@ int main() {
     );
 
     // Define a callback to handle WebSocket responses using the response handler
-    OnWssResponse wss_cb = [&order_book_wb_socket_response_handler](boost::beast::flat_buffer& fb) {
-        order_book_wb_socket_response_handler.HandleResponse(fb);
+    OnWssResponseTradingPair wss_cb = [&order_book_wb_socket_response_handler](boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
+        order_book_wb_socket_response_handler.HandleResponse(fb, trading_pair);
     };
 
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair ID: 1)
-    book_event_component_bybit.RegisterCallback({2, 1}, &wss_cb);
+    book_event_component_bybit.RegisterCallback(btc_usdt_trading_pair, &wss_cb);
+    book_event_component_bybit.RegisterCallback(eth_usdt_trading_pair, &wss_cb);
 
     // Register all callbacks for the bid-ask generator
     bybit::BidAskGeneratorCallbackHandler bid_ask_generator_callback_handler(
@@ -122,8 +145,8 @@ int main() {
     );
 
     // Add an order book for Bybit's BTC/USDT trading pair
-    common::TradingPair trading_pair{2, 1};
-    order_book_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
+    order_book_component.AddOrderBook(common::ExchangeId::kBybit, btc_usdt_trading_pair);
+    order_book_component.AddOrderBook(common::ExchangeId::kBybit, eth_usdt_trading_pair);
 
      std::string_view brokers = "localhost:19092";  // Specify your Redpanda broker address here
     auto redpanda_executor = boost::asio::make_strand(thread_pool);
@@ -142,16 +165,27 @@ int main() {
 
     BusEventRequestBBOPrice request_bbo_btc_sub;
     request_bbo_btc_sub.exchange_id    = common::ExchangeId::kBybit;
-    request_bbo_btc_sub.trading_pair   = {2, 1};
+    request_bbo_btc_sub.trading_pair   = btc_usdt_trading_pair;
     request_bbo_btc_sub.snapshot_depth = 50;
     request_bbo_btc_sub.subscribe = true;
     request_bbo_btc_sub.id = 777L;
 
-    auto intr_bus_request_sub =
+    auto intr_bus_request_btcusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub);
 
-    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_sub);
+    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
 
+    BusEventRequestBBOPrice request_bbo_eth_sub;
+    request_bbo_eth_sub.exchange_id    = common::ExchangeId::kBybit;
+    request_bbo_eth_sub.trading_pair   = eth_usdt_trading_pair;
+    request_bbo_eth_sub.snapshot_depth = 50;
+    request_bbo_eth_sub.subscribe = true;
+    request_bbo_eth_sub.id = 888L;
+
+    auto intr_bus_request_ethusdt_sub =
+    boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_eth_sub);
+    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
+    
     thread_ioc.join();
     log_polling.Stop();
     thread_pool.join();

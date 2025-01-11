@@ -10,12 +10,13 @@ namespace models {
 class OrderBook {
   public:
     OrderBook(std::string_view exchange, std::string_view tradingPair,
-              common::Price bestBid, common::Price bestOffer, int spread)
+              double bestBid, double bestOffer, double spread)
         : exchange(exchange),
           tradingPair(tradingPair),
           bestBid(bestBid),
           bestOffer(bestOffer),
           spread(spread) {}
+    OrderBook(){}
 
     // Serialize to protobuf
     void SerializeTo(std::vector<uint8_t>& output) const {
@@ -49,9 +50,9 @@ class OrderBook {
   private:
     std::string exchange;
     std::string tradingPair;
-    common::Price bestBid;
-    common::Price bestOffer;
-    int spread;
+    double bestBid;
+    double bestOffer;
+    double spread;
 };
 };  // namespace models
 };  // namespace aot
