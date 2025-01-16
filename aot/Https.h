@@ -579,6 +579,9 @@ class HttpsSession3 {
     using Timeout = _Timeout; ///< Type alias for the timeout duration.
 
   private:
+    // Static atomic counter for tracking the number of instances.
+    static std::atomic<size_t> instance_count;
+
     boost::beast::http::request<boost::beast::http::string_body> req_; ///< HTTP request object.
     boost::beast::http::response<boost::beast::http::string_body> res_; ///< HTTP response object.
 
@@ -606,7 +609,11 @@ class HttpsSession3 {
     /**
      * @brief Destructor for the class.
      */
-    virtual ~HttpsSession3() = default;
+    virtual ~HttpsSession3() {
+        // Decrement the instance count and log it.
+        size_t count = --instance_count;
+        logi("HttpsSession3 destroyed. Current instance count: {}", count);
+    };
 
     /**
      * @brief Constructor to initialize the session.
@@ -626,6 +633,9 @@ class HttpsSession3 {
           ioc_(ioc),
           timeout_(timeout),
           timer_(ioc) {
+        // Increment the instance count and log it.
+        size_t count = ++instance_count;
+        logi("HttpsSession3 created. Current instance count: {}", count);
         net::co_spawn(ioc_, Run(host.data(), port.data()),
                       [](std::exception_ptr e) {
                           if (e) std::rethrow_exception(e);
@@ -674,10 +684,9 @@ class HttpsSession3 {
             TransitionTo(aot::StatusSession::Closing);
             co_return false;
         }
-
         // Trigger the on_response_ callback if registered.
         if (on_response_) on_response_(res_);
-
+        
         CloseSessionFast();
         TransitionTo(aot::StatusSession::Closing);
         co_return true;
@@ -811,6 +820,7 @@ class HttpsSession3 {
         timer_.expires_after(timeout_);
         timer_.async_wait([this](beast::error_code ec) {
             if (ec != boost::asio::error::operation_aborted) {
+                logi("timer expired");
                 CloseSessionFast();
                 TransitionTo(aot::StatusSession::Expired);
             }
@@ -832,6 +842,7 @@ class HttpsSession3 {
      * @brief Closes the session immediately.
      */
     void CloseSessionFast() {
+        logi("start close session fast");
         beast::error_code ec;
         stream_.shutdown(ec); // Gracefully shut down the TLS session.
         beast::get_lowest_layer(stream_).close(); // Close the underlying transport.
@@ -849,14 +860,17 @@ class HttpsSession3 {
         status_ = new_state;
         switch (status_) {
             case aot::StatusSession::Ready:
+                logi("invoke on ready");
                 if (on_ready_) on_ready_();
                 break;
             case aot::StatusSession::Expired:
-                if (need_execute_on_closed_system)
+                logi("invoke on expired");
+                if (need_execute_on_closed_system.exchange(false))
                     if (on_expired_) on_expired_();
                 break;
             case aot::StatusSession::Closing:
-                if (need_execute_on_closed_system)
+                logi("invoke on closing");
+                if (need_execute_on_closed_system.exchange(false))
                     if (on_closed_system_) on_closed_system_();
                 break;
             default:
@@ -940,6 +954,7 @@ class ConnectionPool {
      */
     std::tuple<std::decay_t<Args>...> ctor_args_;
 
+    std::atomic_flag is_handling_session = ATOMIC_FLAG_INIT;
   public:
     /**
      * @brief Constructor for the connection pool.
@@ -963,24 +978,36 @@ class ConnectionPool {
           timeout_(timeout),
           ctor_args_(std::forward<Args>(args)...) {
         for (std::size_t i = 0; i < pool_size; ++i) {
+           try {
             auto session = CreateSession();
             session->RegisterOnReady([this, session]() {
-                awaiable_connections_.try_enqueue(session);
+                if (!awaiable_connections_.try_enqueue(session)) {
+                    logi("can't enqueu new session");
+                    // Лог или обработка ошибки
+                }
             });
+
             session->RegisterOnSystemClosed([this, session]() {
-                session_pool_.Deallocate(session);
-                auto new_session = CreateSession();
-                new_session->RegisterOnReady([this, new_session]() {
-                    awaiable_connections_.try_enqueue(new_session);
-                });
+                if (!is_handling_session.test_and_set()) { // Проверка и установка флага
+                    session_pool_.Deallocate(session);
+                    TryCreateNewSession();
+                    is_handling_session.clear(); // Сброс флага
+                }
             });
+
             session->RegisterOnExpired([this, session]() {
-                session_pool_.Deallocate(session);
-                auto new_session = CreateSession();
-                new_session->RegisterOnReady([this, new_session]() {
-                    awaiable_connections_.try_enqueue(new_session);
-                });
+                if (!is_handling_session.test_and_set()) {
+                    session_pool_.Deallocate(session);
+                    TryCreateNewSession();
+                    is_handling_session.clear();
+                }
             });
+
+        } catch (const std::exception& e) {
+            logi("some exception here");
+            // Обработка исключений при создании сессии
+            // Например, лог ошибки
+        }
         }
     }
 
@@ -1072,5 +1099,49 @@ class ConnectionPool {
             },
             ctor_args_);
     }
+
+   void TryCreateNewSession() {
+    try {
+        // Создаем новую сессию
+        auto session = CreateSession();
+        auto shared_session = std::shared_ptr<HTTPSessionType>(session);
+
+        // Обработка события "готовности"
+        shared_session->RegisterOnReady([this, shared_session]() {
+            if (!awaiable_connections_.try_enqueue(shared_session.get())) {
+                logi("Can't enqueue session in available_connections");
+                // Логирование ошибки или другая обработка
+            }
+        });
+
+        // Обработка события "системное закрытие"
+        shared_session->RegisterOnSystemClosed([this, shared_session]() {
+            if (!is_handling_session.test_and_set()) { // Проверка и установка флага
+                session_pool_.Deallocate(shared_session.get());
+                logi("Session system closed. Recreating session...");
+                TryCreateNewSession(); // Рекурсивное создание новой сессии
+                is_handling_session.clear(); // Сброс флага
+            }
+        });
+
+        // Обработка события "истечение срока действия"
+        shared_session->RegisterOnExpired([this, shared_session]() {
+            if (!is_handling_session.test_and_set()) { // Проверка и установка флага
+                session_pool_.Deallocate(shared_session.get());
+                logi("Session expired. Recreating session...");
+                TryCreateNewSession(); // Рекурсивное создание новой сессии
+                is_handling_session.clear(); // Сброс флага
+            }
+        });
+
+    } catch (const std::exception& e) {
+        // Логирование ошибок создания новой сессии
+        loge("Error while creating new session: {}", e.what());
+    }
+    }
 };
 };  // namespace V2
+
+// Initialize the static atomic counter.
+template <typename _Timeout, typename... AdditionalArgs>
+std::atomic<size_t> V2::HttpsSession3<_Timeout, AdditionalArgs...>::instance_count{0};

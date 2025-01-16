@@ -25,6 +25,129 @@
 #include "aot/market_data/market_update.h"
 #include "aot/third_party/emhash/hash_table7.hpp"
 
+/**
+ * Enum representing the network type.
+ * @enum Network
+ */
+enum class Network {
+    kMainnet,  ///< Main network
+    kTestnet   ///< Test network
+};
+
+/**
+ * Enum representing the protocol type.
+ * @enum Protocol
+ */
+enum class Protocol {
+    kHTTPS,    ///< HTTPS protocol
+    kWS        ///< WebSocket protocol
+};
+
+/**
+ * Class representing the configuration of an endpoint for a particular exchange.
+ * Stores information like the host, port, recv_window, and threshold.
+ */
+class Endpoint {
+public:
+    /**
+     * Constructor for the Endpoint class.
+     * Initializes the endpoint with the provided host, port, recv_window, and threshold.
+     * Limits the recv_window to a maximum of 60000.
+     * @param host The host URL of the endpoint.
+     * @param port The port of the endpoint.
+     * @param recv_window The receive window in milliseconds (default: 60000).
+     * @param threshold The threshold value (default: 60000).
+     */
+    Endpoint(std::string_view host, int port, int recv_window, int threashold)
+        : host_(host.data()), port_(port), port_as_string_(std::to_string(port)), recv_window_((recv_window > threashold) ? threashold : recv_window), threashold_(threashold) {
+        /**
+         * The recvWindow value is capped at a maximum of 60000 milliseconds, as per exchange specifications.
+         * A smaller recvWindow (like 5000 ms or less) is recommended, but the maximum allowed is 60000 ms.
+         */
+    }
+    std::string_view Host() const { return host_; }
+    int PortAsInteger() const { return port_; }
+    std::string_view PortAsStringView() const { return port_as_string_; }
+    int RecvWindow() const { return recv_window_; }
+private:
+    std::string host_;  ///< Host URL of the endpoint
+    int port_;               ///< Port number of the endpoint
+    std::string port_as_string_;               ///< Port number of the endpoint
+
+    int recv_window_ = 5000;        ///< Maximum recvWindow (capped at 60000)
+    int threashold_ = 60000;          ///< Threshold for the endpoint
+};
+
+/**
+ * Struct used as a key for storing endpoints in an unordered_map.
+ * This struct represents the combination of exchange, network, and protocol.
+ */
+struct EndpointKey {
+    common::ExchangeId exchange; ///< The exchange identifier
+    Network network;     ///< The network type (mainnet or testnet)
+    Protocol protocol;   ///< The protocol (HTTPS or WebSocket)
+
+    /**
+     * Equality operator to compare EndpointKey objects.
+     */
+    constexpr bool operator==(const EndpointKey& other) const {
+        return exchange == other.exchange && network == other.network && protocol == other.protocol;
+    }
+};
+
+/**
+ * Hash function for the EndpointKey struct, used in unordered_map.
+ */
+struct EndpointKeyHash {
+    /**
+     * Hashes the EndpointKey object by combining the hashes of its individual fields.
+     * @param key The EndpointKey object to hash.
+     * @return The computed hash value.
+     */
+    std::size_t operator()(const EndpointKey& key) const {
+        return std::hash<int>()(static_cast<int>(key.exchange)) ^
+               (std::hash<int>()(static_cast<int>(key.network)) << 1) ^
+               (std::hash<int>()(static_cast<int>(key.protocol)) << 2);
+    }
+};
+
+/**
+ * Class responsible for managing and accessing endpoint configurations.
+ */
+class EndpointManager {
+public:
+    /**
+     * Retrieves the endpoint based on the provided exchange, network, and protocol.
+     * @param exchange The exchange identifier.
+     * @param network The network type (mainnet or testnet).
+     * @param protocol The protocol type (HTTPS or WebSocket).
+     * @return The corresponding Endpoint object.
+     * @throws std::runtime_error If the endpoint is not found.
+     */
+    std::optional<std::reference_wrapper<const Endpoint>> GetEndpoint(common::ExchangeId exchange, Network network, Protocol protocol) const {
+        EndpointKey key{exchange, network, protocol};
+        auto it = endpoints_.find(key);
+        if (it != endpoints_.end()) {
+            return it->second;  // Return reference to the found Endpoint
+        }
+        return std::nullopt;  // If not found, return empty value
+    }
+
+private:
+    // The unordered_map that stores the endpoints with keys of type EndpointKey.
+    std::unordered_map<EndpointKey, Endpoint, EndpointKeyHash> endpoints_{
+        // Initializing the endpoints with exchange configurations
+        {{common::ExchangeId::kBinance, Network::kMainnet, Protocol::kHTTPS}, {"api.binance.com", 443, 5000, 60000}},
+        {{common::ExchangeId::kBinance, Network::kMainnet, Protocol::kWS}, {"stream.binance.com", 9443, 5000, 60000}},
+        {{common::ExchangeId::kBinance, Network::kTestnet, Protocol::kHTTPS}, {"testnet.binance.vision", 443, 5000, 60000}}, // recv_window = 60000
+        {{common::ExchangeId::kBinance, Network::kTestnet, Protocol::kWS}, {"testnet.binance.vision", 9443, 5000, 60000}},
+        {{common::ExchangeId::kBybit, Network::kMainnet, Protocol::kHTTPS}, {"api.bybit.com", 9443, 5000, 100}},
+        {{common::ExchangeId::kBybit, Network::kMainnet, Protocol::kWS}, {"api.bybit.com", 443, 5000, 100}},
+        {{common::ExchangeId::kBybit, Network::kTestnet, Protocol::kHTTPS}, {"api-testnet.bybit.com", 443, 5000, 60000}}, // recv_window = 60000
+        {{common::ExchangeId::kBybit, Network::kTestnet, Protocol::kWS}, {"api-testnet.bybit.com", 443, 5000, 60000}}
+    };
+};
+
 
 enum class TypeExchange { TESTNET, MAINNET };
 // enum class Side { BUY, SELL };
@@ -465,7 +588,7 @@ class HttpsConnectionPoolFactory2 {
     virtual ~HttpsConnectionPoolFactory2() = default;
     virtual V2::ConnectionPool<HTTPSesionType3> *Create(
         boost::asio::io_context &io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, https::ExchangeI *exchange) = 0;
+        std::size_t pool_size, Network network, const EndpointManager& endpoint_manager) = 0;
 };
 
 /**
@@ -535,3 +658,43 @@ class fmt::formatter<ApiResponseData> {
     }
 };
 
+template <>
+class fmt::formatter<Network> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const Network& foo,
+                          Context& ctx) const {
+
+        return fmt::format_to(ctx.out(),
+                              "Network[{}]",
+                              magic_enum::enum_name(foo));
+    }
+};
+
+template <>
+class fmt::formatter<Protocol> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const Protocol& foo,
+                          Context& ctx) const {
+
+        return fmt::format_to(ctx.out(),
+                              "Protocol[{}]",
+                              magic_enum::enum_name(foo));
+    }
+};
+
+template <>
+class fmt::formatter<Endpoint> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const Endpoint& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(),
+                              "Endpoint[host:{} port:{} recv_window:{} threshold:{}]",
+                              foo.host_, foo.port_, foo.recv_window_, foo.threashold_);
+    }
+};

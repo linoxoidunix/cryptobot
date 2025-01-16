@@ -39,16 +39,22 @@ std::string binance::ArgsBody::Body() {
 }
 
 Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Parse(
-    std::string_view response) {
+    std::string_view response, common::TradingPair trading_pair) {
     // NEED ADD EXCHANGE ID FIELD
+    logi("{}", response);
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
+    if(!trading_pairs_.count(trading_pair)){
+        logw("no existing registered {} trading pair info", trading_pair.ToString());
+        return book_snapshot;
+    }
+    auto& pair_info = trading_pairs_[trading_pair];
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
     try{
         book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
-        auto price_prec = std::pow(10, pair_info_.price_precission);
-        auto qty_prec   = std::pow(10, pair_info_.qty_precission);
+        auto price_prec = std::pow(10, pair_info.price_precission);
+        auto qty_prec   = std::pow(10, pair_info.qty_precission);
         for (auto all : doc["bids"]) {
             simdjson::ondemand::array arr = all.get_array();
             std::array<double, 2> pair;  // price + qty
@@ -75,6 +81,7 @@ Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Pars
         loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
     book_snapshot.exchange_id = common::ExchangeId::kBinance;
+    book_snapshot.trading_pair = trading_pair;
     return book_snapshot;
 }
 

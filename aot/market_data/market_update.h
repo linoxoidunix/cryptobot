@@ -176,36 +176,8 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 
-    void AddToQueue(EventLFQueue& queue) {
-        std::vector<MEMarketUpdate> bulk;
-        bulk.resize(bids.size());
-        int i = 0;
-        for (const auto& bid : bids) {
-            MEMarketUpdate event;
-            event.side  = common::Side::SELL;
-            event.price = bid.price;
-            event.qty   = bid.qty;
-            bulk[i]     = event;
-            i++;
-        }
-        bool status = false;
-        while (!status) status = queue.try_enqueue_bulk(&bulk[0], bids.size());
-
-        bulk.resize(asks.size());
-        i = 0;
-        for (const auto& ask : asks) {
-            MEMarketUpdate event;
-            event.side  = common::Side::BUY;
-            event.price = ask.price;
-            event.qty   = ask.qty;
-            bulk[i]     = event;
-            i++;
-        }
-        status = false;
-        while (!status) status = queue.try_enqueue_bulk(&bulk[0], asks.size());
-    }
     auto ToString() const {
-        return fmt::format("BookSnapshot[lastUpdateId:{}]", lastUpdateId);
+        return fmt::format("BookSnapshot[{} lastUpdateId:{} b_size:{} a_size:{}]", trading_pair.ToString(),  lastUpdateId, bids.size(), asks.size());
     };
 };
 

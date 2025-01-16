@@ -107,7 +107,12 @@ class Component {
      * @brief 
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventResponseNewSnapshot*){
+    // virtual void AsyncHandleEvent(Exchange::BusEventResponseNewSnapshot*){
+    //     logi("invoke AsyncHandleEvent with BusEventResponseNewSnapshot arg");
+    //     //it is empty class
+    // };
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>){
+        logi("invoke AsyncHandleEvent with boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> arg");
         //it is empty class
     };
     /**
@@ -117,8 +122,7 @@ class Component {
     virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>){
         //it is empty class
     };
-
-    virtual void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot*){
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>){
         //it is empty class
     };
     /**

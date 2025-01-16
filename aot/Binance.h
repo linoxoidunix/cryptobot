@@ -551,7 +551,6 @@ class FamilyBookEventGetter {
 };
 };  // namespace detail
 
-
 namespace detail {
 /**
  * @brief for GET request
@@ -559,11 +558,11 @@ namespace detail {
  */
 class FactoryRequest {
   public:
-    explicit FactoryRequest(const https::ExchangeI* exchange,
+    explicit FactoryRequest(const Endpoint& exchange_connection,
                             std::string_view end_point, const ArgsQuery& args,
                             boost::beast::http::verb action, SignerI* signer,
                             bool need_sign = false)
-        : exchange_(exchange),
+        : exchange_connection_(exchange_connection),
           args_(args),
           action_(action),
           signer_(signer),
@@ -587,7 +586,8 @@ class FactoryRequest {
          *
          */
         if (need_sign_) req.insert("X-MBX-APIKEY", signer_->ApiKey().data());
-        req.set(boost::beast::http::field::host, exchange_->Host().data());
+        req.set(boost::beast::http::field::host,
+                exchange_connection_.Host().data());
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
         /**
@@ -601,14 +601,14 @@ class FactoryRequest {
                 "application/x-www-form-urlencoded");
         return req;
     };
-    std::string_view Host() const { return exchange_->Host(); };
-    std::string_view Port() const { return exchange_->Port(); };
-    std::string_view EndPoint() const { return end_point_; }
+    // std::string_view Host() const { return exchange_; };
+    // std::string_view Port() const { return exchange_->Port(); };
+    // std::string_view EndPoint() const { return end_point_; }
 
   private:
     void AddSignParams() {
         CurrentTime time_service;
-        args_["recvWindow"] = std::to_string(exchange_->RecvWindow());
+        args_["recvWindow"] = std::to_string(exchange_connection_.RecvWindow());
         args_["timestamp"]  = std::to_string(time_service.Time());
     };
     void AddSignature(std::string_view signature) {
@@ -616,7 +616,7 @@ class FactoryRequest {
     };
 
   private:
-    const https::ExchangeI* exchange_;
+    const Endpoint& exchange_connection_;
     std::string end_point_;
     ArgsQuery args_;
     boost::beast::http::verb action_;
@@ -1104,7 +1104,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             bus_event_request_diff_order_book->WrappedEvent(), pairs_);
         auto req = args.Body();
 
-        if (!active_session_.load()) { // Check if active session is not already acquired
+        if (!active_session_
+                 .load()) {  // Check if active session is not already acquired
             if (AcquireActiveSession()) {
                 if (!RegisterCallbacksForTradingPair(trading_pair)) {
                     co_return;
@@ -1180,7 +1181,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssResponseTradingPair* callback, common::TradingPair trading_pair) {
+    void RegisterCallbackOnSession(const OnWssResponseTradingPair* callback,
+                                   common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnResponse(*callback, trading_pair);
         }
@@ -1258,56 +1260,65 @@ class BookEventGetterComponent : public bus::Component,
     void AsyncStop() override { BookEventGetter3<Executor>::AsyncStop(); }
 };
 
-class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
-  public:
-    explicit OrderNewLimit(SignerI* signer, TypeExchange type,
-                           common::TradingPairHashMap& pairs,
-                           common::TradingPairReverseHashMap& pairs_reverse)
-        : current_exchange_(exchange_.Get(type)),
-          signer_(signer),
-          pairs_(pairs),
-          pairs_reverse_(pairs_reverse) {};
-    void Exec(Exchange::RequestNewOrder* new_order,
-              Exchange::ClientResponseLFQueue* response_lfqueue) override {
-        ArgsOrder args(new_order, pairs_);
+// class OrderNewLimit : public inner::OrderNewI, public
+// detail::FamilyLimitOrder {
+//     const Protocol protocol_ = Protocol::kHTTPS;
+//     const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
+//     Network network_ = Network::kTestnet;
+//     const EndpointManager& endpoint_manager_;
+//   public:
+//     explicit OrderNewLimit(SignerI* signer, Network network,
+//                            common::TradingPairHashMap& pairs,
+//                            common::TradingPairReverseHashMap& pairs_reverse,
+//                            const EndpointManager& endpoint_manager)
+//         : signer_(signer),
+//           pairs_(pairs),
+//           pairs_reverse_(pairs_reverse) {};
+//     void Exec(Exchange::RequestNewOrder* new_order,
+//               Exchange::ClientResponseLFQueue* response_lfqueue) override {
+//         ArgsOrder args(new_order, pairs_);
 
-        bool need_sign = true;
-        detail::FactoryRequest factory{current_exchange_,
-                                       detail::FamilyLimitOrder::end_point,
-                                       args,
-                                       boost::beast::http::verb::post,
-                                       signer_,
-                                       need_sign};
-        boost::asio::io_context ioc;
-        OnHttpsResponce cb;
-        cb = [response_lfqueue, this](
-                 boost::beast::http::response<boost::beast::http::string_body>&
-                     buffer) {
-            const auto& resut = buffer.body();
-            logi("{}", resut);
-            ParserResponse parser(pairs_, pairs_reverse_);
-            auto answer    = parser.Parse(resut);
-            bool status_op = response_lfqueue->try_enqueue(answer);
-            if (!status_op) [[unlikely]]
-                loge("my queuee is full. need clean my queue");
-        };
-        logi("init memory start");
-        Https http_session(ioc, cb);
-        http_session.Run(factory.Host().data(), factory.Port().data(),
-                         factory.EndPoint().data(), factory());
-        logi("init memory finished");
-        ioc.run();
-        logi("go out from exec");
-    };
-    ~OrderNewLimit() override = default;
+//         bool need_sign = true;
+//         auto exchange_connection =
+//         endpoint_manager_.GetEndpoint(exchange_id_, network_, protocol_);
+//         if(!exchange_connection) {
+//             logw("can't get exchange connection for {} {} {}", exchange_id_,
+//             network_, protocol_); co_return;
+//         }
+//         detail::FactoryRequest factory{exchange_connection.get(),
+//                                        detail::FamilyLimitOrder::end_point,
+//                                        args,
+//                                        boost::beast::http::verb::post,
+//                                        signer_,
+//                                        need_sign};
+//         boost::asio::io_context ioc;
+//         OnHttpsResponce cb;
+//         cb = [response_lfqueue, this](
+//                  boost::beast::http::response<boost::beast::http::string_body>&
+//                      buffer) {
+//             const auto& resut = buffer.body();
+//             logi("{}", resut);
+//             ParserResponse parser(pairs_, pairs_reverse_);
+//             auto answer    = parser.Parse(resut);
+//             bool status_op = response_lfqueue->try_enqueue(answer);
+//             if (!status_op) [[unlikely]]
+//                 loge("my queuee is full. need clean my queue");
+//         };
+//         logi("init memory start");
+//         Https http_session(ioc, cb);
+//         http_session.Run(factory.Host().data(), factory.Port().data(),
+//                          factory.EndPoint().data(), factory());
+//         logi("init memory finished");
+//         ioc.run();
+//         logi("go out from exec");
+//     };
+//     ~OrderNewLimit() override = default;
 
-  private:
-    ExchangeChooser exchange_;
-    https::ExchangeI* current_exchange_;
-    SignerI* signer_;
-    common::TradingPairHashMap& pairs_;
-    common::TradingPairReverseHashMap& pairs_reverse_;
-};
+//   private:
+//     SignerI* signer_;
+//     common::TradingPairHashMap& pairs_;
+//     common::TradingPairReverseHashMap& pairs_reverse_;
+// };
 
 // class OrderNewLimit2 : public inner::OrderNewI,
 //                        public detail::FamilyLimitOrder {
@@ -1315,7 +1326,8 @@ class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
 //     explicit OrderNewLimit2(SignerI* signer, TypeExchange type,
 //                             common::TradingPairHashMap& pairs,
 //                             common::TradingPairReverseHashMap& pairs_reverse,
-//                             ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+//                             ::V2::ConnectionPool<HTTPSesionType>*
+//                             session_pool)
 //         : current_exchange_(exchange_.Get(type)),
 //           signer_(signer),
 //           pairs_(pairs),
@@ -1387,10 +1399,13 @@ class OrderNewLimit : public inner::OrderNewI, public detail::FamilyLimitOrder {
  * @tparam Executor
  */
 template <typename Executor>
-class OrderNewLimit3 : public detail::FamilyLimitOrder{
+class OrderNewLimit3 : public detail::FamilyLimitOrder {
+    const Protocol protocol_              = Protocol::kHTTPS;
+    const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
+    Network network_                      = Network::kTestnet;
+
   protected:
     Executor& executor_;
-    ExchangeChooser exchange_;
     // pass pairs_ without const due to i want [] operator
     // pass pairs_reverse_ without const due to i want [] operator
     common::TradingPairReverseHashMap& pairs_reverse_;
@@ -1400,19 +1415,21 @@ class OrderNewLimit3 : public detail::FamilyLimitOrder{
     common::TradingPairHashMap& pairs_;
     https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+    const EndpointManager& endpoint_manager_;
 
   public:
     explicit OrderNewLimit3(Executor& executor, SignerI* signer,
-                            TypeExchange type,
-                            common::TradingPairHashMap& pairs,
+                            Network network, common::TradingPairHashMap& pairs,
                             common::TradingPairReverseHashMap& pairs_reverse,
-                            ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : executor_(executor),
-         current_exchange_(exchange_.Get(type)),
+                            ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+                            const EndpointManager& endpoint_manager)
+        : network_(network),
+          executor_(executor),
           signer_(signer),
           pairs_(pairs),
           pairs_reverse_(pairs_reverse),
-          session_pool_(session_pool) {}; 
+          session_pool_(session_pool),
+          endpoint_manager_(endpoint_manager) {};
 
     ~OrderNewLimit3() override = default;
     boost::asio::awaitable<void> CoExec(
@@ -1435,9 +1452,16 @@ class OrderNewLimit3 : public detail::FamilyLimitOrder{
 
                 ArgsOrder args(bus_event_request_new_order->request, pairs_);
 
-                bool need_sign = true;
+                bool need_sign           = true;
+                auto exchange_connection = endpoint_manager_.GetEndpoint(
+                    exchange_id_, network_, protocol_);
+                if (!exchange_connection) {
+                    logw("can't get exchange connection for {} {} {}",
+                         exchange_id_, network_, protocol_);
+                    co_return;
+                }
                 detail::FactoryRequest factory{
-                    current_exchange_,
+                    exchange_connection.value(),
                     detail::FamilyLimitOrder::end_point,
                     args,
                     boost::beast::http::verb::post,
@@ -1473,11 +1497,13 @@ class OrderNewLimitComponent : public bus::Component,
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
     explicit OrderNewLimitComponent(
         Executor&& executor, size_t number_responses, SignerI* signer,
-        TypeExchange type, common::TradingPairHashMap& pairs,
+        Network network, common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
-        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : OrderNewLimit3<Executor>(std::move(executor), signer, type, pairs,
-                                   pairs_reverse, session_pool),
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+        const EndpointManager& endpoint_manager)
+        : OrderNewLimit3<Executor>(std::move(executor), signer, network, pairs,
+                                   pairs_reverse, session_pool,
+                                   endpoint_manager),
           exchange_response_mem_pool_(number_responses),
           bus_event_response_mem_pool_(number_responses) {}
     ~OrderNewLimitComponent() override = default;
@@ -1614,27 +1640,33 @@ class OrderNewLimitComponent : public bus::Component,
  * @tparam Executor
  */
 template <typename Executor>
-class CancelOrder3 : public detail::FamilyCancelOrder{
-    ExchangeChooser exchange_;
+class CancelOrder3 : public detail::FamilyCancelOrder {
+    const Protocol protocol_              = Protocol::kHTTPS;
+    const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
+    Network network_                      = Network::kTestnet;
     common::TradingPairReverseHashMap& pairs_reverse_;
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
-    https::ExchangeI* current_exchange_;
     ::V2::ConnectionPool<HTTPSesionType>* session_pool_;
+
   protected:
     Executor executor_;
+    const EndpointManager& endpoint_manager_;
 
   public:
-    explicit CancelOrder3(Executor&& executor, SignerI* signer,
-                          TypeExchange type, common::TradingPairHashMap& pairs,
+    explicit CancelOrder3(Executor&& executor, SignerI* signer, Network network,
+                          common::TradingPairHashMap& pairs,
                           common::TradingPairReverseHashMap& pairs_reverse,
-                          ::V2::ConnectionPool<HTTPSesionType>* session_pool)
+                          ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+                          const EndpointManager& endpoint_manager)
         : executor_(std::move(executor)),
-        current_exchange_(exchange_.Get(type)),
-           signer_(signer),
-           pairs_(pairs),
-           pairs_reverse_(pairs_reverse),
-           session_pool_(session_pool) {};
+          signer_(signer),
+          network_(network),
+          pairs_(pairs),
+          pairs_reverse_(pairs_reverse),
+          session_pool_(session_pool),
+          endpoint_manager_(endpoint_manager) {};
+
     boost::asio::awaitable<void> CoExec(
         Exchange::BusEventRequestCancelOrder* bus_event_request_cancel_order,
         const OnHttpsResponce& callback) override {
@@ -1654,9 +1686,16 @@ class CancelOrder3 : public detail::FamilyCancelOrder{
                 logd("start exec");
 
                 ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
-                bool need_sign = true;
+                bool need_sign           = true;
+                auto exchange_connection = endpoint_manager_.GetEndpoint(
+                    exchange_id_, network_, protocol_);
+                if (!exchange_connection) {
+                    logw("can't get exchange connection for {} {} {}",
+                         exchange_id_, network_, protocol_);
+                    co_return;
+                }
                 detail::FactoryRequest factory{
-                    current_exchange_,
+                    exchange_connection.value(),
                     detail::FamilyCancelOrder::end_point,
                     args,
                     boost::beast::http::verb::delete_,
@@ -1694,11 +1733,12 @@ class CancelOrderComponent : public bus::Component,
     common::MemoryPool<Exchange::BusEventResponse> bus_event_response_mem_pool_;
     explicit CancelOrderComponent(
         Executor&& executor, size_t number_responses, SignerI* signer,
-        TypeExchange type, common::TradingPairHashMap& pairs,
+        Network network, common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
-        ::V2::ConnectionPool<HTTPSesionType>* session_pool)
-        : CancelOrder3<Executor>(std::move(executor), signer, type, pairs,
-                                 pairs_reverse, session_pool),
+        ::V2::ConnectionPool<HTTPSesionType>* session_pool,
+        const EndpointManager& endpoint_manager)
+        : CancelOrder3<Executor>(std::move(executor), signer, network, pairs,
+                                 pairs_reverse, session_pool, endpoint_manager),
           exchange_response_mem_pool_(number_responses),
           bus_event_response_mem_pool_(number_responses) {}
     ~CancelOrderComponent() override = default;
@@ -1716,12 +1756,13 @@ class FamilyBookSnapshot {
   public:
     static constexpr std::string_view end_point = "/api/v3/depth";
     class ParserResponse {
-        const common::TradingPairInfo& pair_info_;
+        common::TradingPairHashMap& trading_pairs_;
 
       public:
-        explicit ParserResponse(const common::TradingPairInfo& pair_info)
-            : pair_info_(pair_info) {};
-        Exchange::BookSnapshot Parse(std::string_view response);
+        explicit ParserResponse(common::TradingPairHashMap& trading_pairs)
+            : trading_pairs_(trading_pairs) {};
+        Exchange::BookSnapshot Parse(std::string_view response,
+                                     common::TradingPair trading_pair);
     };
 
     class ArgsOrder : public ArgsQuery {
@@ -1738,7 +1779,7 @@ class FamilyBookSnapshot {
             : ArgsQuery() {
             SetSymbol(
                 pairs[request_snapshot->trading_pair].https_query_request);
-            // SetLimit(request_cancel_order->depth);
+            SetLimit(request_snapshot->depth);
         };
         void SetSymbol(SymbolType symbol) {
             storage["symbol"] = symbol.data();
@@ -1799,13 +1840,17 @@ class FamilyBookSnapshot {
 
 template <typename Executor>
 class BookSnapshot2 : public inner::BookSnapshotI {
-    SignerI* signer_ = nullptr;
+    const Protocol protocol_              = Protocol::kHTTPS;
+    const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
+    Network network_                      = Network::kTestnet;
+    SignerI* signer_                      = nullptr;
     ::V2::ConnectionPool<HTTPSesionType3>* session_pool_;
     common::TradingPairHashMap& pairs_;
     // Add a callback map to store parsing callbacks for each trading pair
-    std::unordered_map<common::TradingPair, const OnHttpsResponce*,
+    std::unordered_map<common::TradingPair, const OnHttpsResponseExtended*,
                        common::TradingPairHash, common::TradingPairEqual>
         callback_map_;
+    const EndpointManager& endpoint_manager_;
 
   protected:
     Executor executor_;
@@ -1813,20 +1858,14 @@ class BookSnapshot2 : public inner::BookSnapshotI {
   public:
     explicit BookSnapshot2(Executor&& executor, SignerI* signer,
                            ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
-                           TypeExchange type, common::TradingPairHashMap& pairs)
-        : executor_(std::move(executor)),
+                           Network network, common::TradingPairHashMap& pairs,
+                           const EndpointManager& endpoint_manager)
+        : network_(network),
+          executor_(std::move(executor)),
           signer_(signer),
           session_pool_(session_pool),
-          pairs_(pairs) {
-        switch (type) {
-            case TypeExchange::MAINNET:
-                current_exchange_ = &binance_main_net_;
-                break;
-            default:
-                current_exchange_ = &binance_test_net_;
-                break;
-        }
-    };
+          pairs_(pairs),
+          endpoint_manager_(endpoint_manager) {};
 
     ~BookSnapshot2() override = default;
     boost::asio::awaitable<void> CoExec(
@@ -1867,9 +1906,16 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                  */
                 detail::FamilyBookSnapshot::ArgsOrder args(
                     bus_event_request_new_snapshot->WrappedEvent(), pairs_);
-                bool need_sign = false;
+                bool need_sign           = false;
+                auto exchange_connection = endpoint_manager_.GetEndpoint(
+                    exchange_id_, network_, protocol_);
+                if (!exchange_connection) {
+                    logw("can't get exchange connection for {} {} {}",
+                         exchange_id_, network_, protocol_);
+                    co_return;
+                }
                 detail::FactoryRequest factory{
-                    current_exchange_,
+                    exchange_connection.value(),
                     detail::FamilyBookSnapshot::end_point,
                     args,
                     boost::beast::http::verb::get,
@@ -1883,8 +1929,15 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 // bus_event_request_new_snapshot->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request");
-                session->RegisterOnResponse(*callback);
-                if (auto status = co_await session->AsyncRequest(std::move(req));
+                OnHttpsResponce simple_callback =
+                    [callback, &trading_pair](
+                        boost::beast::http::response<
+                            boost::beast::http::string_body>& response) {
+                        (*callback)(response, trading_pair);
+                    };
+                session->RegisterOnResponse(simple_callback);
+                if (auto status =
+                        co_await session->AsyncRequest(std::move(req));
                     status == false)
                     loge("AsyncRequest wasn't sent in io_context");
 
@@ -1901,15 +1954,11 @@ class BookSnapshot2 : public inner::BookSnapshotI {
      * @param callback
      */
     void RegisterCallback(common::TradingPair trading_pair,
-                          const OnHttpsResponce* callback) {
+                          const OnHttpsResponseExtended* callback) {
         callback_map_[trading_pair] = callback;
     }
 
   private:
-    binance::testnet::HttpsExchange binance_test_net_;
-    binance::mainnet::HttpsExchange binance_main_net_;
-
-    https::ExchangeI* current_exchange_;
 };
 
 template <typename Executor>
@@ -1921,11 +1970,12 @@ class BookSnapshotComponent : public bus::Component,
         bus_event_response_snapshot_mem_pool_;
     explicit BookSnapshotComponent(
         Executor&& executor, size_t number_responses, SignerI* signer,
-        TypeExchange type, common::TradingPairHashMap& pairs,
+        Network network, common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
-        ::V2::ConnectionPool<HTTPSesionType3>* session_pool)
+        ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
+        const EndpointManager& endpoint_manager)
         : BookSnapshot2<Executor>(std::move(executor), signer, session_pool,
-                                  type, pairs),
+                                  network, pairs, endpoint_manager),
           snapshot_mem_pool_(number_responses),
           bus_event_response_snapshot_mem_pool_(number_responses) {}
     ~BookSnapshotComponent() override = default;
@@ -1958,7 +2008,7 @@ class BidAskGeneratorComponent : public bus::Component {
   public:
     using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
     using DiffCallback =
-        std::function<void(const Exchange::BookDiffSnapshot2&)>;
+        std::function<void(boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>)>;
 
   private:
     BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
@@ -1985,7 +2035,9 @@ class BidAskGeneratorComponent : public bus::Component {
 
     Exchange::MEMarketUpdate2Pool out_diff_mem_pool_;
     Exchange::BusEventMEMarketUpdate2Pool out_bus_event_diff_mem_pool_;
-
+    Exchange::BookSnapshot2Pool book_snapshot2_pool_;
+    Exchange::BusEventResponseNewSnapshotPool
+        bus_event_response_new_snapshot_pool_;
     /**
      * @brief Construct a new Bid Ask Generator Component object
      *
@@ -2008,27 +2060,27 @@ class BidAskGeneratorComponent : public bus::Component {
           request_bus_event_diff_mem_pool_(number_diff),
           request_diff_mem_pool_(number_diff),
           out_diff_mem_pool_(max_number_event_per_tick),
-          out_bus_event_diff_mem_pool_(max_number_event_per_tick) {
-                    cancel_signal_.slot().assign(
-            [this](boost::asio::cancellation_type type) {
-                logd("Cancellation requested for binance::BidAskGeneratorComponent");
-                HandleCancellation(type);
-            });
-          };
+          book_snapshot2_pool_(max_number_event_per_tick),
+            out_bus_event_diff_mem_pool_(max_number_event_per_tick),
+            bus_event_response_new_snapshot_pool_(max_number_event_per_tick) {
+        cancel_signal_.slot().assign([this](
+                                         boost::asio::cancellation_type type) {
+            logd(
+                "Cancellation requested for binance::BidAskGeneratorComponent");
+            HandleCancellation(type);
+        });
+    };
 
     void AsyncHandleEvent(
-        Exchange::BusEventResponseNewSnapshot* event) override {
+         boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) override {
         // need extend lifetime object
-        auto event_ptr =
-            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
-        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event_ptr),
+        // auto event_ptr =
+        //     boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
+        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event),
                               boost::asio::detached);
     };
-    void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot* event) override {
-        // need extend lifetime object
-        auto event_ptr =
-            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
-        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event_ptr),
+    void AsyncHandleEvent( boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) override {
+        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(
@@ -2036,11 +2088,13 @@ class BidAskGeneratorComponent : public bus::Component {
         boost::asio::co_spawn(strand_, HandleTrackingNewTradingPair(event),
                               boost::asio::detached);
     };
-    //stop allinner coroutine
-    //clear inner states
+    // stop allinner coroutine
+    // clear inner states
     void AsyncStop() override {
         // Trigger cancellation signal for all coroutines
-        logd("Stopping all inner coroutines in binance::BidAskGeneratorComponent");
+        logd(
+            "Stopping all inner coroutines in "
+            "binance::BidAskGeneratorComponent");
         cancel_signal_.emit(boost::asio::cancellation_type::all);
     };
 
@@ -2084,18 +2138,18 @@ class BidAskGeneratorComponent : public bus::Component {
         }
 
         // Extract the trading pair from the event.
-        auto trading_pair = event->WrappedEvent()->trading_pair;
+        auto trading_pair  = event->WrappedEvent()->trading_pair;
 
         // Retrieve the state associated with the trading pair.
-        auto& state       = state_map_[trading_pair];
-
-        // Log that a new snapshot is being processed for the trading pair.
-        logd("[PROCESSING NEW SNAPSHOT] {}", trading_pair.ToString());
+        auto& state        = state_map_[trading_pair];
 
         // Update the state with the new snapshot.
         // The snapshot is moved into the state to avoid unnecessary copies.
         auto wrapped_event = event->WrappedEvent();
-        state.snapshot     = std::move(*wrapped_event);
+        // Log that a new snapshot is being processed for the trading pair.
+        logd("[PROCESSING NEW SNAPSHOT] {}", wrapped_event->ToString());
+
+        state.snapshot = std::move(*wrapped_event);
 
         // End the coroutine since the snapshot update is complete.
         co_return;
@@ -2198,7 +2252,7 @@ class BidAskGeneratorComponent : public bus::Component {
                 co_return;
             }
             try {
-                diff_callback_(diff);
+                diff_callback_(event);
             } catch (const std::exception& e) {
                 loge("Exception in snapshot callback: {}", e.what());
             } catch (...) {
@@ -2279,12 +2333,15 @@ class BidAskGeneratorComponent : public bus::Component {
 //     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
 //         boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
 //         std::size_t pool_size, https::ExchangeI* exchange) override {
-//         return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
+//         return pool_.Allocate(io_context, timeout, pool_size,
+//         exchange->Host(),
 //                               exchange->Port());
 //     };
 // };
 class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     common::MemoryPool<::V2::ConnectionPool<HTTPSesionType3>> pool_;
+    const Protocol protocol_              = Protocol::kHTTPS;
+    const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
 
   public:
     explicit HttpsConnectionPoolFactory2(size_t default_number_session = 10)
@@ -2292,9 +2349,19 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     ~HttpsConnectionPoolFactory2() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType3>* Create(
         boost::asio::io_context& io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, https::ExchangeI* exchange) override {
-        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
-                              exchange->Port());
+        std::size_t pool_size, Network network,
+        const EndpointManager& endpoint_manager) override {
+        auto exchange_connection =
+            endpoint_manager.GetEndpoint(exchange_id_, network, protocol_);
+        if (!exchange_connection) {
+            logw("can't get exchange connection for {} {} {}", exchange_id_,
+                 network, protocol_);
+            return nullptr;
+        }
+        const Endpoint& endpoint = exchange_connection.value();
+        auto host                = endpoint.Host();
+        auto port                = endpoint.PortAsStringView();
+        return pool_.Allocate(io_context, timeout, pool_size, host, port);
     };
 };
 
@@ -2486,4 +2553,170 @@ ParserManager InitParserManager(
     common::TradingPairReverseHashMap& pair_reverse,
     ApiResponseParser& api_response_parser,
     detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff);
+
+template <class ThreadPool1, class ThreadPool2>
+class BookEventGetterComponentCallbackHandler {
+  public:
+    BookEventGetterComponentCallbackHandler(
+        BookEventGetterComponent<ThreadPool1>& event_getter_component,
+        BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator,
+        aot::CoBus& bus, ParserManager& parser_manager)
+        : event_getter_component_(event_getter_component),
+          bid_ask_generator_(bid_ask_generator),
+          bus_(bus),
+          parser_manager_(parser_manager) {}
+
+    void HandleResponse(boost::beast::flat_buffer& fb,
+                        common::TradingPair trading_pair) {
+        auto response = std::string_view(
+            static_cast<const char*>(fb.data().data()), fb.size());
+        auto answer = parser_manager_.Parse(response);
+        logi("{}", response);
+        std::visit(
+            [&](auto&& snapshot) {
+                using T = std::decay_t<decltype(snapshot)>;
+                if constexpr (std::is_same_v<T, Exchange::BookDiffSnapshot>) {
+                    ProcessBookDiffSnapshot(snapshot, trading_pair);
+                } else if constexpr (std::is_same_v<T, ApiResponseData>) {
+                    ProcessApiResponse(snapshot);
+                }
+            },
+            answer);
+    }
+
+  private:
+    void ProcessBookDiffSnapshot(Exchange::BookDiffSnapshot& data,
+                                 common::TradingPair trading_pair) {
+        logi("Received a BookDiffSnapshot!");
+        Exchange::BookDiffSnapshot& result = data;
+        auto request = event_getter_component_.book_diff_mem_pool_.Allocate(
+            &event_getter_component_.book_diff_mem_pool_, result.exchange_id,
+            result.trading_pair, std::move(result.bids), std::move(result.asks),
+            result.first_id, result.last_id);
+        auto intr_ptr_request =
+            boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
+
+        auto bus_event =
+            event_getter_component_.bus_event_book_diff_snapshot_mem_pool_
+                .Allocate(&event_getter_component_
+                               .bus_event_book_diff_snapshot_mem_pool_,
+                          intr_ptr_request);
+        auto intr_ptr_bus_request =
+            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(bus_event);
+
+        bus_.AsyncSend(&event_getter_component_, intr_ptr_bus_request);
+    }
+    void ProcessApiResponse(ApiResponseData& data) {
+        // const auto& result = std::get<ApiResponseData>(data);
+        logi("{}", data);
+    }
+    BookEventGetterComponent<ThreadPool2>& event_getter_component_;
+    BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator_;
+    aot::CoBus& bus_;
+    ParserManager& parser_manager_;
+};
+
+template <class ThreadPool1>
+class BidAskGeneratorCallbackHandler {
+  public:
+    BidAskGeneratorCallbackHandler(
+        aot::CoBus& bus,
+        BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator)
+        : bus_(bus), bid_ask_generator_(bid_ask_generator) {
+        RegisterCallbacks();
+    }
+
+  private:
+    aot::CoBus& bus_;
+    BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator_;
+
+    void ProcessBookEntries(const auto& entries, common::ExchangeId exchange_id,
+                            common::TradingPair trading_pair,
+                            common::Side side) {
+        boost::for_each(entries, [&](const auto& bid) {
+            Exchange::MEMarketUpdate2* ptr =
+                bid_ask_generator_.out_diff_mem_pool_.Allocate(
+                    &bid_ask_generator_.out_diff_mem_pool_, exchange_id,
+                    trading_pair, Exchange::MarketUpdateType::DEFAULT,
+                    common::kOrderIdInvalid, side, bid.price, bid.qty);
+            auto intr_ptr =
+                boost::intrusive_ptr<Exchange::MEMarketUpdate2>(ptr);
+            auto bus_event =
+                bid_ask_generator_.out_bus_event_diff_mem_pool_.Allocate(
+                    &bid_ask_generator_.out_bus_event_diff_mem_pool_, intr_ptr);
+            auto intr_ptr_bus_event =
+                boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>(
+                    bus_event);
+            bus_.AsyncSend(&bid_ask_generator_, intr_ptr_bus_event);
+        });
+    }
+    // Register snapshot and diff callbacks
+    void RegisterCallbacks() {
+        bid_ask_generator_.RegisterSnapshotCallback(
+            [this](const Exchange::BookSnapshot& snapshot) {
+                ProcessBookEntries(snapshot.bids, snapshot.exchange_id,
+                                   snapshot.trading_pair, common::Side::SELL);
+                ProcessBookEntries(snapshot.asks, snapshot.exchange_id,
+                                   snapshot.trading_pair, common::Side::BUY);
+            });
+
+        bid_ask_generator_.RegisterDiffCallback(
+            [this](boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> bus_diff) {
+                const auto& diff = *(bus_diff.get()->WrappedEvent());
+                ProcessBookEntries(diff.bids, diff.exchange_id,
+                                   diff.trading_pair, common::Side::SELL);
+                ProcessBookEntries(diff.asks, diff.exchange_id,
+                                   diff.trading_pair, common::Side::BUY);
+            });
+    }
+};
+
+template <class ThreadPool1>
+class BidAskGeneratorCallbackBatchHandler {
+  public:
+    BidAskGeneratorCallbackBatchHandler(
+        aot::CoBus& bus,
+        BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator)
+        : bus_(bus), bid_ask_generator_(bid_ask_generator) {
+        RegisterCallbacks();
+    }
+
+  private:
+    aot::CoBus& bus_;
+    BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator_;
+
+    void ProcessBookEntries(const Exchange::BusEventBookDiffSnapshot& diff) {
+        
+    }
+    // Register snapshot and diff callbacks
+    void RegisterCallbacks() {
+        bid_ask_generator_.RegisterDiffCallback(
+            [this](const boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> diff) {
+                logi("[bidaskgenerator] invoke handler for batch diffs");
+                bus_.AsyncSend(&bid_ask_generator_, diff);
+            });
+        bid_ask_generator_.RegisterSnapshotCallback(
+            [this](const Exchange::BookSnapshot& snapshot) {
+                logi("[bidaskgenerator] invoke handler for snapshot");
+                auto copy_bids = snapshot.bids;
+                auto copy_asks = snapshot.asks;
+
+                auto* ptr =
+                bid_ask_generator_.book_snapshot2_pool_.Allocate(
+                    &bid_ask_generator_.book_snapshot2_pool_, snapshot.exchange_id,
+                    snapshot.trading_pair, std::move(copy_bids), std::move(copy_asks),
+                    0);
+            auto intr_ptr =
+                boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
+            auto bus_event =
+                bid_ask_generator_.bus_event_response_new_snapshot_pool_.Allocate(
+                    &bid_ask_generator_.bus_event_response_new_snapshot_pool_, intr_ptr);
+            auto intr_ptr_bus_event =
+                boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
+                    bus_event);
+            bus_.AsyncSend(&bid_ask_generator_, intr_ptr_bus_event);                             
+            });
+    }
+};
+
 };  // namespace binance

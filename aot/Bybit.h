@@ -1496,18 +1496,14 @@ class BidAskGeneratorComponent : public bus::Component {
     };
 
     void AsyncHandleEvent(
-        Exchange::BusEventResponseNewSnapshot* event) override {
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) override {
         // need extend lifetime object
-        auto event_ptr =
-            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
-        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event_ptr),
+        
+        boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event),
                               boost::asio::detached);
     };
-    void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot* event) override {
-        // need extend lifetime object
-        auto event_ptr =
-            boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>(event);
-        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event_ptr),
+    void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) override {
+        boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event),
                               boost::asio::detached);
     };
     void AsyncHandleEvent(
@@ -1732,16 +1728,25 @@ class BidAskGeneratorComponent : public bus::Component {
 
 class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     common::MemoryPool<::V2::ConnectionPool<HTTPSesionType3>> pool_;
-
+    const Protocol protocol_ = Protocol::kHTTPS;
+    const common::ExchangeId exchange_id_ = common::ExchangeId::kBybit;
   public:
     explicit HttpsConnectionPoolFactory2(size_t default_number_session = 10)
         : pool_(default_number_session) {};
     ~HttpsConnectionPoolFactory2() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType3>* Create(
         boost::asio::io_context& io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, https::ExchangeI* exchange) override {
-        return pool_.Allocate(io_context, timeout, pool_size, exchange->Host(),
-                              exchange->Port());
+        std::size_t pool_size, Network network, const EndpointManager& endpoint_manager) override {
+        auto exchange_connection = endpoint_manager.GetEndpoint(exchange_id_, network, protocol_);
+        if(!exchange_connection) {
+            logw("can't get exchange connection for {} {} {}", exchange_id_, network, protocol_);
+            return nullptr;
+        }
+        const Endpoint &endpoint = exchange_connection.value();
+        auto host = endpoint.Host();
+        auto port = endpoint.PortAsStringView();
+        return pool_.Allocate(io_context, timeout, pool_size, host,
+                              port);
     };
 };
 

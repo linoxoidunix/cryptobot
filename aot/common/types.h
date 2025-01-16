@@ -437,3 +437,19 @@ class fmt::formatter<common::ExchangeId> {
         return fmt::format_to(ctx.out(), "Exchange:{}", magic_enum::enum_name(foo));
     }
 };
+
+
+template <>
+class fmt::formatter<common::Side> {
+public:
+    constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const common::Side& side, FormatContext& ctx) const {
+        // Используем magic_enum для получения строкового имени значения
+        auto side_name = magic_enum::enum_name(side);
+        return fmt::format_to(ctx.out(),
+                              "Side[{}]",
+                              side_name.empty() ? "UNKNOWN" : side_name);
+    }
+};

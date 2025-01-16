@@ -208,6 +208,14 @@ class MarketOrderBook2 {
     virtual void OnMarketUpdate(
         const Exchange::MEMarketUpdate2 *market_update) noexcept;
 
+    /// Process market data snapshot and update the limit order book.
+    virtual void OnMarketUpdate(
+        const Exchange::BookSnapshot2 *market_snapshot) noexcept;
+
+    /// Process market data diff and update the limit order book.
+    virtual void OnMarketUpdate(
+        const Exchange::BookDiffSnapshot2 *market_diff) noexcept;
+
     auto GetBBO() const noexcept -> const BBO * { return &bbo_; }
 
     /// Update the BBO abstraction, the two boolean parameters represent if the
@@ -236,6 +244,8 @@ class MarketOrderBook2 {
                 bbo_.ask_qty   = common::kQtyInvalid;
             }
         }
+        if(bbo_.bid_price > bbo_.ask_price )
+            loge("bid:{} > ask:{}", bbo_.bid_price, bbo_.ask_price);
     }
     const common::TradingPair &GetTradingPair() const noexcept {
         return trading_pair_;
@@ -404,6 +414,19 @@ class OrderBookComponent : public bus::Component {
         boost::asio::co_spawn(executor_, HandleNewMEMarketUpdate(event),
                               boost::asio::detached);
     };
+
+    void AsyncHandleEvent(
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) override {
+        // Обработка событий типа ResponseNewSnapshot
+        boost::asio::co_spawn(executor_, HandleResponseNewSnapshot(event), boost::asio::detached);
+    }
+
+    void AsyncHandleEvent(
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) override {
+        // Обработка событий типа MEMarketUpdate
+        boost::asio::co_spawn(executor_, HandleNewDiff(event), boost::asio::detached);
+    }
+
     // Method to add a new order book
     void AddOrderBook(common::ExchangeId exchange_id,
                       const common::TradingPair &trading_pair) {
@@ -490,6 +513,107 @@ class OrderBookComponent : public bus::Component {
 
         co_return;
     }
+    
+    boost::asio::awaitable<void> HandleResponseNewSnapshot(
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) {
+        logi("[ORDERBOOK] processing new snapshot");
+        // Extract the necessary information from the event
+        const auto *wrapped_event = event->WrappedEvent();
+        if (!wrapped_event) {
+            co_return;  // Exit if the event is invalid
+        }
+
+        const auto exchange_id   = wrapped_event->exchange_id;
+        const auto &trading_pair = wrapped_event->trading_pair;
+
+        // Check if the exchange and trading pair exist in the order books
+        if (!order_books_.contains(exchange_id)) {
+            loge("[EXCHANGE NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
+            co_return;
+        }
+        if (!order_books_[exchange_id].contains(trading_pair)) {
+            loge("[TRADING PAIR NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
+            co_return;
+        }
+
+        auto &inner_map =
+            order_books_
+                .try_emplace(
+                    exchange_id,
+                    std::unordered_map<common::TradingPair, MarketOrderBook2,
+                                       common::TradingPairHash,
+                                       common::TradingPairEqual>())
+                .first->second;
+
+        auto &order_book =
+            inner_map
+                .try_emplace(
+                    trading_pair, exchange_id,
+                    trading_pair  // Arguments for constructing MarketOrderBook2
+                    )
+                .first->second;
+
+        logi("[PROCESSING MARKET UPDATE] {}, {}, b_size: {}, a_size: {}",
+             exchange_id, trading_pair.ToString(), wrapped_event->bids.size(),
+             wrapped_event->asks.size());
+
+        order_book.OnMarketUpdate(wrapped_event);
+
+        co_return;
+    }
+
+     boost::asio::awaitable<void> HandleNewDiff(
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) {
+        logi("[ORDERBOOK] processing new diff");
+        // Extract the necessary information from the event
+        const auto *wrapped_event = event->WrappedEvent();
+        if (!wrapped_event) {
+            co_return;  // Exit if the event is invalid
+        }
+
+        const auto exchange_id   = wrapped_event->exchange_id;
+        const auto &trading_pair = wrapped_event->trading_pair;
+
+        // Check if the exchange and trading pair exist in the order books
+        if (!order_books_.contains(exchange_id)) {
+            loge("[EXCHANGE NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
+            co_return;
+        }
+        if (!order_books_[exchange_id].contains(trading_pair)) {
+            loge("[TRADING PAIR NOT FOUND] {}, {}", exchange_id,
+                 trading_pair.ToString());
+            co_return;
+        }
+
+        auto &inner_map =
+            order_books_
+                .try_emplace(
+                    exchange_id,
+                    std::unordered_map<common::TradingPair, MarketOrderBook2,
+                                       common::TradingPairHash,
+                                       common::TradingPairEqual>())
+                .first->second;
+
+        auto &order_book =
+            inner_map
+                .try_emplace(
+                    trading_pair, exchange_id,
+                    trading_pair  // Arguments for constructing MarketOrderBook2
+                    )
+                .first->second;
+
+        logi("[PROCESSING MARKET UPDATE] {}, {}, b_size: {}, a_size: {}",
+             exchange_id, trading_pair.ToString(), wrapped_event->bids.size(),
+             wrapped_event->asks.size());
+
+        order_book.OnMarketUpdate(wrapped_event);
+
+        co_return;
+    }
+
     void SendBBOToBus(common::ExchangeId exchange_id,
                       const common::TradingPair& trading_pair,
                       const BBO& bbo) {

@@ -191,7 +191,7 @@ private:
             logw("Received nullptr wrapped_event in HandleEventAsync");
             co_return;
         }
-
+        logi("bid:{} ask:{}",wrapped_event->bbo.bid_price, wrapped_event->bbo.ask_price);
         auto exchange_id = wrapped_event->exchange_id;
         auto trading_pair = wrapped_event->trading_pair;
 
@@ -242,6 +242,9 @@ private:
         auto [status_bid, bid_price] = GetFormattedPrice<true>(event);
         if(!status_bid)
             return {};
+        if(!status_ask)
+            return {};
+        logi("b:{} a:{}", bid_price, ask_price);    
         double spread = ask_price - bid_price;
         return aot::models::OrderBook(
             exchange_id_printer_.ToString(event->exchange_id),

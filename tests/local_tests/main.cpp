@@ -384,17 +384,16 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
         boost::asio::make_strand(thread_pool), number_responses, &signer,
         TypeExchange::TESTNET, pairs, pair_reverse, session_pool);
 
-    OnHttpsResponce cb =
+    OnHttpsResponseExtended cb =
         [&component, &bus, this, &pair_reverse](
             boost::beast::http::response<boost::beast::http::string_body>&
-                buffer) {
+                buffer, common::TradingPair trading_pair) {
             const auto& result = buffer.body();
-            //std::cout << result << std::endl;
+            std::cout << result << std::endl;
 
             binance::detail::FamilyBookSnapshot::ParserResponse parser(
-                pairs[{2, 1}]);
-            auto snapshot         = parser.Parse(result);
-            snapshot.trading_pair = {2, 1};
+                pairs);
+            auto snapshot         = parser.Parse(result, {2,1});
             auto ptr              = component.snapshot_mem_pool_.Allocate(
                 &component.snapshot_mem_pool_, snapshot.exchange_id,
                 snapshot.trading_pair, std::move(snapshot.bids),
@@ -431,12 +430,12 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     bool accept_unsubscribe_successfully = false;
 
 
-    OnWssResponse cb_wss = [&event_getter_component, &bus, &counter_successfull,
+    OnWssResponseTradingPair cb_wss = [&event_getter_component, &bus, &counter_successfull,
                             &counter_unsuccessfull, this,
                             &pair_reverse,
                             &parser_manager,
                             &request_accepted_by_exchange,
-                            &accept_subscribe_successfully](boost::beast::flat_buffer& fb) {
+                            &accept_subscribe_successfully](boost::beast::flat_buffer& fb, common::TradingPair) {
         //auto data     = fb.data();  // returns a const_buffer
         // auto response = std::string_view(static_cast<const char*>(data.data()),
         //                                  data.size());
@@ -541,10 +540,15 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
             ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::SELL);
             ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::BUY);
         });
+    common::TradingPair btc_usdt_trading_pair {2,1};
+    auto& btcusdt_binance_pair_info = pairs[{2,1}];
     //--------------------------red panda component--------------------------------
     std::string_view brokers = "localhost:19092";  // Specify your Redpanda broker address here
     auto redpanda_executor = boost::asio::make_strand(thread_pool);
-    aot::RedPandaComponent red_panda_component(redpanda_executor, brokers);
+    aot::ExchangeTradingPairs exchange_trading_pairs;
+    exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBinance, btc_usdt_trading_pair, btcusdt_binance_pair_info);
+
+    aot::RedPandaComponent red_panda_component(redpanda_executor, brokers, exchange_trading_pairs);
     //------------------------------------------------------------------------------
     bus.Subscribe(&bid_ask_generator, &component);
     bus.Subscribe(&bid_ask_generator, &event_getter_component);
