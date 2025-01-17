@@ -154,7 +154,7 @@ TEST_F(WalletTest, ShouldUpdateWalletAndEraseReservationOnFilledBuyResponse) {
     EXPECT_CALL(mockResponse, GetOrderId())
         .WillOnce(Return(order_id));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(Return(common::Side::BUY));
+        .WillOnce(Return(common::Side::kAsk));
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(Return(common::TradingPair{ticker, 0}));
     EXPECT_CALL(mockResponse, GetExecQty())
@@ -181,7 +181,7 @@ TEST_F(WalletTest, ShouldUpdateWalletAndEraseReservationOnFilledSellResponse) {
     EXPECT_CALL(mockResponse, GetOrderId())
         .WillOnce(Return(order_id));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(Return(common::Side::SELL));
+        .WillOnce(Return(common::Side::kBid));
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(Return(common::TradingPair{0, ticker}));
     EXPECT_CALL(mockResponse, GetExecQty())
@@ -208,7 +208,7 @@ TEST_F(WalletTest, ShouldNotUpdateWalletWhenFilledResponseHasZeroExecutionQuanti
     EXPECT_CALL(mockResponse, GetOrderId())
         .WillOnce(Return(order_id));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(Return(common::Side::BUY));
+        .WillOnce(Return(common::Side::kAsk));
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(Return(common::TradingPair{ticker, 0}));
     EXPECT_CALL(mockResponse, GetExecQty())
@@ -249,7 +249,7 @@ TEST_F(WalletTest, ShouldCorrectlyHandleMultipleConsecutiveUpdatesWithDifferentR
     EXPECT_CALL(mockResponse, GetOrderId())
         .WillOnce(Return(order_id2));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(Return(common::Side::BUY));
+        .WillOnce(Return(common::Side::kAsk));
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(Return(common::TradingPair{ticker, 0}));
     EXPECT_CALL(mockResponse, GetExecQty())

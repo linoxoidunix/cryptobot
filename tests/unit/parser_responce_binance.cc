@@ -49,7 +49,7 @@ TEST_F(ParserResponseTests, SuccessfulParsing) {
     
     ASSERT_EQ(response.order_id, 12345);
     ASSERT_EQ(response.trading_pair, (common::TradingPair{2,1}));
-    ASSERT_EQ(response.side, common::Side::BUY);
+    ASSERT_EQ(response.side, common::Side::kAsk);
     ASSERT_EQ(response.exec_qty, 0.1 * std::pow(10, /*qty precision*/ 5)); // Adjust precision
 }
 
@@ -102,7 +102,7 @@ TEST_F(ParserResponseTests, SuccessfullyFilledOrder) {
     Exchange::MEClientResponse response = parser.Parse(json_response);
     
     ASSERT_EQ(response.order_id, 56789);
-    ASSERT_EQ(response.side, common::Side::SELL);
+    ASSERT_EQ(response.side, common::Side::kBid);
     ASSERT_EQ(response.exec_qty, 1.0 * std::pow(10, /*qty precision*/ 5)); // Adjust precision
 }
 

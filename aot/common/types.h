@@ -142,7 +142,7 @@ inline auto priorityToString(Priority priority) -> std::string {
  * @brief side as taker
  * 
  */
-enum class Side : int8_t { INVALID = 0, BUY = 1, SELL = -1, MAX = 2 };
+enum class Side : int8_t { kInvalid = 0, kAsk = 1, kBid = -1, kMax = 2 };
 
 enum class TradeAction {
     kEnterLong,
@@ -154,13 +154,13 @@ enum class TradeAction {
 
 inline auto sideToString(Side side) -> std::string {
     switch (side) {
-        case Side::BUY:
+        case Side::kAsk:
             return "BUY";
-        case Side::SELL:
+        case Side::kBid:
             return "SELL";
-        case Side::INVALID:
+        case Side::kInvalid:
             return "INVALID";
-        case Side::MAX:
+        case Side::kMax:
             return "MAX";
     }
 

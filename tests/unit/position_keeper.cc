@@ -42,7 +42,7 @@ TEST(PositionKeeperTest,
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(testing::Return(common::TradingPair{2, 1}));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(testing::Return(common::Side::BUY));
+        .WillOnce(testing::Return(common::Side::kAsk));
     EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(1.0));
     EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(50000.0));
     EXPECT_CALL(mockResponse, ToString()).WillRepeatedly(testing::Return(""));
@@ -54,7 +54,7 @@ TEST(PositionKeeperTest,
     ASSERT_NE(positionInfo, nullptr);
     EXPECT_EQ(positionInfo->position, 1);
     EXPECT_EQ(positionInfo->volume, 1.0);
-    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::BUY)],
+    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::kAsk)],
               50000.0);
 }
 
@@ -111,7 +111,7 @@ TEST(PositionKeeperTest,
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(testing::Return(common::TradingPair{3, 1}));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(testing::Return(common::Side::SELL));
+        .WillOnce(testing::Return(common::Side::kBid));
     EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(2.0));
     EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(3000.0));
     EXPECT_CALL(mockResponse, ToString()).Times(testing::AnyNumber());
@@ -123,7 +123,7 @@ TEST(PositionKeeperTest,
     ASSERT_NE(positionInfo, nullptr);
     EXPECT_EQ(positionInfo->position, -2);
     EXPECT_EQ(positionInfo->volume, 2.0);
-    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::SELL)],
+    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::kBid)],
               6000.0);
 }
 
@@ -138,7 +138,7 @@ TEST(PositionKeeperTest,
     EXPECT_CALL(mockResponse, GetTradingPair())
         .WillOnce(testing::Return(common::TradingPair{4, 1}));
     EXPECT_CALL(mockResponse, GetSide())
-        .WillOnce(testing::Return(common::Side::BUY));
+        .WillOnce(testing::Return(common::Side::kAsk));
     EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(5));
     EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(200));
     EXPECT_CALL(mockResponse, ToString()).Times(testing::AnyNumber());
@@ -150,7 +150,7 @@ TEST(PositionKeeperTest,
     ASSERT_NE(positionInfo, nullptr);
     EXPECT_EQ(positionInfo->position, 5);
     EXPECT_EQ(positionInfo->volume, 5.0);
-    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::BUY)],
+    EXPECT_EQ(positionInfo->open_vwap[common::sideToIndex(common::Side::kAsk)],
               1000);
 }
 
@@ -319,7 +319,7 @@ TEST(PositionKeeperTest, ShouldHandleNullBBOPointerWithoutThrowingException) {
 //     EXPECT_CALL(mockResponse, GetTradingPair())
 //         .WillOnce(testing::Return(common::TradingPair{2, 1}));
 //     EXPECT_CALL(mockResponse, GetSide())
-//         .WillOnce(testing::Return(common::Side::BUY));
+//         .WillOnce(testing::Return(common::Side::kAsk));
 //     EXPECT_CALL(mockResponse, GetExecQty()).WillOnce(testing::Return(1.0));
 //     EXPECT_CALL(mockResponse, GetPrice()).WillOnce(testing::Return(100.0));
 //     EXPECT_CALL(mockResponse, ToString()).Times(testing::AnyNumber());

@@ -52,7 +52,7 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
         int i = 0;
         for (const auto& bid : bids) {
             MEMarketUpdate event;
-            event.side  = common::Side::SELL;
+            event.side  = common::Side::kBid;
             event.price = bid.price;
             event.qty   = bid.qty;
             bulk[i]     = event;
@@ -65,7 +65,7 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
         i = 0;
         for (const auto& ask : asks) {
             MEMarketUpdate event;
-            event.side  = common::Side::BUY;
+            event.side  = common::Side::kAsk;
             event.price = ask.price;
             event.qty   = ask.qty;
             bulk[i]     = event;

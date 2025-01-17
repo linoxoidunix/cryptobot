@@ -302,8 +302,8 @@ void OnDiffCallback(const Exchange::BookDiffSnapshot2& diff) {
 //         [&ProcessBookEntries](const Exchange::BookSnapshot& snapshot) {
 //             std::cout << "Lambda Snapshot Callback: Snapshot received with ID: "
 //                       << snapshot.lastUpdateId << std::endl;
-//             ProcessBookEntries(snapshot.bids, snapshot.exchange_id, snapshot.trading_pair, common::Side::SELL);
-//             ProcessBookEntries(snapshot.asks, snapshot.exchange_id, snapshot.trading_pair, common::Side::BUY);
+//             ProcessBookEntries(snapshot.bids, snapshot.exchange_id, snapshot.trading_pair, common::Side::kBid);
+//             ProcessBookEntries(snapshot.asks, snapshot.exchange_id, snapshot.trading_pair, common::Side::kAsk);
 //         });
 //     // Register the diff callback
 //     bid_ask_generator.RegisterDiffCallback(
@@ -311,8 +311,8 @@ void OnDiffCallback(const Exchange::BookDiffSnapshot2& diff) {
 //             std::cout << "Lambda Diff Callback: Diff received with range ["
 //                       << diff.first_id << " - " << diff.last_id << "]"
 //                       << std::endl;
-//             ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::SELL);
-//             ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::BUY);
+//             ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::kBid);
+//             ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::kAsk);
 //         });
 
 //     bus.Subscribe(&bid_ask_generator, &component);
@@ -531,14 +531,14 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     };
     bid_ask_generator.RegisterSnapshotCallback(
         [&ProcessBookEntries](const Exchange::BookSnapshot& snapshot) {
-            ProcessBookEntries(snapshot.bids, snapshot.exchange_id, snapshot.trading_pair, common::Side::SELL);
-            ProcessBookEntries(snapshot.asks, snapshot.exchange_id, snapshot.trading_pair, common::Side::BUY);
+            ProcessBookEntries(snapshot.bids, snapshot.exchange_id, snapshot.trading_pair, common::Side::kBid);
+            ProcessBookEntries(snapshot.asks, snapshot.exchange_id, snapshot.trading_pair, common::Side::kAsk);
         });
     // Register the diff callback
     bid_ask_generator.RegisterDiffCallback(
         [&ProcessBookEntries](const Exchange::BookDiffSnapshot2& diff) {
-            ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::SELL);
-            ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::BUY);
+            ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair, common::Side::kBid);
+            ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair, common::Side::kAsk);
         });
     common::TradingPair btc_usdt_trading_pair {2,1};
     auto& btcusdt_binance_pair_info = pairs[{2,1}];

@@ -23,14 +23,14 @@ void Wallet::Update(Exchange::IResponse* response){
     if (type == Exchange::ClientResponseType::FILLED) {
         reserves_.erase(response->GetOrderId());
         auto side = response->GetSide();
-        if (side == common::Side::BUY) {
+        if (side == common::Side::kAsk) {
             auto ticker = response->GetTradingPair().first;
             InitTicker(ticker);
             if(count(ticker))
                 at(ticker) += executed_qty;
             return;
         }
-        if (side == common::Side::SELL) {
+        if (side == common::Side::kBid) {
             auto ticker = response->GetTradingPair().second;
             InitTicker(ticker);
             if(count(ticker))

@@ -32,7 +32,7 @@ struct MEMarketUpdate {
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
 
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side        = common::Side::INVALID;
+    common::Side side        = common::Side::kInvalid;
     common::Price price      = common::kPriceInvalid;
     common::Qty qty          = common::kQtyInvalid;
 
@@ -57,7 +57,7 @@ struct MEMarketUpdate2 : public aot::Event<MEMarketUpdate2Pool> {
     common::TradingPair trading_pair;
     MarketUpdateType type    = MarketUpdateType::DEFAULT;
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side        = common::Side::INVALID;
+    common::Side side        = common::Side::kInvalid;
     common::Price price      = common::kPriceInvalid;
     common::Qty qty          = common::kQtyInvalid;
 
@@ -201,7 +201,7 @@ struct BookSnapshot {
         int i = 0;
         for (const auto& bid : bids) {
             MEMarketUpdate event;
-            event.side  = common::Side::SELL;
+            event.side  = common::Side::kBid;
             event.price = bid.price;
             event.qty   = bid.qty;
             bulk[i]     = event;
@@ -214,7 +214,7 @@ struct BookSnapshot {
         i = 0;
         for (const auto& ask : asks) {
             MEMarketUpdate event;
-            event.side  = common::Side::BUY;
+            event.side  = common::Side::kAsk;
             event.price = ask.price;
             event.qty   = ask.qty;
             bulk[i]     = event;
@@ -389,7 +389,7 @@ struct BookDiffSnapshot {
     void AddToQueue(EventLFQueue& queue) {
         for (const auto& bid : bids) {
             MEMarketUpdate event;
-            event.side     = common::Side::SELL;
+            event.side     = common::Side::kBid;
             event.price    = bid.price;
             event.qty      = bid.qty;
             auto status_op = queue.try_enqueue(event);
@@ -399,7 +399,7 @@ struct BookDiffSnapshot {
         }
         for (const auto& ask : asks) {
             MEMarketUpdate event;
-            event.side     = common::Side::BUY;
+            event.side     = common::Side::kAsk;
             event.price    = ask.price;
             event.qty      = ask.qty;
             auto status_op = queue.try_enqueue(event);

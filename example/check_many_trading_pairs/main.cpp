@@ -224,9 +224,9 @@ int main() {
     book_event_getter_binance.RegisterCallback(btc_usdt_trading_pair, &wss_cb_binance);
    
     // // Register all callbacks for the bid-ask generator. process each murket update event
-    // bybit::BidAskGeneratorCallbackHandler bid_ask_generator_callback_handler(
-    //     bus, bid_ask_generator_bybit
-    // );
+    bybit::BidAskGeneratorCallbackHandler bid_ask_generator_callback_handler(
+        bus, bid_ask_generator_bybit
+    );
     
     // Register all callbacks for the bid-ask generator. process batched from excgange
     binance::BidAskGeneratorCallbackBatchHandler bid_ask_generator_callback_handler_binance(
@@ -287,7 +287,7 @@ int main() {
     auto intr_bus_request_btcusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub);
 
-    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
+    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
 
     BusEventRequestBBOPrice request_bbo_eth_sub;
     request_bbo_eth_sub.exchange_id    = common::ExchangeId::kBybit;
@@ -298,7 +298,7 @@ int main() {
 
     auto intr_bus_request_ethusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_eth_sub);
-    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
+    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
     
     BusEventRequestBBOPrice request_bbo_btc_sub_binance;
     request_bbo_btc_sub_binance.exchange_id    = common::ExchangeId::kBinance;

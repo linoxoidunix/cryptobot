@@ -83,12 +83,12 @@ TEST(OrderBookService, Launch) {
     Exchange::MEMarketUpdate market_update;
     market_update.price = 7;
     market_update.qty   = 1;
-    market_update.side  = common::Side::BUY;
+    market_update.side  = common::Side::kAsk;
 
     queue.enqueue(market_update);
     market_update.price = 6;
     market_update.qty   = 2;
-    market_update.side  = common::Side::SELL;
+    market_update.side  = common::Side::kBid;
 
     queue.enqueue(market_update);
    
@@ -174,7 +174,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromBAUPoolAndSendAskUpdateMessageToOrderboo
     Exchange::MEMarketUpdate market_update;
     market_update.price = 8;
     market_update.qty   = 3;
-    market_update.side  = Side::SELL;
+    market_update.side  = Side::kBid;
 
     order_book.OnMarketUpdate(&market_update);
 
@@ -230,7 +230,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromBBUPoolAndSendBidUpdateMessageToOrderboo
     Exchange::MEMarketUpdate market_update;
     market_update.price = 7;
     market_update.qty   = 1;
-    market_update.side  = Side::BUY;
+    market_update.side  = Side::kAsk;
 
     order_book.OnMarketUpdate(&market_update);
 
@@ -286,7 +286,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     Exchange::MEMarketUpdate market_update;
     market_update.price = 5;
     market_update.qty   = 4;
-    market_update.side  = Side::BUY;
+    market_update.side  = Side::kAsk;
 
     order_book.OnMarketUpdate(&market_update);
 
@@ -326,7 +326,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
     Exchange::MEMarketUpdate market_update;
     market_update.price = 8;
     market_update.qty   = 3;
-    market_update.side  = Side::SELL;
+    market_update.side  = Side::kBid;
 
     order_book.OnMarketUpdate(&market_update);
 
@@ -363,7 +363,7 @@ TEST(OrderBook, ShouldAllocateMemoryFromUpdateBBOPoolAndSendBBOUpdateMessageToOr
 //     Exchange::MEMarketUpdate market_update;
 //     market_update.price = 8;
 //     market_update.qty   = 3;
-//     market_update.side  = Side::SELL;
+//     market_update.side  = Side::kBid;
 
 //     // Capture the initial log count
 //     //auto initial_log_count = Logger::GetLogCount();

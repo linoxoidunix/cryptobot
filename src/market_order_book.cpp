@@ -26,15 +26,15 @@ auto MarketOrderBook::OnMarketUpdate(
 
     const auto bid_will_be_updated =
         (!bids_at_price_map_.size() &&
-             market_update->side == common::Side::SELL ||
+             market_update->side == common::Side::kBid ||
          bids_at_price_map_.size() &&
-             market_update->side == common::Side::SELL &&
+             market_update->side == common::Side::kBid &&
              market_update->price >= bids_at_price_map_.begin()->price_);
     const auto ask_will_be_updated =
         (!asks_at_price_map_.size() &&
-             market_update->side == common::Side::BUY ||
+             market_update->side == common::Side::kAsk ||
          asks_at_price_map_.size() &&
-             market_update->side == common::Side::BUY &&
+             market_update->side == common::Side::kAsk &&
              market_update->price <= asks_at_price_map_.begin()->price_);
 
     if (market_update->qty != 0) {
@@ -81,9 +81,9 @@ void MarketOrderBook2::OnMarketUpdate(
 
     const auto bid_will_be_updated =
         (!bids_at_price_map_.size() &&
-             market_update->side == common::Side::SELL ||
+             market_update->side == common::Side::kBid ||
          bids_at_price_map_.size() &&
-             market_update->side == common::Side::SELL &&
+             market_update->side == common::Side::kBid &&
              market_update->price >= bids_at_price_map_.begin()->price_);
     if(bid_will_be_updated){
         logi("bids_at_price_map_size:{} {} price:{} cur_best_bid:{}", bids_at_price_map_.size(),
@@ -93,9 +93,9 @@ void MarketOrderBook2::OnMarketUpdate(
     }
     const auto ask_will_be_updated =
         (!asks_at_price_map_.size() &&
-             market_update->side == common::Side::BUY ||
+             market_update->side == common::Side::kAsk ||
          asks_at_price_map_.size() &&
-             market_update->side == common::Side::BUY &&
+             market_update->side == common::Side::kAsk &&
              market_update->price <= asks_at_price_map_.begin()->price_);
     if(ask_will_be_updated){
         logi("bids_at_price_map_size:{} {} price:{} cur_best_ask:{}", bids_at_price_map_.size(),
@@ -144,11 +144,11 @@ void MarketOrderBook2::OnMarketUpdate(
                 bid_will_be_updated = true;
             }
             logi("add bid order price:{} qty:{}", bid.price, bid.qty);
-            MarketOrder order(common::kOrderIdInvalid, common::Side::SELL, bid.price, bid.qty);
+            MarketOrder order(common::kOrderIdInvalid, common::Side::kBid, bid.price, bid.qty);
             AddOrder(&order);
         } else {
             logi("rm bid price:{}", bid.price);
-            RemoveOrdersAtPrice(common::Side::SELL, bid.price);
+            RemoveOrdersAtPrice(common::Side::kBid, bid.price);
         }
     }
 
@@ -162,11 +162,11 @@ void MarketOrderBook2::OnMarketUpdate(
                 ask_will_be_updated = true;
             }
             logi("add ask order price:{} qty:{}", ask.price, ask.qty);
-            MarketOrder order(common::kOrderIdInvalid, common::Side::BUY, ask.price, ask.qty);
+            MarketOrder order(common::kOrderIdInvalid, common::Side::kAsk, ask.price, ask.qty);
             AddOrder(&order);
         } else {
             logi("rm ask price:{}", ask.price);
-            RemoveOrdersAtPrice(common::Side::BUY, ask.price);
+            RemoveOrdersAtPrice(common::Side::kAsk, ask.price);
         }
     }
 
@@ -194,36 +194,38 @@ void MarketOrderBook2::OnMarketUpdate(
     // Обработка bid (покупок)
     for (const auto& bid : market_diff->bids) {
         auto qty = bid.qty;
+        if (!bid_will_be_updated &&
+            (bids_at_price_map_.empty() || bid.price >= bids_at_price_map_.begin()->price_)) {
+            bid_will_be_updated = true;
+        }
         if (qty > 0) {
             // Если новый bid улучшает лучшую цену
-            if (!bid_will_be_updated &&
-                (bids_at_price_map_.empty() || bid.price >= bids_at_price_map_.begin()->price_)) {
-                bid_will_be_updated = true;
-            }
+
             logi("add bid order price:{} qty:{}", bid.price, bid.qty);
-            MarketOrder order(common::kOrderIdInvalid, common::Side::SELL, bid.price, bid.qty);
+            MarketOrder order(common::kOrderIdInvalid, common::Side::kBid, bid.price, bid.qty);
             AddOrder(&order);
         } else {
             logi("rm bid price:{}", bid.price);
-            RemoveOrdersAtPrice(common::Side::SELL, bid.price);
+            RemoveOrdersAtPrice(common::Side::kBid, bid.price);
         }
     }
 
     // Обработка ask (продаж)
     for (const auto& ask : market_diff->asks) {
         auto qty = ask.qty;
+        if (!ask_will_be_updated &&
+            (asks_at_price_map_.empty() || ask.price <= asks_at_price_map_.begin()->price_)) {
+            ask_will_be_updated = true;
+        }
         if (qty > 0) {
             // Если новый ask улучшает лучшую цену
-            if (!ask_will_be_updated &&
-                (asks_at_price_map_.empty() || ask.price <= asks_at_price_map_.begin()->price_)) {
-                ask_will_be_updated = true;
-            }
+
             logi("add ask order price:{} qty:{}", ask.price, ask.qty);
-            MarketOrder order(common::kOrderIdInvalid, common::Side::BUY, ask.price, ask.qty);
+            MarketOrder order(common::kOrderIdInvalid, common::Side::kAsk, ask.price, ask.qty);
             AddOrder(&order);
         } else {
             logi("rm ask price:{}", ask.price);
-            RemoveOrdersAtPrice(common::Side::BUY, ask.price);
+            RemoveOrdersAtPrice(common::Side::kAsk, ask.price);
         }
     }
 

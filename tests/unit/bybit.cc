@@ -277,18 +277,18 @@ class BookEventGetterComponentTest : public ::testing::Test {
                                                                         if(snapshot.lastUpdateId == 1)
                                                                             type = Exchange::MarketUpdateType::CLEAR;
                                                                         ProcessBookEntries(snapshot.bids, snapshot.exchange_id,
-                                                                                        snapshot.trading_pair, common::Side::SELL, type);
+                                                                                        snapshot.trading_pair, common::Side::kBid, type);
                                                                         ProcessBookEntries(snapshot.asks, snapshot.exchange_id,
-                                                                                        snapshot.trading_pair, common::Side::BUY, type);
+                                                                                        snapshot.trading_pair, common::Side::kAsk, type);
                                                                     });
                                                                 // Register the diff callback
                                                                 bid_ask_generator.RegisterDiffCallback(
                                                                     [&ProcessBookEntries](const Exchange::BookDiffSnapshot2& diff) {
                                                                         Exchange::MarketUpdateType type = Exchange::MarketUpdateType::DEFAULT;
                                                                         ProcessBookEntries(diff.bids, diff.exchange_id, diff.trading_pair,
-                                                                                        common::Side::SELL, type);
+                                                                                        common::Side::kBid, type);
                                                                         ProcessBookEntries(diff.asks, diff.exchange_id, diff.trading_pair,
-                                                                                        common::Side::BUY, type);
+                                                                                        common::Side::kAsk, type);
                                                                     });
                                                                 //---------------------------init
                                                                 //bus-------------------------------------------

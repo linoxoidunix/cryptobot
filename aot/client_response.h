@@ -91,7 +91,7 @@ struct MEClientResponse : public IResponse {
     ClientResponseType type        = ClientResponseType::INVALID;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side        = common::Side::INVALID;
+    common::Side side        = common::Side::kInvalid;
     common::Price price      = common::kPriceInvalid;
     common::Qty exec_qty     = common::kQtyInvalid;
     common::Qty leaves_qty   = common::kQtyInvalid;

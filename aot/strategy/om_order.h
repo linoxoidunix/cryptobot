@@ -55,7 +55,7 @@ namespace Trading {
   struct OMOrder {
     common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side = common::Side::INVALID;
+    common::Side side = common::Side::kInvalid;
     common::Price price = common::kPriceInvalid;
     common::Qty qty = common::kQtyInvalid;
     OMOrderState state = OMOrderState::INVALID;
@@ -75,7 +75,7 @@ namespace Trading {
   };
 
   /// Hash map from Side -> OMOrder.
-  using OMOrderSideHashMap = std::array<Trading::OMOrder, sideToIndex(common::Side::MAX) + 1>;
+  using OMOrderSideHashMap = std::array<Trading::OMOrder, sideToIndex(common::Side::kMax) + 1>;
 
   /// Hash map from TickerId -> Side -> OMOrder.
   using OMOrderTickerSideHashMap = ankerl::unordered_dense::map<common::TradingPair, OMOrderSideHashMap, common::TradingPairHash, common::TradingPairEqual>;

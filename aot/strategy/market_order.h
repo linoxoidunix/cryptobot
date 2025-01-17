@@ -26,7 +26,7 @@ namespace Trading {
 /// book.
 struct MarketOrder {
     common::OrderId order_id_ = common::kOrderIdInvalid;
-    common::Side side_        = common::Side::INVALID;
+    common::Side side_        = common::Side::kInvalid;
     common::Price price_      = common::kPriceInvalid;
     common::Qty qty_          = common::kQtyInvalid;
     // common::Priority priority_ = common::Priority_INVALID;
@@ -52,7 +52,7 @@ struct MarketOrder {
 /// Used by the trade engine to represent a price level in the limit order book.
 /// Internally maintains a list of MarketOrder objects arranged in FIFO order.
 struct MarketOrdersAtPrice {
-    common::Side side_   = common::Side::INVALID;
+    common::Side side_   = common::Side::kInvalid;
     common::Price price_ = common::kPriceInvalid;
 
     MarketOrder first_mkt_order_;

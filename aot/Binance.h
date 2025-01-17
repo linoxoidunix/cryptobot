@@ -770,10 +770,10 @@ class FamilyLimitOrder {
         void SetSide(common::Side side) {
             switch (side) {
                 using enum common::Side;
-                case BUY:
+                case kAsk:
                     storage["side"] = "BUY";
                     break;
-                case SELL:
+                case kBid:
                     storage["side"] = "SELL";
                     break;
                 default:
@@ -2655,18 +2655,18 @@ class BidAskGeneratorCallbackHandler {
         bid_ask_generator_.RegisterSnapshotCallback(
             [this](const Exchange::BookSnapshot& snapshot) {
                 ProcessBookEntries(snapshot.bids, snapshot.exchange_id,
-                                   snapshot.trading_pair, common::Side::SELL);
+                                   snapshot.trading_pair, common::Side::kBid);
                 ProcessBookEntries(snapshot.asks, snapshot.exchange_id,
-                                   snapshot.trading_pair, common::Side::BUY);
+                                   snapshot.trading_pair, common::Side::kAsk);
             });
 
         bid_ask_generator_.RegisterDiffCallback(
             [this](boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> bus_diff) {
                 const auto& diff = *(bus_diff.get()->WrappedEvent());
                 ProcessBookEntries(diff.bids, diff.exchange_id,
-                                   diff.trading_pair, common::Side::SELL);
+                                   diff.trading_pair, common::Side::kBid);
                 ProcessBookEntries(diff.asks, diff.exchange_id,
-                                   diff.trading_pair, common::Side::BUY);
+                                   diff.trading_pair, common::Side::kAsk);
             });
     }
 };

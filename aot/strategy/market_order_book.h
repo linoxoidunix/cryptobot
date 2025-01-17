@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "aot/Exchange.h"
-#include "aot/bus/bus.h"
 #include "aot/Logger.h"
+#include "aot/bus/bus.h"
 #include "aot/common/mem_pool.h"
 #include "aot/common/thread_utils.h"
 #include "aot/common/types.h"
@@ -104,10 +104,18 @@ class MarketOrderBook {
         price_orders_at_price_.emplace_unique(new_orders_at_price->price_,
                                               new_orders_at_price);
 
-        if (new_orders_at_price->side_ == common::Side::BUY)
+        if (new_orders_at_price->side_ == common::Side::kAsk) {
+            logi("add new ask with p:{} q{}",
+                 new_orders_at_price->first_mkt_order_.price_,
+                 new_orders_at_price->first_mkt_order_.qty_);
             asks_at_price_map_.insert_equal(*new_orders_at_price);
-        if (new_orders_at_price->side_ == common::Side::SELL)
+        }
+        if (new_orders_at_price->side_ == common::Side::kBid) {
+            logi("add new bid with p:{} q:{}",
+                 new_orders_at_price->first_mkt_order_.price_,
+                 new_orders_at_price->first_mkt_order_.qty_);
             bids_at_price_map_.insert_equal(*new_orders_at_price);
+        }
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
@@ -122,13 +130,13 @@ class MarketOrderBook {
             logw("order_book not contain such price");
             return;
         }
-        if (side == common::Side::BUY) {
+        if (side == common::Side::kAsk) {
             if (asks_at_price_map_.count(*order_at_price)) [[likely]]
                 asks_at_price_map_.erase(*order_at_price);
             else
                 loge("critical error asks_at_price_map_");
         }
-        if (side == common::Side::SELL) {
+        if (side == common::Side::kBid) {
             if (bids_at_price_map_.count(*order_at_price)) [[likely]]
                 bids_at_price_map_.erase(*order_at_price);
             else
@@ -162,19 +170,19 @@ class MarketOrderBook {
 };
 
 class MarketOrderBook2 {
-    //template class to store all subscribers on MarketOrderBook2 signals
+    // template class to store all subscribers on MarketOrderBook2 signals
     template <typename SignalType>
     class SignalEmitter {
-        using SignalCallback = std::function<void(const SignalType&)>;
+        using SignalCallback = std::function<void(const SignalType &)>;
         std::vector<SignalCallback> subscribers_;
 
-    public:
+      public:
         void Subscribe(SignalCallback callback) {
             subscribers_.emplace_back(std::move(callback));
         }
 
-        void Emit(const SignalType& signal) {
-            for (const auto& subscriber : subscribers_) {
+        void Emit(const SignalType &signal) {
+            for (const auto &subscriber : subscribers_) {
                 if (subscriber) {
                     subscriber(signal);
                 }
@@ -184,16 +192,20 @@ class MarketOrderBook2 {
     /// Pointers to beginning / best prices / top of book of buy and sell price
     /// levels.
     /// Hash map from Price -> MarketOrdersAtPrice.
-    OrdersAtPriceHashMap price_orders_at_price_;
+    OrdersAtPriceHashMap price_orders_at_price_bids_;
+    OrdersAtPriceHashMap price_orders_at_price_asks_;
     BidsatPriceMap bids_at_price_map_;
     AsksatPriceMap asks_at_price_map_;
     BBO bbo_;
     common::ExchangeId exchange_id_;
     common::TradingPair trading_pair_;
     /// Memory pool to manage MarketOrdersAtPrice objects.
-    common::MemPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_{
+    common::MemoryPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_bids_{
+        common::ME_MAX_ORDERS_AT_PRICE};
+    common::MemoryPool<Trading::MarketOrdersAtPrice> orders_at_price_pool_asks_{
         common::ME_MAX_ORDERS_AT_PRICE};
     SignalEmitter<BBO> bbo_signal_emitter_;
+
   public:
     explicit MarketOrderBook2(common::ExchangeId exchange_id,
                               common::TradingPair trading_pair)
@@ -244,14 +256,14 @@ class MarketOrderBook2 {
                 bbo_.ask_qty   = common::kQtyInvalid;
             }
         }
-        if(bbo_.bid_price > bbo_.ask_price )
+        if (bbo_.bid_price > bbo_.ask_price)
             loge("bid:{} > ask:{}", bbo_.bid_price, bbo_.ask_price);
     }
     const common::TradingPair &GetTradingPair() const noexcept {
         return trading_pair_;
     }
     // Подписчики на BBO
-    void SubscribeToBBO(std::function<void(const BBO&)> callback) {
+    void SubscribeToBBO(std::function<void(const BBO &)> callback) {
         bbo_signal_emitter_.Subscribe(std::move(callback));
     }
     void ClearOrderBook() {
@@ -259,9 +271,12 @@ class MarketOrderBook2 {
         logi("found {} asks in order book", asks_at_price_map_.size());
         bids_at_price_map_.clear();
         asks_at_price_map_.clear();
-        for (const auto &order_at_price : price_orders_at_price_)
-            orders_at_price_pool_.deallocate(order_at_price.second);
-        price_orders_at_price_.clear();
+        for (const auto &order_at_price : price_orders_at_price_bids_)
+            orders_at_price_pool_bids_.Deallocate(order_at_price.second);
+        price_orders_at_price_bids_.clear();
+        for (const auto &order_at_price : price_orders_at_price_asks_)
+            orders_at_price_pool_asks_.Deallocate(order_at_price.second);
+        price_orders_at_price_asks_.clear();
     }
 
     MarketOrderBook2(const MarketOrderBook2 &)             = delete;
@@ -275,27 +290,39 @@ class MarketOrderBook2 {
   private:
     /// Fetch and return the MarketOrdersAtPrice corresponding to the provided
     /// price.
-    auto GetOrdersAtPrice(common::Price price) noexcept
+    auto GetOrdersAtPrice(common::Price price, bool is_bids) noexcept
         -> Trading::MarketOrdersAtPrice * {
-        return price_orders_at_price_.at(price);
+        if (is_bids) return price_orders_at_price_bids_.at(price);
+        return price_orders_at_price_asks_.at(price);
     }
 
     /// Add a new MarketOrdersAtPrice at the correct price into the containers -
     /// the hash map and the doubly linked list of price levels.
     auto AddOrdersAtPrice(MarketOrdersAtPrice *new_orders_at_price) noexcept {
-        price_orders_at_price_.emplace_unique(new_orders_at_price->price_,
-                                              new_orders_at_price);
+        if (new_orders_at_price->side_ == common::Side::kAsk)
+            price_orders_at_price_asks_.emplace_unique(
+                new_orders_at_price->price_, new_orders_at_price);
+        if (new_orders_at_price->side_ == common::Side::kBid)
+            price_orders_at_price_bids_.emplace_unique(
+                new_orders_at_price->price_, new_orders_at_price);
 
-        if (new_orders_at_price->side_ == common::Side::BUY)
+        if (new_orders_at_price->side_ == common::Side::kAsk) {
+            logi("add new ask with p:{}", new_orders_at_price->price_);
             asks_at_price_map_.insert_equal(*new_orders_at_price);
-        if (new_orders_at_price->side_ == common::Side::SELL)
+        }
+        if (new_orders_at_price->side_ == common::Side::kBid) {
+            logi("add new bid with p:{}", new_orders_at_price->price_);
             bids_at_price_map_.insert_equal(*new_orders_at_price);
+        }
     }
 
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
     /// the doubly linked list of price levels.
     auto RemoveOrdersAtPrice(common::Side side, common::Price price) noexcept {
-        auto order_at_price = price_orders_at_price_.at(price);
+        auto order_at_price =
+            (side == common::Side::kBid)
+                ? price_orders_at_price_bids_.at(price)
+                : price_orders_at_price_asks_.at(price);
         if (!order_at_price) {
             // https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
             // How to manage a local order book correctly
@@ -304,31 +331,42 @@ class MarketOrderBook2 {
             logw("order_book not contain such price");
             return;
         }
-        if (side == common::Side::BUY) {
+        if (side == common::Side::kAsk) {
             if (asks_at_price_map_.count(*order_at_price)) [[likely]]
                 asks_at_price_map_.erase(*order_at_price);
             else
                 loge("critical error asks_at_price_map_");
         }
-        if (side == common::Side::SELL) {
+        if (side == common::Side::kBid) {
             if (bids_at_price_map_.count(*order_at_price)) [[likely]]
                 bids_at_price_map_.erase(*order_at_price);
             else
                 loge("critical error bids_at_price_map_");
         }
-        price_orders_at_price_.at(price) = nullptr;
-        price_orders_at_price_.erase(price);
+        if (side == common::Side::kBid) {
+            price_orders_at_price_bids_.at(price) = nullptr;
+            price_orders_at_price_bids_.erase(price);
 
-        orders_at_price_pool_.deallocate(order_at_price);
+            orders_at_price_pool_bids_.Deallocate(order_at_price);
+        } else {
+            price_orders_at_price_asks_.at(price) = nullptr;
+            price_orders_at_price_asks_.erase(price);
+
+            orders_at_price_pool_asks_.Deallocate(order_at_price);
+        }
     }
 
     /// Add a single order at the end of the FIFO queue at the price level that
     /// this order belongs in.
     auto AddOrder(MarketOrder *order) noexcept -> void {
-        const auto orders_at_price = GetOrdersAtPrice(order->price_);
+        bool is_bids = (order->side_ == common::Side::kBid)? true : false;
+        auto orders_at_price = GetOrdersAtPrice(order->price_, is_bids);
 
         if (!orders_at_price) {
-            auto new_orders_at_price = orders_at_price_pool_.allocate(
+            auto& orders_at_price_pool_ = (order->side_ == common::Side::kBid)
+                                             ? orders_at_price_pool_bids_
+                                             : orders_at_price_pool_asks_;
+            auto new_orders_at_price   = orders_at_price_pool_.Allocate(
                 order->side_, order->price_, *order, nullptr, nullptr);
             AddOrdersAtPrice(new_orders_at_price);
         } else {
@@ -337,6 +375,12 @@ class MarketOrderBook2 {
                 [[unlikely]]
                 ASSERT(true,
                        "try change asks_at_price_map_ or bids_at_price_map_");
+            logi(
+                "update position old price:{} old qty:{} new price:{} new "
+                "qty:{}",
+                orders_at_price->first_mkt_order_.price_,
+                orders_at_price->first_mkt_order_.qty_, order->price_,
+                order->qty_);
             orders_at_price->first_mkt_order_.price_ = order->price_;
             orders_at_price->first_mkt_order_.qty_   = order->qty_;
         }
@@ -393,17 +437,18 @@ class OrderBookComponent : public bus::Component {
                            common::TradingPairHash, common::TradingPairEqual>>;
 
     Executor executor_;
-    aot::CoBus& bus_;
+    aot::CoBus &bus_;
     OrderBookMap order_books_;
     Trading::NewBBOPool new_bbo_pool_;
     Trading::BusEventNewBBOPool bus_event_new_bbo_pool_;
 
   public:
-    explicit OrderBookComponent(Executor &&executor, aot::CoBus& bus, uint64_t max_new_bbo_)
+    explicit OrderBookComponent(Executor &&executor, aot::CoBus &bus,
+                                uint64_t max_new_bbo_)
         : executor_(std::move(executor)),
-        bus_(bus),
-        new_bbo_pool_{max_new_bbo_},
-        bus_event_new_bbo_pool_{max_new_bbo_} {}
+          bus_(bus),
+          new_bbo_pool_{max_new_bbo_},
+          bus_event_new_bbo_pool_{max_new_bbo_} {}
     ~OrderBookComponent() override = default;
 
     void AsyncHandleEvent(
@@ -416,15 +461,19 @@ class OrderBookComponent : public bus::Component {
     };
 
     void AsyncHandleEvent(
-        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) override {
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event)
+        override {
         // Обработка событий типа ResponseNewSnapshot
-        boost::asio::co_spawn(executor_, HandleResponseNewSnapshot(event), boost::asio::detached);
+        boost::asio::co_spawn(executor_, HandleResponseNewSnapshot(event),
+                              boost::asio::detached);
     }
 
     void AsyncHandleEvent(
-        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) override {
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event)
+        override {
         // Обработка событий типа MEMarketUpdate
-        boost::asio::co_spawn(executor_, HandleNewDiff(event), boost::asio::detached);
+        boost::asio::co_spawn(executor_, HandleNewDiff(event),
+                              boost::asio::detached);
     }
 
     // Method to add a new order book
@@ -449,17 +498,20 @@ class OrderBookComponent : public bus::Component {
         if (result.second) {
             logi("[MarketOrderBook2 inserted successfully!] with {} {}",
                  exchange_id, trading_pair.ToString());
-            MarketOrderBook2& order_book = result.first->second;
+            MarketOrderBook2 &order_book = result.first->second;
 
             // Подписка на сигналы BBO
-            order_book.SubscribeToBBO([this, exchange_id, trading_pair](const BBO& bbo) {
-                SendBBOToBus(exchange_id, trading_pair, bbo);
-            });
-            logi("add subscription to BBO for ob with {} {}", exchange_id, trading_pair.ToString());
+            order_book.SubscribeToBBO(
+                [this, exchange_id, trading_pair](const BBO &bbo) {
+                    SendBBOToBus(exchange_id, trading_pair, bbo);
+                });
+            logi("add subscription to BBO for ob with {} {}", exchange_id,
+                 trading_pair.ToString());
 
         } else {
             logi(
-                "[MarketOrderBook2 already exists in the inner map!] with {} {}",
+                "[MarketOrderBook2 already exists in the inner map!] with {} "
+                "{}",
                 exchange_id, trading_pair.ToString());
         }
     }
@@ -513,7 +565,7 @@ class OrderBookComponent : public bus::Component {
 
         co_return;
     }
-    
+
     boost::asio::awaitable<void> HandleResponseNewSnapshot(
         boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) {
         logi("[ORDERBOOK] processing new snapshot");
@@ -564,7 +616,7 @@ class OrderBookComponent : public bus::Component {
         co_return;
     }
 
-     boost::asio::awaitable<void> HandleNewDiff(
+    boost::asio::awaitable<void> HandleNewDiff(
         boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) {
         logi("[ORDERBOOK] processing new diff");
         // Extract the necessary information from the event
@@ -615,14 +667,12 @@ class OrderBookComponent : public bus::Component {
     }
 
     void SendBBOToBus(common::ExchangeId exchange_id,
-                      const common::TradingPair& trading_pair,
-                      const BBO& bbo) {
-        auto request = new_bbo_pool_.Allocate(
-            &new_bbo_pool_, exchange_id, trading_pair, bbo);
-        auto intr_ptr_request =
-            boost::intrusive_ptr<NewBBO>(request);
+                      const common::TradingPair &trading_pair, const BBO &bbo) {
+        auto request = new_bbo_pool_.Allocate(&new_bbo_pool_, exchange_id,
+                                              trading_pair, bbo);
+        auto intr_ptr_request = boost::intrusive_ptr<NewBBO>(request);
 
-        auto bus_event = bus_event_new_bbo_pool_.Allocate(
+        auto bus_event        = bus_event_new_bbo_pool_.Allocate(
             &bus_event_new_bbo_pool_, intr_ptr_request);
         auto intr_ptr_bus_request =
             boost::intrusive_ptr<BusEventNewBBO>(bus_event);

@@ -24,7 +24,7 @@ struct PositionInfo {
     double real_pnl   = 0;
     double unreal_pnl = 0;
     double total_pnl  = 0;
-    std::array<double, common::sideToIndex(common::Side::MAX) + 1> open_vwap;
+    std::array<double, common::sideToIndex(common::Side::kMax) + 1> open_vwap;
     double volume           = 0;
     const Trading::BBO *bbo = nullptr;
 
@@ -33,12 +33,12 @@ struct PositionInfo {
         ss << "Position{" << "pos:" << position << " u-pnl:" << unreal_pnl
            << " r-pnl:" << real_pnl << " t-pnl:" << total_pnl
            << " vol:" << volume << " ovwaps:["
-           << (position ? open_vwap.at(common::sideToIndex(common::Side::BUY)) /
+           << (position ? open_vwap.at(common::sideToIndex(common::Side::kAsk)) /
                               std::abs(position)
                         : 0)
            << "X"
            << (position
-                   ? open_vwap.at(common::sideToIndex(common::Side::SELL)) /
+                   ? open_vwap.at(common::sideToIndex(common::Side::kBid)) /
                          std::abs(position)
                    : 0)
            << "] " << (bbo ? bbo->ToString() : "") << "}";
@@ -60,7 +60,7 @@ struct PositionInfo {
         const auto old_position   = position;
         const auto side_index     = common::sideToIndex(side);
         const auto opp_side_index = common::sideToIndex(
-            side == common::Side::BUY ? common::Side::SELL : common::Side::BUY);
+            side == common::Side::kAsk ? common::Side::kBid : common::Side::kAsk);
         const auto side_value = common::sideToValue(side);
         assert(exec_qty >= 0);
         assert(price >= 0);
@@ -85,18 +85,18 @@ struct PositionInfo {
         }
 
         if (!position) {  // flat
-            open_vwap[common::sideToIndex(common::Side::BUY)] =
-                open_vwap[sideToIndex(common::Side::SELL)] = 0;
+            open_vwap[common::sideToIndex(common::Side::kAsk)] =
+                open_vwap[sideToIndex(common::Side::kBid)] = 0;
             unreal_pnl                                     = 0;
         } else {
             if (position > 0)
                 unreal_pnl =
-                    (price - open_vwap[sideToIndex(common::Side::BUY)] /
+                    (price - open_vwap[sideToIndex(common::Side::kAsk)] /
                                  std::abs(position)) *
                     std::abs(position);
             else
                 unreal_pnl =
-                    (open_vwap[common::sideToIndex(common::Side::SELL)] /
+                    (open_vwap[common::sideToIndex(common::Side::kBid)] /
                          std::abs(position) -
                      price) *
                     std::abs(position);
@@ -118,12 +118,12 @@ struct PositionInfo {
             if (position > 0)
                 unreal_pnl =
                     (mid_price -
-                     open_vwap[common::sideToIndex(common::Side::BUY)] /
+                     open_vwap[common::sideToIndex(common::Side::kAsk)] /
                          std::abs(position)) *
                     std::abs(position);
             else
                 unreal_pnl =
-                    (open_vwap[common::sideToIndex(common::Side::SELL)] /
+                    (open_vwap[common::sideToIndex(common::Side::kBid)] /
                          std::abs(position) -
                      mid_price) *
                     std::abs(position);
