@@ -24,6 +24,21 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
 
+/**
+ * @enum SubscriptionType
+ * @brief Enum representing different types of subscriptions.
+ * 
+ * Each subscription type corresponds to a specific type of data 
+ * and requires a unique JSON string for its configuration.
+ */
+enum class SubscriptionType {
+    kTicker,      ///< Subscription to ticker updates.
+    kDepth,       ///< Subscription to order book depth updates.
+    kTrade,       ///< Subscription to trade events.
+    kKline,       ///< Subscription to candlestick (Kline) data.
+    kCandlestick, ///< Subscription to candlestick data.
+};
+
 enum class ExchangeId{
   kBinance,
   kBybit,
@@ -241,41 +256,6 @@ struct TradeEngineCfg {
     }
 };
 
-// using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
-
-// struct StringHash {
-//     using is_transparent = void;
-//     std::size_t operator()(const char* key) const {
-//         return std::hash<std::string_view>()(
-//             std::string_view(key, strlen(key)));
-//     }
-//     std::size_t operator()(const std::string& key) const {
-//         return std::hash<std::string_view>()(key);
-//     }
-//     std::size_t operator()(const std::string_view& key) const {
-//         return std::hash<std::string_view>()(key);
-//     }
-// };
-
-// struct StringEqual {
-//     using is_transparent = int;
-
-//     bool operator()(const std::string_view& lhs, const std::string& rhs) const {
-//         return lhs == std::string_view(rhs);
-//     }
-
-//     bool operator()(const std::string& lhs, const std::string& rhs) const {
-//         return lhs == rhs;
-//     }
-
-//     bool operator()(const char* lhs, const std::string& rhs) const {
-//         return std::strcmp(lhs, rhs.data()) == 0;
-//     }
-//     bool operator()(const std::string& rhs, const char* lhs) const {
-//         return std::strcmp(lhs, rhs.data()) == 0;
-//     }
-// };
-
 struct StringHash {
     using is_transparent = void;
     std::size_t operator()(const char* key) const {
@@ -449,7 +429,18 @@ public:
         // Используем magic_enum для получения строкового имени значения
         auto side_name = magic_enum::enum_name(side);
         return fmt::format_to(ctx.out(),
-                              "Side[{}]",
+                              "Side:{}",
                               side_name.empty() ? "UNKNOWN" : side_name);
+    }
+};
+
+template <>
+class fmt::formatter<common::SubscriptionType> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::SubscriptionType& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "SubscriptionType:{}", magic_enum::enum_name(foo));
     }
 };

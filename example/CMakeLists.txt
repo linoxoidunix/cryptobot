@@ -7,4 +7,5 @@ add_subdirectory(backtesting)
 add_subdirectory(cross_arbitrage)
 add_subdirectory(check_many_trading_pairs)
 add_subdirectory(send_to_redpanda)
+add_subdirectory(session_manager)
 
