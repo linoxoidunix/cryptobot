@@ -54,7 +54,7 @@ int main() {
     // Create a connection pool for Bybit WebSocket sessions with a timeout of 30 seconds,
     // a maximum of 3 concurrent connections, and specific WebSocket details.
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_bybit{
-        io_context, WSSesionType3::Timeout{30}, 3, "stream.bybit.com",
+        io_context, WSSesionType3::Timeout{30}, 1, "stream.bybit.com",
         "443",      "/v5/public/spot"
     };
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_binance{
@@ -310,7 +310,7 @@ int main() {
     auto intr_bus_request_btcusdt_sub_binance =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub_binance);
 
-    bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_btcusdt_sub_binance);
+    //bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_btcusdt_sub_binance);
 
 
     thread_ioc.join();

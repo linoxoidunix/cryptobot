@@ -1022,29 +1022,29 @@ class ConnectionPool {
         HTTPSessionType* session = nullptr;
 
         // Block until we get a ready session
-        while (session == nullptr ||
-               session->GetStatus() != aot::StatusSession::Ready) {
+        while (true){ 
             // Try to dequeue a session from the available connections
             while (!awaiable_connections_.try_dequeue(session)) {
                 // Block until a ready session is available
             }
-
+            awaiable_connections_.try_enqueue(session);
             // Check the status of the session
             auto status = session->GetStatus();
-
-            // If the session is expired or closing, release it and try another one
-            if (status == aot::StatusSession::Expired ||
-                status == aot::StatusSession::Closing) {
-                useless_connections_.try_enqueue(session);
-                session = nullptr;  // Try to get a new session
-            } else if (status != aot::StatusSession::Ready) {
-                // If the session is not ready, enqueue it back to the queue for a retry
-                awaiable_connections_.try_enqueue(session);
-                session = nullptr;  // Try to get another session
-            } else {
-                // Copy the session
-                copy_ready_connections_.try_enqueue(session);
-            }
+            if(status == aot::StatusSession::Ready)
+                break;
+            // // If the session is expired or closing, release it and try another one
+            // if (status == aot::StatusSession::Expired ||
+            //     status == aot::StatusSession::Closing) {
+            //     useless_connections_.try_enqueue(session);
+            //     session = nullptr;  // Try to get a new session
+            // } else if (status != aot::StatusSession::Ready) {
+            //     // If the session is not ready, enqueue it back to the queue for a retry
+            //     awaiable_connections_.try_enqueue(session);
+            //     session = nullptr;  // Try to get another session
+            // } else {
+            //     // Copy the session
+            //     copy_ready_connections_.try_enqueue(session);
+            // }
         }
         return session;
     }

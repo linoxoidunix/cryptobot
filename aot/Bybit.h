@@ -880,9 +880,9 @@ class FactoryRequestJson {
 /**
  * @brief Template class for managing and handling book events asynchronously.
  *
- * @tparam Executor The executor type used for asynchronous operations.
+ * @tparam ThreadPool The executor type used for asynchronous operations.
  */
-template <typename Executor>
+template <typename ThreadPool>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
     using CallbackMap =
@@ -902,7 +902,8 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     https::ExchangeI* current_exchange_;
 
   protected:
-    Executor& executor_;
+    ThreadPool& thread_pool_;
+    boost::asio::strand<typename ThreadPool::executor_type> strand_;
 
   public:
     /**
@@ -914,13 +915,15 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      * @param pairs Reference to the trading pair hash map.
      */
     BookEventGetter3(
-        Executor& executor,
+        ThreadPool& thread_pool,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
         TypeExchange type, common::TradingPairHashMap& pairs)
-        : session_pool_(session_pool),
+        : 
+          strand_(boost::asio::make_strand(thread_pool)),
+          session_pool_(session_pool),
           pairs_(pairs),
-          executor_(executor),
+          thread_pool_(thread_pool),
           current_exchange_(GetExchange(type)) {}
     /**
      * @brief Default destructor.
@@ -935,14 +938,16 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     boost::asio::awaitable<void> CoExec(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
-        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+        //co_await boost::asio::post(thread_pool_, boost::asio::use_awaitable);
 
         if (!bus_event_request_diff_order_book || !session_pool_) {
             loge("Invalid bus_event_request_diff_order_book or session_pool");
             co_return;
         }
 
-        co_await HandleBookEvent(bus_event_request_diff_order_book);
+        //co_await HandleBookEvent(bus_event_request_diff_order_book);
+        boost::asio::co_spawn(strand_, HandleBookEvent(bus_event_request_diff_order_book),
+                              boost::asio::detached);
     }
     /**
      * @brief Registers a callback for a specific trading pair's WebSocket
@@ -1008,16 +1013,16 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         }
 
         auto& trading_pair = wrapped_event->trading_pair;
+        logi("[bookeventgetter] start send request to exchange for {}", trading_pair.ToString());
         detail::FamilyBookEventGetter::ArgsBody args(
             bus_event_request_diff_order_book->WrappedEvent(), pairs_);
         auto req = args.Body();
 
         if (!active_session_
                  .load()) {  // Check if active session is not already acquired
-            if (AcquireActiveSession()) {
-                if (!RegisterCallbacksForTradingPair(trading_pair)) {
-                    co_return;
-                }
+            AcquireActiveSession();
+            if (!RegisterCallbacksForTradingPair(trading_pair)) {
+                co_return;
             }
         } else {
             logd("Using existing active session");
@@ -1025,18 +1030,19 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
                 co_return;
             }
         }
-
+        logi("request to exchange: {}", req);
         // boost::asio::co_spawn(executor_, [this, request = std::move(req)]()
         // -> boost::asio::awaitable<void> {
         //     if (auto result = co_await SendAsyncRequest(request); !result) {
         //         loge("AsyncRequest finished unsuccessfully");
         //     }
         // }, boost::asio::detached);
-
-        if (auto result = co_await SendAsyncRequest(req); !result) {
-            loge("AsyncRequest finished unsuccessfully");
-        }
-
+        // boost::asio::co_spawn(strand_, SendAsyncRequest(std::move(req)),
+        //                       boost::asio::detached);
+        // if (auto result = co_await SendAsyncRequest(req); !result) {
+        //     loge("AsyncRequest finished unsuccessfully");
+        // }
+        co_await SendAsyncRequest(std::move(req));
         logd("Finished sending event getter for bybit request");
     }
 
@@ -1045,14 +1051,12 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @return True if a session was successfully acquired, otherwise false.
      */
-    bool AcquireActiveSession() {
+    void AcquireActiveSession() {
         WSSesionType3* expected = nullptr;
         auto session            = session_pool_->AcquireConnection();
         if (active_session_.compare_exchange_strong(expected, session)) {
             logd("Active session acquired");
-            return true;
         }
-        return false;
     }
     /**
      * @brief Registers callbacks for a specific trading pair.
@@ -1134,11 +1138,11 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      * @param req The request to send.
      * @return True if the request was sent successfully, otherwise false.
      */
-    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
+    boost::asio::awaitable<void> SendAsyncRequest(auto&& req) {
         if (auto session = active_session_.load()) {
-            co_return co_await session->AsyncRequest(std::move(req));
+            auto result = co_await session->AsyncRequest(std::move(req));
         }
-        co_return false;
+        co_return;
     }
 
     /**
@@ -1149,9 +1153,9 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     }
 };
 
-template <typename Executor>
+template <typename ThreadPool>
 class BookEventGetterComponent : public bus::Component,
-                                 public BookEventGetter3<Executor> {
+                                 public BookEventGetter3<ThreadPool> {
     static constexpr std::string_view name_component_ =
         "bybit::BookEventGetterComponent";
 
@@ -1163,11 +1167,11 @@ class BookEventGetterComponent : public bus::Component,
     Exchange::BusEventResponseNewSnapshotPool
         bus_event_response_snapshot_mem_pool_;
     explicit BookEventGetterComponent(
-        Executor& executor, size_t number_responses, TypeExchange type,
+        ThreadPool& thread_pool_, size_t number_responses, TypeExchange type,
         common::TradingPairHashMap& pairs,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool)
-        : BookEventGetter3<Executor>(executor, session_pool, type, pairs),
+        : BookEventGetter3<ThreadPool>(thread_pool_, session_pool, type, pairs),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses),
           /**
@@ -1186,14 +1190,14 @@ class BookEventGetterComponent : public bus::Component,
     void AsyncHandleEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event)
         override {
-        boost::asio::co_spawn(BookEventGetter3<Executor>::executor_,
-                              BookEventGetter3<Executor>::CoExec(event),
+        boost::asio::co_spawn(BookEventGetter3<ThreadPool>::thread_pool_,
+                              BookEventGetter3<ThreadPool>::CoExec(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override { BookEventGetter3<Executor>::AsyncStop(); }
+    void AsyncStop() override { BookEventGetter3<ThreadPool>::AsyncStop(); }
 
     std::string_view GetName() const override {
-        return BookEventGetterComponent<Executor>::name_component_;
+        return BookEventGetterComponent<ThreadPool>::name_component_;
     };
 };
 

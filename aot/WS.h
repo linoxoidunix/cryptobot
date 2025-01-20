@@ -415,7 +415,7 @@ class WssSession3 {
     // signal to cancel all coroutines
     boost::asio::cancellation_signal cancel_signal_;
     aot::StatusSession status_ = aot::StatusSession::Resolving;
-
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
   public:
     virtual ~WssSession3() = default;
     explicit WssSession3(boost::asio::io_context& ioc, ssl::context& ctx,
@@ -425,6 +425,7 @@ class WssSession3 {
         : resolver_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
+          strand_(net::make_strand(ioc)),
           timeout_(timeout),
           host_(host),
           port_(port),
@@ -481,59 +482,41 @@ class WssSession3 {
     }
 
     void UnregisterOnSystemClosed() { on_closed_ = nullptr; }
-    net::awaitable<bool> AsyncRequest(std::string&& req) {
-        if (!IsConnected()) co_return false;
+    net::awaitable<bool> AsyncRequest(std::string&& req_input) {
+        logi("1");
+        //boost::asio::co_spawn(ioc_, [this, req = std::move(req)]()->net::awaitable<void>{
+            auto req = std::move(req_input);
+            if (!IsConnected()) co_return  false;
+            logi("2");
+            logi("request to exchange from ws: {}", req);
+            auto [write_ec, bytes_written] = co_await stream_.async_write(
+                net::buffer(req),
+                boost::asio::as_tuple(boost::asio::use_awaitable));
+            logi("3");
 
-        auto [write_ec, bytes_written] = co_await stream_.async_write(
-            net::buffer(req),
-            boost::asio::as_tuple(boost::asio::use_awaitable));
-
-        if (write_ec) {
-            if (write_ec == net::error::operation_aborted) {
-                logd("Write operation cancelled");
+            if (write_ec) {
+                if (write_ec == net::error::operation_aborted) {
+                    logd("Write operation cancelled");
+                    CloseSessionFast();
+                    co_return true;
+                } else {
+                }
                 CloseSessionFast();
-                co_return false;
-            } else {
+                TransitionTo(aot::StatusSession::Closing);
+                co_return true;
             }
-            CloseSessionFast();
-            TransitionTo(aot::StatusSession::Closing);
-            co_return false;
-        }
-        if (!read_started_.exchange(true)) {
-            co_spawn(ioc_, ReadLoop(), net::detached);
-        }
+            logi("4");
+            if (!read_started_.exchange(true)) {
+                logi("5");
+                co_spawn(ioc_, ReadLoop(), net::detached);
+                logi("6");
+
+            }
+            logi("7");
+
+        //}, boost::asio::detached);
+
         co_return true;
-     //    Wrap everything to ensure all operations are executed on the strand associated with stream_
-    // co_await stream_.strand().wrap([this, req = std::move(req)]() -> net::awaitable<bool> {
-    //     // Check if connected
-    //     if (!IsConnected()) co_return false;
-
-    //     // Perform the asynchronous write operation on the strand
-    //     auto [write_ec, bytes_written] = co_await stream_.async_write(
-    //         net::buffer(req),
-    //         boost::asio::as_tuple(boost::asio::use_awaitable));
-
-    //     if (write_ec) {
-    //         if (write_ec == net::error::operation_aborted) {
-    //             logd("Write operation cancelled");
-    //             CloseSessionFast();
-    //             co_return false;
-    //         } else {
-    //             // Handle other write errors if necessary
-    //         }
-    //         CloseSessionFast();
-    //         TransitionTo(aot::StatusSession::Closing);
-    //         co_return false;
-    //     }
-
-    //     // Ensure that the read operation starts only once
-    //     if (!read_started_) {
-    //         read_started_ = true;  // Set the flag to prevent restarting the read loop
-    //         co_spawn(ioc_, ReadLoop(), net::detached);  // This is also on the strand
-    //     }
-
-    //     co_return true;
-    // });
     }
 
     inline bool IsConnected() const { return is_connected_; }
