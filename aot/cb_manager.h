@@ -52,8 +52,12 @@ public:
     // Register a callback and return its unique ID
     template<typename ... Args>
     CallbackID RegisterCallback(Args&& ...args) {
+        if (!registration_allowed_) {
+            return -1; // Или любой другой код, который сигнализирует, что регистрация невозможна
+        }
         auto id = next_id_.fetch_add(1, std::memory_order_relaxed);
         auto node = std::make_shared<Node>(std::forward<Args>(args)...);
+        registration_allowed_ = false;
         node->id = id;
         auto old_head = head_.load(std::memory_order_acquire);
         do {
@@ -106,6 +110,7 @@ public:
 private:
     std::atomic<CallbackID> next_id_;
     std::atomic<std::shared_ptr<Node>> head_{nullptr};
+    std::atomic<bool> registration_allowed_{true};  // Флаг, разрешающий регистрацию
 };
 };
 
