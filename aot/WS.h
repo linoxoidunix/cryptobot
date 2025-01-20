@@ -644,40 +644,52 @@ class WssSession3 {
 
             boost::system::error_code read_ec;
             std::size_t n = 0;
-            try {
-                // Чтение данных с проверкой на отмену
-                auto result = co_await stream_.async_read(
-                    buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
-                read_ec = std::get<0>(result);
-                n       = std::get<1>(result);
-            } catch (const boost::system::system_error& e) {
-                read_ec = e.code();
-                if(read_ec == boost::asio::error::operation_aborted){
-                    //coroutine was cancelled
-                    CloseSessionFast();
-                    co_return;
-                }else{
-                    //other error
-                    CloseSessionFast();
-                    co_return;
-                }
-            }
-        
-            logi("invoke callback");
 
-            // execute all callbacks
-            if (n > 0) {
-                cb_on_response_manager_.InvokeAll(buffer_);
-            } else {
-                logd("No data was read");
-            }
-            buffer_.consume(n);  // Освобождаем потребленные данные из буфера
+            // Создаём корутину для чтения, гарантируя последовательность операций
+            co_await co_spawn(
+                strand_,  // Выполняем в контексте strand для последовательности
+                [&]() -> net::awaitable<void> {
+                    try {
+                        logi("try async_read");
+                        // Выполняем чтение данных
+                        auto result = co_await stream_.async_read(
+                            buffer_, boost::asio::as_tuple(boost::asio::use_awaitable));
+                        read_ec = std::get<0>(result);
+                        n       = std::get<1>(result);
+                    } catch (const boost::system::system_error& e) {
+                        read_ec = e.code();
+                    }
+
+                    // Обрабатываем результат чтения
+                    if (read_ec) {
+                        if (read_ec == boost::asio::error::operation_aborted) {
+                            CloseSessionFast();
+                            co_return;
+                        } else {
+                            loge("Read error: {}", read_ec.message());
+                            CloseSessionFast();
+                            co_return;
+                        }
+                    }
+
+                    logi("invoke callback");
+
+                    // Выполняем коллбеки только если есть данные
+                    if (n > 0) {
+                        cb_on_response_manager_.InvokeAll(buffer_);
+                    } else {
+                        logd("No data was read");
+                    }
+
+                    // Освобождаем потребленные данные из буфера
+                    buffer_.consume(n);
+                },
+                boost::asio::use_awaitable);  // Используем co_await для ожидания завершения
         }
+
         logi("finished read");
-        // Close the session after the read loop ends
         CloseSessionFast();
         logd("start execute cb when close session");
-        //TransitionTo(aot::StatusSession::Closing);
     }
 
     void TransitionTo(aot::StatusSession new_state) {
