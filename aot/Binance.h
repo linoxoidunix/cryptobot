@@ -2719,4 +2719,60 @@ class BidAskGeneratorCallbackBatchHandler {
     }
 };
 
+template <class ThreadPool1>
+class BookSnapsotCallbackHandler {
+    aot::CoBus& bus_;
+    common::TradingPairHashMap& trading_pair_hash_map_;
+
+    BookSnapshotComponent<ThreadPool1>& book_snapshot_component_;
+  public:
+    BookSnapsotCallbackHandler(
+        aot::CoBus& bus,
+        common::TradingPairHashMap& trading_pair_hash_map,
+        BookSnapshotComponent<ThreadPool1>& book_snapshot_component)
+        : bus_(bus),
+        trading_pair_hash_map_(trading_pair_hash_map),
+        book_snapshot_component_(book_snapshot_component) {
+    }
+    OnHttpsResponseExtended GetCallback() {
+        return [this](
+                   boost::beast::http::response<boost::beast::http::string_body>& buffer,
+                   common::TradingPair trading_pair) {
+            HandleResponse(buffer, trading_pair);
+        };
+    }
+  private:
+
+
+     
+    void HandleResponse(
+        boost::beast::http::response<boost::beast::http::string_body>& buffer,
+        common::TradingPair trading_pair) {
+        const auto& result = buffer.body();
+        std::cout << result << std::endl;
+
+        binance::detail::FamilyBookSnapshot::ParserResponse parser(trading_pair_hash_map_);
+        auto snapshot = parser.Parse(result, trading_pair);
+
+        auto ptr = book_snapshot_component_.snapshot_mem_pool_.Allocate(
+            &book_snapshot_component_.snapshot_mem_pool_, snapshot.exchange_id,
+            snapshot.trading_pair, std::move(snapshot.bids), std::move(snapshot.asks),
+            snapshot.lastUpdateId);
+
+        auto intr_ptr_snapshot =
+            boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
+
+        auto bus_event =
+            book_snapshot_component_.bus_event_response_snapshot_mem_pool_.Allocate(
+                &book_snapshot_component_.bus_event_response_snapshot_mem_pool_,
+                intr_ptr_snapshot);
+
+        auto intr_ptr_bus_snapshot =
+            boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
+                bus_event);
+
+        bus_.AsyncSend(&book_snapshot_component_, intr_ptr_bus_snapshot);
+    }
+};
+
 };  // namespace binance

@@ -54,7 +54,7 @@ int main() {
     // Create a connection pool for Bybit WebSocket sessions with a timeout of 30 seconds,
     // a maximum of 3 concurrent connections, and specific WebSocket details.
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_bybit{
-        io_context, WSSesionType3::Timeout{30}, 1, "stream.bybit.com",
+        io_context, WSSesionType3::Timeout{30}, 3, "stream.bybit.com",
         "443",      "/v5/public/spot"
     };
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_binance{
@@ -144,35 +144,36 @@ int main() {
         boost::asio::make_strand(thread_pool), number_responses, &signer,
         Network::kMainnet, pairs_binance, pair_reverse_binance, session_pool, exchange_connection_manager);
 
-    OnHttpsResponseExtended book_snapshot_cb_binance =
-            [&book_snapshot_component_binance, &bus, &pairs_binance, &pair_reverse_binance](
-                boost::beast::http::response<boost::beast::http::string_body>&
-                    buffer, common::TradingPair trading_pair) {
-                const auto& result = buffer.body();
-                std::cout << result << std::endl;
+    // OnHttpsResponseExtended book_snapshot_cb_binance =
+    //         [&book_snapshot_component_binance, &bus, &pairs_binance](
+    //             boost::beast::http::response<boost::beast::http::string_body>&
+    //                 buffer, common::TradingPair trading_pair) {
+    //             const auto& result = buffer.body();
+    //             std::cout << result << std::endl;
 
-                binance::detail::FamilyBookSnapshot::ParserResponse parser(
-                    pairs_binance);
-                auto snapshot         = parser.Parse(result, trading_pair);
-                auto ptr              = book_snapshot_component_binance.snapshot_mem_pool_.Allocate(
-                    &book_snapshot_component_binance.snapshot_mem_pool_, snapshot.exchange_id,
-                    snapshot.trading_pair, std::move(snapshot.bids),
-                    std::move(snapshot.asks), snapshot.lastUpdateId);
-                auto intr_ptr_snapsot =
-                    boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
+    //             binance::detail::FamilyBookSnapshot::ParserResponse parser(
+    //                 pairs_binance);
+    //             auto snapshot         = parser.Parse(result, trading_pair);
+    //             auto ptr              = book_snapshot_component_binance.snapshot_mem_pool_.Allocate(
+    //                 &book_snapshot_component_binance.snapshot_mem_pool_, snapshot.exchange_id,
+    //                 snapshot.trading_pair, std::move(snapshot.bids),
+    //                 std::move(snapshot.asks), snapshot.lastUpdateId);
+    //             auto intr_ptr_snapsot =
+    //                 boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
 
-                auto bus_event =
-                    book_snapshot_component_binance.bus_event_response_snapshot_mem_pool_.Allocate(
-                        &book_snapshot_component_binance.bus_event_response_snapshot_mem_pool_,
-                        intr_ptr_snapsot);
-                auto intr_ptr_bus_snapsot =
-                    boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
-                        bus_event);
-
-                bus.AsyncSend(&book_snapshot_component_binance, intr_ptr_bus_snapsot);
-            };
-
-    book_snapshot_component_binance.RegisterCallback(btc_usdt_trading_pair, &book_snapshot_cb_binance);
+    //             auto bus_event =
+    //                 book_snapshot_component_binance.bus_event_response_snapshot_mem_pool_.Allocate(
+    //                     &book_snapshot_component_binance.bus_event_response_snapshot_mem_pool_,
+    //                     intr_ptr_snapsot);
+    //             auto intr_ptr_bus_snapsot =
+    //                 boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
+    //                     bus_event);
+ 
+    //             bus.AsyncSend(&book_snapshot_component_binance, intr_ptr_bus_snapsot);
+    //         };
+    binance::BookSnapsotCallbackHandler book_snapsot_callback_handler_binance(bus, pairs_binance, book_snapshot_component_binance);
+    OnHttpsResponseExtended book_snapshot_calback_handler = book_snapsot_callback_handler_binance.GetCallback();
+    book_snapshot_component_binance.RegisterCallback(btc_usdt_trading_pair, &book_snapshot_calback_handler);
     // Define the maximum number of responses to process in Bybit's book event getter component
     const unsigned int kNumberResponses = 1000;
 
@@ -287,7 +288,7 @@ int main() {
     auto intr_bus_request_btcusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub);
 
-    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
+    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
 
     BusEventRequestBBOPrice request_bbo_eth_sub;
     request_bbo_eth_sub.exchange_id    = common::ExchangeId::kBybit;
@@ -298,7 +299,7 @@ int main() {
 
     auto intr_bus_request_ethusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_eth_sub);
-    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
+    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
     
     BusEventRequestBBOPrice request_bbo_btc_sub_binance;
     request_bbo_btc_sub_binance.exchange_id    = common::ExchangeId::kBinance;
@@ -310,7 +311,7 @@ int main() {
     auto intr_bus_request_btcusdt_sub_binance =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub_binance);
 
-    //bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_btcusdt_sub_binance);
+    bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_btcusdt_sub_binance);
 
 
     thread_ioc.join();
