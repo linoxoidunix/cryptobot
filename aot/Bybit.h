@@ -938,7 +938,6 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
     boost::asio::awaitable<void> CoExec(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) override {
-        //co_await boost::asio::post(thread_pool_, boost::asio::use_awaitable);
 
         if (!bus_event_request_diff_order_book || !session_pool_) {
             loge("Invalid bus_event_request_diff_order_book or session_pool");
@@ -1031,17 +1030,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             }
         }
         logi("request to exchange: {}", req);
-        // boost::asio::co_spawn(executor_, [this, request = std::move(req)]()
-        // -> boost::asio::awaitable<void> {
-        //     if (auto result = co_await SendAsyncRequest(request); !result) {
-        //         loge("AsyncRequest finished unsuccessfully");
-        //     }
-        // }, boost::asio::detached);
-        // boost::asio::co_spawn(strand_, SendAsyncRequest(std::move(req)),
-        //                       boost::asio::detached);
-        // if (auto result = co_await SendAsyncRequest(req); !result) {
-        //     loge("AsyncRequest finished unsuccessfully");
-        // }
+
         co_await SendAsyncRequest(std::move(req));
         logd("Finished sending event getter for bybit request");
     }
