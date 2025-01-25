@@ -6,6 +6,7 @@ enum class StatusSession {
     Connecting,
     Handshaking,
     Ready,
+    kInProcess,
     Expired,
     Closing,
     Cancelling

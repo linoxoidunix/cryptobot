@@ -588,6 +588,7 @@ class HttpsSession3 {
     tcp::resolver resolver_; ///< Resolver for translating hostnames to endpoints.
     beast::ssl_stream<beast::tcp_stream> stream_; ///< SSL/TLS stream for secure communication.
     beast::flat_buffer buffer_; ///< Buffer for reading HTTP responses.
+    boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
     boost::asio::io_context& ioc_; ///< Reference to the I/O context.
     Timeout timeout_; ///< Configured timeout duration.
@@ -597,14 +598,14 @@ class HttpsSession3 {
     boost::asio::cancellation_signal cancel_signal_; ///< Signal for handling cancellation requests.
 
     std::atomic<bool> need_execute_on_closed_system = true; ///< Indicates whether system callbacks should be executed.
-
+    moodycamel::ConcurrentQueue<http::request<http::string_body>> request_queue_;
     // Callback functions
     std::function<void(boost::beast::http::response<boost::beast::http::string_body>&)> on_response_; ///< Callback for handling HTTP responses.
     std::function<void()> on_ready_; ///< Callback for when the session is ready.
     std::function<void()> on_expired_; ///< Callback for when the session times out.
     std::function<void()> on_closed_system_; ///< Callback for when the session is closed by the system.
     std::function<void()> on_closed_user_; ///< Callback for when the session is closed by the user.
-
+    bool is_processing_ = false;
   public:
     /**
      * @brief Destructor for the class.
@@ -629,6 +630,7 @@ class HttpsSession3 {
                            _Timeout timeout, const std::string_view host,
                            const std::string_view port, AdditionalArgs&&...)
         : resolver_(net::make_strand(ioc)),
+          strand_(net::make_strand(ioc)),
           stream_(net::make_strand(ioc), ctx),
           ioc_(ioc),
           timeout_(timeout),
@@ -653,43 +655,52 @@ class HttpsSession3 {
      * @param req The HTTP request object.
      * @return net::awaitable<bool> True if the request was successful, otherwise false.
      */
-    net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req) {
-        if (status_ != aot::StatusSession::Ready) co_return false;
-        req_ = std::move(req);
+    // net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req) {
+    //     if (status_ != aot::StatusSession::Ready) co_return false;
+    //     req_ = std::move(req);
 
-        // Write the HTTP request asynchronously.
-        auto [write_ec, bytes_written] = co_await http::async_write(
-            stream_, req_, net::as_tuple(net::use_awaitable));
-        if (write_ec) {
-            if (write_ec == net::error::operation_aborted) {
-                logd("Write operation cancelled");
-                CloseSessionFast();
-                co_return false;
-            }
-            CloseSessionFast();
-            TransitionTo(aot::StatusSession::Closing);
-            co_return false;
-        }
+    //     // Write the HTTP request asynchronously.
+    //     auto [write_ec, bytes_written] = co_await http::async_write(
+    //         stream_, req_, net::as_tuple(net::use_awaitable));
+    //     if (write_ec) {
+    //         if (write_ec == net::error::operation_aborted) {
+    //             logd("Write operation cancelled");
+    //             CloseSessionFast();
+    //             co_return false;
+    //         }
+    //         CloseSessionFast();
+    //         TransitionTo(aot::StatusSession::Closing);
+    //         co_return false;
+    //     }
 
-        // Read the HTTP response asynchronously.
-        auto [ec_read, bytes_read] = co_await http::async_read(
-            stream_, buffer_, res_, net::as_tuple(net::use_awaitable));
-        if (ec_read) {
-            if (ec_read == net::error::operation_aborted) {
-                logd("Read operation cancelled");
-                CloseSessionFast();
-                co_return false;
-            }
-            CloseSessionFast();
-            TransitionTo(aot::StatusSession::Closing);
-            co_return false;
-        }
-        // Trigger the on_response_ callback if registered.
-        if (on_response_) on_response_(res_);
+    //     // Read the HTTP response asynchronously.
+    //     auto [ec_read, bytes_read] = co_await http::async_read(
+    //         stream_, buffer_, res_, net::as_tuple(net::use_awaitable));
+    //     if (ec_read) {
+    //         if (ec_read == net::error::operation_aborted) {
+    //             logd("Read operation cancelled");
+    //             CloseSessionFast();
+    //             co_return false;
+    //         }
+    //         CloseSessionFast();
+    //         TransitionTo(aot::StatusSession::Closing);
+    //         co_return false;
+    //     }
+    //     // Trigger the on_response_ callback if registered.
+    //     if (on_response_) on_response_(res_);
         
-        CloseSessionFast();
-        TransitionTo(aot::StatusSession::Closing);
-        co_return true;
+    //     CloseSessionFast();
+    //     TransitionTo(aot::StatusSession::Closing);
+    //     co_return true;
+    // }
+    void AsyncRequest(http::request<http::string_body>&& req) {
+        net::dispatch(strand_, [this, req = std::move(req)]() mutable {
+            request_queue_.try_enqueue(std::move(req));
+            if (!is_processing_) {
+                is_processing_ = true;
+                StartProcessing();
+            }
+        });
     }
 
     /**
@@ -769,6 +780,45 @@ class HttpsSession3 {
     void UnRegisterOnUserClosed() { on_closed_user_ = nullptr; }
 
   private:
+
+    net::awaitable<void> RequestLoop() {
+        TransitionTo(aot::StatusSession::Ready);
+        if (!request_queue_.size_approx()) {
+            // Если очередь пуста, приостанавливаем выполнение
+            co_return;
+        }
+        TransitionTo(aot::StatusSession::kInProcess);
+        // while (!request_queue_.size_approx()) {
+        // Берем следующий запрос из очереди
+        http::request<http::string_body> req;
+        request_queue_.try_dequeue(req);   
+        try {
+            // Отправляем запрос
+            co_await http::async_write(stream_, req, net::use_awaitable);
+
+            // Читаем ответ
+            co_await http::async_read(stream_, buffer_, res_, net::use_awaitable);
+
+            // Обрабатываем ответ
+            //std::cout << "Response received: " << res_ << "\n";
+        } catch (const std::exception& e) {
+            std::cerr << "Request error: " << e.what() << "\n";
+        }
+        if (on_response_) on_response_(res_);
+    
+        CloseSessionFast();
+        TransitionTo(aot::StatusSession::Closing);
+        is_processing_ = false;
+        co_return;
+        //}
+
+        // Когда очередь пуста, завершаем обработку
+    }
+    void StartProcessing() {
+        boost::asio::co_spawn(strand_, [this]() -> net::awaitable<void> {
+            co_await RequestLoop();
+        }, net::detached);
+    }
     /**
      * @brief Core coroutine to establish the session.
      * 
@@ -810,7 +860,8 @@ class HttpsSession3 {
         }
 
         cancel_timer();
-        TransitionTo(aot::StatusSession::Ready);
+        co_spawn(strand_, RequestLoop(), net::detached);
+
     }
 
     /**

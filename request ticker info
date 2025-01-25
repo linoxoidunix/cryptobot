@@ -1,0 +1,7 @@
+#Binance
+
+curl -X GET "https://api.binance.com/api/v3/exchangeInfo?symbol=BNBBTC"
+
+#Bybit
+
+curl -X GET "https://api.bybit.com/v5/market/instruments-info?category=spot&symbol=BTCUSDT"

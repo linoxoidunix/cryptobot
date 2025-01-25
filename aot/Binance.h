@@ -1035,7 +1035,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
             loge("Invalid bus_event_request_diff_order_book or session_pool");
             co_return;
         }
-
+        logi("BookEventGetter3<> request diff order book");
           //co_await HandleBookEvent(bus_event_request_diff_order_book);
         boost::asio::co_spawn(strand_, HandleBookEvent(bus_event_request_diff_order_book),
                               boost::asio::detached);
@@ -1122,6 +1122,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
         }
         logi("request to exchange: {}", req);
 
+        //boost::asio::co_spawn(strand_, SendAsyncRequest(std::move(req)), boost::asio::detached);
         co_await SendAsyncRequest(std::move(req));
         logd("Finished sending event getter for binance request");
     }
@@ -1220,9 +1221,10 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      */
     boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
         if (auto session = active_session_.load()) {
-            co_return co_await session->AsyncRequest(std::move(req));
+            //co_return co_await session->AsyncRequest(std::move(req));
+            session->AsyncWrite(std::move(req));
         }
-        co_return false;
+        co_return true;
     }
 
     /**
@@ -1256,7 +1258,7 @@ class BookEventGetterComponent : public bus::Component,
     void AsyncHandleEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event)
         override {
-        boost::asio::co_spawn(BookEventGetter3<ThreadPool>::thread_pool_,
+        boost::asio::co_spawn(BookEventGetter3<ThreadPool>::strand_,
                               BookEventGetter3<ThreadPool>::CoExec(event),
                               boost::asio::detached);
     };
@@ -1931,19 +1933,15 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 // bus_event_request_new_snapshot->Release();
                 // bus_event_request_new_snapshot->WrappedEvent()->Release();
                 auto session = session_pool_->AcquireConnection();
-                logd("start send new snapshot request");
+                logd("start send new snapshot request for {}", trading_pair);
                 OnHttpsResponce simple_callback =
-                    [callback, &trading_pair](
+                    [callback, trading_pair](
                         boost::beast::http::response<
                             boost::beast::http::string_body>& response) {
                         (*callback)(response, trading_pair);
                     };
                 session->RegisterOnResponse(simple_callback);
-                if (auto status =
-                        co_await session->AsyncRequest(std::move(req));
-                    status == false)
-                    loge("AsyncRequest wasn't sent in io_context");
-
+                session->AsyncRequest(std::move(req));
                 logd("end send new snapshot request");
                 co_return;
             },
@@ -2752,7 +2750,8 @@ class BookSnapsotCallbackHandler {
         boost::beast::http::response<boost::beast::http::string_body>& buffer,
         common::TradingPair trading_pair) {
         const auto& result = buffer.body();
-        std::cout << result << std::endl;
+        logi("{}", result);
+        logi("trading_pair:{}",trading_pair.ToString());
 
         binance::detail::FamilyBookSnapshot::ParserResponse parser(trading_pair_hash_map_);
         auto snapshot = parser.Parse(result, trading_pair);

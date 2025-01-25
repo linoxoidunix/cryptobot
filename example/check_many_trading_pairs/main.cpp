@@ -93,8 +93,16 @@ int main() {
         .https_json_request   = "BTCUSDT",
         .https_query_request  = "BTCUSDT",
         .ws_query_request     = "btcusdt",
-        .https_query_response = "BTCUSDT"};
-
+        .https_query_response = "BTCUSDT"
+    };
+    common::TradingPairInfo pair_info_ethbtc_binance{
+        .price_precission     = 5,
+        .qty_precission       = 4,
+        .https_json_request   = "ETHBTC",
+        .https_query_request  = "ETHBTC",
+        .ws_query_request     = "ethbtc",
+        .https_query_response = "ETHBTC"
+    };
     common::TradingPairInfo pair_info_ethusdt_binance{
         .price_precission     = 2,  // Price precision
         .qty_precission       = 4,  // Quantity precision
@@ -105,11 +113,14 @@ int main() {
     };
     common::TradingPair btc_usdt_trading_pair {2,1};
     common::TradingPair eth_usdt_trading_pair {3,1};
+    common::TradingPair eth_btc_trading_pair {3,2};
+
     // Map the trading pair (Exchange ID: 2, Trading Pair ID: 1) to its configuration
     pairs_bybit[btc_usdt_trading_pair] = pair_info_btcusdt_bybit;
     pairs_bybit[eth_usdt_trading_pair] = pair_info_ethusdt_bybit;
     pairs_binance[btc_usdt_trading_pair] = pair_info_btcusdt_binance;
     pairs_binance[eth_usdt_trading_pair] = pair_info_ethusdt_binance;
+    pairs_binance[eth_btc_trading_pair] = pair_info_ethbtc_binance;
 
 
 
@@ -117,6 +128,7 @@ int main() {
     exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBybit, eth_usdt_trading_pair, pair_info_ethusdt_bybit);
     exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBinance, btc_usdt_trading_pair, pair_info_btcusdt_binance);
     exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBinance, eth_usdt_trading_pair, pair_info_ethusdt_binance);
+    exchange_trading_pairs.AddOrUpdatePair(common::ExchangeId::kBinance, eth_btc_trading_pair, pair_info_ethbtc_binance);
 
 
     // Create an asynchronous event bus with the thread pool
@@ -159,6 +171,7 @@ int main() {
     OnHttpsResponseExtended book_snapshot_calback_handler = book_snapsot_callback_handler_binance.GetCallback();
     book_snapshot_component_binance.RegisterCallback(btc_usdt_trading_pair, &book_snapshot_calback_handler);
     book_snapshot_component_binance.RegisterCallback(eth_usdt_trading_pair, &book_snapshot_calback_handler);
+    book_snapshot_component_binance.RegisterCallback(eth_btc_trading_pair, &book_snapshot_calback_handler);
 
     // Define the maximum number of responses to process in Bybit's book event getter component
     const unsigned int kNumberResponses = 1000;
@@ -210,6 +223,7 @@ int main() {
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair ID: 1)
     book_event_getter_binance.RegisterCallback(btc_usdt_trading_pair, &wss_cb_binance);
     book_event_getter_binance.RegisterCallback(eth_usdt_trading_pair, &wss_cb_binance);
+    book_event_getter_binance.RegisterCallback(eth_btc_trading_pair, &wss_cb_binance);
 
     // // Register all callbacks for the bid-ask generator. process each murket update event
     bybit::BidAskGeneratorCallbackHandler bid_ask_generator_callback_handler(
@@ -231,6 +245,7 @@ int main() {
     order_book_component.AddOrderBook(common::ExchangeId::kBybit, eth_usdt_trading_pair);
     order_book_component.AddOrderBook(common::ExchangeId::kBinance, btc_usdt_trading_pair);
     order_book_component.AddOrderBook(common::ExchangeId::kBinance, eth_usdt_trading_pair);
+    order_book_component.AddOrderBook(common::ExchangeId::kBinance, eth_btc_trading_pair);
 
     std::string_view brokers = "localhost:19092";  // Specify your Redpanda broker address here
     auto redpanda_executor = boost::asio::make_strand(thread_pool);
@@ -275,7 +290,7 @@ int main() {
 
     auto intr_bus_request_btcusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_btc_sub);
-    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
+    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_btcusdt_sub);
 
     BusEventRequestBBOPrice request_bbo_eth_sub;
     request_bbo_eth_sub.exchange_id    = common::ExchangeId::kBybit;
@@ -286,7 +301,7 @@ int main() {
 
     auto intr_bus_request_ethusdt_sub =
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_bbo_eth_sub);
-    bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
+    //bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_ethusdt_sub);
     
     BusEventRequestBBOPrice request_bbo_btc_sub_binance;
     request_bbo_btc_sub_binance.exchange_id    = common::ExchangeId::kBinance;
@@ -311,6 +326,18 @@ int main() {
     boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_eth_usdt_sub_binance);
 
     bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_ethusdt_sub_binance);
+
+    BusEventRequestBBOPrice request_eth_btc_sub_binance;
+    request_eth_btc_sub_binance.exchange_id    = common::ExchangeId::kBinance;
+    request_eth_btc_sub_binance.trading_pair   = eth_btc_trading_pair;
+    request_eth_btc_sub_binance.snapshot_depth = 1000;
+    request_eth_btc_sub_binance.subscribe = true;
+    request_eth_btc_sub_binance.id = 1212L;
+
+    auto intr_bus_request_ethbtc_sub_binance =
+    boost::intrusive_ptr<BusEventRequestBBOPrice>(&request_eth_btc_sub_binance);
+
+    bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_ethbtc_sub_binance);
 
     thread_ioc.join();
     log_polling.Stop();

@@ -444,3 +444,16 @@ class fmt::formatter<common::SubscriptionType> {
         return fmt::format_to(ctx.out(), "SubscriptionType:{}", magic_enum::enum_name(foo));
     }
 };
+
+template <>
+class fmt::formatter<common::TradingPair> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::TradingPair& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "TradingPair[f:{} s:{}]", foo.first, foo.second);
+    }
+};
+
+
