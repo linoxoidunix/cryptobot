@@ -696,9 +696,14 @@ class HttpsSession3 {
     void AsyncRequest(http::request<http::string_body>&& req) {
         net::dispatch(strand_, [this, req = std::move(req)]() mutable {
             request_queue_.try_enqueue(std::move(req));
+            logd("https3 enquee message");
             if (!is_processing_) {
+                logd("https3 start processing");
                 is_processing_ = true;
                 StartProcessing();
+                logd("https3 end processing");
+            } else{
+                logd("http3 reject processing");
             }
         });
     }
@@ -782,9 +787,11 @@ class HttpsSession3 {
   private:
 
     net::awaitable<void> RequestLoop() {
+        logi("[https3] launch request loop");
         TransitionTo(aot::StatusSession::Ready);
         if (!request_queue_.size_approx()) {
             // Если очередь пуста, приостанавливаем выполнение
+            logi("[https3] reject request loop due to no message in queue");
             co_return;
         }
         TransitionTo(aot::StatusSession::kInProcess);
@@ -1081,8 +1088,12 @@ class ConnectionPool {
             awaiable_connections_.try_enqueue(session);
             // Check the status of the session
             auto status = session->GetStatus();
-            if(status == aot::StatusSession::Ready)
+            if(status == aot::StatusSession::Ready){
+                logd("[Connection pool] session is ready");
                 break;
+            } else{
+                logd("[Connection pool] session is not ready {} size_pool:{}", status, awaiable_connections_.size_approx());
+            }
             // // If the session is expired or closing, release it and try another one
             // if (status == aot::StatusSession::Expired ||
             //     status == aot::StatusSession::Closing) {
@@ -1153,35 +1164,39 @@ class ConnectionPool {
 
    void TryCreateNewSession() {
     try {
+        logi("[Connection pool] create new session");
         // Создаем новую сессию
         auto session = CreateSession();
-        auto shared_session = std::shared_ptr<HTTPSessionType>(session);
+        //auto shared_session = std::shared_ptr<HTTPSessionType>(session);
 
         // Обработка события "готовности"
-        shared_session->RegisterOnReady([this, shared_session]() {
-            if (!awaiable_connections_.try_enqueue(shared_session.get())) {
+        session->RegisterOnReady([this, session]() {
+            if (!awaiable_connections_.try_enqueue(session)) {
                 logi("Can't enqueue session in available_connections");
                 // Логирование ошибки или другая обработка
             }
+            logd("[Connection pool] finished execute on ready");
         });
 
         // Обработка события "системное закрытие"
-        shared_session->RegisterOnSystemClosed([this, shared_session]() {
+        session->RegisterOnSystemClosed([this, session]() {
             if (!is_handling_session.test_and_set()) { // Проверка и установка флага
-                session_pool_.Deallocate(shared_session.get());
+                session_pool_.Deallocate(session);
                 logi("Session system closed. Recreating session...");
                 TryCreateNewSession(); // Рекурсивное создание новой сессии
                 is_handling_session.clear(); // Сброс флага
+                logd("[Connection pool] finished execute on system closed");
             }
         });
 
         // Обработка события "истечение срока действия"
-        shared_session->RegisterOnExpired([this, shared_session]() {
+        session->RegisterOnExpired([this, session]() {
             if (!is_handling_session.test_and_set()) { // Проверка и установка флага
-                session_pool_.Deallocate(shared_session.get());
+                session_pool_.Deallocate(session);
                 logi("Session expired. Recreating session...");
                 TryCreateNewSession(); // Рекурсивное создание новой сессии
                 is_handling_session.clear(); // Сброс флага
+                logd("[Connection pool] finished execute on expired");
             }
         });
 

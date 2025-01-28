@@ -456,7 +456,7 @@ class WssSession3 {
     inline aot::StatusSession GetStatus() const { return status_; }
 
     aot::CallbackID RegisterCallbackOnResponse(
-        const OnWssResponseTradingPair cb, common::TradingPair trading_pair) {
+        const OnWssFBTradingPair cb, common::TradingPair trading_pair) {
         return cb_on_response_manager_.RegisterCallback(cb, trading_pair);
     }
     bool UnRegisterCallbackOnResponse(aot::CallbackID id) {
@@ -486,42 +486,7 @@ class WssSession3 {
     }
 
     void UnregisterOnSystemClosed() { on_closed_ = nullptr; }
-    net::awaitable<bool> AsyncRequest(std::string&& req_input) {
-        logi("1");
-        //boost::asio::co_spawn(ioc_, [this, req = std::move(req)]()->net::awaitable<void>{
-            auto req = std::move(req_input);
-            if (!IsConnected()) co_return  false;
-            logi("2");
-            logi("request to exchange from ws: {}", req);
-            auto [write_ec, bytes_written] = co_await stream_.async_write(
-                net::buffer(req),
-                boost::asio::as_tuple(boost::asio::use_awaitable));
-            logi("3");
 
-            if (write_ec) {
-                if (write_ec == net::error::operation_aborted) {
-                    logd("Write operation cancelled");
-                    CloseSessionFast();
-                    co_return true;
-                } else {
-                }
-                CloseSessionFast();
-                TransitionTo(aot::StatusSession::Closing);
-                co_return true;
-            }
-            logi("4");
-            if (!read_started_.exchange(true)) {
-                logi("5");
-                co_spawn(ioc_, ReadLoop(), net::detached);
-                logi("6");
-
-            }
-            logi("7");
-
-        //}, boost::asio::detached);
-
-        co_return true;
-    }
     void AsyncWrite(std::string&& message) {
         net::dispatch(strand_, [this, message = std::move(message)]() {
             message_queue_.enqueue(message);
@@ -559,6 +524,13 @@ class WssSession3 {
             // Берем следующее сообщение из очереди
             std::string message;
             message_queue_.try_dequeue(message);
+
+            // Adding a delay before writing to avoid buffer overflow on the server side
+            // or the server disconnecting the stream due to sending messages too frequently
+            // I chose 1 second arbitrarily as a reasonable delay
+            net::steady_timer timer(co_await net::this_coro::executor);
+            timer.expires_after(std::chrono::seconds(1));
+            co_await timer.async_wait(net::use_awaitable);
 
             // Выполняем запись
             try {
@@ -682,63 +654,6 @@ class WssSession3 {
         }
     }
 
-    // net::awaitable<void> ReadLoop() {
-    //     while (need_read_) {
-    //         logi("start async read");
-
-    //         boost::system::error_code read_ec;
-    //         std::size_t n = 0;
-
-    //         // Создаём корутину для чтения, гарантируя последовательность
-    //         // операций
-    //         co_await co_spawn(
-    //             strand_,  // Выполняем в контексте strand для последовательности
-    //             [&]() -> net::awaitable<void> {
-    //                 try {
-    //                     logi("try async_read");
-    //                     // Выполняем чтение данных
-    //                     auto result = co_await stream_.async_read(
-    //                         buffer_,
-    //                         boost::asio::as_tuple(boost::asio::use_awaitable));
-    //                     read_ec = std::get<0>(result);
-    //                     n       = std::get<1>(result);
-    //                 } catch (const boost::system::system_error& e) {
-    //                     read_ec = e.code();
-    //                 }
-
-    //                 // Обрабатываем результат чтения
-    //                 if (read_ec) {
-    //                     if (read_ec == boost::asio::error::operation_aborted) {
-    //                         CloseSessionFast();
-    //                         co_return;
-    //                     } else {
-    //                         loge("Read error: {}", read_ec.message());
-    //                         CloseSessionFast();
-    //                         co_return;
-    //                     }
-    //                 }
-
-    //                 logi("invoke callback");
-
-    //                 // Выполняем коллбеки только если есть данные
-    //                 if (n > 0) {
-    //                     cb_on_response_manager_.InvokeAll(buffer_);
-    //                 } else {
-    //                     logd("No data was read");
-    //                 }
-
-    //                 // Освобождаем потребленные данные из буфера
-    //                 buffer_.consume(n);
-    //             },
-    //             boost::asio::use_awaitable);  // Используем co_await для
-    //                                           // ожидания завершения
-    //     }
-
-    //     logi("finished read");
-    //     CloseSessionFast();
-    //     logd("start execute cb when close session");
-    // }
-
     net::awaitable<void> ReadLoop() {
         // beast::flat_buffer buffer;
         while (need_read_) {
@@ -777,6 +692,8 @@ class WssSession3 {
 
             // Выполняем коллбеки только если есть данные
             if (n > 0) {
+                //std::span<const char> data_span(static_cast<const char*>(buffer_.data().data()), buffer_.size());
+                //co_await HandleDataInThreadPool(data_span);
                 cb_on_response_manager_.InvokeAll(buffer_);
             } else {
                 logd("No data was read");
@@ -809,6 +726,22 @@ class WssSession3 {
                 break;
         }
     }
+
+    // net::awaitable<void> HandleDataInThreadPool(std::span<const char> data_span) {
+    //     // Используем boost::asio::co_spawn для работы с пулом потоков
+    //     co_await boost::asio::co_spawn(thread_pool_, [this, data_span]() -> net::awaitable<void> {
+    //         logi("Processing data in thread pool");
+    //         std::string_view data_view(data_span.data(), data_span.size());
+    //         // Здесь происходит обработка данных
+    //         // Например, можно передать данные в обработчик коллбеков
+    //         // cb_on_response_manager_.InvokeAll(data_span);
+    //         cb_on_response_manager_.InvokeAll(data_view);
+    //         // Эмулируем задержку обработки
+    //         co_return;
+    //     }, boost::asio::detached);
+
+    //     co_return;
+    // }
 };
 
 // template <typename _Timeout>

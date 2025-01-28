@@ -6,6 +6,7 @@
 
 #define FMT_HEADER_ONLY
 #include "aot/third_party/fmt/core.h"
+#include "aot/third_party/fmt/ranges.h"
 #define FMTLOG_HEADER_ONLY
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>

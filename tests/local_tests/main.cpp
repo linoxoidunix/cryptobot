@@ -430,16 +430,16 @@ TEST_F(BookSnapshotComponentTest, TestLaunchBidAskGeneratorComponent) {
     bool accept_unsubscribe_successfully = false;
 
 
-    OnWssResponseTradingPair cb_wss = [&event_getter_component, &bus, &counter_successfull,
+    OnWssSVTradingPair cb_wss = [&event_getter_component, &bus, &counter_successfull,
                             &counter_unsuccessfull, this,
                             &pair_reverse,
                             &parser_manager,
                             &request_accepted_by_exchange,
-                            &accept_subscribe_successfully](boost::beast::flat_buffer& fb, common::TradingPair) {
+                            &accept_subscribe_successfully](std::string_view response, common::TradingPair) {
         //auto data     = fb.data();  // returns a const_buffer
         // auto response = std::string_view(static_cast<const char*>(data.data()),
         //                                  data.size());
-        auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
+        //auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
         auto answer = parser_manager.Parse(response);
 
         std::cout << response << std::endl;

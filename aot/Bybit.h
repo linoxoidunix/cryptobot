@@ -886,7 +886,7 @@ template <typename ThreadPool>
 class BookEventGetter3 : public detail::FamilyBookEventGetter,
                          public inner::BookEventGetterI {
     using CallbackMap =
-        std::unordered_map<common::TradingPair, const OnWssResponseTradingPair*,
+        std::unordered_map<common::TradingPair, const OnWssFBTradingPair*,
                            common::TradingPairHash, common::TradingPairEqual>;
     using CloseSessionCallbackMap =
         std::unordered_map<common::TradingPair, const OnCloseSession*,
@@ -956,7 +956,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      * @param callback Pointer to the callback function.
      */
     void RegisterCallback(common::TradingPair trading_pair,
-                          const OnWssResponseTradingPair* callback) {
+                          const OnWssFBTradingPair* callback) {
         callback_map_[trading_pair] = callback;
     }
     /**
@@ -1093,7 +1093,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssResponseTradingPair* callback,
+    void RegisterCallbackOnSession(const OnWssFBTradingPair* callback,
                                    common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnResponse(*callback, trading_pair);
@@ -1129,7 +1129,7 @@ class BookEventGetter3 : public detail::FamilyBookEventGetter,
      */
     boost::asio::awaitable<void> SendAsyncRequest(auto&& req) {
         if (auto session = active_session_.load()) {
-            auto result = co_await session->AsyncRequest(std::move(req));
+            session->AsyncWrite(std::move(req));
         }
         co_return;
     }
@@ -1440,7 +1440,7 @@ class BidAskGeneratorComponent : public bus::Component {
     std::unordered_map<common::TradingPair, BidAskState,
                        common::TradingPairHash, common::TradingPairEqual>
         state_map_;
-    std::unordered_map<common::TradingPair, BusEventRequestBBOPrice,
+    std::unordered_map<common::TradingPair, boost::intrusive_ptr<BusEventRequestBBOPrice>,
                        common::TradingPairHash, common::TradingPairEqual>
         request_bbo_;
 
@@ -1542,7 +1542,7 @@ class BidAskGeneratorComponent : public bus::Component {
         auto& evt          = *event.get();
         auto& trading_pair = evt.trading_pair;
         if (!request_bbo_.count(trading_pair)) {
-            request_bbo_[trading_pair] = *event;
+            request_bbo_[trading_pair] = event;
         } else {
             loge("it is a problem. request_bbo_ contains trading pair {}",
                  trading_pair.ToString());
@@ -1701,14 +1701,14 @@ class BidAskGeneratorComponent : public bus::Component {
                 "pair");
             co_return;
         }
-        auto& info             = request_bbo_[trading_pair];
+        auto info             = request_bbo_[trading_pair];
 
         // TODO need process common::kFrequencyMSInvalid, need add
         // common::kFrequencyMSInvalid to info
         bool need_subscription = (subscribe) ? true : false;
         auto* ptr              = request_diff_mem_pool_.Allocate(
-            &request_diff_mem_pool_, info.exchange_id, info.trading_pair,
-            info.snapshot_depth, need_subscription, info.id);
+            &request_diff_mem_pool_, info->exchange_id, info->trading_pair,
+            info->snapshot_depth, need_subscription, info->id);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::RequestDiffOrderBook>(ptr);
 
@@ -1975,7 +1975,24 @@ class OrderBookWebSocketResponseHandler {
             },
             answer);
     }
-
+    void HandleResponse(std::string_view response,
+                        common::TradingPair trading_pair) {
+        auto answer = parser_manager_.Parse(response);
+        logi("{}", response);
+        std::visit(
+            [&](auto&& snapshot) {
+                using T = std::decay_t<decltype(snapshot)>;
+                if constexpr (std::is_same_v<T, Exchange::BookDiffSnapshot>) {
+                    ProcessBookDiffSnapshot(snapshot, trading_pair);
+                } else if constexpr (std::is_same_v<T,
+                                                    Exchange::BookSnapshot>) {
+                    ProcessBookSnapshot(snapshot, trading_pair);
+                } else if constexpr (std::is_same_v<T, ApiResponseData>) {
+                    ProcessApiResponse(snapshot);
+                }
+            },
+            answer);
+    }
   private:
     void ProcessBookDiffSnapshot(Exchange::BookDiffSnapshot& data,
                                  common::TradingPair trading_pair) {

@@ -456,4 +456,23 @@ class fmt::formatter<common::TradingPair> {
     }
 };
 
+template <>
+class fmt::formatter<common::TradingPairInfo> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::TradingPairInfo& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "TradingPairInfo[price_prec:{} qty_prec:{} https_json_request:{} https_query_request:{} ws_query_request:{} https_query_response:{}]",
+        foo.price_precission,
+        foo.qty_precission,
+        foo.https_json_request,
+        foo.https_query_request,
+        foo.ws_query_request,
+        foo.https_query_response);
+    }
+};
+
+
+
 

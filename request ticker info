@@ -1,6 +1,8 @@
 #Binance
 
-curl -X GET "https://api.binance.com/api/v3/exchangeInfo?symbol=BNBBTC"
+symbol="BNBBTC"                                                                                                  00:09:32
+curl -X GET "https://api.binance.com/api/v3/exchangeInfo?symbol=$symbol" | jq ".symbols[] | select(.symbol == \"$symbol\") | .filters[] | select(.filterType == \"PRICE_FILTER\" or .filterType == \"LOT_SIZE\") | {filterType, minPrice, maxPrice, tickSize, minQty, maxQty, stepSize}"
+
 
 #Bybit
 
