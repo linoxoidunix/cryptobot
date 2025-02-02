@@ -974,270 +974,12 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
  *
  * @tparam Executor The executor type used for asynchronous operations.
  */
-template <typename ThreadPool>
-class BookEventGetter3 : public detail::FamilyBookEventGetter,
-                         public inner::BookEventGetterI {
-    using CallbackMap =
-        std::unordered_map<common::TradingPair, const OnWssFBTradingPair*,
-                           common::TradingPairHash, common::TradingPairEqual>;
-    using CloseSessionCallbackMap =
-        std::unordered_map<common::TradingPair, const OnCloseSession*,
-                           common::TradingPairHash, common::TradingPairEqual>;
 
-    ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
-    common::TradingPairHashMap& pairs_;
-    CallbackMap callback_map_;
-    CloseSessionCallbackMap callback_on_close_session_map_;
-    std::atomic<WSSesionType3*> active_session_{nullptr};
-    testnet::HttpsExchange binance_test_net_;
-    mainnet::HttpsExchange binance_main_net_;
-    https::ExchangeI* current_exchange_;
+//using BookEventGetter3 = inner::BookEventGetter3<ThreadPoolType, detail::FamilyBookEventGetter::ArgsBody>
 
-  protected:
-    ThreadPool& thread_pool_;
-    boost::asio::strand<typename ThreadPool::executor_type> strand_;
-
-  public:
-    /**
-     * @brief Constructor for BookEventGetter3.
-     *
-     * @param thread_pool The thread_pool for asynchronous operations.
-     * @param session_pool Pointer to the WebSocket session pool.
-     * @param type The type of exchange (mainnet or testnet).
-     * @param pairs Reference to the trading pair hash map.
-     */
-    BookEventGetter3(
-        ThreadPool& thread_pool,
-        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
-            session_pool,
-        TypeExchange type, common::TradingPairHashMap& pairs)
-        :   
-          strand_(boost::asio::make_strand(thread_pool)),
-          session_pool_(session_pool),
-          pairs_(pairs),
-          thread_pool_(thread_pool),
-          current_exchange_(GetExchange(type)) {}
-    /**
-     * @brief Default destructor.
-     */
-    ~BookEventGetter3() override = default;
-    /**
-     * @brief Asynchronously handles book events.
-     *
-     * @param bus_event_request_diff_order_book Pointer to the event request for
-     * the order book.
-     */
-    boost::asio::awaitable<void> CoExec(
-        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
-            bus_event_request_diff_order_book) override {
-
-        if (!bus_event_request_diff_order_book || !session_pool_) {
-            loge("Invalid bus_event_request_diff_order_book or session_pool");
-            co_return;
-        }
-        logi("BookEventGetter3<> request diff order book");
-          //co_await HandleBookEvent(bus_event_request_diff_order_book);
-        boost::asio::co_spawn(strand_, HandleBookEvent(bus_event_request_diff_order_book),
-                              boost::asio::detached);
-    }
-    /**
-     * @brief Registers a callback for a specific trading pair's WebSocket
-     * response.
-     *
-     * @param trading_pair The trading pair to register the callback for.
-     * @param callback Pointer to the callback function.
-     */
-    void RegisterCallback(common::TradingPair trading_pair,
-                          const OnWssFBTradingPair* callback) {
-        callback_map_[trading_pair] = callback;
-    }
-    /**
-     * @brief Registers a callback for a specific trading pair when a session is
-     * closed.
-     *
-     * @param trading_pair The trading pair to register the callback for.
-     * @param callback Pointer to the close session callback function.
-     */
-    void RegisterCallbackOnCloseSession(common::TradingPair trading_pair,
-                                        const OnCloseSession* callback) {
-        callback_on_close_session_map_[trading_pair] = callback;
-    }
-
-    /**
-     * @brief Asynchronously stops the active WebSocket session gracefully.
-     */
-    void AsyncStop() {
-        if (auto session = active_session_.load()) {
-            session->AsyncCloseSessionGracefully();
-        } else {
-            logw("No active session to stop");
-        }
-    }
-
-  private:
-    /**
-     * @brief Returns the appropriate exchange object based on the type of
-     * exchange.
-     *
-     * @param type The type of exchange (mainnet or testnet).
-     * @return Pointer to the selected exchange object.
-     */
-    https::ExchangeI* GetExchange(TypeExchange type) {
-        return type == TypeExchange::MAINNET
-                   ? static_cast<https::ExchangeI*>(&binance_main_net_)
-                   : static_cast<https::ExchangeI*>(&binance_test_net_);
-    }
-
-    /**
-     * @brief Handles book events by processing the provided event request.
-     *
-     * @param bus_event_request_diff_order_book Pointer to the event request for
-     * the order book.
-     */
-    boost::asio::awaitable<void> HandleBookEvent(
-        boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
-            bus_event_request_diff_order_book) {
-        auto* wrapped_event = bus_event_request_diff_order_book->WrappedEvent();
-        if (!wrapped_event) {
-            loge("Wrapped event is null");
-            co_return;
-        }
-
-        auto& trading_pair = wrapped_event->trading_pair;
-        detail::FamilyBookEventGetter::ArgsBody args(
-            bus_event_request_diff_order_book->WrappedEvent(), pairs_);
-        auto req = args.Body();
-
-        if (!active_session_
-                 .load()) {  // Check if active session is not already acquired
-            AcquireActiveSession();
-            if (!RegisterCallbacksForTradingPair(trading_pair)) {
-                co_return;
-            }
-        } else {
-            logd("Using existing active session");
-            if (!RegisterCallbacksForTradingPair(trading_pair)) {
-                co_return;
-            }
-        }
-        logi("request to exchange: {}", req);
-
-        //boost::asio::co_spawn(strand_, SendAsyncRequest(std::move(req)), boost::asio::detached);
-        co_await SendAsyncRequest(std::move(req));
-        logd("Finished sending event getter for binance request");
-    }
-
-    /**
-     * @brief Acquires an active session from the session pool.
-     *
-     * @return True if a session was successfully acquired, otherwise false.
-     */
-    void AcquireActiveSession() {
-        WSSesionType3* expected = nullptr;
-        auto session            = session_pool_->AcquireConnection();
-        if (active_session_.compare_exchange_strong(expected, session)) {
-            logd("Active session acquired");
-        }
-    }
-    /**
-     * @brief Registers callbacks for a specific trading pair.
-     *
-     * @param trading_pair The trading pair to register callbacks for.
-     * @return True if registration was successful, otherwise false.
-     */
-    bool RegisterCallbacksForTradingPair(
-        const common::TradingPair& trading_pair) {
-        if (auto callback = FindCallback(callback_map_, trading_pair)) {
-            RegisterCallbackOnSession(callback, trading_pair);
-        } else {
-            loge("No callback on response registered for trading pair: {}",
-                 trading_pair.ToString());
-            return false;
-        }
-
-        if (auto callback =
-                FindCallback(callback_on_close_session_map_, trading_pair)) {
-            RegisterCallbackOnSessionClose(callback);
-        } else {
-            logw("No callback on close session registered for trading pair: {}",
-                 trading_pair.ToString());
-        }
-
-        RegisterDefaultCallbackOnSessionClose();
-        return true;
-    }
-    /**
-     * @brief Finds a callback in the specified map for a given trading pair.
-     *
-     * @tparam MapType The type of the callback map.
-     * @param map The map to search for the callback.
-     * @param trading_pair The trading pair to search for.
-     * @return Pointer to the callback if found, otherwise nullptr.
-     */
-    template <typename MapType>
-    typename MapType::mapped_type FindCallback(
-        const MapType& map, const common::TradingPair& trading_pair) const {
-        auto it = map.find(trading_pair);
-        return it != map.end() ? it->second : nullptr;
-    }
-    /**
-     * @brief Registers a response callback on the active session.
-     *
-     * @param callback The callback to register.
-     */
-    void RegisterCallbackOnSession(const OnWssFBTradingPair* callback,
-                                   common::TradingPair trading_pair) {
-        if (auto session = active_session_.load()) {
-            session->RegisterCallbackOnResponse(*callback, trading_pair);
-        }
-    }
-    /**
-     * @brief Registers a close session callback on the active session.
-     *
-     * @param callback The callback to register.
-     */
-    void RegisterCallbackOnSessionClose(const OnCloseSession* callback) {
-        if (auto session = active_session_.load()) {
-            session->RegisterCallbackOnCloseSession(*callback);
-        }
-    }
-    /**
-     * @brief Registers the default callback to execute when a session is
-     * closed.
-     */
-    void RegisterDefaultCallbackOnSessionClose() {
-        if (auto session = active_session_.load()) {
-            session->RegisterCallbackOnCloseSession(
-                [this]() { DefaultCBOnCloseSession(); });
-        }
-    }
-
-    /**
-     * @brief Sends an asynchronous request using the active session.
-     *
-     * @tparam RequestType The type of the request.
-     * @param req The request to send.
-     * @return True if the request was sent successfully, otherwise false.
-     */
-    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
-        if (auto session = active_session_.load()) {
-            //co_return co_await session->AsyncRequest(std::move(req));
-            session->AsyncWrite(std::move(req));
-        }
-        co_return true;
-    }
-
-    /**
-     * @brief Default callback executed when a session is closed.
-     */
-    void DefaultCBOnCloseSession() {
-        active_session_.store(nullptr, std::memory_order_release);
-    }
-};
-
-template <typename ThreadPool>
+template <typename ThreadPool, typename ArgsBody>
 class BookEventGetterComponent : public bus::Component,
-                                 public BookEventGetter3<ThreadPool> {
+                                 public inner::BookEventGetter3<ThreadPool, ArgsBody> {
     static constexpr std::string_view name_component_ =
         "binance::BookEventGetterComponent";
 
@@ -1246,11 +988,13 @@ class BookEventGetterComponent : public bus::Component,
     common::MemoryPool<Exchange::BusEventBookDiffSnapshot>
         bus_event_book_diff_snapshot_mem_pool_;
     explicit BookEventGetterComponent(
-        ThreadPool& thread_pool, size_t number_responses, TypeExchange type,
+        ThreadPool& thread_pool, size_t number_responses,
         common::TradingPairHashMap& pairs,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
-            session_pool)
-        : BookEventGetter3<ThreadPool>(thread_pool, session_pool, type, pairs),
+            session_pool,
+        common::ExchangeId exchange_id)
+        : inner::BookEventGetter3<ThreadPool, ArgsBody>(thread_pool, session_pool, pairs,
+                                       exchange_id),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
@@ -1258,12 +1002,14 @@ class BookEventGetterComponent : public bus::Component,
     void AsyncHandleEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event)
         override {
-        boost::asio::co_spawn(BookEventGetter3<ThreadPool>::strand_,
-                              BookEventGetter3<ThreadPool>::CoExec(event),
+        boost::asio::co_spawn(inner::BookEventGetter3<ThreadPool, ArgsBody>::strand_,
+                              inner::BookEventGetter3<ThreadPool, ArgsBody>::CoExec(event),
                               boost::asio::detached);
     };
-    void AsyncStop() override { BookEventGetter3<ThreadPool>::AsyncStop(); }
+    void AsyncStop() override { inner::BookEventGetter3<ThreadPool, ArgsBody>::AsyncStop(); }
 };
+
+
 
 // class OrderNewLimit : public inner::OrderNewI, public
 // detail::FamilyLimitOrder {
@@ -1886,8 +1632,7 @@ class BookSnapshot2 : public inner::BookSnapshotI {
             co_return;
         }
         auto& trading_pair =
-                    bus_event_request_new_snapshot->WrappedEvent()
-                        ->trading_pair;
+            bus_event_request_new_snapshot->WrappedEvent()->trading_pair;
         logi("BookSnapshot2 accept request for {}", trading_pair);
         boost::asio::co_spawn(
             executor_,
@@ -1939,9 +1684,9 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                 auto session = session_pool_->AcquireConnection();
                 logd("start send new snapshot request for {}", trading_pair);
                 OnHttpsResponce simple_callback =
-                    [callback, trading_pair](
-                        boost::beast::http::response<
-                            boost::beast::http::string_body>& response) {
+                    [callback,
+                     trading_pair](boost::beast::http::response<
+                                   boost::beast::http::string_body>& response) {
                         (*callback)(response, trading_pair);
                     };
                 session->RegisterOnResponse(simple_callback);
@@ -2012,8 +1757,8 @@ template <typename ThreadPool>
 class BidAskGeneratorComponent : public bus::Component {
   public:
     using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
-    using DiffCallback =
-        std::function<void(boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>)>;
+    using DiffCallback     = std::function<void(
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>)>;
 
   private:
     BidAskGeneratorComponent::SnapshotCallback snapshot_callback_ = nullptr;
@@ -2021,7 +1766,8 @@ class BidAskGeneratorComponent : public bus::Component {
     std::unordered_map<common::TradingPair, BidAskState,
                        common::TradingPairHash, common::TradingPairEqual>
         state_map_;
-    std::unordered_map<common::TradingPair, boost::intrusive_ptr<BusEventRequestBBOPrice>,
+    std::unordered_map<common::TradingPair,
+                       boost::intrusive_ptr<BusEventRequestBBOPrice>,
                        common::TradingPairHash, common::TradingPairEqual>
         request_bbo_;
 
@@ -2066,8 +1812,8 @@ class BidAskGeneratorComponent : public bus::Component {
           request_diff_mem_pool_(number_diff),
           out_diff_mem_pool_(max_number_event_per_tick),
           book_snapshot2_pool_(max_number_event_per_tick),
-            out_bus_event_diff_mem_pool_(max_number_event_per_tick),
-            bus_event_response_new_snapshot_pool_(max_number_event_per_tick) {
+          out_bus_event_diff_mem_pool_(max_number_event_per_tick),
+          bus_event_response_new_snapshot_pool_(max_number_event_per_tick) {
         cancel_signal_.slot().assign([this](
                                          boost::asio::cancellation_type type) {
             logd(
@@ -2077,14 +1823,17 @@ class BidAskGeneratorComponent : public bus::Component {
     };
 
     void AsyncHandleEvent(
-         boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event) override {
+        boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> event)
+        override {
         // need extend lifetime object
         // auto event_ptr =
         //     boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(event);
         boost::asio::co_spawn(strand_, HandleNewSnapshotEvent(event),
                               boost::asio::detached);
     };
-    void AsyncHandleEvent( boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) override {
+    void AsyncHandleEvent(
+        boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event)
+        override {
         boost::asio::co_spawn(strand_, HandleBookDiffSnapshotEvent(event),
                               boost::asio::detached);
     };
@@ -2277,7 +2026,7 @@ class BidAskGeneratorComponent : public bus::Component {
         }
         auto info = request_bbo_[trading_pair];
 
-        auto* ptr  = request_snapshot_mem_pool_.Allocate(
+        auto* ptr = request_snapshot_mem_pool_.Allocate(
             &request_snapshot_mem_pool_, info->exchange_id, info->trading_pair,
             info->snapshot_depth);
         auto intr_ptr_request =
@@ -2559,11 +2308,11 @@ ParserManager InitParserManager(
     ApiResponseParser& api_response_parser,
     detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff);
 
-template <class ThreadPool1, class ThreadPool2>
+template <class ThreadPool1, class ThreadPool2, class ArgsBody>
 class BookEventGetterComponentCallbackHandler {
   public:
     BookEventGetterComponentCallbackHandler(
-        BookEventGetterComponent<ThreadPool1>& event_getter_component,
+        BookEventGetterComponent<ThreadPool1, ArgsBody>& event_getter_component,
         BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator,
         aot::CoBus& bus, ParserManager& parser_manager)
         : event_getter_component_(event_getter_component),
@@ -2630,7 +2379,7 @@ class BookEventGetterComponentCallbackHandler {
         // const auto& result = std::get<ApiResponseData>(data);
         logi("{}", data);
     }
-    BookEventGetterComponent<ThreadPool2>& event_getter_component_;
+    BookEventGetterComponent<ThreadPool2, ArgsBody>& event_getter_component_;
     BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator_;
     aot::CoBus& bus_;
     ParserManager& parser_manager_;
@@ -2681,7 +2430,8 @@ class BidAskGeneratorCallbackHandler {
             });
 
         bid_ask_generator_.RegisterDiffCallback(
-            [this](boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> bus_diff) {
+            [this](boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>
+                       bus_diff) {
                 const auto& diff = *(bus_diff.get()->WrappedEvent());
                 ProcessBookEntries(diff.bids, diff.exchange_id,
                                    diff.trading_pair, common::Side::kBid);
@@ -2705,13 +2455,13 @@ class BidAskGeneratorCallbackBatchHandler {
     aot::CoBus& bus_;
     BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator_;
 
-    void ProcessBookEntries(const Exchange::BusEventBookDiffSnapshot& diff) {
-        
-    }
+    void ProcessBookEntries(const Exchange::BusEventBookDiffSnapshot& diff) {}
     // Register snapshot and diff callbacks
     void RegisterCallbacks() {
         bid_ask_generator_.RegisterDiffCallback(
-            [this](const boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> diff) {
+            [this](
+                const boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>
+                    diff) {
                 logi("[bidaskgenerator] invoke handler for batch diffs");
                 bus_.AsyncSend(&bid_ask_generator_, diff);
             });
@@ -2721,20 +2471,21 @@ class BidAskGeneratorCallbackBatchHandler {
                 auto copy_bids = snapshot.bids;
                 auto copy_asks = snapshot.asks;
 
-                auto* ptr =
-                bid_ask_generator_.book_snapshot2_pool_.Allocate(
-                    &bid_ask_generator_.book_snapshot2_pool_, snapshot.exchange_id,
-                    snapshot.trading_pair, std::move(copy_bids), std::move(copy_asks),
-                    0);
-            auto intr_ptr =
-                boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
-            auto bus_event =
-                bid_ask_generator_.bus_event_response_new_snapshot_pool_.Allocate(
-                    &bid_ask_generator_.bus_event_response_new_snapshot_pool_, intr_ptr);
-            auto intr_ptr_bus_event =
-                boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
-                    bus_event);
-            bus_.AsyncSend(&bid_ask_generator_, intr_ptr_bus_event);                             
+                auto* ptr = bid_ask_generator_.book_snapshot2_pool_.Allocate(
+                    &bid_ask_generator_.book_snapshot2_pool_,
+                    snapshot.exchange_id, snapshot.trading_pair,
+                    std::move(copy_bids), std::move(copy_asks), 0);
+                auto intr_ptr =
+                    boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
+                auto bus_event =
+                    bid_ask_generator_.bus_event_response_new_snapshot_pool_
+                        .Allocate(&bid_ask_generator_
+                                       .bus_event_response_new_snapshot_pool_,
+                                  intr_ptr);
+                auto intr_ptr_bus_event =
+                    boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(
+                        bus_event);
+                bus_.AsyncSend(&bid_ask_generator_, intr_ptr_bus_event);
             });
     }
 };
@@ -2745,48 +2496,49 @@ class BookSnapsotCallbackHandler {
     common::TradingPairHashMap& trading_pair_hash_map_;
 
     BookSnapshotComponent<ThreadPool1>& book_snapshot_component_;
+
   public:
     BookSnapsotCallbackHandler(
-        aot::CoBus& bus,
-        common::TradingPairHashMap& trading_pair_hash_map,
+        aot::CoBus& bus, common::TradingPairHashMap& trading_pair_hash_map,
         BookSnapshotComponent<ThreadPool1>& book_snapshot_component)
         : bus_(bus),
-        trading_pair_hash_map_(trading_pair_hash_map),
-        book_snapshot_component_(book_snapshot_component) {
-    }
+          trading_pair_hash_map_(trading_pair_hash_map),
+          book_snapshot_component_(book_snapshot_component) {}
     OnHttpsResponseExtended GetCallback() {
-        return [this](
-                   boost::beast::http::response<boost::beast::http::string_body>& buffer,
-                   common::TradingPair trading_pair) {
-            HandleResponse(buffer, trading_pair);
-        };
+        return
+            [this](
+                boost::beast::http::response<boost::beast::http::string_body>&
+                    buffer,
+                common::TradingPair trading_pair) {
+                HandleResponse(buffer, trading_pair);
+            };
     }
+
   private:
-
-
-     
     void HandleResponse(
         boost::beast::http::response<boost::beast::http::string_body>& buffer,
         common::TradingPair trading_pair) {
         const auto& result = buffer.body();
         logi("{}", result);
-        logi("trading_pair:{}",trading_pair.ToString());
+        logi("trading_pair:{}", trading_pair.ToString());
 
-        binance::detail::FamilyBookSnapshot::ParserResponse parser(trading_pair_hash_map_);
+        binance::detail::FamilyBookSnapshot::ParserResponse parser(
+            trading_pair_hash_map_);
         auto snapshot = parser.Parse(result, trading_pair);
 
-        auto ptr = book_snapshot_component_.snapshot_mem_pool_.Allocate(
+        auto ptr      = book_snapshot_component_.snapshot_mem_pool_.Allocate(
             &book_snapshot_component_.snapshot_mem_pool_, snapshot.exchange_id,
-            snapshot.trading_pair, std::move(snapshot.bids), std::move(snapshot.asks),
-            snapshot.lastUpdateId);
+            snapshot.trading_pair, std::move(snapshot.bids),
+            std::move(snapshot.asks), snapshot.lastUpdateId);
 
         auto intr_ptr_snapshot =
             boost::intrusive_ptr<Exchange::BookSnapshot2>(ptr);
 
         auto bus_event =
-            book_snapshot_component_.bus_event_response_snapshot_mem_pool_.Allocate(
-                &book_snapshot_component_.bus_event_response_snapshot_mem_pool_,
-                intr_ptr_snapshot);
+            book_snapshot_component_.bus_event_response_snapshot_mem_pool_
+                .Allocate(&book_snapshot_component_
+                               .bus_event_response_snapshot_mem_pool_,
+                          intr_ptr_snapshot);
 
         auto intr_ptr_bus_snapshot =
             boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>(

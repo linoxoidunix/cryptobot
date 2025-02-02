@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <list>
 
 #include "aot/Binance.h"
 #include "aot/Bybit.h"
@@ -14,6 +15,27 @@
 #include "aot/strategy/market_order_book.h"
 #include "aot/common/exchange_trading_pair.h"
 #include "aot/config/config.h"
+#include "aot/strategy/arbitrage/arbitrage_strategy.h"
+
+
+std::list<common::TradingPair>
+FindCrossExchangePairs(const common::TradingPairHashMap& exchange1, const common::TradingPairHashMap& exchange2) {
+    std::list<common::TradingPair> arbitrage_pairs;
+
+    // Перебираем пары из первой биржи
+    for (const auto& [info1, _, pair] : exchange1) {
+        // Ищем соответствующую пару на второй бирже
+        auto it = exchange2.find(pair);
+        if (it != exchange2.end()) {
+            const auto& info2 = it->second;
+
+            // Если пара найдена на обеих биржах — добавляем в результат
+            arbitrage_pairs.emplace_back(pair);
+        }
+    }
+
+    return arbitrage_pairs;
+}
 
 
 /**
@@ -140,12 +162,11 @@ int main(int argc, char** argv) {
     const unsigned int kNumberResponses = 1000;
 
     // Initialize Bybit's book event getter component
-    bybit::BookEventGetterComponent book_event_component_bybit(
-        thread_pool, kNumberResponses, TypeExchange::TESTNET, pairs_bybit, &session_pool_bybit
-    );
-    binance::BookEventGetterComponent book_event_getter_binance(
+    bybit::BookEventGetterComponent<boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> book_event_component_bybit(
+        thread_pool, kNumberResponses, pairs_bybit, &session_pool_bybit, common::ExchangeId::kBybit);
+    binance::BookEventGetterComponent<boost::asio::thread_pool, binance::detail::FamilyBookEventGetter::ArgsBody> book_event_getter_binance(
         thread_pool, kNumberResponses,
-        TypeExchange::MAINNET, pairs_binance, &session_pool_binance);
+        pairs_binance, &session_pool_binance, common::ExchangeId::kBinance);
 
     // Initialize Bybit's bid-ask generator component with event bus and limits for updates
     bybit::BidAskGeneratorComponent bid_ask_generator_bybit(
@@ -158,7 +179,7 @@ int main(int argc, char** argv) {
     );
 
     // Create a response handler for Bybit WebSocket messages, connecting it to components
-    bybit::OrderBookWebSocketResponseHandler order_book_wb_socket_response_handler(
+    bybit::OrderBookWebSocketResponseHandler<boost::asio::thread_pool, boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> order_book_wb_socket_response_handler(
         book_event_component_bybit,
         bid_ask_generator_bybit,
         bus,
@@ -215,7 +236,25 @@ int main(int argc, char** argv) {
     std::string_view brokers = "localhost:19092";  // Specify your Redpanda broker address here
     auto redpanda_executor = boost::asio::make_strand(thread_pool);
     aot::RedPandaComponent red_panda_component(redpanda_executor, brokers, exchange_trading_pairs);
+    // --------------------------ArbitrageStrategyComponent--------------------------------
+    auto cross_pairs = FindCrossExchangePairs(pairs_binance, pairs_bybit);
+    aot::ArbitrageStrategyComponent arbitrage_strategy_component(thread_pool);
+    for(auto & cross_pair: cross_pairs){
+        aot::Step buy_on_binance(cross_pair, common::ExchangeId::kBinance, aot::Operation::kBuy);
+        aot::Step sell_on_bybit(cross_pair, common::ExchangeId::kBybit, aot::Operation::kSell);
+        aot::ArbitrageCycle cycle_binance_bybit;
+        cycle_binance_bybit.push_back(buy_on_binance);
+        cycle_binance_bybit.push_back(sell_on_bybit);
 
+        aot::Step sell_on_binance(cross_pair, common::ExchangeId::kBinance, aot::Operation::kSell);
+        aot::Step buy_on_bybit(cross_pair, common::ExchangeId::kBybit, aot::Operation::kBuy);
+        aot::ArbitrageCycle cycle_bybit_binance;
+        cycle_bybit_binance.push_back(sell_on_binance);
+        cycle_bybit_binance.push_back(buy_on_bybit);
+
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_binance_bybit);
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_bybit_binance);
+    }
 
     // ----------------------Register Connections Between Components-----------------
     // Establish bidirectional communication between the bid-ask generator and book event getter
@@ -241,26 +280,28 @@ int main(int argc, char** argv) {
     // The order book component processes bid-ask data generated for Binance.
     bus.Subscribe(&bid_ask_generator_binance, &order_book_component);
 
-    // Subscribe the order book component to updates from the Red Panda component
+    // Subscribe the Red Panda component to updates from the order book component
     // The order book component forwards processed data to Red Panda for further usage or logging.
     bus.Subscribe(&order_book_component, &red_panda_component);
-
+    // Subscribe the ArbitrageStrategyComponent to updates from the order book component
+    // The order book component forwards processed data to ArbitrageStrategyComponent for further usage or logging.
+    bus.Subscribe(&order_book_component, &arbitrage_strategy_component);
     //
     BusEventRequestBBOPricePool request_bbo_pool{1000};
     long unsigned int id_request = 0;
-    // for (const auto& [ignored1, ignored2, trading_pair] : pairs_bybit) {
-    //     auto* request_bbo = request_bbo_pool.Allocate(&request_bbo_pool,
-    //     common::ExchangeId::kBybit,
-    //     trading_pair,
-    //     50,
-    //     true,
-    //     id_request);
-    //     auto intr_bus_request_sub =
-    //     boost::intrusive_ptr<BusEventRequestBBOPrice>(request_bbo);
-    //     logi("[bid ask generator] bybit start subscribe to {}", trading_pair);
-    //     bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_sub);
-    //     id_request++;
-    // }
+    for (const auto& [ignored1, ignored2, trading_pair] : pairs_bybit) {
+        auto* request_bbo = request_bbo_pool.Allocate(&request_bbo_pool,
+        common::ExchangeId::kBybit,
+        trading_pair,
+        50,
+        true,
+        id_request);
+        auto intr_bus_request_sub =
+        boost::intrusive_ptr<BusEventRequestBBOPrice>(request_bbo);
+        logi("[bid ask generator] bybit start subscribe to {}", trading_pair);
+        bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_sub);
+        id_request++;
+    }
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
         auto* request_bbo = request_bbo_pool.Allocate(&request_bbo_pool,
         common::ExchangeId::kBinance,
