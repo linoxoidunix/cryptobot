@@ -17,6 +17,8 @@ aot
 benchmark::benchmark
 concurrentqueue
 magic_enum::magic_enum
+simdjson::simdjson
+nlohmann_json::nlohmann_json
 )
 
 target_include_directories(${PROJECT_NAME}

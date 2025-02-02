@@ -24,6 +24,28 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
 
+enum class MarketType {
+    kSpot,
+    kFutures,
+    kOptions,
+    kInvalid
+};
+
+/**
+ * @enum SubscriptionType
+ * @brief Enum representing different types of subscriptions.
+ * 
+ * Each subscription type corresponds to a specific type of data 
+ * and requires a unique JSON string for its configuration.
+ */
+enum class SubscriptionType {
+    kTicker,      ///< Subscription to ticker updates.
+    kDepth,       ///< Subscription to order book depth updates.
+    kTrade,       ///< Subscription to trade events.
+    kKline,       ///< Subscription to candlestick (Kline) data.
+    kCandlestick, ///< Subscription to candlestick data.
+};
+
 enum class ExchangeId{
   kBinance,
   kBybit,
@@ -32,6 +54,32 @@ enum class ExchangeId{
 };
 
 constexpr auto kExchangeIdInvalid = ExchangeId::kInvalid;
+
+class ExchangeIdPrinter {
+public:
+    static std::string_view ToString(ExchangeId exchange_id) {
+        switch (exchange_id) {
+            case ExchangeId::kBinance: return "Binance";
+            case ExchangeId::kBybit: return "Bybit";
+            case ExchangeId::kMexc: return "Mexc";
+            case ExchangeId::kInvalid: return "Invalid";
+            default: return "Unknown";
+        }
+    }
+};
+
+class MarketTypePrinter {
+public:
+    static std::string_view ToString(MarketType exchange_id) {
+        switch (exchange_id) {
+            case MarketType::kSpot: return "Spot";
+            case MarketType::kFutures: return "Futures";
+            case MarketType::kOptions: return "Options";
+            case MarketType::kInvalid: return "Invalid";
+            default: return "Unknown";
+        }
+    }
+};
 
 using FrequencyMS = uint64_t;
 constexpr auto kFrequencyMSInvalid   = std::numeric_limits<FrequencyMS>::max();
@@ -125,7 +173,11 @@ inline auto priorityToString(Priority priority) -> std::string {
     return std::to_string(priority);
 }
 
-enum class Side : int8_t { INVALID = 0, BUY = 1, SELL = -1, MAX = 2 };
+/**
+ * @brief side as taker
+ * 
+ */
+enum class Side : int8_t { kInvalid = 0, kAsk = 1, kBid = -1, kMax = 2 };
 
 enum class TradeAction {
     kEnterLong,
@@ -137,13 +189,13 @@ enum class TradeAction {
 
 inline auto sideToString(Side side) -> std::string {
     switch (side) {
-        case Side::BUY:
+        case Side::kAsk:
             return "BUY";
-        case Side::SELL:
+        case Side::kBid:
             return "SELL";
-        case Side::INVALID:
+        case Side::kInvalid:
             return "INVALID";
-        case Side::MAX:
+        case Side::kMax:
             return "MAX";
     }
 
@@ -224,13 +276,10 @@ struct TradeEngineCfg {
     }
 };
 
-// using TradeEngineCfgHashMap = std::array<TradeEngineCfg, ME_MAX_TICKERS>;
-
 struct StringHash {
     using is_transparent = void;
     std::size_t operator()(const char* key) const {
-        return std::hash<std::string_view>()(
-            std::string_view(key, strlen(key)));
+        return std::hash<std::string_view>()(std::string_view(key));
     }
     std::size_t operator()(const std::string& key) const {
         return std::hash<std::string_view>()(key);
@@ -241,21 +290,28 @@ struct StringHash {
 };
 
 struct StringEqual {
-    using is_transparent = int;
+    using is_transparent = void;
 
-    bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+    bool operator()(const std::string_view& lhs, const std::string_view& rhs) const {
         return lhs == rhs;
     }
-
+    bool operator()(const std::string_view& lhs, const std::string& rhs) const {
+        return lhs == std::string_view(rhs);
+    }
     bool operator()(const std::string& lhs, const std::string& rhs) const {
         return lhs == rhs;
     }
-
     bool operator()(const char* lhs, const std::string& rhs) const {
-        return std::strcmp(lhs, rhs.data()) == 0;
+        return std::string_view(lhs) == rhs;
     }
-    bool operator()(const std::string& rhs, const char* lhs) const {
-        return std::strcmp(lhs, rhs.data()) == 0;
+    bool operator()(const std::string& lhs, const char* rhs) const {
+        return lhs == std::string_view(rhs);
+    }
+    bool operator()(const char* lhs, const std::string_view& rhs) const {
+        return std::string_view(lhs) == rhs;
+    }
+    bool operator()(const std::string_view& lhs, const char* rhs) const {
+        return lhs == std::string_view(rhs);
     }
 };
 
@@ -378,6 +434,76 @@ class fmt::formatter<common::ExchangeId> {
     template <typename Context>
     constexpr auto format(const common::ExchangeId& foo,
                           Context& ctx) const {
-        return fmt::format_to(ctx.out(), "Exchange:{}]", magic_enum::enum_name(foo));
+        return fmt::format_to(ctx.out(), "Exchange:{}", magic_enum::enum_name(foo));
     }
 };
+
+
+template <>
+class fmt::formatter<common::Side> {
+public:
+    constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const common::Side& side, FormatContext& ctx) const {
+        // Используем magic_enum для получения строкового имени значения
+        auto side_name = magic_enum::enum_name(side);
+        return fmt::format_to(ctx.out(),
+                              "Side:{}",
+                              side_name.empty() ? "UNKNOWN" : side_name);
+    }
+};
+
+template <>
+class fmt::formatter<common::SubscriptionType> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::SubscriptionType& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "SubscriptionType:{}", magic_enum::enum_name(foo));
+    }
+};
+
+template <>
+class fmt::formatter<common::TradingPair> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::TradingPair& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "TradingPair[f:{} s:{}]", foo.first, foo.second);
+    }
+};
+
+template <>
+class fmt::formatter<common::TradingPairInfo> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::TradingPairInfo& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "TradingPairInfo[price_prec:{} qty_prec:{} https_json_request:{} https_query_request:{} ws_query_request:{} https_query_response:{}]",
+        foo.price_precission,
+        foo.qty_precission,
+        foo.https_json_request,
+        foo.https_query_request,
+        foo.ws_query_request,
+        foo.https_query_response);
+    }
+};
+
+template <>
+class fmt::formatter<common::MarketType> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::MarketType& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "SubscriptionType:{}", magic_enum::enum_name(foo));
+    }
+};
+
+
+
+

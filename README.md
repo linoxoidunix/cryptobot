@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
     Exchange::RequestNewOrder request_new_order;//start init manual request new order
     request_new_order.ticker   = "BTCUSDT";
     request_new_order.order_id = 6;
-    request_new_order.side     = common::Side::BUY;
+    request_new_order.side     = common::Side::kAsk;
     request_new_order.price    = 40000;
     request_new_order.qty      = 0.001;
 
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
     Exchange::RequestNewOrder request_new_order;
     request_new_order.ticker   = "BTCUSDT";
     request_new_order.order_id = 6;//set manual unique id for new buy order 
-    request_new_order.side     = common::Side::BUY;
+    request_new_order.side     = common::Side::kAsk;
     request_new_order.price    = 40000;
     request_new_order.qty      = 0.001;
 

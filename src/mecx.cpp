@@ -233,8 +233,8 @@
 //         // Handling side
 //         std::string_view side;
 //         if (getStringView("side", side)) {
-//             output.side = (side == "BUY"sv) ? common::Side::BUY : 
-//                           (side == "SELL"sv) ? common::Side::SELL : output.side;
+//             output.side = (side == "BUY"sv) ? common::Side::kAsk : 
+//                           (side == "SELL"sv) ? common::Side::kBid : output.side;
 //         }
 
 //         // Getting executed quantity

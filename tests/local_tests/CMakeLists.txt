@@ -19,11 +19,17 @@ gmock_main
 concurrentqueue
 magic_enum::magic_enum
 tomlplusplus::tomlplusplus
+nlohmann_json::nlohmann_json
+simdjson::simdjson
+rdkafka
+cppkafka
+protobuf
 )
 
 target_include_directories(${PROJECT_NAME}
 PRIVATE
 ${CMAKE_SOURCE_DIR}
+${cppkafka_SOURCE_DIR}/include
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

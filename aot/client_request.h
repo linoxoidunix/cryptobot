@@ -59,7 +59,7 @@ class RequestNewOrder {
     ClientRequestType type = ClientRequestType::NEW;
     common::TradingPair trading_pair;
     common::OrderId order_id = common::kOrderIdInvalid;
-    common::Side side        = common::Side::INVALID;
+    common::Side side        = common::Side::kInvalid;
     common::Price price      = common::kPriceInvalid;
     common::Qty qty          = common::kQtyInvalid;
     RequestNewLimitOrderPool* mem_pool = nullptr;

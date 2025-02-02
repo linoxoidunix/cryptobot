@@ -1,14 +1,21 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <sstream>
 #include <vector>
 
-#include "aot/common/types.h"
-#include "aot/Logger.h"
-#include "aot/third_party/emhash/hash_table7.hpp"
 #include "boost/intrusive/avltree.hpp"
 
+#include "aot/common/types.h"
+#include "aot/common/mem_pool.h"
+#include "aot/Logger.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
+#include "aot/bus/bus_event.h"
+
+namespace bus {
+    class Component;
+}
 struct BBOI {
     virtual common::Price GetWeightedPrice() const = 0;
     virtual ~BBOI() = default;
@@ -19,7 +26,7 @@ namespace Trading {
 /// book.
 struct MarketOrder {
     common::OrderId order_id_ = common::kOrderIdInvalid;
-    common::Side side_        = common::Side::INVALID;
+    common::Side side_        = common::Side::kInvalid;
     common::Price price_      = common::kPriceInvalid;
     common::Qty qty_          = common::kQtyInvalid;
     // common::Priority priority_ = common::Priority_INVALID;
@@ -45,7 +52,7 @@ struct MarketOrder {
 /// Used by the trade engine to represent a price level in the limit order book.
 /// Internally maintains a list of MarketOrder objects arranged in FIFO order.
 struct MarketOrdersAtPrice {
-    common::Side side_   = common::Side::INVALID;
+    common::Side side_   = common::Side::kInvalid;
     common::Price price_ = common::kPriceInvalid;
 
     MarketOrder first_mkt_order_;
@@ -133,7 +140,83 @@ struct BBO : BBOI {
     explicit BBO() = default;
     ~BBO() override = default;
 };
-}  // namespace Trading
+
+struct NewBBO;
+using NewBBOPool = common::MemoryPool<NewBBO>;
+
+/*
+this signal was emitted when BBO updated
+*/
+struct NewBBO : public aot::Event<NewBBOPool> {
+    common::ExchangeId exchange_id = common::kExchangeIdInvalid;
+    common::TradingPair trading_pair;
+    Trading::BBO bbo;
+    common::MarketType market_type = common::MarketType::kInvalid;
+    NewBBO() : aot::Event<NewBBOPool>(nullptr) {};
+
+    NewBBO(NewBBOPool* mem_pool,
+                      common::ExchangeId _exchange_id,
+                      common::TradingPair _trading_pair,
+                      const Trading::BBO& _bbo,
+                      common::MarketType _market_type)
+        : aot::Event<NewBBOPool>(mem_pool),
+          exchange_id(_exchange_id),
+          trading_pair(_trading_pair),
+          bbo(_bbo),
+          market_type(_market_type){}
+    auto ToString() const {
+        return fmt::format("NewBBO[{} {} {}]",
+                           exchange_id, trading_pair.ToString(), market_type);
+    };
+    friend void intrusive_ptr_release(Trading::NewBBO* ptr) {
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(Trading::NewBBO* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+};
+
+struct BusEventNewBBO;
+using BusEventNewBBOPool =
+    common::MemoryPool<BusEventNewBBO>;
+
+struct BusEventNewBBO
+    : public bus::Event2<BusEventNewBBOPool> {
+    explicit BusEventNewBBO(
+        BusEventNewBBOPool* mem_pool,
+        boost::intrusive_ptr<NewBBO> response)
+        : bus::Event2<BusEventNewBBOPool>(mem_pool),
+          wrapped_event_(response) {};
+    ~BusEventNewBBO() override = default;
+    void Accept(bus::Component* comp) override;
+
+    NewBBO* WrappedEvent() {
+        if (!wrapped_event_) return nullptr;
+        return wrapped_event_.get();
+    }
+    boost::intrusive_ptr<NewBBO> WrappedEventIntrusive() {
+        return wrapped_event_;
+    }
+
+    friend void intrusive_ptr_release(BusEventNewBBO* ptr) {
+        if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            if (ptr->memory_pool_) {
+                ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
+            }
+        }
+    }
+    friend void intrusive_ptr_add_ref(BusEventNewBBO* ptr) {
+        ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+  private:
+    boost::intrusive_ptr<NewBBO> wrapped_event_;
+};
+};  // namespace Trading
 
 namespace backtesting {
 

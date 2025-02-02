@@ -169,7 +169,7 @@
 // int main(int argc, char** argv)
 // {
 //     using namespace binance;
-//     Side buy = Side::BUY;
+//     Side buy = Side::kAsk;
 //     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 30000, TimeInForce::FOK,
 //     buy, Type::LIMIT};
 //     hmac_sha256::Keys keys{argv[1], argv[2]};
@@ -182,7 +182,7 @@
 // int main(int argc, char** argv)
 // {
 //     using namespace bybit;
-//     Side buy = Side::BUY;
+//     Side buy = Side::kAsk;
 //     OrderNewLimit::ArgsOrder args{"BTCUSDT", 0.001, 40000,
 //     TimeInForce::POST_ONLY, buy, Type::LIMIT}; hmac_sha256::Keys
 //     keys{argv[1],
@@ -473,7 +473,7 @@
 //     Exchange::RequestNewOrder request_new_order;
 //     request_new_order.ticker   = "BTCUSDT";
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = common::Side::BUY;
+//     request_new_order.side     = common::Side::kAsk;
 //     request_new_order.price    = 40000;
 //     request_new_order.qty      = 0.001;
 
@@ -573,7 +573,7 @@
 //     request_new_order.exchange_id = 1;
 //     request_new_order.trading_pair   = {2, 1};
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = common::Side::BUY;
+//     request_new_order.side     = common::Side::kAsk;
 //     request_new_order.price    = 4000000;
 //     request_new_order.qty      = 100;
 
@@ -697,7 +697,7 @@
 //     request_new_order.exchange_id = 1;
 //     request_new_order.trading_pair   = {2, 1};
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = common::Side::BUY;
+//     request_new_order.side     = common::Side::kAsk;
 //     request_new_order.price    = 4000000;
 //     request_new_order.qty      = 100;
 
@@ -1429,7 +1429,7 @@
 //     request_new_order.exchange_id = binance_id;
 //     request_new_order.trading_pair   = {2, 1};
 //     request_new_order.order_id = 6;
-//     request_new_order.side     = common::Side::BUY;
+//     request_new_order.side     = common::Side::kAsk;
 //     request_new_order.price    = 4000000;
 //     request_new_order.qty      = 100;
 

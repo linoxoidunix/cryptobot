@@ -110,7 +110,7 @@ class BaseStrategy {
         auto qty = ticker_cfg_.at(pair).clip;
         logi("launch long buy action for {} price:{} qty:{}", pair.ToString(),
              buy_price, qty);
-        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::BUY,
+        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::kAsk,
                                  qty);
     }
     /**
@@ -132,7 +132,7 @@ class BaseStrategy {
         //     number_asset > 0) {
         //     auto price = order_book_->getBBO()->bid_price;
         //     order_manager_->NewOrder(exchange_id, trading_pair, price,
-        //                              Side::SELL, std::abs(number_asset));
+        //                              Side::kBid, std::abs(number_asset));
         // } else
         //     logw("fail because number_asset={} <= 0", number_asset);
     };
@@ -165,7 +165,7 @@ class BaseStrategy {
         // logi("launch short sell action for {} price:{} qty:{}",
         //      trading_pair.ToString(), sell_price, qty);
         // order_manager_->NewOrder(exchange_id, trading_pair, sell_price,
-        //                          Side::SELL, qty);
+        //                          Side::kBid, qty);
     };
     /**
      * @brief if strategy want buy all asset that early sold than it calls
@@ -184,7 +184,7 @@ class BaseStrategy {
         //     number_asset < 0) {
         //     auto buy_price = order_book_->getBBO()->ask_price;
         //     order_manager_->NewOrder(exchange_id, trading_pair, buy_price,
-        //                              Side::BUY, std::abs(number_asset));
+        //                              Side::kAsk, std::abs(number_asset));
         // } else
         //     logw("fail because number_asset={} >= 0", number_asset);
     };
@@ -261,7 +261,7 @@ class CrossArbitrage : public Trading::BaseStrategy {
         auto qty = ticker_cfg_.at(pair).clip;
         logi("launch buy action for {} price:{} qty:{}", pair.ToString(),
              buy_price, qty);
-        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::BUY, qty);
+        order_manager_->NewOrder(exchange_id, pair, buy_price, Side::kAsk, qty);
     }
     void SellSomeAsset(
         common::ExchangeId exchange_id,
@@ -286,7 +286,7 @@ class CrossArbitrage : public Trading::BaseStrategy {
         logi("launch sell action for {} price:{} qty:{}",
              trading_pair.ToString(), sell_price, qty);
         order_manager_->NewOrder(exchange_id, trading_pair, sell_price,
-                                 Side::SELL, qty);
+                                 Side::kBid, qty);
     };
 
     //const exchange::Wallet *GetWallet() const { return &wallet_; };

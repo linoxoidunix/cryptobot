@@ -27,6 +27,8 @@ prometheus-cpp::util
 prometheus-cpp::civetweb 
 prometheus-cpp::pull
 magic_enum::magic_enum
+nlohmann_json::nlohmann_json
+simdjson::simdjson
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)

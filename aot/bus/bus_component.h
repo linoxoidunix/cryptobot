@@ -30,6 +30,12 @@ namespace Exchange{
   struct BusEventResponseNewSnapshot;
   struct BusEventRequestDiffOrderBook;
   struct BusEventBookDiffSnapshot;
+  struct BusEventMEMarketUpdate2;
+}
+
+namespace Trading{
+    struct NewBBO;
+    struct BusEventNewBBO;
 }
 
 namespace bus{
@@ -39,7 +45,8 @@ class Component {
     virtual void AsyncStop(){
         //it is empty class
     };
-
+    virtual std::string_view GetName() const { return {};
+    }
     /**
      * @brief update position keeper when OrderBook emit new signal updateBBO
      * 
@@ -100,18 +107,22 @@ class Component {
      * @brief 
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventResponseNewSnapshot*){
+    // virtual void AsyncHandleEvent(Exchange::BusEventResponseNewSnapshot*){
+    //     logi("invoke AsyncHandleEvent with BusEventResponseNewSnapshot arg");
+    //     //it is empty class
+    // };
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot>){
+        logi("invoke AsyncHandleEvent with boost::intrusive_ptr<Exchange::BusEventResponseNewSnapshot> arg");
         //it is empty class
     };
     /**
      * @brief
      * 
      */
-    virtual void AsyncHandleEvent(Exchange::BusEventRequestDiffOrderBook*){
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>){
         //it is empty class
     };
-
-    virtual void AsyncHandleEvent(Exchange::BusEventBookDiffSnapshot*){
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot>){
         //it is empty class
     };
     /**
@@ -119,6 +130,20 @@ class Component {
      * 
      */
     virtual void AsyncHandleEvent(boost::intrusive_ptr<BusEventRequestBBOPrice>){
+        //it is empty class
+    };
+    /**
+     * @brief this event when order book need process diff from exchange order book 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Exchange::BusEventMEMarketUpdate2>){
+        //it is empty class
+    };
+    /**
+     * @brief this event when new bbo occure 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<Trading::BusEventNewBBO>){
         //it is empty class
     };
     
