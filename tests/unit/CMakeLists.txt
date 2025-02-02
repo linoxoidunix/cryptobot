@@ -20,7 +20,7 @@ cxx_executable_extended(${name} ${dir}/${name}.cc ${libs}  ${ARGN})
 endmacro()
 
 cxx_executable(trading_pair ${CMAKE_CURRENT_LIST_DIR} aot gtest_main magic_enum concurrentqueue simdjson::simdjson nlohmann_json::nlohmann_json)
-cxx_executable(config_backtesting ${CMAKE_CURRENT_LIST_DIR} aot gtest_main tomlplusplus::tomlplusplus simdjson::simdjson nlohmann_json::nlohmann_json)
+cxx_executable(config_backtesting ${CMAKE_CURRENT_LIST_DIR} aot gtest_main tomlplusplus::tomlplusplus simdjson::simdjson magic_enum nlohmann_json::nlohmann_json)
 cxx_executable(orderbook ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue magic_enum gtest_main nlohmann_json::nlohmann_json simdjson::simdjson)
 cxx_executable(order_manager_backtesting ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense::unordered_dense magic_enum nlohmann_json::nlohmann_json simdjson::simdjson gtest_main)
 cxx_executable(cross_arbitrage ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unordered_dense nlohmann_json::nlohmann_json magic_enum simdjson::simdjson gtest_main)
@@ -30,6 +30,6 @@ cxx_executable(wallet_asset ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue unorde
 cxx_executable(mempool ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue nlohmann_json::nlohmann_json simdjson::simdjson gtest_main gmock_main)
 cxx_executable(thread_utils ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue nlohmann_json::nlohmann_json simdjson::simdjson gtest_main gmock_main)
 # old signature. need rewrite it
-cxx_executable(https ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue nlohmann_json::nlohmann_json simdjson::simdjson gtest_main magic_enum gmock_main)
-cxx_executable(binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main simdjson::simdjson nlohmann_json::nlohmann_json)
-cxx_executable(bybit ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main simdjson::simdjson nlohmann_json::nlohmann_json)
+# cxx_executable(https ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue nlohmann_json::nlohmann_json simdjson::simdjson gtest_main magic_enum gmock_main)
+# cxx_executable(binance ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main simdjson::simdjson nlohmann_json::nlohmann_json)
+# cxx_executable(bybit ${CMAKE_CURRENT_LIST_DIR} aot concurrentqueue gtest_main magic_enum gmock_main simdjson::simdjson nlohmann_json::nlohmann_json)

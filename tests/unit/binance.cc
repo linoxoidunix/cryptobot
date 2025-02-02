@@ -174,8 +174,8 @@ TEST_F(BookEventGetterComponentTest, TestUnSubscribeChannelBinance) {
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(io_context.get_executor());
     std::thread io_thread([this] { io_context.run(); });
 
-    binance::BookEventGetterComponent component(
-        thread_pool, number_responses, TypeExchange::TESTNET, pairs, &session_pool);
+    binance::BookEventGetterComponent<boost::asio::thread_pool, binance::detail::FamilyBookEventGetter::ArgsBody> component(
+        thread_pool, number_responses, pairs, &session_pool, common::ExchangeId::kBinance);
 
     // Setup subscribe and unsubscribe requests
     Exchange::RequestDiffOrderBook request_subscribe(
@@ -205,13 +205,13 @@ TEST_F(BookEventGetterComponentTest, TestUnSubscribeChannelBinance) {
     bool accept_unsubscribe_successfully = false;
 
     // Callback for WebSocket responses
-    OnWssResponse callback = [&component, &counter_successful,
+    OnWssFBTradingPair callback = [&component, &counter_successful,
                               &request_accepted_by_exchange,
                               &is_unsubscribed_happened,
                               &accept_subscribe_successfully,
                               &accept_unsubscribe_successfully,
                               &bus_event_unsubscribe,
-                              &parser_manager](boost::beast::flat_buffer& fb) {
+                              &parser_manager](boost::beast::flat_buffer& fb,  common::TradingPair trading_pair) {
         auto response = std::string_view(static_cast<const char*>(fb.data().data()), fb.size());
         auto answer = parser_manager.Parse(response);
         if (std::holds_alternative<Exchange::BookDiffSnapshot>(answer)) {

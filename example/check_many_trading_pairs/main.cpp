@@ -199,12 +199,13 @@ int main() {
     const unsigned int kNumberResponses = 1000;
 
     // Initialize Bybit's book event getter component
-    bybit::BookEventGetterComponent book_event_component_bybit(
-        thread_pool, kNumberResponses, TypeExchange::TESTNET, pairs_bybit, &session_pool_bybit
+    bybit::BookEventGetterComponent<boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> book_event_component_bybit(
+        thread_pool, kNumberResponses, pairs_bybit, &session_pool_bybit, common::ExchangeId::kBybit
     );
-    binance::BookEventGetterComponent book_event_getter_binance(
+    binance::BookEventGetterComponent<boost::asio::thread_pool, binance::detail::FamilyBookEventGetter::ArgsBody> book_event_getter_binance(
         thread_pool, kNumberResponses,
-        TypeExchange::MAINNET, pairs_binance, &session_pool_binance);
+        pairs_binance, &session_pool_binance, common::ExchangeId::kBinance
+    );
 
     // Initialize Bybit's bid-ask generator component with event bus and limits for updates
     bybit::BidAskGeneratorComponent bid_ask_generator_bybit(
@@ -261,7 +262,7 @@ int main() {
     // --------------------------Order Book Component--------------------------------
     // Initialize the order book component with its own strand and event bus
     Trading::OrderBookComponent order_book_component(
-        boost::asio::make_strand(thread_pool), bus, 1000
+        boost::asio::make_strand(thread_pool), bus, 1000, common::MarketType::kSpot
     );
 
     // Add an order book for Bybit's BTC/USDT trading pair

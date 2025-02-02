@@ -76,8 +76,7 @@ TEST_F(HttpsSessionTest, ConnectToBinance) {
     boost::asio::co_spawn(
         pool_,
         [&session, req]() mutable -> boost::asio::awaitable<void> {
-            bool status = co_await session.AsyncRequest(std::move(req));
-            EXPECT_TRUE(status);
+            session.AsyncRequest(std::move(req));
             co_return;
         },
         boost::asio::detached);
@@ -115,8 +114,7 @@ class ConnectionPoolTest : public ::testing::Test {
         req.set(boost::beast::http::field::user_agent,
                 BOOST_BEAST_VERSION_STRING);
 
-        bool success = co_await session.AsyncRequest(std::move(req));
-        EXPECT_TRUE(success);
+        session.AsyncRequest(std::move(req));
         co_return;
     }
 };

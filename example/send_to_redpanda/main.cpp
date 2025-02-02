@@ -222,8 +222,9 @@ int main(){
     aot::KafkaClient client(brokers);
     
     std::string_view exchange = "binance";
+    std::string_view market_type = "spot";
     std::string_view trading_pair = "btc/usdt";
-    aot::models::OrderBook ob(exchange, trading_pair, 450, 500, 50);
+    aot::models::OrderBook ob(exchange, market_type, trading_pair, 450, 500, 50, 10, 9);
     
     client.SendMessage(ob);
     client.WaitUntilFinished();
