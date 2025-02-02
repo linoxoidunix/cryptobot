@@ -438,15 +438,17 @@ class OrderBookComponent : public bus::Component {
 
     Executor executor_;
     aot::CoBus &bus_;
+    common::MarketType market_type_;
     OrderBookMap order_books_;
     Trading::NewBBOPool new_bbo_pool_;
     Trading::BusEventNewBBOPool bus_event_new_bbo_pool_;
 
   public:
     explicit OrderBookComponent(Executor &&executor, aot::CoBus &bus,
-                                uint64_t max_new_bbo_)
+                                uint64_t max_new_bbo_, common::MarketType market_type)
         : executor_(std::move(executor)),
           bus_(bus),
+          market_type_(market_type),
           new_bbo_pool_{max_new_bbo_},
           bus_event_new_bbo_pool_{max_new_bbo_} {}
     ~OrderBookComponent() override = default;
@@ -607,8 +609,8 @@ class OrderBookComponent : public bus::Component {
                     )
                 .first->second;
 
-        logi("[PROCESSING MARKET UPDATE] {}, {}, b_size: {}, a_size: {}",
-             exchange_id, trading_pair.ToString(), wrapped_event->bids.size(),
+        logi("[PROCESSING MARKET UPDATE] {}, {}, {}, b_size: {}, a_size: {}",
+             exchange_id, market_type_, trading_pair.ToString(), wrapped_event->bids.size(),
              wrapped_event->asks.size());
 
         order_book.OnMarketUpdate(wrapped_event);
@@ -669,7 +671,7 @@ class OrderBookComponent : public bus::Component {
     void SendBBOToBus(common::ExchangeId exchange_id,
                       const common::TradingPair &trading_pair, const BBO &bbo) {
         auto request = new_bbo_pool_.Allocate(&new_bbo_pool_, exchange_id,
-                                              trading_pair, bbo);
+                                              trading_pair, bbo, market_type_);
         auto intr_ptr_request = boost::intrusive_ptr<NewBBO>(request);
 
         auto bus_event        = bus_event_new_bbo_pool_.Allocate(

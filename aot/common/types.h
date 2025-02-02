@@ -24,6 +24,13 @@ constexpr size_t ME_MAX_ORDERS_AT_PRICE =
     50000 * 2;  // for binance max depth for bid is 5000.//for binance max depth
                 // for ask is 5000.
 
+enum class MarketType {
+    kSpot,
+    kFutures,
+    kOptions,
+    kInvalid
+};
+
 /**
  * @enum SubscriptionType
  * @brief Enum representing different types of subscriptions.
@@ -56,6 +63,19 @@ public:
             case ExchangeId::kBybit: return "Bybit";
             case ExchangeId::kMexc: return "Mexc";
             case ExchangeId::kInvalid: return "Invalid";
+            default: return "Unknown";
+        }
+    }
+};
+
+class MarketTypePrinter {
+public:
+    static std::string_view ToString(MarketType exchange_id) {
+        switch (exchange_id) {
+            case MarketType::kSpot: return "Spot";
+            case MarketType::kFutures: return "Futures";
+            case MarketType::kOptions: return "Options";
+            case MarketType::kInvalid: return "Invalid";
             default: return "Unknown";
         }
     }
@@ -470,6 +490,17 @@ class fmt::formatter<common::TradingPairInfo> {
         foo.https_query_request,
         foo.ws_query_request,
         foo.https_query_response);
+    }
+};
+
+template <>
+class fmt::formatter<common::MarketType> {
+  public:
+    constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+    template <typename Context>
+    constexpr auto format(const common::MarketType& foo,
+                          Context& ctx) const {
+        return fmt::format_to(ctx.out(), "SubscriptionType:{}", magic_enum::enum_name(foo));
     }
 };
 

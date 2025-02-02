@@ -149,6 +149,7 @@ class RedPandaComponent : public bus::Component,
                           public KafkaClient {
     static constexpr std::string_view name_component_ = "RedPandaComponent";
     common::ExchangeIdPrinter exchange_id_printer_;
+    common::MarketTypePrinter market_type_printer_;
     Executor& executor_;
     aot::ExchangeTradingPairs& exchange_trading_pairs_;
 
@@ -244,14 +245,28 @@ private:
             return {};
         if(!status_ask)
             return {};
-        logi("b:{} a:{}", bid_price, ask_price);    
+        
+        auto [status_ask_qty, ask_qty] = GetFormattedQty<false>(event);
+        if(!status_ask)
+           return {};
+        auto [status_bid_qty, bid_qty] = GetFormattedQty<true>(event);
+        if(!status_bid_qty)
+            return {};
+        if(!status_ask_qty)
+            return {};
+
+        logi("{} b:{} a:{} b_qty:{} ask:{}",event->market_type, bid_price, ask_price, bid_qty, ask_qty);    
         double spread = ask_price - bid_price;
         return aot::models::OrderBook(
             exchange_id_printer_.ToString(event->exchange_id),
+            market_type_printer_.ToString(event->market_type),
             info.https_json_request,
             bid_price,
             ask_price,
-            spread);
+            spread,
+            bid_qty,
+            ask_qty
+            );
     }
 
     template<bool need_bid>
@@ -281,6 +296,34 @@ private:
 
         double ask = event->bbo.ask_price * multiplier;
         return std::make_pair(status, ask);
+    }
+    template<bool need_bid>
+    std::pair<bool, double> GetFormattedQty(boost::intrusive_ptr<Trading::NewBBO> event) {
+        if (!event) {
+            logw("Received nullptr event in GetFormattedQty");
+            return std::make_pair(false, 0.0);
+        }
+
+        bool status = true;
+        auto exchange_id = event->exchange_id;
+        auto trading_pair = event->trading_pair;
+
+        auto* info = exchange_trading_pairs_.GetPairInfo(exchange_id, trading_pair);
+        if (!info) {
+            logw("No info for {} {}", exchange_id, trading_pair.ToString());
+            status = false;
+            return std::make_pair(status, 0.0);
+        }
+
+        double multiplier = std::pow(10, -info->qty_precission);
+
+        if (need_bid) {
+            double bid_qty = event->bbo.bid_qty * multiplier;
+            return std::make_pair(status, bid_qty);
+        }
+
+        double ask_qty = event->bbo.ask_qty * multiplier;
+        return std::make_pair(status, ask_qty);
     }
 };
 }; // namespace aot

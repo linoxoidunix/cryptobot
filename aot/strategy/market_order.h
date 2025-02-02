@@ -151,19 +151,22 @@ struct NewBBO : public aot::Event<NewBBOPool> {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     common::TradingPair trading_pair;
     Trading::BBO bbo;
+    common::MarketType market_type = common::MarketType::kInvalid;
     NewBBO() : aot::Event<NewBBOPool>(nullptr) {};
 
     NewBBO(NewBBOPool* mem_pool,
                       common::ExchangeId _exchange_id,
                       common::TradingPair _trading_pair,
-                      const Trading::BBO& _bbo)
+                      const Trading::BBO& _bbo,
+                      common::MarketType _market_type)
         : aot::Event<NewBBOPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
-          bbo(_bbo){}
+          bbo(_bbo),
+          market_type(_market_type){}
     auto ToString() const {
-        return fmt::format("NewBBO[{} {}]",
-                           exchange_id, trading_pair.ToString());
+        return fmt::format("NewBBO[{} {} {}]",
+                           exchange_id, trading_pair.ToString(), market_type);
     };
     friend void intrusive_ptr_release(Trading::NewBBO* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {

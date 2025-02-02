@@ -94,9 +94,13 @@ int main(int argc, char** argv) {
     });
     // Create a connection pool for Bybit WebSocket sessions with a timeout of 30 seconds,
     // a maximum of 3 concurrent connections, and specific WebSocket details.
-    ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_bybit{
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_spot_bybit{
         io_context_bybit, WSSesionType3::Timeout{30}, 3, "stream.bybit.com",
         "443",      "/v5/public/spot"
+    };
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_futures_bybit{
+        io_context_bybit, WSSesionType3::Timeout{30}, 3, "stream.bybit.com",
+        "443",      "/v5/public/linear"
     };
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&> session_pool_binance{
         io_context_binance, WSSesionType3::Timeout{30},
@@ -163,7 +167,9 @@ int main(int argc, char** argv) {
 
     // Initialize Bybit's book event getter component
     bybit::BookEventGetterComponent<boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> book_event_component_bybit(
-        thread_pool, kNumberResponses, pairs_bybit, &session_pool_bybit, common::ExchangeId::kBybit);
+        thread_pool, kNumberResponses, pairs_bybit, &session_pool_spot_bybit, common::ExchangeId::kBybit);
+    bybit::BookEventGetterComponent<boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> book_event_component_futures_bybit(
+        thread_pool, kNumberResponses, pairs_bybit, &session_pool_futures_bybit, common::ExchangeId::kBybit);
     binance::BookEventGetterComponent<boost::asio::thread_pool, binance::detail::FamilyBookEventGetter::ArgsBody> book_event_getter_binance(
         thread_pool, kNumberResponses,
         pairs_binance, &session_pool_binance, common::ExchangeId::kBinance);
@@ -172,7 +178,10 @@ int main(int argc, char** argv) {
     bybit::BidAskGeneratorComponent bid_ask_generator_bybit(
         thread_pool, bus, 100, 1000, 10000
     );
-
+    // Initialize Bybit's bid-ask generator component with event bus and limits for updates
+    bybit::BidAskGeneratorComponent bid_ask_generator_futures_bybit(
+        thread_pool, bus, 100, 1000, 10000
+    );
     // Initialize Binance's bid-ask generator component with event bus and limits for updates
     binance::BidAskGeneratorComponent bid_ask_generator_binance(
         thread_pool, bus, 100, 1000, 10000
@@ -185,6 +194,12 @@ int main(int argc, char** argv) {
         bus,
         parser_manager_bybit
     );
+    bybit::OrderBookWebSocketResponseHandler<boost::asio::thread_pool, boost::asio::thread_pool, bybit::detail::FamilyBookEventGetter::ArgsBody> order_book_wb_socket_response_handler_futures_bybit(
+        book_event_component_futures_bybit,
+        bid_ask_generator_futures_bybit,
+        bus,
+        parser_manager_bybit
+    );
     // Create a response handler for Binance WebSocket messages, connecting it to components
     binance::BookEventGetterComponentCallbackHandler book_event_componnent_callback_handler_binance(
         book_event_getter_binance,
@@ -194,8 +209,12 @@ int main(int argc, char** argv) {
     );
 
     // Define a callback to handle WebSocket responses using the response handler
-     OnWssFBTradingPair wss_cb = [&order_book_wb_socket_response_handler](boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
+    OnWssFBTradingPair wss_cb = [&order_book_wb_socket_response_handler](boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
         order_book_wb_socket_response_handler.HandleResponse(fb, trading_pair);
+    };
+        // Define a callback to handle WebSocket responses using the response handler
+    OnWssFBTradingPair wss_futures_cb = [&order_book_wb_socket_response_handler_futures_bybit](boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
+        order_book_wb_socket_response_handler_futures_bybit.HandleResponse(fb, trading_pair);
     };
     // Define a callback to handle WebSocket responses using the response handler
     OnWssFBTradingPair wss_cb_binance = [&book_event_componnent_callback_handler_binance](boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
@@ -204,6 +223,7 @@ int main(int argc, char** argv) {
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair ID: 1)
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_bybit) {
         book_event_component_bybit.RegisterCallback(trading_pair, &wss_cb);
+        book_event_component_futures_bybit.RegisterCallback(trading_pair, &wss_futures_cb);
     }
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair ID: 1)
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
@@ -214,20 +234,26 @@ int main(int argc, char** argv) {
     bybit::BidAskGeneratorCallbackHandler bid_ask_generator_callback_handler(
         bus, bid_ask_generator_bybit
     );
-    
+    bybit::BidAskGeneratorCallbackHandler bid_ask_generator_futures_callback_handler(
+        bus, bid_ask_generator_futures_bybit
+    );
     // Register all callbacks for the bid-ask generator. process batched from excgange
     binance::BidAskGeneratorCallbackBatchHandler bid_ask_generator_callback_handler_binance(
         bus, bid_ask_generator_binance
     );
     // --------------------------Order Book Component--------------------------------
-    // Initialize the order book component with its own strand and event bus
+    // Initialize the spot order book component with its own strand and event bus
     Trading::OrderBookComponent order_book_component(
-        boost::asio::make_strand(thread_pool), bus, 1000
+        boost::asio::make_strand(thread_pool), bus, 1000, common::MarketType::kSpot
     );
-
+    // Initialize the spot order book component with its own strand and event bus
+    Trading::OrderBookComponent order_book_futures_component(
+        boost::asio::make_strand(thread_pool), bus, 1000, common::MarketType::kFutures
+    );
     // Add an order book for Bybit's BTC/USDT trading pair
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_bybit) {
         order_book_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
+        order_book_futures_component.AddOrderBook(common::ExchangeId::kBybit, trading_pair);
     }
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
         order_book_component.AddOrderBook(common::ExchangeId::kBinance, trading_pair);
@@ -261,7 +287,10 @@ int main(int argc, char** argv) {
     // This allows the bid-ask generator to send data to the book event component, and vice versa.
     bus.Subscribe(&bid_ask_generator_bybit, &book_event_component_bybit);
     bus.Subscribe(&book_event_component_bybit, &bid_ask_generator_bybit);
-
+    // Establish bidirectional communication between the bid-ask generator and book event getter
+    // This allows the bid-ask generator to send data to the book event component, and vice versa.
+    bus.Subscribe(&bid_ask_generator_futures_bybit, &book_event_component_futures_bybit);
+    bus.Subscribe(&book_event_component_futures_bybit, &bid_ask_generator_futures_bybit);
     // Establish bidirectional communication between the bid-ask generator and book snapshot component for Binance
     // The bid-ask generator communicates with the snapshot component to exchange bid-ask and snapshot updates.
     bus.Subscribe(&bid_ask_generator_binance, &book_snapshot_component_binance);
@@ -275,7 +304,9 @@ int main(int argc, char** argv) {
     // Subscribe the order book component to updates from the bid-ask generator for Bybit
     // This allows the order book component to receive bid-ask updates directly from the generator.
     bus.Subscribe(&bid_ask_generator_bybit, &order_book_component);
-
+    // Subscribe the order book component to updates from the bid-ask generator for Bybit
+    // This allows the order book component to receive bid-ask updates directly from the generator.
+    bus.Subscribe(&bid_ask_generator_futures_bybit, &order_book_futures_component);
     // Subscribe the order book component to updates from the bid-ask generator for Binance
     // The order book component processes bid-ask data generated for Binance.
     bus.Subscribe(&bid_ask_generator_binance, &order_book_component);
@@ -283,6 +314,9 @@ int main(int argc, char** argv) {
     // Subscribe the Red Panda component to updates from the order book component
     // The order book component forwards processed data to Red Panda for further usage or logging.
     bus.Subscribe(&order_book_component, &red_panda_component);
+    // Subscribe the Red Panda component to updates from the order book component
+    // The order book component forwards processed data to Red Panda for further usage or logging.
+    bus.Subscribe(&order_book_futures_component, &red_panda_component);
     // Subscribe the ArbitrageStrategyComponent to updates from the order book component
     // The order book component forwards processed data to ArbitrageStrategyComponent for further usage or logging.
     bus.Subscribe(&order_book_component, &arbitrage_strategy_component);
@@ -300,6 +334,7 @@ int main(int argc, char** argv) {
         boost::intrusive_ptr<BusEventRequestBBOPrice>(request_bbo);
         logi("[bid ask generator] bybit start subscribe to {}", trading_pair);
         bid_ask_generator_bybit.AsyncHandleEvent(intr_bus_request_sub);
+        bid_ask_generator_futures_bybit.AsyncHandleEvent(intr_bus_request_sub);
         id_request++;
     }
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
