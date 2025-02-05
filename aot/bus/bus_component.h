@@ -8,6 +8,11 @@
 struct BusEventResponse;
 struct BusEventRequestBBOPrice;
 
+namespace aot{
+    struct ArbitrageReport;
+    struct BusEventArbitrageReport;
+}
+
 namespace position_keeper{
   //struct BusEventAddFill;
   struct BusEventUpdateBBO;
@@ -146,6 +151,19 @@ class Component {
     virtual void AsyncHandleEvent(boost::intrusive_ptr<Trading::BusEventNewBBO>){
         //it is empty class
     };
-    
+    /**
+     * @brief this event when new bbo occure 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<aot::ArbitrageReport>){
+        //it is empty class
+    };
+    /**
+     * @brief this event when new bbo occure 
+     * 
+     */
+    virtual void AsyncHandleEvent(boost::intrusive_ptr<aot::BusEventArbitrageReport>){
+        //it is empty class
+    };
 };
 };

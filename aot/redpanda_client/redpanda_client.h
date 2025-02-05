@@ -14,6 +14,7 @@
 #include "aot/common/types.h"
 #include "aot/common/exchange_trading_pair.h"
 #include "aot/strategy/market_order.h"
+#include "aot/strategy/arbitrage/arbitrage_strategy.h"
 #include "aot/proto/classes/proto_orderbook.h"
 #include "aot/proto/classes/proto_pnl.h"
 #include "aot/proto/classes/proto_wallet.h"
@@ -109,6 +110,9 @@ public:
                 } else if constexpr (std::is_same<T, aot::models::Pnl>::value) {
                     builder_pnl_.payload(json_string);
                     producer_->produce(builder_pnl_);
+                } else if constexpr (std::is_same<T, aot::ArbitrageReport>::value) {
+                    builder_arbitrage_report_.payload(json_string);
+                    producer_->produce(builder_arbitrage_report_);
                 } else {
                     logw("Unknown object type for JSON serialization");
                     return;
@@ -138,10 +142,12 @@ private:
     Topic topic_order_book_{"orderbook"};
     Topic topic_pnl_{"pnl"};
     Topic topic_wallet_{"wallet"};
+    Topic topic_arbitrage_report_{"arbitrage_report"};
 
     MessageBuilder builder_order_book_{topic_order_book_};
     MessageBuilder builder_wallet_{topic_wallet_};
     MessageBuilder builder_pnl_{topic_pnl_};
+    MessageBuilder builder_arbitrage_report_{topic_arbitrage_report_};
 };
 
 template <typename Executor>
@@ -166,6 +172,25 @@ public:
 
     void AsyncHandleEvent(
         boost::intrusive_ptr<Trading::BusEventNewBBO> event) override {
+        if (!event) {
+            logw("Received nullptr event in AsyncHandleEvent");
+            return;
+        }
+
+        auto wrapped_event = event->WrappedEventIntrusive();
+        if (!wrapped_event) {
+            logw("Wrapped event is nullptr in AsyncHandleEvent");
+            return;
+        }
+
+        boost::asio::co_spawn(executor_,
+                              [this, wrapped_event]() -> boost::asio::awaitable<void> {
+                                  co_await HandleEventAsync(wrapped_event);
+                              },
+                              boost::asio::detached);
+    }
+    void AsyncHandleEvent(
+        boost::intrusive_ptr<aot::BusEventArbitrageReport> event) override {
         if (!event) {
             logw("Received nullptr event in AsyncHandleEvent");
             return;
@@ -210,7 +235,16 @@ private:
         SendMessageAsJson(ob);
         co_return;
     }
+    boost::asio::awaitable<void> HandleEventAsync(boost::intrusive_ptr<aot::ArbitrageReport> wrapped_event) {
+        if (!wrapped_event) {
+            logw("Received nullptr wrapped_event in HandleEventAsync");
+            co_return;
+        }
 
+        auto& ob = *wrapped_event.get();
+        SendMessageAsJson(ob);
+        co_return;
+    }
     bool ValidatePrices(boost::intrusive_ptr<Trading::NewBBO> event) {
         if (!event) {
             logw("Received nullptr event in ValidatePrices");

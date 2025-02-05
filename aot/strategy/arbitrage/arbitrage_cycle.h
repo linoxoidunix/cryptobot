@@ -9,25 +9,67 @@
 
 #include "aot/common/types.h"
 #include "aot/strategy/arbitrage/arbitrage_step.h"
+#include "aot/common/time_utils.h"
 
 namespace aot{
-class ArbitrageCycle : public std::vector<Step>, public boost::intrusive::unordered_set_base_hook<>
+class ArbitrageCycle : public std::vector<Step>
 {
-    std::unordered_map<common::ExchangeId, std::unordered_set<common::TradingPair, common::TradingPairHash, common::TradingPairEqual>> exchange_pairs_;
 public:
+    // Constructor to assign a unique ID
+    ArbitrageCycle() {}
+    virtual ~ArbitrageCycle() = default;
+    common::Nanos time_open_;
+    common::Nanos time_close_;
+    bool open_ = false;
+    common::Qty position_open_ = common::kQtyInvalid;
+    common::Price delta_ = common::kPriceInvalid;
+    common::Price buy_input_ = common::kPriceInvalid;
+    common::Price sell_input_ = common::kPriceInvalid;
+    common::Price buy_exit_ = common::kPriceInvalid;
+    common::Price sell_exit_ = common::kPriceInvalid;
+
     using std::vector<Step>::vector; // Inherit all constructors
     void push_back(const Step step) {
         // Добавляем шаг в вектор
         std::vector<Step>::push_back(step);
-
-        // Добавляем информацию о бирже и торговой паре в unordered_multimap
-        exchange_pairs_[step.exchange_id].insert(step.trading_pair);    
     }
-    const std::unordered_map<common::ExchangeId, std::unordered_set<common::TradingPair, common::TradingPairHash, common::TradingPairEqual>>& GetExchangePairs() const {
-        return exchange_pairs_;
+    void StartTransaction(){
+        open_ = true;
+        time_open_ = common::getCurrentNanoS();
+    }
+    void CloseTransaction(){
+        if (!open_) {
+            logi("No transaction to close");
+            return;
+        }
+        time_close_ = common::getCurrentNanoS();
+        open_ = false;
+    }
+    bool IsTransactionOpen() const {
+        return open_;
+    }
+    common::Nanos GetDelta() const {
+        return time_close_ - time_open_;
+    }
+    void SetDeltaPrice(common::Price delta){
+        delta_ = delta;
+    }
+    void SetBuyInput(common::Price buy_input){
+        buy_input_ = buy_input;
+    }    
+    void SetSellInput(common::Price sell_input){
+        sell_input_ = sell_input;
+    }    
+    void SetBuyExit(common::Price buy_exit){
+        buy_exit_ = buy_exit;
+    }    
+    void SetSellExit(common::Price sell_exit){
+        sell_exit_ = sell_exit;
+    }
+    void SetPositionOpen(common::Qty position){
+        position_open_ = position;
     }
 };
-
 struct ArbitrageCycleHash {
     std::size_t operator()(const ArbitrageCycle& cycle) const {
         std::size_t seed = 0;
@@ -36,16 +78,6 @@ struct ArbitrageCycleHash {
         for (const auto& step : cycle) {
             boost::hash_combine(seed, step);  // Предполагается, что Step уже имеет свой хэш
         }
-
-        // Хэшируем содержимое exchange_pairs_
-        for (const auto& [exchange_id, pairs_set] : cycle.GetExchangePairs()) {
-            boost::hash_combine(seed, std::hash<common::ExchangeId>()(exchange_id));
-
-            for (const auto& pair : pairs_set) {
-                boost::hash_combine(seed, common::TradingPairHash()(pair));
-            }
-        }
-
         return seed;
     }
 };

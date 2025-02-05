@@ -264,22 +264,32 @@ int main(int argc, char** argv) {
     aot::RedPandaComponent red_panda_component(redpanda_executor, brokers, exchange_trading_pairs);
     // --------------------------ArbitrageStrategyComponent--------------------------------
     auto cross_pairs = FindCrossExchangePairs(pairs_binance, pairs_bybit);
-    aot::ArbitrageStrategyComponent arbitrage_strategy_component(thread_pool);
+    aot::ArbitrageStrategyComponent arbitrage_strategy_component(thread_pool, bus, 1000);
     for(auto & cross_pair: cross_pairs){
-        aot::Step buy_on_binance(cross_pair, common::ExchangeId::kBinance, aot::Operation::kBuy);
-        aot::Step sell_on_bybit(cross_pair, common::ExchangeId::kBybit, aot::Operation::kSell);
-        aot::ArbitrageCycle cycle_binance_bybit;
-        cycle_binance_bybit.push_back(buy_on_binance);
-        cycle_binance_bybit.push_back(sell_on_bybit);
+        aot::Step buy_on_binance(cross_pair, common::ExchangeId::kBinance, common::MarketType::kSpot, aot::Operation::kBuy);
+        aot::Step sell_on_bybit_futures(cross_pair, common::ExchangeId::kBybit, common::MarketType::kFutures, aot::Operation::kSell);
+        aot::ArbitrageCycle cycle_binance_bybit_spot_futures;
+        cycle_binance_bybit_spot_futures.push_back(buy_on_binance);
+        cycle_binance_bybit_spot_futures.push_back(sell_on_bybit_futures);
+        aot::Step sell_on_bybit_spot(cross_pair, common::ExchangeId::kBybit, common::MarketType::kSpot, aot::Operation::kSell);
+        aot::ArbitrageCycle cycle_binance_bybit_spot_spot;
+        cycle_binance_bybit_spot_spot.push_back(buy_on_binance);
+        cycle_binance_bybit_spot_spot.push_back(sell_on_bybit_spot);
 
-        aot::Step sell_on_binance(cross_pair, common::ExchangeId::kBinance, aot::Operation::kSell);
-        aot::Step buy_on_bybit(cross_pair, common::ExchangeId::kBybit, aot::Operation::kBuy);
-        aot::ArbitrageCycle cycle_bybit_binance;
-        cycle_bybit_binance.push_back(sell_on_binance);
-        cycle_bybit_binance.push_back(buy_on_bybit);
+        aot::Step sell_on_binance_futures(cross_pair, common::ExchangeId::kBinance, common::MarketType::kFutures, aot::Operation::kSell);
+        aot::Step sell_on_binance_spot(cross_pair, common::ExchangeId::kBinance, common::MarketType::kSpot, aot::Operation::kSell);
+        aot::Step buy_on_bybit(cross_pair, common::ExchangeId::kBybit, common::MarketType::kSpot, aot::Operation::kBuy);
+        aot::ArbitrageCycle cycle_bybit_binance_spot_futures;
+        cycle_bybit_binance_spot_futures.push_back(sell_on_binance_futures);
+        cycle_bybit_binance_spot_futures.push_back(buy_on_bybit);
+        aot::ArbitrageCycle cycle_bybit_binance_spot_spot;
+        cycle_bybit_binance_spot_spot.push_back(sell_on_binance_spot);
+        cycle_bybit_binance_spot_spot.push_back(buy_on_bybit);
 
-        arbitrage_strategy_component.AddArbitrageCycle(cycle_binance_bybit);
-        arbitrage_strategy_component.AddArbitrageCycle(cycle_bybit_binance);
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_binance_bybit_spot_futures);
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_binance_bybit_spot_spot);
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_bybit_binance_spot_futures);
+        arbitrage_strategy_component.AddArbitrageCycle(cycle_bybit_binance_spot_spot);
     }
 
     // ----------------------Register Connections Between Components-----------------
@@ -320,6 +330,8 @@ int main(int argc, char** argv) {
     // Subscribe the ArbitrageStrategyComponent to updates from the order book component
     // The order book component forwards processed data to ArbitrageStrategyComponent for further usage or logging.
     bus.Subscribe(&order_book_component, &arbitrage_strategy_component);
+    bus.Subscribe(&arbitrage_strategy_component, &red_panda_component);
+
     //
     BusEventRequestBBOPricePool request_bbo_pool{1000};
     long unsigned int id_request = 0;

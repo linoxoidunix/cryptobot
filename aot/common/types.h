@@ -7,6 +7,8 @@
 #include <string>
 #include <string_view>
 
+#include <boost/functional/hash.hpp>
+
 #include "magic_enum/magic_enum.hpp"
 #include "aot/Logger.h"
 #include "aot/common/macros.h"
@@ -362,14 +364,21 @@ struct TradingPairInfo {
 struct TradingPairHash {
     using is_transparent = void;
     std::size_t operator()(const TradingPair key) const {
+        size_t hash_value = 0;
+
         std::size_t h1 = std::hash<common::TickerId>{}(key.first);
         std::size_t h2 = std::hash<common::TickerId>{}(key.second);
-        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+        boost::hash_combine(hash_value, h1); // Более эффективное комбинирование хэшей
+        boost::hash_combine(hash_value, h2); // Более эффективное комбинирование хэшей
+        return hash_value;
     }
     std::size_t operator()(const TradingPair* key) const {
+        size_t hash_value = 0;
         std::size_t h1 = std::hash<common::TickerId>{}(key->first);
         std::size_t h2 = std::hash<common::TickerId>{}(key->second);
-        return h1 ^ (h2 << 1);  // or use boost::hash_combine
+        boost::hash_combine(hash_value, h1); // Более эффективное комбинирование хэшей
+        boost::hash_combine(hash_value, h2); // Более эффективное комбинирование хэшей
+        return hash_value;
     }
 };
 
@@ -425,7 +434,18 @@ inline uint32_t Digits10(uint64_t v) {
            (std::uint32_t)(v >= 1000000000000000000ULL) +
            (std::uint32_t)(v >= 10000000000000000000ULL);
 };
-}  // namespace common
+
+// Функция для вычисления хэша от всех трех компонентов с использованием TradingPairHash
+inline size_t HashCombined(common::ExchangeId exchange_id,  common::MarketType market_type, const common::TradingPair& trading_pair) {
+    size_t hash_value = 0;
+
+    // Комбинируем хэши с использованием boost::hash_combine
+    boost::hash_combine(hash_value, static_cast<int>(exchange_id));
+    boost::hash_combine(hash_value, static_cast<int>(market_type));
+    boost::hash_combine(hash_value, TradingPairHash{}(trading_pair));  // Используем TradingPairHash для пары
+    return hash_value;
+};
+};  // namespace common
 
 template <>
 class fmt::formatter<common::ExchangeId> {
