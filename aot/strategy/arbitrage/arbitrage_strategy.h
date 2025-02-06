@@ -14,7 +14,7 @@ namespace aot {
 struct ArbitrageReport;
 using ArbitrageReportPool = common::MemoryPool<ArbitrageReport>;
 struct ArbitrageReport : public aot::Event<ArbitrageReportPool> {
-    size_t uid_strategy;
+    size_t uid_trade;
     common::Nanos time_open;
     common::Nanos time_close;
     common::Qty position_open = common::kQtyInvalid;
@@ -26,13 +26,13 @@ struct ArbitrageReport : public aot::Event<ArbitrageReportPool> {
 
     ArbitrageReport() : aot::Event<ArbitrageReportPool>(nullptr) {};
 
-    ArbitrageReport(ArbitrageReportPool* mem_pool, size_t _uid_strategy,
+    ArbitrageReport(ArbitrageReportPool* mem_pool, size_t _uid_trade,
                     common::Nanos _time_open, common::Nanos _time_close,
                     common::Qty _position_open, common::Price _delta,
                     common::Price _buy_input, common::Price _sell_input,
                     common::Price _buy_exit, common::Price _sell_exit)
         : aot::Event<ArbitrageReportPool>(mem_pool),
-          uid_strategy(_uid_strategy),
+          uid_trade(_uid_trade),
           time_open(_time_open),
           time_close(_time_close),
           position_open(_position_open),
@@ -53,8 +53,8 @@ struct ArbitrageReport : public aot::Event<ArbitrageReportPool> {
     }
     void SerializeToJson(nlohmann::json& json) const {
         json = {
-            {"arbitrage_report", {
-                {"uid_strategy", uid_strategy},
+            {"trade", {
+                {"uid_trade", uid_trade},
                 {"time_open", time_open},
                 {"time_close", time_close},
                 {"position_open", position_open},

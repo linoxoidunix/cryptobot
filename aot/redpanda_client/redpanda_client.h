@@ -111,8 +111,8 @@ public:
                     builder_pnl_.payload(json_string);
                     producer_->produce(builder_pnl_);
                 } else if constexpr (std::is_same<T, aot::ArbitrageReport>::value) {
-                    builder_arbitrage_report_.payload(json_string);
-                    producer_->produce(builder_arbitrage_report_);
+                    builder_trade_.payload(json_string);
+                    producer_->produce(builder_trade_);
                 } else {
                     logw("Unknown object type for JSON serialization");
                     return;
@@ -142,12 +142,12 @@ private:
     Topic topic_order_book_{"orderbook"};
     Topic topic_pnl_{"pnl"};
     Topic topic_wallet_{"wallet"};
-    Topic topic_arbitrage_report_{"arbitrage_report"};
+    Topic topic_trade_{"trade"};
 
     MessageBuilder builder_order_book_{topic_order_book_};
     MessageBuilder builder_wallet_{topic_wallet_};
     MessageBuilder builder_pnl_{topic_pnl_};
-    MessageBuilder builder_arbitrage_report_{topic_arbitrage_report_};
+    MessageBuilder builder_trade_{topic_trade_};
 };
 
 template <typename Executor>
