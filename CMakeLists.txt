@@ -213,8 +213,19 @@ set(PROTO_SRC_DIR "${PROTO_OUTPUT_DIR}/src")
 file(MAKE_DIRECTORY ${PROTO_INCLUDE_DIR})
 file(MAKE_DIRECTORY ${PROTO_SRC_DIR})
 
+string(REPLACE ";" "\n" PROTO_FILES_NEWLINES "${PROTO_FILES}")
+message(STATUS "Find .proto files:\n${PROTO_FILES_NEWLINES}")
+
 # Генерация исходных файлов C++ из .proto
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+
+# Логирование с переносами строк для читаемости списка файлов
+string(REPLACE ";" "\n" PROTO_HDRS_NEWLINES "${PROTO_HDRS}")
+string(REPLACE ";" "\n" PROTO_SRCS_NEWLINES "${PROTO_SRCS}")
+
+# Печать списка заголовочных и исходных файлов
+message(STATUS "Generated Proto Headers:\n${PROTO_HDRS_NEWLINES}")
+message(STATUS "Generated Proto Sources:\n${PROTO_SRCS_NEWLINES}")
 
 add_library (${PROJECT_NAME}
     ${LIST_H} #for use emhash library need add LIST_H

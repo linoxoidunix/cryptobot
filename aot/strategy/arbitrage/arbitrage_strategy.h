@@ -7,8 +7,9 @@
 #include "aot/bus/bus_event.h"
 #include "aot/common/mem_pool.h"
 #include "aot/common/types.h"
-#include "aot/strategy/arbitrage/arbitrage_cycle.h"
+#include "aot/strategy/arbitrage/trade_dictionary.h"
 #include "aot/strategy/market_order.h"
+#include "nlohmann/json.hpp"
 
 namespace aot {
 struct ArbitrageReport;
@@ -52,25 +53,21 @@ struct ArbitrageReport : public aot::Event<ArbitrageReportPool> {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
     void SerializeToJson(nlohmann::json& json) const {
-        json = {
-            {"trade", {
-                {"uid_trade", uid_trade},
-                {"time_open", time_open},
-                {"time_close", time_close},
-                {"position_open", position_open},
-                {"delta", delta},
-                {"buy_input", buy_input},
-                {"sell_input", sell_input},
-                {"buy_exit", buy_exit},
-                {"sell_exit", sell_exit}
-            }}
-        };
+        json = {{"trade",
+                 {{"uid_trade", std::to_string(uid_trade)},
+                  {"time_open", std::to_string(time_open)},
+                  {"time_close", std::to_string(time_close)},
+                  {"position_open", position_open},
+                  {"delta", delta},
+                  {"buy_input", buy_input},
+                  {"sell_input", sell_input},
+                  {"buy_exit", buy_exit},
+                  {"sell_exit", sell_exit}}}};
     };
 };
 
 struct BusEventArbitrageReport;
-using BusEventArbitrageReportPool =
-    common::MemoryPool<BusEventArbitrageReport>;
+using BusEventArbitrageReportPool = common::MemoryPool<BusEventArbitrageReport>;
 struct BusEventArbitrageReport
     : public bus::Event2<BusEventArbitrageReportPool> {
     explicit BusEventArbitrageReport(
@@ -80,16 +77,14 @@ struct BusEventArbitrageReport
           wrapped_event_(request) {};
     ~BusEventArbitrageReport() override = default;
     void Accept(bus::Component* comp) override { comp->AsyncHandleEvent(this); }
-    friend void intrusive_ptr_release(
-        BusEventArbitrageReport* ptr) {
+    friend void intrusive_ptr_release(BusEventArbitrageReport* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(
-        BusEventArbitrageReport* ptr) {
+    friend void intrusive_ptr_add_ref(BusEventArbitrageReport* ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
     ArbitrageReport* WrappedEvent() {
@@ -99,6 +94,7 @@ struct BusEventArbitrageReport
     boost::intrusive_ptr<ArbitrageReport> WrappedEventIntrusive() {
         return wrapped_event_;
     }
+
   private:
     boost::intrusive_ptr<ArbitrageReport> wrapped_event_;
 };
@@ -107,28 +103,26 @@ template <typename ThreadPool>
 class ArbitrageStrategyComponent : public bus::Component {
     ThreadPool& thread_pool_;
     aot::CoBus& bus_;
-    using ExchangeBBOMap = std::unordered_map<
-        size_t,
-        Trading::BBO>;
+    using ExchangeBBOMap = std::unordered_map<size_t, Trading::BBO>;
     ExchangeBBOMap exchange_bbo_map_;
-    using ExchangeTradingPairArbitrageMap =
-        std::unordered_multimap<size_t,  // key is now the combined hash value
-                                         // (size_t) of exchange id,
-                                         // market_type, trading_apir
-                                ArbitrageCycle>;
-    ExchangeTradingPairArbitrageMap exchange_trading_pair_arbitrage_map_;
+
+    TradeDictionary exchange_trading_pair_arbitrage_map_;
     static constexpr std::string_view name_component_ =
         "ArbitrageStrategyComponent";
     ArbitrageReportPool arbitrage_report_pool_;
     BusEventArbitrageReportPool bus_event_arbitrage_report_pool_;
+
   public:
-    explicit ArbitrageStrategyComponent(ThreadPool& thread_pool, aot::CoBus& bus, size_t max_event_per_time)
+    explicit ArbitrageStrategyComponent(ThreadPool& thread_pool,
+                                        aot::CoBus& bus,
+                                        size_t max_event_per_time)
         : thread_pool_(thread_pool),
-        bus_(bus),
-        arbitrage_report_pool_(max_event_per_time),
-        bus_event_arbitrage_report_pool_(max_event_per_time) {}
+          bus_(bus),
+          arbitrage_report_pool_(max_event_per_time),
+          bus_event_arbitrage_report_pool_(max_event_per_time) {}
     void AddArbitrageCycle(ArbitrageCycle& cycle) {
         ArbitrageCycleHash hasher;
+        StepHash hasher_step;
         for (auto& step : cycle) {
             auto key = common::HashCombined(step.exchange_id, step.market_type,
                                             step.trading_pair);
@@ -177,24 +171,27 @@ class ArbitrageStrategyComponent : public bus::Component {
             },
             boost::asio::detached);
     }
+    const TradeDictionary& GetTradeDictionary() const {
+        return exchange_trading_pair_arbitrage_map_;
+    }
 
   private:
     void AddOrUpdateBBO(std::size_t key, Trading::BBO& bbo) {
-        // Attempt to insert the key-value pair, or update the value if it already exists
+        // Attempt to insert the key-value pair, or update the value if it
+        // already exists
         auto result = exchange_bbo_map_.try_emplace(key, bbo);
         if (!result.second) {
             // Key already exists; update the existing BBO
             result.first->second = bbo;
-            logi("[{}] BBO updated for key: {}", 
-                ArbitrageStrategyComponent<ThreadPool>::name_component_, key);
+            logi("[{}] BBO updated for key: {}",
+                 ArbitrageStrategyComponent<ThreadPool>::name_component_, key);
         } else {
-            logi("[{}] BBO added for key: {}", 
-                ArbitrageStrategyComponent<ThreadPool>::name_component_, key);
+            logi("[{}] BBO added for key: {}",
+                 ArbitrageStrategyComponent<ThreadPool>::name_component_, key);
         }
     }
 
     void EvaluateOpportunityArbitrageCycle(ArbitrageCycle& cycle) {
-        
         auto buy_price       = common::kPriceInvalid;
         auto exit_buy_price  = common::kPriceInvalid;
         auto sell_price      = common::kPriceInvalid;
@@ -205,29 +202,22 @@ class ArbitrageStrategyComponent : public bus::Component {
         for (auto& step : cycle) {
             auto key = common::HashCombined(step.exchange_id, step.market_type,
                                             step.trading_pair);
-            if(!exchange_bbo_map_.contains(key)) {
-                logw("[{}] exchange_bbo_map_ doesn't contain hashed key: {}. skip process step in arbitrage cycle", ArbitrageStrategyComponent<ThreadPool>::name_component_, key);
-                continue; 
+            if (!exchange_bbo_map_.contains(key)) {
+                logw(
+                    "[{}] exchange_bbo_map_ doesn't contain hashed key: {}. "
+                    "skip process step in arbitrage cycle",
+                    ArbitrageStrategyComponent<ThreadPool>::name_component_,
+                    key);
+                continue;
             }
             if (step.operation == aot::Operation::kBuy) {
-                
-                buy_price =
-                    exchange_bbo_map_[key]
-                        .ask_price;
-                ask_qty = exchange_bbo_map_[key]
-                              .ask_qty;
-                exit_buy_price =
-                    exchange_bbo_map_[key]
-                        .bid_price;
+                buy_price      = exchange_bbo_map_[key].ask_price;
+                ask_qty        = exchange_bbo_map_[key].ask_qty;
+                exit_buy_price = exchange_bbo_map_[key].bid_price;
             } else if (step.operation == aot::Operation::kSell) {
-                sell_price =
-                    exchange_bbo_map_[key]
-                        .bid_price;
-                bid_qty = exchange_bbo_map_[key]
-                              .bid_qty;
-                exit_sell_price =
-                    exchange_bbo_map_[key]
-                        .ask_price;
+                sell_price      = exchange_bbo_map_[key].bid_price;
+                bid_qty         = exchange_bbo_map_[key].bid_qty;
+                exit_sell_price = exchange_bbo_map_[key].ask_price;
             }
         }
         if (buy_price == common::kPriceInvalid) return;
@@ -255,21 +245,19 @@ class ArbitrageStrategyComponent : public bus::Component {
                 cycle.SetSellExit(exit_sell_price);
                 logi("Arbitrage opportunity closed with delta_ns:{}",
                      cycle.GetDelta());
-                SendArbitrageReportToBus(cycle);   
+                SendArbitrageReportToBus(cycle);
             }
         }
     }
     net::awaitable<void> HandleNewBBO(
         boost::intrusive_ptr<Trading::NewBBO> wrapped_event) {
         auto key = common::HashCombined(wrapped_event->exchange_id,
-                            wrapped_event->market_type,
-                            wrapped_event->trading_pair);
-        AddOrUpdateBBO(key,
-                       wrapped_event->bbo);
+                                        wrapped_event->market_type,
+                                        wrapped_event->trading_pair);
+        AddOrUpdateBBO(key, wrapped_event->bbo);
         // get access to list arbitrage cycle using exchange_id, trading_pair
         // необходимо выбрать только те пары, которые в которых присутсвуют
         // биржа и торговая пара
-
 
         if (!exchange_trading_pair_arbitrage_map_.contains(key)) co_return;
         auto range = exchange_trading_pair_arbitrage_map_.equal_range(key);
@@ -287,22 +275,16 @@ class ArbitrageStrategyComponent : public bus::Component {
     }
     void SendArbitrageReportToBus(const ArbitrageCycle& cycle) {
         ArbitrageCycleHash hasher;
-        auto event = arbitrage_report_pool_.Allocate(&arbitrage_report_pool_,
-            hasher(cycle),
-            cycle.time_open_,
-            cycle.time_close_,
-            cycle.position_open_,
-            cycle.delta_,
-            cycle.buy_input_,
-            cycle.sell_input_,
-            cycle.buy_exit_,
-            cycle.sell_exit_
-        );
+        auto event = arbitrage_report_pool_.Allocate(
+            &arbitrage_report_pool_, hasher(cycle), cycle.time_open_,
+            cycle.time_close_, cycle.position_open_, cycle.delta_,
+            cycle.buy_input_, cycle.sell_input_, cycle.buy_exit_,
+            cycle.sell_exit_);
         auto intr_ptr_request = boost::intrusive_ptr<ArbitrageReport>(event);
         auto bus_event        = bus_event_arbitrage_report_pool_.Allocate(
             &bus_event_arbitrage_report_pool_, intr_ptr_request);
-         auto intr_ptr_bus_request =
-           boost::intrusive_ptr<BusEventArbitrageReport>(bus_event);
+        auto intr_ptr_bus_request =
+            boost::intrusive_ptr<BusEventArbitrageReport>(bus_event);
         bus_.AsyncSend(this, intr_ptr_bus_request);
     }
 };

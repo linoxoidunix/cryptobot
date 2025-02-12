@@ -26,3 +26,38 @@ message OrderBook {
     double best_bid_qty = 7;
     double best_ask_qty = 8;
 }
+
+enum ExchangeId{
+    BINANCE = 0;
+    BYBIT = 1;
+    MEXC = 2;
+    EXCHANGE_ID_INVALID = 3;
+}
+
+enum TransactionAction {
+    BUY = 0;
+    SELL = 1;
+}
+
+enum MarketType {
+    SPOT = 0;
+    FUTURES = 1;
+    OPTIONS = 2;
+    MARKET_TYPE_INVALID = 3;
+}
+
+message Transaction {
+    string trading_pair = 1;
+    ExchangeId exchange_id = 2;
+    MarketType market_type = 3;
+    TransactionAction transaction_action = 4;
+}
+
+message Trade {
+    uint64 id = 1;
+    repeated Transaction transactions = 2;
+}
+
+message Trades {
+    map<uint64, Trade> trades = 1;
+}
