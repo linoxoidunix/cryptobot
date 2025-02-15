@@ -162,6 +162,7 @@ file(GLOB LIST_H
      "aot/prometheus/*.h"
      "aot/proto/classes/*.h"
      "aot/strategy/*.h"
+     "aot/pnl/*.h"
      "aot/strategy/cross_arbitrage/*.h"
      "aot/third_party/*.h"
      "aot/python/*.h"

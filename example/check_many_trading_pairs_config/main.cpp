@@ -319,8 +319,8 @@ int main(int argc, char** argv) {
                                                exchange_trading_pairs);
     // --------------------------ArbitrageStrategyComponent--------------------------------
     auto cross_pairs = FindCrossExchangePairs(pairs_binance, pairs_bybit);
-    aot::ArbitrageStrategyComponent arbitrage_strategy_component(thread_pool,
-                                                                 bus, 1000);
+    aot::ArbitrageStrategyComponent arbitrage_strategy_component(
+        thread_pool, bus, 1000, exchange_trading_pairs);
     for (auto& cross_pair : cross_pairs) {
         aot::Step buy_on_binance(cross_pair, common::ExchangeId::kBinance,
                                  common::MarketType::kSpot,

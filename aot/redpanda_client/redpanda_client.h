@@ -117,7 +117,8 @@ class KafkaClient {
                     builder_pnl_.payload(json_string);
                     producer_->produce(builder_pnl_);
                 } else if constexpr (std::is_same<
-                                         T, aot::ArbitrageReport>::value) {
+                                         T,
+                                         aot::ArbitrageReportString>::value) {
                     builder_trade_.payload(json_string);
                     producer_->produce(builder_trade_);
                 } else if constexpr (std::is_same<
@@ -266,7 +267,9 @@ class RedPandaComponent : public bus::Component, public KafkaClient {
         }
 
         auto& ob = *wrapped_event.get();
-        SendMessageAsJson(ob);
+        aot::ArbitrageReportString report_as_string(ob,
+                                                    exchange_trading_pairs_);
+        SendMessageAsJson(report_as_string);
         co_return;
     }
     boost::asio::awaitable<void> HandleEventAsync(

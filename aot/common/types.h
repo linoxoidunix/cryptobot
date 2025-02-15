@@ -358,6 +358,16 @@ struct TradingPairInfo {
      *
      */
     common::TradingPairS https_query_response;
+    double GetPriceDouble(const common::Price& price) const {
+        return price * std::pow(10, -price_precission);
+    }
+    double GetQtyDouble(const common::Qty& qty) const {
+        return qty * std::pow(10, -qty_precission);
+    }
+    double GetPnlDouble(uint64_t pnl) const {
+        return pnl * std::pow(10, -qty_precission) *
+               std::pow(10, -price_precission);
+    }
 };
 
 struct TradingPairHash {
