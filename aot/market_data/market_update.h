@@ -177,7 +177,9 @@ struct BookSnapshot2 : public aot::Event<BookSnapshot2Pool> {
     }
 
     auto ToString() const {
-        return fmt::format("BookSnapshot[{} lastUpdateId:{} b_size:{} a_size:{}]", trading_pair.ToString(),  lastUpdateId, bids.size(), asks.size());
+        return fmt::format(
+            "BookSnapshot[{} lastUpdateId:{} b_size:{} a_size:{}]",
+            trading_pair.ToString(), lastUpdateId, bids.size(), asks.size());
     };
 };
 
@@ -342,8 +344,12 @@ struct BookDiffSnapshot2 : public aot::Event<BookDiff2SnapshotPool> {
     std::list<BookSnapshotElem> asks;
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
     uint64_t last_id  = std::numeric_limits<uint64_t>::max();
+    /**
+     * @brief prev_id fied only for binance futures
+     *
+     */
+    uint64_t prev_id  = std::numeric_limits<uint64_t>::max();
     BookDiffSnapshot2() : aot::Event<BookDiff2SnapshotPool>(nullptr) {};
-
     BookDiffSnapshot2(BookDiff2SnapshotPool* mem_pool,
                       common::ExchangeId _exchange_id,
                       common::TradingPair _trading_pair,
@@ -357,9 +363,24 @@ struct BookDiffSnapshot2 : public aot::Event<BookDiff2SnapshotPool> {
           asks(std::move(_asks)),
           first_id(_first_id),
           last_id(_last_id) {}
+    BookDiffSnapshot2(BookDiff2SnapshotPool* mem_pool,
+                      common::ExchangeId _exchange_id,
+                      common::TradingPair _trading_pair,
+                      std::list<BookSnapshotElem>&& _bids,
+                      std::list<BookSnapshotElem>&& _asks, uint64_t _first_id,
+                      uint64_t _last_id, uint64_t _prev_id)
+        : aot::Event<BookDiff2SnapshotPool>(mem_pool),
+          exchange_id(_exchange_id),
+          trading_pair(_trading_pair),
+          bids(std::move(_bids)),
+          asks(std::move(_asks)),
+          first_id(_first_id),
+          last_id(_last_id),
+          prev_id(_prev_id) {}
     auto ToString() const {
-        return fmt::format("BookDiffSnapshot2[first_id:{} last_id:{}]",
-                           first_id, last_id);
+        return fmt::format(
+            "BookDiffSnapshot2[first_id:{} last_id:{} prev_id:{}]", first_id,
+            last_id, prev_id);
     };
     friend void intrusive_ptr_release(Exchange::BookDiffSnapshot2* ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
@@ -382,6 +403,12 @@ struct BookDiffSnapshot {
     std::list<BookSnapshotElem> asks;
     uint64_t first_id = std::numeric_limits<uint64_t>::max();
     uint64_t last_id  = std::numeric_limits<uint64_t>::max();
+    /**
+     * @brief prev_id field is used only for binance futures
+     *
+     */
+    uint64_t prev_id  = std::numeric_limits<uint64_t>::max();
+
     auto ToString() const {
         return fmt::format("BookDiffSnapshot[first_id:{} last_id:{}]", first_id,
                            last_id);
@@ -454,16 +481,17 @@ struct RequestDiffOrderBook : public aot::Event<RequestDiffOrderBookPool> {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     common::TradingPair trading_pair;
     common::FrequencyMS frequency = common::kFrequencyMSInvalid;
-    bool subscribe = true;
-    std::variant<std::string, long int, long unsigned int> id;  // id as a variant
+    bool subscribe                = true;
+    std::variant<std::string, long int, long unsigned int>
+        id;  // id as a variant
     RequestDiffOrderBook() : aot::Event<RequestDiffOrderBookPool>(nullptr) {};
 
-    RequestDiffOrderBook(RequestDiffOrderBookPool* mem_pool,
-                         common::ExchangeId _exchange_id,
-                         common::TradingPair _trading_pair,
-                         common::FrequencyMS _frequency,
-                         bool _subscribe,
-                         const std::variant<std::string, long int, long unsigned int>& _id = std::string{})
+    RequestDiffOrderBook(
+        RequestDiffOrderBookPool* mem_pool, common::ExchangeId _exchange_id,
+        common::TradingPair _trading_pair, common::FrequencyMS _frequency,
+        bool _subscribe,
+        const std::variant<std::string, long int, long unsigned int>& _id =
+            std::string{})
         : aot::Event<RequestDiffOrderBookPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),

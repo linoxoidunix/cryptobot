@@ -109,16 +109,28 @@ int main(int argc, char** argv) {
                                    "443",
                                    "/v5/public/linear"};
     ::V2::ConnectionPool<WSSesionType3, const std::string_view&>
-        session_pool_binance{io_context_binance,
-                             WSSesionType3::Timeout{30},
-                             3,
-                             "stream.binance.com",
-                             "9443",
-                             "/ws"};
+        session_pool_spot_binance{io_context_binance,
+                                  WSSesionType3::Timeout{30},
+                                  3,
+                                  "stream.binance.com",
+                                  "9443",
+                                  "/ws"};
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&>
+        session_pool_futures_binance{io_context_binance,
+                                     WSSesionType3::Timeout{30},
+                                     3,
+                                     "fstream.binance.com",
+                                     "443",
+                                     "/ws"};
     binance::HttpsConnectionPoolFactory2 factory_binance;
-    ::V2::ConnectionPool<HTTPSesionType3>* session_pool =
+    ::V2::ConnectionPool<HTTPSesionType3>* session_pool_https_spot_binance =
+        factory_binance.Create(io_context_binance, HTTPSesionType3::Timeout{30},
+                               5, Network::kMainnet, common::MarketType::kSpot,
+                               exchange_connection_manager);
+    ::V2::ConnectionPool<HTTPSesionType3>* session_pool_https_futures_binance =
         factory_binance.Create(io_context_binance, HTTPSesionType3::Timeout{30},
                                5, Network::kMainnet,
+                               common::MarketType::kFutures,
                                exchange_connection_manager);
 
     // this section for redpanda.
@@ -168,18 +180,32 @@ int main(int argc, char** argv) {
 
     size_t number_responses = 100;
 
-    binance::BookSnapshotComponent book_snapshot_component_binance(
+    binance::BookSnapshotComponent book_snapshot_spot_component_binance(
         boost::asio::make_strand(thread_pool), number_responses, &signer,
-        Network::kMainnet, pairs_binance, pair_reverse_binance, session_pool,
+        Network::kMainnet, common::MarketType::kSpot, pairs_binance,
+        pair_reverse_binance, session_pool_https_spot_binance,
+        exchange_connection_manager);
+    binance::BookSnapshotComponent book_snapshot_futures_component_binance(
+        boost::asio::make_strand(thread_pool), number_responses, &signer,
+        Network::kMainnet, common::MarketType::kFutures, pairs_binance,
+        pair_reverse_binance, session_pool_https_futures_binance,
         exchange_connection_manager);
 
-    binance::BookSnapsotCallbackHandler book_snapsot_callback_handler_binance(
-        bus, pairs_binance, book_snapshot_component_binance);
-    OnHttpsResponseExtended book_snapshot_calback_handler =
-        book_snapsot_callback_handler_binance.GetCallback();
+    binance::BookSnapsotCallbackHandler
+        book_snapshot_spot_callback_handler_binance(
+            bus, pairs_binance, book_snapshot_spot_component_binance);
+    binance::BookSnapsotCallbackHandler
+        book_snapsot_futures_callback_handler_binance(
+            bus, pairs_binance, book_snapshot_futures_component_binance);
+    OnHttpsResponseExtended book_snapshot_spot_calback_handler =
+        book_snapshot_spot_callback_handler_binance.GetCallback();
+    OnHttpsResponseExtended book_snapshot_futures_calback_handler =
+        book_snapsot_futures_callback_handler_binance.GetCallback();
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
-        book_snapshot_component_binance.RegisterCallback(
-            trading_pair, &book_snapshot_calback_handler);
+        book_snapshot_spot_component_binance.RegisterCallback(
+            trading_pair, &book_snapshot_spot_calback_handler);
+        book_snapshot_futures_component_binance.RegisterCallback(
+            trading_pair, &book_snapshot_futures_calback_handler);
     }
 
     // Define the maximum number of responses to process in Bybit's book event
@@ -202,10 +228,15 @@ int main(int argc, char** argv) {
     binance::BookEventGetterComponent<
         boost::asio::thread_pool,
         binance::detail::FamilyBookEventGetter::ArgsBody>
-        book_event_getter_binance(thread_pool, kNumberResponses, pairs_binance,
-                                  &session_pool_binance,
-                                  common::ExchangeId::kBinance);
-
+        book_event_component_spot_binance(
+            thread_pool, kNumberResponses, pairs_binance,
+            &session_pool_spot_binance, common::ExchangeId::kBinance);
+    binance::BookEventGetterComponent<
+        boost::asio::thread_pool,
+        binance::detail::FamilyBookEventGetter::ArgsBody>
+        book_event_component_futures_binance(
+            thread_pool, kNumberResponses, pairs_binance,
+            &session_pool_futures_binance, common::ExchangeId::kBinance);
     // Initialize Bybit's bid-ask generator component with event bus and limits
     // for updates
     bybit::BidAskGeneratorComponent bid_ask_generator_bybit(thread_pool, bus,
@@ -216,9 +247,12 @@ int main(int argc, char** argv) {
         thread_pool, bus, 100, 1000, 10000);
     // Initialize Binance's bid-ask generator component with event bus and
     // limits for updates
-    binance::BidAskGeneratorComponent bid_ask_generator_binance(
-        thread_pool, bus, 100, 1000, 10000);
-
+    binance::BidAskGeneratorComponent<boost::asio::thread_pool,
+                                      binance::SpotPolicy>
+        bid_ask_generator_spot_binance(thread_pool, bus, 100, 1000, 10000);
+    binance::BidAskGeneratorComponent<boost::asio::thread_pool,
+                                      binance::FuturesPolicy>
+        bid_ask_generator_futures_binance(thread_pool, bus, 100, 1000, 10000);
     // Create a response handler for Bybit WebSocket messages, connecting it to
     // components
     bybit::OrderBookWebSocketResponseHandler<
@@ -236,10 +270,13 @@ int main(int argc, char** argv) {
     // Create a response handler for Binance WebSocket messages, connecting it
     // to components
     binance::BookEventGetterComponentCallbackHandler
-        book_event_componnent_callback_handler_binance(
-            book_event_getter_binance, bid_ask_generator_binance, bus,
-            parser_manager_binance);
-
+        book_event_componnent_callback_handler_spot_binance(
+            book_event_component_spot_binance, bid_ask_generator_spot_binance,
+            bus, parser_manager_binance);
+    binance::BookEventGetterComponentCallbackHandler
+        book_event_componnent_callback_handler_futures_binance(
+            book_event_component_futures_binance,
+            bid_ask_generator_futures_binance, bus, parser_manager_binance);
     // Define a callback to handle WebSocket responses using the response
     // handler
     OnWssFBTradingPair wss_cb = [&order_book_wb_socket_response_handler](
@@ -257,11 +294,17 @@ int main(int argc, char** argv) {
         };
     // Define a callback to handle WebSocket responses using the response
     // handler
-    OnWssFBTradingPair wss_cb_binance =
-        [&book_event_componnent_callback_handler_binance](
+    OnWssFBTradingPair wss_cb_spot_binance =
+        [&book_event_componnent_callback_handler_spot_binance](
             boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
-            book_event_componnent_callback_handler_binance.HandleResponse(
+            book_event_componnent_callback_handler_spot_binance.HandleResponse(
                 fb, trading_pair);
+        };
+    OnWssFBTradingPair wss_cb_futures_binance =
+        [&book_event_componnent_callback_handler_futures_binance](
+            boost::beast::flat_buffer& fb, common::TradingPair trading_pair) {
+            book_event_componnent_callback_handler_futures_binance
+                .HandleResponse(fb, trading_pair);
         };
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair
     // ID: 1)
@@ -273,8 +316,10 @@ int main(int argc, char** argv) {
     // Register the callback for the trading pair (Exchange ID: 2, Trading Pair
     // ID: 1)
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
-        book_event_getter_binance.RegisterCallback(trading_pair,
-                                                   &wss_cb_binance);
+        book_event_component_spot_binance.RegisterCallback(
+            trading_pair, &wss_cb_spot_binance);
+        book_event_component_futures_binance.RegisterCallback(
+            trading_pair, &wss_cb_futures_binance);
     }
 
     // // Register all callbacks for the bid-ask generator. process each murket
@@ -287,12 +332,15 @@ int main(int argc, char** argv) {
     // Register all callbacks for the bid-ask generator. process batched from
     // excgange
     binance::BidAskGeneratorCallbackBatchHandler
-        bid_ask_generator_callback_handler_binance(bus,
-                                                   bid_ask_generator_binance);
+        bid_ask_generator_spot_callback_handler_binance(
+            bus, bid_ask_generator_spot_binance);
+    binance::BidAskGeneratorCallbackBatchHandler
+        bid_ask_generator_futures_callback_handler_binance(
+            bus, bid_ask_generator_futures_binance);
     // --------------------------Order Book
     // Component-------------------------------- Initialize the spot order book
     // component with its own strand and event bus
-    Trading::OrderBookComponent order_book_component(
+    Trading::OrderBookComponent order_book_spot_component(
         boost::asio::make_strand(thread_pool), bus, 1000,
         common::MarketType::kSpot);
     // Initialize the spot order book component with its own strand and event
@@ -302,14 +350,16 @@ int main(int argc, char** argv) {
         common::MarketType::kFutures);
     // Add an order book for Bybit's BTC/USDT trading pair
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_bybit) {
-        order_book_component.AddOrderBook(common::ExchangeId::kBybit,
-                                          trading_pair);
+        order_book_spot_component.AddOrderBook(common::ExchangeId::kBybit,
+                                               trading_pair);
         order_book_futures_component.AddOrderBook(common::ExchangeId::kBybit,
                                                   trading_pair);
     }
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
-        order_book_component.AddOrderBook(common::ExchangeId::kBinance,
-                                          trading_pair);
+        order_book_spot_component.AddOrderBook(common::ExchangeId::kBinance,
+                                               trading_pair);
+        order_book_futures_component.AddOrderBook(common::ExchangeId::kBinance,
+                                                  trading_pair);
     }
 
     std::string_view brokers =
@@ -367,11 +417,11 @@ int main(int argc, char** argv) {
     red_panda_component.AsyncHandleEvent(trade_dictionary);
     nlohmann::json j;
     auto unique_items = trade_dictionary.GetUniqueCycles();
-    for (auto& it : unique_items) {
-        nlohmann::json j;
-        it.SerializeToJson(j);
-        logi("{}", j.dump(4));
-    }
+    // for (auto& it : unique_items) {
+    //     nlohmann::json j;
+    //     it.SerializeToJson(j);
+    //     logi("{}", j.dump(4));
+    // }
     // ----------------------Register Connections Between
     // Components----------------- Establish bidirectional communication between
     // the bid-ask generator and book event getter This allows the bid-ask
@@ -388,19 +438,38 @@ int main(int argc, char** argv) {
     // Establish bidirectional communication between the bid-ask generator and
     // book snapshot component for Binance The bid-ask generator communicates
     // with the snapshot component to exchange bid-ask and snapshot updates.
-    bus.Subscribe(&bid_ask_generator_binance, &book_snapshot_component_binance);
-    bus.Subscribe(&book_snapshot_component_binance, &bid_ask_generator_binance);
+    // for spot beg--------------------
+    bus.Subscribe(&bid_ask_generator_spot_binance,
+                  &book_snapshot_spot_component_binance);
+    bus.Subscribe(&book_snapshot_spot_component_binance,
+                  &bid_ask_generator_spot_binance);
 
     // Establish bidirectional communication between the bid-ask generator and
     // book event getter for Binance This ensures the bid-ask generator and book
     // event getter work together for real-time event updates.
-    bus.Subscribe(&bid_ask_generator_binance, &book_event_getter_binance);
-    bus.Subscribe(&book_event_getter_binance, &bid_ask_generator_binance);
+    bus.Subscribe(&bid_ask_generator_spot_binance,
+                  &book_event_component_spot_binance);
+    bus.Subscribe(&book_event_component_spot_binance,
+                  &bid_ask_generator_spot_binance);
+    // for spot end--------------------
+    // for fut beg--------------------
+    bus.Subscribe(&bid_ask_generator_futures_binance,
+                  &book_snapshot_futures_component_binance);
+    bus.Subscribe(&book_snapshot_futures_component_binance,
+                  &bid_ask_generator_futures_binance);
 
-    // Subscribe the order book component to updates from the bid-ask generator
-    // for Bybit This allows the order book component to receive bid-ask updates
-    // directly from the generator.
-    bus.Subscribe(&bid_ask_generator_bybit, &order_book_component);
+    // Establish bidirectional communication between the bid-ask generator and
+    // book event getter for Binance This ensures the bid-ask generator and book
+    // event getter work together for real-time event updates.
+    bus.Subscribe(&bid_ask_generator_futures_binance,
+                  &book_event_component_futures_binance);
+    bus.Subscribe(&book_event_component_futures_binance,
+                  &bid_ask_generator_futures_binance);
+    // for fut end--------------------
+    //  Subscribe the order book component to updates from the bid-ask generator
+    //  for Bybit This allows the order book component to receive bid-ask
+    //  updates directly from the generator.
+    bus.Subscribe(&bid_ask_generator_bybit, &order_book_spot_component);
     // Subscribe the order book component to updates from the bid-ask generator
     // for Bybit This allows the order book component to receive bid-ask updates
     // directly from the generator.
@@ -409,12 +478,13 @@ int main(int argc, char** argv) {
     // Subscribe the order book component to updates from the bid-ask generator
     // for Binance The order book component processes bid-ask data generated for
     // Binance.
-    bus.Subscribe(&bid_ask_generator_binance, &order_book_component);
-
+    bus.Subscribe(&bid_ask_generator_spot_binance, &order_book_spot_component);
+    bus.Subscribe(&bid_ask_generator_futures_binance,
+                  &order_book_futures_component);
     // Subscribe the Red Panda component to updates from the order book
     // component The order book component forwards processed data to Red Panda
     // for further usage or logging.
-    bus.Subscribe(&order_book_component, &red_panda_component);
+    bus.Subscribe(&order_book_spot_component, &red_panda_component);
     // Subscribe the Red Panda component to updates from the order book
     // component The order book component forwards processed data to Red Panda
     // for further usage or logging.
@@ -422,7 +492,9 @@ int main(int argc, char** argv) {
     // Subscribe the ArbitrageStrategyComponent to updates from the order book
     // component The order book component forwards processed data to
     // ArbitrageStrategyComponent for further usage or logging.
-    bus.Subscribe(&order_book_component, &arbitrage_strategy_component);
+    bus.Subscribe(&order_book_spot_component, &arbitrage_strategy_component);
+    bus.Subscribe(&order_book_futures_component, &arbitrage_strategy_component);
+
     bus.Subscribe(&arbitrage_strategy_component, &red_panda_component);
 
     //
@@ -441,12 +513,14 @@ int main(int argc, char** argv) {
     }
     for (const auto& [ignored1, ignored2, trading_pair] : pairs_binance) {
         auto* request_bbo = request_bbo_pool.Allocate(
-            &request_bbo_pool, common::ExchangeId::kBinance, trading_pair, 1000,
+            &request_bbo_pool, common::ExchangeId::kBinance, trading_pair, 100,
             true, id_request);
         auto intr_bus_request_sub =
             boost::intrusive_ptr<BusEventRequestBBOPrice>(request_bbo);
         logi("[bid ask generator] binance start subscribe to {}", trading_pair);
-        bid_ask_generator_binance.AsyncHandleEvent(intr_bus_request_sub);
+        bid_ask_generator_spot_binance.AsyncHandleEvent(intr_bus_request_sub);
+        bid_ask_generator_futures_binance.AsyncHandleEvent(
+            intr_bus_request_sub);
         id_request++;
     }
 

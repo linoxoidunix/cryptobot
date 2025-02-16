@@ -221,6 +221,13 @@ class ArbitrageStrategyComponent : public bus::Component {
             trade_state.transaction_states[step_hasher(step)] = {
                 step.exchange_id, step.trading_pair, step.operation};
         }
+        // Trading::BBO empty_bbo;
+        // for (auto& step : cycle){
+        //     auto key = common::HashCombined(wrapped_event->exchange_id,
+        //                                     wrapped_event->market_type,
+        //                                     wrapped_event->trading_pair);
+        //     AddOrUpdateBBO(key, wrapped_event->bbo);
+        // }
     }
     void AsyncHandleEvent(
         boost::intrusive_ptr<Trading::BusEventNewBBO> event) override {
@@ -283,13 +290,16 @@ class ArbitrageStrategyComponent : public bus::Component {
             auto key = common::HashCombined(step.exchange_id, step.market_type,
                                             step.trading_pair);
             if (!exchange_bbo_map_.contains(key)) {
+                // The BBO for this exchange, trading pair, market_type has not
+                // yet been received from the OrderBook, so we skip the
+                // arbitrage opportunity evaluation at this moment.
                 logw(
                     "[{}] exchange_bbo_map_ doesn't contain hashed key: "
                     "{}. "
                     "skip process step in arbitrage cycle",
                     ArbitrageStrategyComponent<ThreadPool>::name_component_,
                     key);
-                continue;
+                return;
             }
             if (step.operation == aot::Operation::kBuy) {
                 open_buy_price  = exchange_bbo_map_[key].ask_price;

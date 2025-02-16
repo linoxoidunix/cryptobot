@@ -102,15 +102,17 @@ class Endpoint {
  * This struct represents the combination of exchange, network, and protocol.
  */
 struct EndpointKey {
-    common::ExchangeId exchange;  ///< The exchange identifier
-    Network network;              ///< The network type (mainnet or testnet)
-    Protocol protocol;            ///< The protocol (HTTPS or WebSocket)
+    common::ExchangeId exchange;     ///< The exchange identifier
+    Network network;                 ///< The network type (mainnet or testnet)
+    common::MarketType market_type;  ///< The
+    Protocol protocol;               ///< The protocol (HTTPS or WebSocket)
 
     /**
      * Equality operator to compare EndpointKey objects.
      */
     constexpr bool operator==(const EndpointKey &other) const {
         return exchange == other.exchange && network == other.network &&
+                   market_type == other.market_type,
                protocol == other.protocol;
     }
 };
@@ -128,7 +130,8 @@ struct EndpointKeyHash {
     std::size_t operator()(const EndpointKey &key) const {
         return std::hash<int>()(static_cast<int>(key.exchange)) ^
                (std::hash<int>()(static_cast<int>(key.network)) << 1) ^
-               (std::hash<int>()(static_cast<int>(key.protocol)) << 2);
+               (std::hash<int>()(static_cast<int>(key.market_type)) << 2) ^
+               (std::hash<int>()(static_cast<int>(key.protocol)) << 3);
     }
 };
 
@@ -147,8 +150,9 @@ class EndpointManager {
      * @throws std::runtime_error If the endpoint is not found.
      */
     std::optional<std::reference_wrapper<const Endpoint>> GetEndpoint(
-        common::ExchangeId exchange, Network network, Protocol protocol) const {
-        EndpointKey key{exchange, network, protocol};
+        common::ExchangeId exchange, Network network,
+        common::MarketType market_type, Protocol protocol) const {
+        EndpointKey key{exchange, network, market_type, protocol};
         auto it = endpoints_.find(key);
         if (it != endpoints_.end()) {
             return it->second;  // Return reference to the found Endpoint
@@ -160,23 +164,63 @@ class EndpointManager {
     // The unordered_map that stores the endpoints with keys of type
     // EndpointKey.
     std::unordered_map<EndpointKey, Endpoint, EndpointKeyHash> endpoints_{
-        // Initializing the endpoints with exchange configurations
-        {{common::ExchangeId::kBinance, Network::kMainnet, Protocol::kHTTPS},
+        // Binance Mainnet
+        {{common::ExchangeId::kBinance, Network::kMainnet,
+          common::MarketType::kSpot, Protocol::kHTTPS},
          {"api.binance.com", 443, 5000, 60000}},
-        {{common::ExchangeId::kBinance, Network::kMainnet, Protocol::kWS},
+        {{common::ExchangeId::kBinance, Network::kMainnet,
+          common::MarketType::kSpot, Protocol::kWS},
          {"stream.binance.com", 9443, 5000, 60000}},
-        {{common::ExchangeId::kBinance, Network::kTestnet, Protocol::kHTTPS},
-         {"testnet.binance.vision", 443, 5000, 60000}},  // recv_window = 60000
-        {{common::ExchangeId::kBinance, Network::kTestnet, Protocol::kWS},
+        {{common::ExchangeId::kBinance, Network::kMainnet,
+          common::MarketType::kFutures, Protocol::kHTTPS},
+         {"fapi.binance.com", 443, 5000, 60000}},  // Binance Futures
+        {{common::ExchangeId::kBinance, Network::kMainnet,
+          common::MarketType::kFutures, Protocol::kWS},
+         {"fstream.binance.com", 443, 5000, 60000}},
+
+        // Binance Testnet
+        {{common::ExchangeId::kBinance, Network::kTestnet,
+          common::MarketType::kSpot, Protocol::kHTTPS},
+         {"testnet.binance.vision", 443, 5000, 60000}},
+        {{common::ExchangeId::kBinance, Network::kTestnet,
+          common::MarketType::kSpot, Protocol::kWS},
          {"testnet.binance.vision", 9443, 5000, 60000}},
-        {{common::ExchangeId::kBybit, Network::kMainnet, Protocol::kHTTPS},
-         {"api.bybit.com", 9443, 5000, 100}},
-        {{common::ExchangeId::kBybit, Network::kMainnet, Protocol::kWS},
+        {{common::ExchangeId::kBinance, Network::kTestnet,
+          common::MarketType::kFutures, Protocol::kHTTPS},
+         {"testnet.binancefuture.com", 443, 5000,
+          60000}},  // Binance Futures Testnet
+        {{common::ExchangeId::kBinance, Network::kTestnet,
+          common::MarketType::kFutures, Protocol::kWS},
+         {"testnet.binancefuture.com", 9443, 5000, 60000}},
+
+        // Bybit Mainnet
+        {{common::ExchangeId::kBybit, Network::kMainnet,
+          common::MarketType::kSpot, Protocol::kHTTPS},
          {"api.bybit.com", 443, 5000, 100}},
-        {{common::ExchangeId::kBybit, Network::kTestnet, Protocol::kHTTPS},
-         {"api-testnet.bybit.com", 443, 5000, 60000}},  // recv_window = 60000
-        {{common::ExchangeId::kBybit, Network::kTestnet, Protocol::kWS},
-         {"api-testnet.bybit.com", 443, 5000, 60000}}};
+        {{common::ExchangeId::kBybit, Network::kMainnet,
+          common::MarketType::kSpot, Protocol::kWS},
+         {"stream.bybit.com", 9443, 5000, 100}},  // WebSocket для Spot
+        {{common::ExchangeId::kBybit, Network::kMainnet,
+          common::MarketType::kFutures, Protocol::kHTTPS},
+         {"api.bybit.com", 443, 5000, 100}},  // Futures API
+        {{common::ExchangeId::kBybit, Network::kMainnet,
+          common::MarketType::kFutures, Protocol::kWS},
+         {"stream.bybit.com", 9443, 5000, 100}},  // WebSocket для Futures
+
+        // Bybit Testnet
+        {{common::ExchangeId::kBybit, Network::kTestnet,
+          common::MarketType::kSpot, Protocol::kHTTPS},
+         {"api-testnet.bybit.com", 443, 5000, 60000}},
+        {{common::ExchangeId::kBybit, Network::kTestnet,
+          common::MarketType::kSpot, Protocol::kWS},
+         {"stream-testnet.bybit.com", 9443, 5000, 60000}},  // Testnet Spot WS
+        {{common::ExchangeId::kBybit, Network::kTestnet,
+          common::MarketType::kFutures, Protocol::kHTTPS},
+         {"api-testnet.bybit.com", 443, 5000, 60000}},  // Testnet Futures API
+        {{common::ExchangeId::kBybit, Network::kTestnet,
+          common::MarketType::kFutures, Protocol::kWS},
+         {"stream-testnet.bybit.com", 9443, 5000, 60000}}  // Testnet Futures WS
+    };
 };
 
 enum class TypeExchange { TESTNET, MAINNET };
@@ -192,7 +236,7 @@ enum class ResponseType {
     kErrorResponse,     ///< Represents an error response.
     kNonQueryResponse,  ///< Represents a success response for non-query
                         ///< requests (e.g., subscribing/unsubscribing).
-    kUnknown  ///< Represents an unknown response type.
+    kUnknown            ///< Represents an unknown response type.
 };
 namespace https {
 class ExchangeI {
@@ -549,21 +593,22 @@ class BookEventGetterI {
 template <typename ThreadPool, typename ArgsBodyType>
 class BookEventGetter3 : public inner::BookEventGetterI {
     using CallbackMap =
-        std::unordered_map<common::TradingPair, const OnWssFBTradingPair*,
+        std::unordered_map<common::TradingPair, const OnWssFBTradingPair *,
                            common::TradingPairHash, common::TradingPairEqual>;
     using CloseSessionCallbackMap =
-        std::unordered_map<common::TradingPair, const OnCloseSession*,
+        std::unordered_map<common::TradingPair, const OnCloseSession *,
                            common::TradingPairHash, common::TradingPairEqual>;
 
-    ::V2::ConnectionPool<WSSesionType3, const std::string_view&>* session_pool_;
-    common::TradingPairHashMap& pairs_;
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view &>
+        *session_pool_;
+    common::TradingPairHashMap &pairs_;
     common::ExchangeId exchange_id_;
     CallbackMap callback_map_;
     CloseSessionCallbackMap callback_on_close_session_map_;
-    std::atomic<WSSesionType3*> active_session_{nullptr};
+    std::atomic<WSSesionType3 *> active_session_{nullptr};
 
   protected:
-    ThreadPool& thread_pool_;
+    ThreadPool &thread_pool_;
     boost::asio::strand<typename ThreadPool::executor_type> strand_;
 
   public:
@@ -577,10 +622,10 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @param pairs Reference to the trading pair hash map.
      */
     BookEventGetter3(
-        ThreadPool& thread_pool,
-        ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
-            session_pool,
-        common::TradingPairHashMap& pairs, common::ExchangeId exchange_id)
+        ThreadPool &thread_pool,
+        ::V2::ConnectionPool<WSSesionType3, const std::string_view &>
+            *session_pool,
+        common::TradingPairHashMap &pairs, common::ExchangeId exchange_id)
         : strand_(boost::asio::make_strand(thread_pool)),
           session_pool_(session_pool),
           pairs_(pairs),
@@ -605,10 +650,11 @@ class BookEventGetter3 : public inner::BookEventGetterI {
                 "session_pool",
                 BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
                 exchange_id_);
-                co_return;
+            co_return;
         }
         logi("[{}] {} request diff order book",
-             BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+             BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+             exchange_id_);
         boost::asio::co_spawn(
             strand_, HandleBookEvent(bus_event_request_diff_order_book),
             boost::asio::detached);
@@ -621,7 +667,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @param callback Pointer to the callback function.
      */
     void RegisterCallback(common::TradingPair trading_pair,
-                          const OnWssFBTradingPair* callback) {
+                          const OnWssFBTradingPair *callback) {
         callback_map_[trading_pair] = callback;
     }
     /**
@@ -632,7 +678,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @param callback Pointer to the close session callback function.
      */
     void RegisterCallbackOnCloseSession(common::TradingPair trading_pair,
-                                        const OnCloseSession* callback) {
+                                        const OnCloseSession *callback) {
         callback_on_close_session_map_[trading_pair] = callback;
     }
 
@@ -643,7 +689,9 @@ class BookEventGetter3 : public inner::BookEventGetterI {
         if (auto session = active_session_.load()) {
             session->AsyncCloseSessionGracefully();
         } else {
-            logw("[{}] {} No active session to stop", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+            logw("[{}] {} No active session to stop",
+                 BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                 exchange_id_);
         }
     }
 
@@ -657,19 +705,21 @@ class BookEventGetter3 : public inner::BookEventGetterI {
     boost::asio::awaitable<void> HandleBookEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook>
             bus_event_request_diff_order_book) {
-        auto* wrapped_event = bus_event_request_diff_order_book->WrappedEvent();
+        auto *wrapped_event = bus_event_request_diff_order_book->WrappedEvent();
         if (!wrapped_event) {
-            loge("[{}] {} Wrapped event is null", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+            loge("[{}] {} Wrapped event is null",
+                 BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                 exchange_id_);
             co_return;
         }
 
-        auto& trading_pair = wrapped_event->trading_pair;
-        logi("[{}] {} start send request to exchange for {}", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_,
-             trading_pair.ToString());
-        ArgsBodyType args(
-            bus_event_request_diff_order_book->WrappedEvent(), pairs_);
+        auto &trading_pair = wrapped_event->trading_pair;
+        ArgsBodyType args(bus_event_request_diff_order_book->WrappedEvent(),
+                          pairs_);
         auto req = args.Body();
-
+        logi("[{}] {} start send request:{} to exchange for {}",
+             BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+             exchange_id_, req, trading_pair.ToString());
         if (!active_session_
                  .load()) {  // Check if active session is not already acquired
             AcquireActiveSession();
@@ -677,15 +727,21 @@ class BookEventGetter3 : public inner::BookEventGetterI {
                 co_return;
             }
         } else {
-            logd("[{}] {} Using existing active session", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+            logd("[{}] {} Using existing active session",
+                 BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                 exchange_id_);
             if (!RegisterCallbacksForTradingPair(trading_pair)) {
                 co_return;
             }
         }
-        logi("[{}] {} request to exchange: {}", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_, req);
+        logi("[{}] {} request to exchange: {}",
+             BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+             exchange_id_, req);
 
         co_await SendAsyncRequest(std::move(req));
-        logd("[{}] {} Finished sending event getter for binance request", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+        logd("[{}] {} Finished sending event getter for binance request",
+             BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+             exchange_id_);
     }
 
     /**
@@ -694,10 +750,12 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @return True if a session was successfully acquired, otherwise false.
      */
     void AcquireActiveSession() {
-        WSSesionType3* expected = nullptr;
+        WSSesionType3 *expected = nullptr;
         auto session            = session_pool_->AcquireConnection();
         if (active_session_.compare_exchange_strong(expected, session)) {
-            logd("[{}] {} Active session acquired", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_);
+            logd("[{}] {} Active session acquired",
+                 BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                 exchange_id_);
         }
     }
     /**
@@ -707,12 +765,15 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @return True if registration was successful, otherwise false.
      */
     bool RegisterCallbacksForTradingPair(
-        const common::TradingPair& trading_pair) {
+        const common::TradingPair &trading_pair) {
         if (auto callback = FindCallback(callback_map_, trading_pair)) {
             RegisterCallbackOnSession(callback, trading_pair);
         } else {
-            loge("[{}] {} No callback on response registered for trading pair: {}", BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_,
-                 trading_pair.ToString());
+            loge(
+                "[{}] {} No callback on response registered for trading pair: "
+                "{}",
+                BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                exchange_id_, trading_pair.ToString());
             return false;
         }
 
@@ -720,8 +781,11 @@ class BookEventGetter3 : public inner::BookEventGetterI {
                 FindCallback(callback_on_close_session_map_, trading_pair)) {
             RegisterCallbackOnSessionClose(callback);
         } else {
-            logw("[{}] {} No callback on close session registered for trading pair: {}",BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_, exchange_id_,
-                 trading_pair.ToString());
+            logw(
+                "[{}] {} No callback on close session registered for trading "
+                "pair: {}",
+                BookEventGetter3<ThreadPool, ArgsBodyType>::class_name_,
+                exchange_id_, trading_pair.ToString());
         }
 
         RegisterDefaultCallbackOnSessionClose();
@@ -737,7 +801,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      */
     template <typename MapType>
     typename MapType::mapped_type FindCallback(
-        const MapType& map, const common::TradingPair& trading_pair) const {
+        const MapType &map, const common::TradingPair &trading_pair) const {
         auto it = map.find(trading_pair);
         return it != map.end() ? it->second : nullptr;
     }
@@ -746,7 +810,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSession(const OnWssFBTradingPair* callback,
+    void RegisterCallbackOnSession(const OnWssFBTradingPair *callback,
                                    common::TradingPair trading_pair) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnResponse(*callback, trading_pair);
@@ -757,7 +821,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      *
      * @param callback The callback to register.
      */
-    void RegisterCallbackOnSessionClose(const OnCloseSession* callback) {
+    void RegisterCallbackOnSessionClose(const OnCloseSession *callback) {
         if (auto session = active_session_.load()) {
             session->RegisterCallbackOnCloseSession(*callback);
         }
@@ -780,7 +844,7 @@ class BookEventGetter3 : public inner::BookEventGetterI {
      * @param req The request to send.
      * @return True if the request was sent successfully, otherwise false.
      */
-    boost::asio::awaitable<bool> SendAsyncRequest(auto&& req) {
+    boost::asio::awaitable<bool> SendAsyncRequest(auto &&req) {
         if (auto session = active_session_.load()) {
             session->AsyncWrite(std::move(req));
         }
@@ -796,8 +860,6 @@ class BookEventGetter3 : public inner::BookEventGetterI {
 };
 
 };  // namespace inner
-
-
 
 struct BidAskState {
     bool need_make_snapshot = true;  // Tracks if this is the first run
@@ -818,18 +880,10 @@ struct BidAskState {
     }
 };
 
-
-
 using NewLimitOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::OrderNewI *>;
 using CancelOrderExecutors =
     std::unordered_map<common::ExchangeId, inner::CancelOrderI *>;
-
-
-
-
-
-
 
 struct BusEventRequestBBOPrice;
 using BusEventRequestBBOPricePool = common::MemoryPool<BusEventRequestBBOPrice>;
@@ -839,28 +893,29 @@ using BusEventRequestBBOPricePool = common::MemoryPool<BusEventRequestBBOPrice>;
  * for given Exchange you need launch this signal
  *
  */
-struct BusEventRequestBBOPrice : 
-    public bus::Event2<BusEventRequestBBOPricePool> {
+struct BusEventRequestBBOPrice
+    : public bus::Event2<BusEventRequestBBOPricePool> {
     common::ExchangeId exchange_id = common::kExchangeIdInvalid;
     common::TradingPair trading_pair;
     unsigned int snapshot_depth = 1000;
     bool subscribe              = true;
     // id request
     std::variant<std::string, long int, long unsigned int> id;
-    explicit BusEventRequestBBOPrice() : bus::Event2<BusEventRequestBBOPricePool>(nullptr) {}
+    explicit BusEventRequestBBOPrice()
+        : bus::Event2<BusEventRequestBBOPricePool>(nullptr) {}
     explicit BusEventRequestBBOPrice(
         BusEventRequestBBOPricePool *mem_pool, common::ExchangeId _exchange_id,
         common::TradingPair _trading_pair, unsigned int _snapshot_depth,
         bool _subscribe,
         std::variant<std::string, long int, long unsigned int> _id)
         : bus::Event2<BusEventRequestBBOPricePool>(mem_pool),
-            exchange_id(_exchange_id),
+          exchange_id(_exchange_id),
           trading_pair(_trading_pair),
           snapshot_depth(_snapshot_depth),
           subscribe(_subscribe),
           id(_id) {}
 
-    friend void intrusive_ptr_release(BusEventRequestBBOPrice* ptr) {
+    friend void intrusive_ptr_release(BusEventRequestBBOPrice *ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
@@ -868,12 +923,10 @@ struct BusEventRequestBBOPrice :
             }
         }
     }
-    friend void intrusive_ptr_add_ref(BusEventRequestBBOPrice* ptr) {
+    friend void intrusive_ptr_add_ref(BusEventRequestBBOPrice *ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 };
-
-
 
 // class HttpsConnectionPoolFactory {
 //   public:
@@ -888,7 +941,7 @@ class HttpsConnectionPoolFactory2 {
     virtual ~HttpsConnectionPoolFactory2() = default;
     virtual V2::ConnectionPool<HTTPSesionType3> *Create(
         boost::asio::io_context &io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, Network network,
+        std::size_t pool_size, Network network, common::MarketType market_type,
         const EndpointManager &endpoint_manager) = 0;
 };
 
