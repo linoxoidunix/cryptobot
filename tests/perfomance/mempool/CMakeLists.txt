@@ -13,6 +13,7 @@ add_executable (${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+aot
 benchmark::benchmark
 OpenSSL::SSL
 OpenSSL::Crypto
