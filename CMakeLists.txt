@@ -251,11 +251,13 @@ target_include_directories(
     PRIVATE
         ${Boost_INCLUDE_DIRS}
         ${CMAKE_BINARY_DIR}/generated # Используется только во время сборки
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}  # Папка с сгенерированными .pb.h файлами
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+        # $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated> # Для сборки
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Доступ к .pb.h при сборке
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # Доступ к aot
         $<INSTALL_INTERFACE:include> # Для установки
 )
 
