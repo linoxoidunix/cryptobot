@@ -245,40 +245,39 @@ add_library (${PROJECT_NAME}
 
 # file(GLOB_RECURSE PROTO_FILES "${PROTO_DIR}/*.proto")
 
+# Include directories
 target_include_directories(
     ${PROJECT_NAME}
-    ${BOOST_BEAST_FILES}
     PRIVATE
-    ${Boost_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
+        ${CMAKE_BINARY_DIR}/generated # Используется только во время сборки
+        ${CMAKE_CURRENT_BINARY_DIR}  # Папка с сгенерированными .pb.h файлами
     PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}
-    PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
-           $<INSTALL_INTERFACE:include>
-           ${CMAKE_BINARY_DIR}
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/generated> # Для сборки
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # Доступ к .pb.h при сборке
+        $<INSTALL_INTERFACE:include> # Для установки
 )
 
+
+# Link libraries
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-    #boost_coroutine
-    #boost_chrono
-    #boost_thread
-    #boost_system
-    OpenSSL::SSL OpenSSL::Crypto
-    magic_enum
-    ${Boost_LIBRARIES}
-    simdjson::simdjson
-    nlohmann_json::nlohmann_json
-    Python::Python
-    concurrentqueue
-    unordered_dense::unordered_dense
-    prometheus-cpp::core 
-    prometheus-cpp::util 
-    prometheus-cpp::civetweb 
-    prometheus-cpp::pull
-    absl::base
-    re2::re2
-    tomlplusplus::tomlplusplus
-    protobuf
+        OpenSSL::SSL OpenSSL::Crypto
+        magic_enum
+        simdjson::simdjson
+        nlohmann_json::nlohmann_json
+        Python::Python
+        concurrentqueue
+        unordered_dense::unordered_dense
+        prometheus-cpp::core 
+        prometheus-cpp::util 
+        prometheus-cpp::civetweb 
+        prometheus-cpp::pull
+        absl::base
+        re2::re2
+        tomlplusplus::tomlplusplus
+        protobuf
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
@@ -300,6 +299,19 @@ add_subdirectory(sandbox_algo)
 #    message(STATUS "Tests will not be built in ${CMAKE_BUILD_TYPE} mode")
 #endif()
 
+# Installation rules
+install(TARGETS ${PROJECT_NAME} magic_enum nlohmann_json unordered_dense tomlplusplus_tomlplusplus
+    EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
 
+install(DIRECTORY aot/ DESTINATION include)
+install(FILES ${PROTO_HDRS} DESTINATION include/generated)
 
-
+install(EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Config.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION lib/cmake/${PROJECT_NAME}
+)
