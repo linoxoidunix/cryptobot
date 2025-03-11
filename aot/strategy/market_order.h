@@ -5,20 +5,19 @@
 #include <sstream>
 #include <vector>
 
+#include "aot/Logger.h"
+#include "aot/bus/bus_event.h"
+#include "aot/common/mem_pool.h"
+#include "aot/common/types.h"
+#include "aot/third_party/emhash/hash_table7.hpp"
 #include "boost/intrusive/avltree.hpp"
 
-#include "aot/common/types.h"
-#include "aot/common/mem_pool.h"
-#include "aot/Logger.h"
-#include "aot/third_party/emhash/hash_table7.hpp"
-#include "aot/bus/bus_event.h"
-
 namespace bus {
-    class Component;
+class Component;
 }
 struct BBOI {
     virtual common::Price GetWeightedPrice() const = 0;
-    virtual ~BBOI() = default;
+    virtual ~BBOI()                                = default;
 };
 
 namespace Trading {
@@ -134,10 +133,11 @@ struct BBO : BBOI {
     common::Price GetWeightedPrice() const override {
         if (bid_qty + ask_qty == 0) [[unlikely]]
             return common::kPriceInvalid;
-        return std::round(1.0*(bid_price * bid_qty + ask_price * ask_qty) / (bid_qty + ask_qty));
+        return std::round(1.0 * (bid_price * bid_qty + ask_price * ask_qty) /
+                          (bid_qty + ask_qty));
     };
 
-    explicit BBO() = default;
+    explicit BBO()  = default;
     ~BBO() override = default;
 };
 
@@ -154,47 +154,42 @@ struct NewBBO : public aot::Event<NewBBOPool> {
     common::MarketType market_type = common::MarketType::kInvalid;
     NewBBO() : aot::Event<NewBBOPool>(nullptr) {};
 
-    NewBBO(NewBBOPool* mem_pool,
-                      common::ExchangeId _exchange_id,
-                      common::TradingPair _trading_pair,
-                      const Trading::BBO& _bbo,
-                      common::MarketType _market_type)
+    NewBBO(NewBBOPool *mem_pool, common::ExchangeId _exchange_id,
+           common::TradingPair _trading_pair, const Trading::BBO &_bbo,
+           common::MarketType _market_type)
         : aot::Event<NewBBOPool>(mem_pool),
           exchange_id(_exchange_id),
           trading_pair(_trading_pair),
           bbo(_bbo),
-          market_type(_market_type){}
+          market_type(_market_type) {}
     auto ToString() const {
-        return fmt::format("NewBBO[{} {} {}]",
-                           exchange_id, trading_pair.ToString(), market_type);
+        return fmt::format("NewBBO[{} {} {}]", exchange_id,
+                           trading_pair.ToString(), market_type);
     };
-    friend void intrusive_ptr_release(Trading::NewBBO* ptr) {
+    friend void intrusive_ptr_release(Trading::NewBBO *ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(Trading::NewBBO* ptr) {
+    friend void intrusive_ptr_add_ref(Trading::NewBBO *ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 };
 
 struct BusEventNewBBO;
-using BusEventNewBBOPool =
-    common::MemoryPool<BusEventNewBBO>;
+using BusEventNewBBOPool = common::MemoryPool<BusEventNewBBO>;
 
-struct BusEventNewBBO
-    : public bus::Event2<BusEventNewBBOPool> {
-    explicit BusEventNewBBO(
-        BusEventNewBBOPool* mem_pool,
-        boost::intrusive_ptr<NewBBO> response)
+struct BusEventNewBBO : public bus::Event2<BusEventNewBBOPool> {
+    explicit BusEventNewBBO(BusEventNewBBOPool *mem_pool,
+                            boost::intrusive_ptr<NewBBO> response)
         : bus::Event2<BusEventNewBBOPool>(mem_pool),
           wrapped_event_(response) {};
     ~BusEventNewBBO() override = default;
-    void Accept(bus::Component* comp) override;
+    void Accept(bus::Component *comp) override;
 
-    NewBBO* WrappedEvent() {
+    NewBBO *WrappedEvent() {
         if (!wrapped_event_) return nullptr;
         return wrapped_event_.get();
     }
@@ -202,25 +197,28 @@ struct BusEventNewBBO
         return wrapped_event_;
     }
 
-    friend void intrusive_ptr_release(BusEventNewBBO* ptr) {
+    friend void intrusive_ptr_release(BusEventNewBBO *ptr) {
         if (ptr->ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
             if (ptr->memory_pool_) {
                 ptr->memory_pool_->Deallocate(ptr);  // Return to the pool
             }
         }
     }
-    friend void intrusive_ptr_add_ref(BusEventNewBBO* ptr) {
+    friend void intrusive_ptr_add_ref(BusEventNewBBO *ptr) {
         ptr->ref_count_.fetch_add(1, std::memory_order_relaxed);
     }
 
   private:
     boost::intrusive_ptr<NewBBO> wrapped_event_;
 };
+
+using ExchangeBBOMap = std::unordered_map<common::TradingPairId, Trading::BBO>;
+
 };  // namespace Trading
 
 namespace backtesting {
 
-struct BBO : BBOI{
+struct BBO : BBOI {
     common::Price price = common::kPriceInvalid;
     common::Qty qty     = common::kQtyInvalid;
 
@@ -231,8 +229,8 @@ struct BBO : BBOI{
 
         return ss.str();
     };
-    
-    common::Price GetWeightedPrice() const override {return price;};
+
+    common::Price GetWeightedPrice() const override { return price; };
 
     explicit BBO() = default;
 };

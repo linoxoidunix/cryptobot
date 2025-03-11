@@ -565,47 +565,62 @@ class HttpsSession2 {
 
 /**
  * @brief Template class for managing an asynchronous HTTPS session.
- * 
+ *
  * This class uses Boost.Beast and Boost.Asio to perform asynchronous HTTPS
  * operations, such as sending HTTP requests and receiving responses, with
  * support for cancellation and timeout management.
- * 
+ *
  * @tparam _Timeout Type representing the timeout duration.
  * @tparam AdditionalArgs Additional arguments for customization.
  */
 template <typename _Timeout, typename... AdditionalArgs>
 class HttpsSession3 {
   public:
-    using Timeout = _Timeout; ///< Type alias for the timeout duration.
+    using Timeout = _Timeout;  ///< Type alias for the timeout duration.
 
   private:
     // Static atomic counter for tracking the number of instances.
     static std::atomic<size_t> instance_count;
 
-    boost::beast::http::request<boost::beast::http::string_body> req_; ///< HTTP request object.
-    boost::beast::http::response<boost::beast::http::string_body> res_; ///< HTTP response object.
+    boost::beast::http::request<boost::beast::http::string_body>
+        req_;  ///< HTTP request object.
+    boost::beast::http::response<boost::beast::http::string_body>
+        res_;  ///< HTTP response object.
 
-    tcp::resolver resolver_; ///< Resolver for translating hostnames to endpoints.
-    beast::ssl_stream<beast::tcp_stream> stream_; ///< SSL/TLS stream for secure communication.
-    beast::flat_buffer buffer_; ///< Buffer for reading HTTP responses.
+    tcp::resolver
+        resolver_;  ///< Resolver for translating hostnames to endpoints.
+    beast::ssl_stream<beast::tcp_stream>
+        stream_;                 ///< SSL/TLS stream for secure communication.
+    beast::flat_buffer buffer_;  ///< Buffer for reading HTTP responses.
     boost::asio::strand<boost::asio::io_context::executor_type> strand_;
 
-    boost::asio::io_context& ioc_; ///< Reference to the I/O context.
-    Timeout timeout_; ///< Configured timeout duration.
-    boost::asio::steady_timer timer_; ///< Timer for managing timeouts.
+    boost::asio::io_context& ioc_;     ///< Reference to the I/O context.
+    Timeout timeout_;                  ///< Configured timeout duration.
+    boost::asio::steady_timer timer_;  ///< Timer for managing timeouts.
 
-    aot::StatusSession status_ = aot::StatusSession::Resolving; ///< Current session status.
-    boost::asio::cancellation_signal cancel_signal_; ///< Signal for handling cancellation requests.
+    aot::StatusSession status_ =
+        aot::StatusSession::Resolving;  ///< Current session status.
+    boost::asio::cancellation_signal
+        cancel_signal_;  ///< Signal for handling cancellation requests.
 
-    std::atomic<bool> need_execute_on_closed_system = true; ///< Indicates whether system callbacks should be executed.
-    moodycamel::ConcurrentQueue<http::request<http::string_body>> request_queue_;
+    std::atomic<bool> need_execute_on_closed_system =
+        true;  ///< Indicates whether system callbacks should be executed.
+    moodycamel::ConcurrentQueue<http::request<http::string_body>>
+        request_queue_;
     // Callback functions
-    std::function<void(boost::beast::http::response<boost::beast::http::string_body>&)> on_response_; ///< Callback for handling HTTP responses.
-    std::function<void()> on_ready_; ///< Callback for when the session is ready.
-    std::function<void()> on_expired_; ///< Callback for when the session times out.
-    std::function<void()> on_closed_system_; ///< Callback for when the session is closed by the system.
-    std::function<void()> on_closed_user_; ///< Callback for when the session is closed by the user.
+    std::function<void(
+        boost::beast::http::response<boost::beast::http::string_body>&)>
+        on_response_;  ///< Callback for handling HTTP responses.
+    std::function<void()>
+        on_ready_;  ///< Callback for when the session is ready.
+    std::function<void()>
+        on_expired_;  ///< Callback for when the session times out.
+    std::function<void()> on_closed_system_;  ///< Callback for when the session
+                                              ///< is closed by the system.
+    std::function<void()> on_closed_user_;    ///< Callback for when the session
+                                              ///< is closed by the user.
     bool is_processing_ = false;
+
   public:
     /**
      * @brief Destructor for the class.
@@ -618,7 +633,7 @@ class HttpsSession3 {
 
     /**
      * @brief Constructor to initialize the session.
-     * 
+     *
      * @param ioc The I/O context.
      * @param ctx The SSL context.
      * @param timeout The timeout duration.
@@ -651,11 +666,13 @@ class HttpsSession3 {
 
     /**
      * @brief Sends an asynchronous HTTP request.
-     * 
+     *
      * @param req The HTTP request object.
-     * @return net::awaitable<bool> True if the request was successful, otherwise false.
+     * @return net::awaitable<bool> True if the request was successful,
+     * otherwise false.
      */
-    // net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req) {
+    // net::awaitable<bool> AsyncRequest(http::request<http::string_body>&& req)
+    // {
     //     if (status_ != aot::StatusSession::Ready) co_return false;
     //     req_ = std::move(req);
 
@@ -688,7 +705,7 @@ class HttpsSession3 {
     //     }
     //     // Trigger the on_response_ callback if registered.
     //     if (on_response_) on_response_(res_);
-        
+
     //     CloseSessionFast();
     //     TransitionTo(aot::StatusSession::Closing);
     //     co_return true;
@@ -702,7 +719,7 @@ class HttpsSession3 {
                 is_processing_ = true;
                 StartProcessing();
                 logd("https3 end processing");
-            } else{
+            } else {
                 logd("http3 reject processing");
             }
         });
@@ -717,7 +734,7 @@ class HttpsSession3 {
 
     /**
      * @brief Retrieves the current status of the session.
-     * 
+     *
      * @return aot::StatusSession Current session status.
      */
     inline aot::StatusSession GetStatus() const { return status_; }
@@ -725,7 +742,7 @@ class HttpsSession3 {
     // Callback registration methods
     /**
      * @brief Registers a callback to handle HTTP responses.
-     * 
+     *
      * @param callback The response handling callback.
      */
     void RegisterOnResponse(
@@ -738,7 +755,7 @@ class HttpsSession3 {
 
     /**
      * @brief Registers a callback to be invoked when the session is ready.
-     * 
+     *
      * @param callback The ready callback.
      */
     void RegisterOnReady(std::function<void()> callback) {
@@ -750,7 +767,7 @@ class HttpsSession3 {
 
     /**
      * @brief Registers a callback to handle session expiration.
-     * 
+     *
      * @param callback The expiration handling callback.
      */
     void RegisterOnExpired(std::function<void()> callback) {
@@ -762,7 +779,7 @@ class HttpsSession3 {
 
     /**
      * @brief Registers a callback to handle system-initiated session closures.
-     * 
+     *
      * @param callback The system-closure handling callback.
      */
     void RegisterOnSystemClosed(std::function<void()> callback) {
@@ -774,7 +791,7 @@ class HttpsSession3 {
 
     /**
      * @brief Registers a callback to handle user-initiated session closures.
-     * 
+     *
      * @param callback The user-closure handling callback.
      */
     void RegisterOnUserClosed(std::function<void()> callback) {
@@ -785,7 +802,6 @@ class HttpsSession3 {
     void UnRegisterOnUserClosed() { on_closed_user_ = nullptr; }
 
   private:
-
     net::awaitable<void> RequestLoop() {
         logi("[https3] launch request loop");
         TransitionTo(aot::StatusSession::Ready);
@@ -798,21 +814,22 @@ class HttpsSession3 {
         // while (!request_queue_.size_approx()) {
         // Берем следующий запрос из очереди
         http::request<http::string_body> req;
-        request_queue_.try_dequeue(req);   
+        request_queue_.try_dequeue(req);
         try {
             // Отправляем запрос
             co_await http::async_write(stream_, req, net::use_awaitable);
 
             // Читаем ответ
-            co_await http::async_read(stream_, buffer_, res_, net::use_awaitable);
+            co_await http::async_read(stream_, buffer_, res_,
+                                      net::use_awaitable);
 
             // Обрабатываем ответ
-            //std::cout << "Response received: " << res_ << "\n";
+            // std::cout << "Response received: " << res_ << "\n";
         } catch (const std::exception& e) {
             std::cerr << "Request error: " << e.what() << "\n";
         }
         if (on_response_) on_response_(res_);
-    
+
         CloseSessionFast();
         TransitionTo(aot::StatusSession::Closing);
         is_processing_ = false;
@@ -822,16 +839,17 @@ class HttpsSession3 {
         // Когда очередь пуста, завершаем обработку
     }
     void StartProcessing() {
-        boost::asio::co_spawn(strand_, [this]() -> net::awaitable<void> {
-            co_await RequestLoop();
-        }, net::detached);
+        boost::asio::co_spawn(
+            strand_,
+            [this]() -> net::awaitable<void> { co_await RequestLoop(); },
+            net::detached);
     }
     /**
      * @brief Core coroutine to establish the session.
-     * 
-     * Resolves the host and port, establishes an SSL connection, and transitions
-     * the session to a ready state.
-     * 
+     *
+     * Resolves the host and port, establishes an SSL connection, and
+     * transitions the session to a ready state.
+     *
      * @param host The target host.
      * @param port The target port.
      * @return net::awaitable<void> Coroutine.
@@ -849,11 +867,13 @@ class HttpsSession3 {
 
         // Resolve the hostname to an endpoint.
         status_ = aot::StatusSession::Resolving;
-        auto results = co_await resolver_.async_resolve(host, port, net::use_awaitable);
+        auto results =
+            co_await resolver_.async_resolve(host, port, net::use_awaitable);
 
         // Connect to the resolved endpoint.
         status_ = aot::StatusSession::Connecting;
-        co_await beast::get_lowest_layer(stream_).async_connect(results, net::use_awaitable);
+        co_await beast::get_lowest_layer(stream_).async_connect(
+            results, net::use_awaitable);
 
         // Perform the SSL handshake.
         status_ = aot::StatusSession::Handshaking;
@@ -868,7 +888,6 @@ class HttpsSession3 {
 
         cancel_timer();
         co_spawn(strand_, RequestLoop(), net::detached);
-
     }
 
     /**
@@ -902,14 +921,15 @@ class HttpsSession3 {
     void CloseSessionFast() {
         logi("start close session fast");
         beast::error_code ec;
-        stream_.shutdown(ec); // Gracefully shut down the TLS session.
-        beast::get_lowest_layer(stream_).close(); // Close the underlying transport.
+        stream_.shutdown(ec);  // Gracefully shut down the TLS session.
+        beast::get_lowest_layer(stream_)
+            .close();  // Close the underlying transport.
         if (on_closed_user_) on_closed_user_();
     }
 
     /**
      * @brief Transitions the session to a new status.
-     * 
+     *
      * @param new_state The new session status.
      */
     void TransitionTo(aot::StatusSession new_state) {
@@ -938,7 +958,7 @@ class HttpsSession3 {
 
     /**
      * @brief Handles cancellation requests.
-     * 
+     *
      * @param type The type of cancellation.
      */
     void HandleCancellation(boost::asio::cancellation_type type) {
@@ -947,11 +967,10 @@ class HttpsSession3 {
     }
 };
 
-
 /**
  * @class ConnectionPool
  * @brief Manages a pool of reusable HTTPSessionType connections.
- * 
+ *
  * @tparam HTTPSessionType The type of session managed by the pool.
  * @tparam Args Additional arguments required to construct sessions.
  */
@@ -1013,10 +1032,11 @@ class ConnectionPool {
     std::tuple<std::decay_t<Args>...> ctor_args_;
 
     std::atomic_flag is_handling_session = ATOMIC_FLAG_INIT;
+
   public:
     /**
      * @brief Constructor for the connection pool.
-     * 
+     *
      * @param ioc IO context for asynchronous operations.
      * @param timeout Timeout configuration for sessions.
      * @param pool_size Number of connections in the pool.
@@ -1036,51 +1056,52 @@ class ConnectionPool {
           timeout_(timeout),
           ctor_args_(std::forward<Args>(args)...) {
         for (std::size_t i = 0; i < pool_size; ++i) {
-           try {
-            auto session = CreateSession();
-            session->RegisterOnReady([this, session]() {
-                if (!awaiable_connections_.try_enqueue(session)) {
-                    logi("can't enqueu new session");
-                    // Лог или обработка ошибки
-                }
-            });
+            try {
+                auto session = CreateSession();
+                session->RegisterOnReady([this, session]() {
+                    if (!awaiable_connections_.try_enqueue(session)) {
+                        logi("can't enqueu new session");
+                        // Лог или обработка ошибки
+                    }
+                });
 
-            session->RegisterOnSystemClosed([this, session]() {
-                if (!is_handling_session.test_and_set()) { // Проверка и установка флага
-                    session_pool_.Deallocate(session);
-                    TryCreateNewSession();
-                    is_handling_session.clear(); // Сброс флага
-                }
-            });
+                session->RegisterOnSystemClosed([this, session]() {
+                    if (!is_handling_session
+                             .test_and_set()) {  // Проверка и установка флага
+                        session_pool_.Deallocate(session);
+                        TryCreateNewSession();
+                        is_handling_session.clear();  // Сброс флага
+                    }
+                });
 
-            session->RegisterOnExpired([this, session]() {
-                if (!is_handling_session.test_and_set()) {
-                    session_pool_.Deallocate(session);
-                    TryCreateNewSession();
-                    is_handling_session.clear();
-                }
-            });
+                session->RegisterOnExpired([this, session]() {
+                    if (!is_handling_session.test_and_set()) {
+                        session_pool_.Deallocate(session);
+                        TryCreateNewSession();
+                        is_handling_session.clear();
+                    }
+                });
 
-        } catch (const std::exception& e) {
-            logi("some exception here");
-            // Обработка исключений при создании сессии
-            // Например, лог ошибки
-        }
+            } catch (const std::exception& e) {
+                logi("some exception here");
+                // Обработка исключений при создании сессии
+                // Например, лог ошибки
+            }
         }
     }
 
     /**
      * @brief Acquire a connection from the pool.
-     * 
+     *
      * Blocks until a ready connection is available.
-     * 
+     *
      * @return Pointer to the acquired connection.
      */
     HTTPSessionType* AcquireConnection() {
         HTTPSessionType* session = nullptr;
 
         // Block until we get a ready session
-        while (true){ 
+        while (true) {
             // Try to dequeue a session from the available connections
             while (!awaiable_connections_.try_dequeue(session)) {
                 // Block until a ready session is available
@@ -1088,20 +1109,21 @@ class ConnectionPool {
             awaiable_connections_.try_enqueue(session);
             // Check the status of the session
             auto status = session->GetStatus();
-            if(status == aot::StatusSession::Ready){
-                logd("[Connection pool] session is ready");
+            if (status == aot::StatusSession::Ready) {
+                // logd("[Connection pool] session is ready");
                 break;
-            } else{
-                logd("[Connection pool] session is not ready {} size_pool:{}", status, awaiable_connections_.size_approx());
+            } else {
+                // logd("[Connection pool] session is not ready {}
+                // size_pool:{}", status, awaiable_connections_.size_approx());
             }
-            // // If the session is expired or closing, release it and try another one
-            // if (status == aot::StatusSession::Expired ||
+            // // If the session is expired or closing, release it and try
+            // another one if (status == aot::StatusSession::Expired ||
             //     status == aot::StatusSession::Closing) {
             //     useless_connections_.try_enqueue(session);
             //     session = nullptr;  // Try to get a new session
             // } else if (status != aot::StatusSession::Ready) {
-            //     // If the session is not ready, enqueue it back to the queue for a retry
-            //     awaiable_connections_.try_enqueue(session);
+            //     // If the session is not ready, enqueue it back to the queue
+            //     for a retry awaiable_connections_.try_enqueue(session);
             //     session = nullptr;  // Try to get another session
             // } else {
             //     // Copy the session
@@ -1148,7 +1170,7 @@ class ConnectionPool {
   private:
     /**
      * @brief Create a new session using the memory pool.
-     * 
+     *
      * @return Pointer to the newly created session.
      */
     HTTPSessionType* CreateSession() {
@@ -1162,52 +1184,55 @@ class ConnectionPool {
             ctor_args_);
     }
 
-   void TryCreateNewSession() {
-    try {
-        logi("[Connection pool] create new session");
-        // Создаем новую сессию
-        auto session = CreateSession();
-        //auto shared_session = std::shared_ptr<HTTPSessionType>(session);
+    void TryCreateNewSession() {
+        try {
+            logi("[Connection pool] create new session");
+            // Создаем новую сессию
+            auto session = CreateSession();
+            // auto shared_session = std::shared_ptr<HTTPSessionType>(session);
 
-        // Обработка события "готовности"
-        session->RegisterOnReady([this, session]() {
-            if (!awaiable_connections_.try_enqueue(session)) {
-                logi("Can't enqueue session in available_connections");
-                // Логирование ошибки или другая обработка
-            }
-            logd("[Connection pool] finished execute on ready");
-        });
+            // Обработка события "готовности"
+            session->RegisterOnReady([this, session]() {
+                if (!awaiable_connections_.try_enqueue(session)) {
+                    logi("Can't enqueue session in available_connections");
+                    // Логирование ошибки или другая обработка
+                }
+                logd("[Connection pool] finished execute on ready");
+            });
 
-        // Обработка события "системное закрытие"
-        session->RegisterOnSystemClosed([this, session]() {
-            if (!is_handling_session.test_and_set()) { // Проверка и установка флага
-                session_pool_.Deallocate(session);
-                logi("Session system closed. Recreating session...");
-                TryCreateNewSession(); // Рекурсивное создание новой сессии
-                is_handling_session.clear(); // Сброс флага
-                logd("[Connection pool] finished execute on system closed");
-            }
-        });
+            // Обработка события "системное закрытие"
+            session->RegisterOnSystemClosed([this, session]() {
+                if (!is_handling_session
+                         .test_and_set()) {  // Проверка и установка флага
+                    session_pool_.Deallocate(session);
+                    logi("Session system closed. Recreating session...");
+                    TryCreateNewSession();  // Рекурсивное создание новой сессии
+                    is_handling_session.clear();  // Сброс флага
+                    logd("[Connection pool] finished execute on system closed");
+                }
+            });
 
-        // Обработка события "истечение срока действия"
-        session->RegisterOnExpired([this, session]() {
-            if (!is_handling_session.test_and_set()) { // Проверка и установка флага
-                session_pool_.Deallocate(session);
-                logi("Session expired. Recreating session...");
-                TryCreateNewSession(); // Рекурсивное создание новой сессии
-                is_handling_session.clear(); // Сброс флага
-                logd("[Connection pool] finished execute on expired");
-            }
-        });
+            // Обработка события "истечение срока действия"
+            session->RegisterOnExpired([this, session]() {
+                if (!is_handling_session
+                         .test_and_set()) {  // Проверка и установка флага
+                    session_pool_.Deallocate(session);
+                    logi("Session expired. Recreating session...");
+                    TryCreateNewSession();  // Рекурсивное создание новой сессии
+                    is_handling_session.clear();  // Сброс флага
+                    logd("[Connection pool] finished execute on expired");
+                }
+            });
 
-    } catch (const std::exception& e) {
-        // Логирование ошибок создания новой сессии
-        loge("Error while creating new session: {}", e.what());
-    }
+        } catch (const std::exception& e) {
+            // Логирование ошибок создания новой сессии
+            loge("Error while creating new session: {}", e.what());
+        }
     }
 };
 };  // namespace V2
 
 // Initialize the static atomic counter.
 template <typename _Timeout, typename... AdditionalArgs>
-std::atomic<size_t> V2::HttpsSession3<_Timeout, AdditionalArgs...>::instance_count{0};
+std::atomic<size_t>
+    V2::HttpsSession3<_Timeout, AdditionalArgs...>::instance_count{0};

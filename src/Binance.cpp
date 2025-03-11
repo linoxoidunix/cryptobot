@@ -1,21 +1,21 @@
 
+#include "aot/Binance.h"
+
 #include <string_view>
 #include <unordered_set>
 
-#include "nlohmann/json.hpp"
-
-
 #include "aot/Logger.h"
-#include "aot/Binance.h"
+#include "nlohmann/json.hpp"
 
 using namespace std::literals;
 
 /**
  * @brief Serializes the arguments into a JSON body string.
  *
- * This method converts the key-value pairs of the ArgsBody object into a JSON object.
- * Special handling is applied for specific keys (e.g., "params") and values (e.g., strings
- * with quotes). The resulting JSON object is returned as a string.
+ * This method converts the key-value pairs of the ArgsBody object into a JSON
+ * object. Special handling is applied for specific keys (e.g., "params") and
+ * values (e.g., strings with quotes). The resulting JSON object is returned as
+ * a string.
  *
  * @return std::string The serialized JSON string representing the arguments.
  */
@@ -26,7 +26,8 @@ std::string binance::ArgsBody::Body() {
         if (key == "params") {
             // Wrap "params" value in an array
             json_object[key] = {value};
-        } else if (!value.empty() && value.front() == '"' && value.back() == '"') {
+        } else if (!value.empty() && value.front() == '"' &&
+                   value.back() == '"') {
             // Remove surrounding quotes for quoted strings
             json_object[key] = value.substr(1, value.size() - 2);
         } else {
@@ -38,23 +39,25 @@ std::string binance::ArgsBody::Body() {
     return json_object.dump();
 }
 
-Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Parse(
+Exchange::BookSnapshot
+binance::detail::FamilyBookSnapshot::ParserResponse::Parse(
     std::string_view response, common::TradingPair trading_pair) {
     // NEED ADD EXCHANGE ID FIELD
     logi("{}", response);
     Exchange::BookSnapshot book_snapshot;
     simdjson::ondemand::parser parser;
-    if(!trading_pairs_.count(trading_pair)){
-        logw("no existing registered {} trading pair info", trading_pair.ToString());
+    if (!trading_pairs_.count(trading_pair)) {
+        logw("no existing registered {} trading pair info",
+             trading_pair.ToString());
         return book_snapshot;
     }
     auto& pair_info = trading_pairs_[trading_pair];
     simdjson::padded_string my_padded_data(response.data(), response.size());
     simdjson::ondemand::document doc = parser.iterate(my_padded_data);
-    try{
-        book_snapshot.lastUpdateId       = doc["lastUpdateId"].get_uint64();
-        auto price_prec = std::pow(10, pair_info.price_precission);
-        auto qty_prec   = std::pow(10, pair_info.qty_precission);
+    try {
+        book_snapshot.lastUpdateId = doc["lastUpdateId"].get_uint64();
+        auto price_prec            = std::pow(10, pair_info.price_precission);
+        auto qty_prec              = std::pow(10, pair_info.qty_precission);
         for (auto all : doc["bids"]) {
             simdjson::ondemand::array arr = all.get_array();
             std::array<double, 2> pair;  // price + qty
@@ -63,8 +66,9 @@ Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Pars
                 pair[i] = number.get_double_in_string();
                 i++;
             }
-            book_snapshot.bids.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                            static_cast<int>(pair[1] * qty_prec));
+            book_snapshot.bids.emplace_back(
+                static_cast<int>(pair[0] * price_prec),
+                static_cast<int>(pair[1] * qty_prec));
         }
         for (auto all : doc["asks"]) {
             simdjson::ondemand::array arr = all.get_array();
@@ -74,13 +78,14 @@ Exchange::BookSnapshot binance::detail::FamilyBookSnapshot::ParserResponse::Pars
                 pair[i] = number.get_double_in_string();
                 i++;
             }
-            book_snapshot.asks.emplace_back(static_cast<int>(pair[0] * price_prec),
-                                            static_cast<int>(pair[1] * qty_prec));
+            book_snapshot.asks.emplace_back(
+                static_cast<int>(pair[0] * price_prec),
+                static_cast<int>(pair[1] * qty_prec));
         }
     } catch (simdjson::simdjson_error& error) {
         loge("JSON error in FamilyBookSnapshot response: {}", error.what());
     }
-    book_snapshot.exchange_id = common::ExchangeId::kBinance;
+    book_snapshot.exchange_id  = common::ExchangeId::kBinance;
     book_snapshot.trading_pair = trading_pair;
     return book_snapshot;
 }
@@ -237,6 +242,12 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
         book_diff_snapshot.first_id = doc["U"].get_uint64();
         book_diff_snapshot.last_id  = doc["u"].get_uint64();
 
+        // safety parse "pu" for binance futures
+        auto prev_id_field          = doc["pu"];
+        if (prev_id_field.error() == simdjson::SUCCESS) {
+            book_diff_snapshot.prev_id = prev_id_field.get_uint64();
+        }
+
         auto get_value_s = [&](const char* key, std::string_view& variable,
                                const char* error_msg) -> bool {
             if (auto error = doc[key].get_string().get(variable);
@@ -294,27 +305,32 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
 }
 
 /**
- * @brief Parses the response from the Binance API to extract book diff snapshot data.
- * 
- * This function processes a `simdjson::ondemand::document` containing a Binance 
- * API response and extracts information such as the first and last IDs, 
- * trading pair, bids, and asks. It converts the relevant data into an 
+ * @brief Parses the response from the Binance API to extract book diff snapshot
+ * data.
+ *
+ * This function processes a `simdjson::ondemand::document` containing a Binance
+ * API response and extracts information such as the first and last IDs,
+ * trading pair, bids, and asks. It converts the relevant data into an
  * `Exchange::BookDiffSnapshot` object.
- * 
+ *
  * @param doc The parsed JSON document containing the API response.
  * @return An `Exchange::BookDiffSnapshot` containing the parsed data.
  */
 Exchange::BookDiffSnapshot
 binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
     simdjson::ondemand::document& doc) {
-    
     Exchange::BookDiffSnapshot book_diff_snapshot;
 
     try {
         // Extract the first and last IDs
         book_diff_snapshot.first_id = doc["U"].get_uint64();
-        book_diff_snapshot.last_id = doc["u"].get_uint64();
+        book_diff_snapshot.last_id  = doc["u"].get_uint64();
 
+        // safety parse "pu" for binance futures
+        auto prev_id_field          = doc["pu"];
+        if (prev_id_field.error() == simdjson::SUCCESS) {
+            book_diff_snapshot.prev_id = prev_id_field.get_uint64();
+        }
         // Lambda function to safely extract a string value from the document
         auto get_value_s = [&](const char* key, std::string_view& variable,
                                const char* error_msg) -> bool {
@@ -342,8 +358,10 @@ binance::detail::FamilyBookEventGetter::ParserResponse::Parse(
         }
 
         // Calculate price and quantity precision
-        auto price_prec = std::pow(10, pairs_[book_diff_snapshot.trading_pair].price_precission);
-        auto qty_prec = std::pow(10, pairs_[book_diff_snapshot.trading_pair].qty_precission);
+        auto price_prec = std::pow(
+            10, pairs_[book_diff_snapshot.trading_pair].price_precission);
+        auto qty_prec = std::pow(
+            10, pairs_[book_diff_snapshot.trading_pair].qty_precission);
 
         // Parse bids from the document and store them in the snapshot
         for (auto all : doc["b"]) {
@@ -388,15 +406,17 @@ binance::ParserManager binance::InitParserManager(
     common::TradingPairHashMap& pairs,
     common::TradingPairReverseHashMap& pair_reverse,
     binance::ApiResponseParser& api_response_parser,
-    binance::detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff){
+    binance::detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff) {
     binance::ParserManager parser_manager;
 
-    parser_manager.RegisterHandler(ResponseType::kNonQueryResponse,
+    parser_manager.RegisterHandler(
+        ResponseType::kNonQueryResponse,
         [&api_response_parser](simdjson::ondemand::document& doc) {
             return api_response_parser.Parse(doc);
         });
 
-    parser_manager.RegisterHandler(ResponseType::kDepthUpdate,
+    parser_manager.RegisterHandler(
+        ResponseType::kDepthUpdate,
         [&parser_ob_diff](simdjson::ondemand::document& doc) {
             return parser_ob_diff.Parse(doc);
         });

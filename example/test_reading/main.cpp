@@ -10,9 +10,9 @@
 
 #include "aot/Binance.h"
 #include "aot/Bybit.h"
+#include "aot/Https.h"
 #include "aot/Logger.h"
 #include "aot/Predictor.h"
-#include "aot/Https.h"
 #include "aot/common/types.h"
 #include "aot/config/config.h"
 #include "aot/order_gw/order_gw.h"
@@ -25,8 +25,8 @@
 // #include "aot/strategy/om_order.h"
 #include "aot/launcher_predictor.h"
 #include "magic_enum/magic_enum.hpp"
-//#include "moodycamel/concurrentqueue.h"//if link as 3rd party
-#include "concurrentqueue.h"//if link form source
+// #include "moodycamel/concurrentqueue.h"//if link as 3rd party
+#include "concurrentqueue.h"  //if link form source
 // #define FMT_HEADER_ONLY
 // #include <bybit/third_party/fmt/core.h>
 //  #define FMTLOG_HEADER_ONLY
@@ -293,15 +293,15 @@
 //     TickerHashMap tickers;
 //     tickers[1] = "usdt";
 //     tickers[2] = "btc";
-    
+
 //     TradingPairHashMap pair;
 //     binance::Symbol symbol(tickers[2], tickers[1]);
 //     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
 //     pair[{2, 1}] = pair_info;
 
 //     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
-//                                      TypeExchange::TESTNET);
+//                                      pair[{2, 1}],tickers, TradingPair{2,1},
+//                                      &interval, TypeExchange::TESTNET);
 //     generator.Start();
 //     using namespace std::literals::chrono_literals;
 //     std::this_thread::sleep_for(5s);
@@ -329,19 +329,20 @@
 //     TickerHashMap tickers;
 //     tickers[1] = "usdt";
 //     tickers[2] = "btc";
-    
+
 //     TradingPairHashMap pair;
 //     binance::Symbol symbol(tickers[2], tickers[1]);
 //     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
 //     pair[{2, 1}] = pair_info;
 
-//     GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
-//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
-//                                      TypeExchange::TESTNET);
+//     GeneratorBidAskService generator_bid_ask(&event_queue,
+//     &prometheus_event_queue,
+//                                      pair[{2, 1}],tickers, TradingPair{2,1},
+//                                      &interval, TypeExchange::TESTNET);
 
 //     Trading::MarketOrderBook ob(TradingPair{2,1}, pair);
 //     Trading::OrderBookService orderbook_service(&ob, &event_queue);
-    
+
 //     orderbook_service.Start();
 //     generator_bid_ask.Start();
 
@@ -353,7 +354,8 @@
 // }
 // //-----------------------------------------------------------------------------------
 /**
- * @brief launch generator bid ask service + order book, that push event to lfqueu
+ * @brief launch generator bid ask service + order book, that push event to
+ * lfqueu
  *
  * @return int
  */
@@ -370,22 +372,24 @@
 //     TickerHashMap tickers;
 //     tickers[1] = "usdt";
 //     tickers[2] = "btc";
-    
+
 //     TradingPairHashMap pair;
 //     binance::Symbol symbol(tickers[2], tickers[1]);
 //     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
 //     pair[{2, 1}] = pair_info;
 
-//     GeneratorBidAskService generator_bid_ask(&event_queue, &prometheus_event_queue,
-//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
-//                                      TypeExchange::TESTNET);
-    
+//     GeneratorBidAskService generator_bid_ask(&event_queue,
+//     &prometheus_event_queue,
+//                                      pair[{2, 1}],tickers, TradingPair{2,1},
+//                                      &interval, TypeExchange::TESTNET);
+
 //     strategy::cross_arbitrage::LFQueue queue;
 //     position_keeper::EventLFQueue orderbook_positionkeeper_channel;
 
-//     strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair, &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
+//     strategy::cross_arbitrage::OrderBook ob(1, TradingPair{2,1}, pair,
+//     &queue, &orderbook_positionkeeper_channel, 1000, 1000, 1000);
 //     Trading::OrderBookService orderbook_service(&ob, &event_queue);
-    
+
 //     orderbook_service.Start();
 //     generator_bid_ask.Start();
 
@@ -415,15 +419,15 @@
 //     TickerHashMap tickers;
 //     tickers[1] = "usdt";
 //     tickers[2] = "btc";
-    
+
 //     TradingPairHashMap pair;
 //     binance::Symbol symbol(tickers[2], tickers[1]);
 //     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
 //     pair[{2, 1}] = pair_info;
 
 //     GeneratorBidAskService generator(&event_queue, &prometheus_event_queue,
-//                                      pair[{2, 1}],tickers, TradingPair{2,1}, &interval,
-//                                      TypeExchange::TESTNET);
+//                                      pair[{2, 1}],tickers, TradingPair{2,1},
+//                                      &interval, TypeExchange::TESTNET);
 //     generator.Start();
 //     Trading::TradeEngine trade_engine_service(
 //         &event_queue, &request_new_order, &request_cancel_order, &response,
@@ -511,7 +515,7 @@
 //     //boost::asio::io_context ioc;
 //     // std::thread t([&ioc] {
 //     //     auto work_guard = boost::asio::make_work_guard(ioc);
-        
+
 //     //     ioc.run();
 //     // });
 //     binance::testnet::HttpsExchange exchange;
@@ -539,7 +543,7 @@
 //     common::TickerHashMap tickers;
 //     tickers[1] = "usdt";
 //     tickers[2] = "btc";
-    
+
 //     TradingPairHashMap pairs;
 //     binance::Symbol symbol(tickers[2], tickers[1]);
 //     TradingPairInfo pair_info{std::string(symbol.ToString()), 2, 5};
@@ -547,22 +551,16 @@
 
 //     // HTTPSSessionPool session_pools;
 //     // binance::ConnectionPoolFactory factory;
-//     // auto pool = factory.Create(ioc, &exchange, 15, HTTPSesionType::Timeout{30});
+//     // auto pool = factory.Create(ioc, &exchange, 15,
+//     HTTPSesionType::Timeout{30});
 //     // session_pools[1] = pool;
-    
 
 //     OrderNewLimit new_order(&signer, type, pairs);
 
 //     //NewOrderExecutors new_order_executors;
-//     //new_order_executors[1] = &new_order;  
+//     //new_order_executors[1] = &new_order;
 
 //     CancelOrder executor_cancel_order(&signer, type, pairs);
-
-
-
-
-
-
 
 //     using namespace Trading;
 //     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -638,7 +636,7 @@
 //     fmtlog::setLogLevel(fmtlog::DBG);
 //     ExchangeTPs exchange_trading_pairs;
 //     ExchangeTPsJR exchange_trading_pairs_reverse;
-    
+
 //     using namespace binance;
 
 //     common::TickerHashMap tickers;
@@ -663,30 +661,28 @@
 
 //     HTTPSSessionPool session_pools;
 //     binance::ConnectionPoolFactory factory;
-//     auto pool = factory.Create(ioc, &exchange, 5, HTTPSesionType::Timeout{30});
-    
+//     auto pool = factory.Create(ioc, &exchange, 5,
+//     HTTPSesionType::Timeout{30});
+
 //     std::thread t([&ioc] {
 //         auto work_guard = boost::asio::make_work_guard(ioc);
-        
+
 //         ioc.run();
 //     });
-    
-//     session_pools[1] = pool;
-    
 
-//     OrderNewLimit2 new_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+//     session_pools[1] = pool;
+
+//     OrderNewLimit2 new_order(&signer, type, exchange_trading_pairs[1],
+//     exchange_trading_pairs_reverse[1], pool);
 
 //     NewLimitOrderExecutors new_limit_order_executors;
-//     new_limit_order_executors[1] = &new_order;  
+//     new_limit_order_executors[1] = &new_order;
 
-//     CancelOrder2 executor_cancel_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+//     CancelOrder2 executor_cancel_order(&signer, type,
+//     exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
 
 //     CancelOrderExecutors cancel_order_executors;
 //     cancel_order_executors[1] = &executor_cancel_order;
-
-
-
-
 
 //     using namespace Trading;
 //     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -708,7 +704,8 @@
 //     order_for_cancel.order_id = 6;
 
 //     requests_cancel_order.enqueue(order_for_cancel);
-//     OrderGateway2 gw(new_limit_order_executors, cancel_order_executors, &requests_new_order,
+//     OrderGateway2 gw(new_limit_order_executors, cancel_order_executors,
+//     &requests_new_order,
 //                     &requests_cancel_order, &client_responses);
 //     gw.Start();
 //     while (gw.GetDownTimeInS() < 30) {
@@ -1197,7 +1194,8 @@
 //     // std::string path_where_models =
 //     //     "/home/linoxoidunix/Programming/cplusplus/cryptobot";
 //     // std::string path_where_models =
-//     //     "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
+//     //
+//     "/home/linoxoidunix/.venv/lib/python3.11/site-packages:/home/linoxoidunix/Programming/cplusplus/cryptobot/aot/python";
 //     std::string path_where_models = argv[1];
 //     auto predictor_module = "strategy.py";
 //     auto class_module = "Predictor";
@@ -1209,9 +1207,9 @@
 //     auto file_predictor_ = std::string(predictor_module);
 //     size_t lastindex                 = file_predictor_.find_last_of(".");
 //     auto file_name_without_extension = file_predictor_.substr(0, lastindex);
-//     auto file_name_ = PyUnicode_DecodeFSDefault(file_name_without_extension.c_str());
-//     auto module_name_ = PyImport_Import(file_name_);
-//     if(module_name_)
+//     auto file_name_ =
+//     PyUnicode_DecodeFSDefault(file_name_without_extension.c_str()); auto
+//     module_name_ = PyImport_Import(file_name_); if(module_name_)
 //         std::cout << "success" << std::endl;
 //     int x = 0;
 // }
@@ -1219,7 +1217,6 @@
 // #include "aot/bus/bus.h"
 // #include "aot/strategy/position_keeper.h"
 // #include "aot/strategy/order_manager.h"
-
 
 // int main() {
 //     fmtlog::setLogLevel(fmtlog::DBG);
@@ -1230,8 +1227,10 @@
 
 //     // Bus bus(pool);
 
-//     bus::Component* component_a = new Trading::PositionKeeperComponent (boost::asio::make_strand(pool), nullptr);
-//     //bus::Component*  component_b = new Trading::OrderManager(pool, nullptr);
+//     bus::Component* component_a = new Trading::PositionKeeperComponent
+//     (boost::asio::make_strand(pool), nullptr);
+//     //bus::Component*  component_b = new Trading::OrderManager(pool,
+//     nullptr);
 //     // Component*  component_c = new MyComponentC(pool);
 
 //     // // Subscribe components to each other for ImplementationEvent
@@ -1251,11 +1250,12 @@
 //     // Event* eventC = new ImplementationEventC();
 
 //     position_keeper::BusEventUpdateBBO event;
-//     boost::asio::co_spawn(pool, bus.CoSend(component_a, &event), boost::asio::detached);
+//     boost::asio::co_spawn(pool, bus.CoSend(component_a, &event),
+//     boost::asio::detached);
 //         // // for (int i = 0; i < 5; ++i) {
 //     // //     bus.Send(component_a, *event);  // Send event from component_a
 //     // // }
-    
+
 //     // bus.Send(component_a, eventA);
 //     // bus.Send(component_c, eventA);
 //     // bus.Send(component_b, eventC);
@@ -1285,12 +1285,14 @@
 //     boost::asio::thread_pool& pool_;
 //     boost::asio::strand<boost::asio::thread_pool::executor_type> strand_;
 // public:
-//     MyComponent(boost::asio::thread_pool& pool): pool_(pool), strand_(boost::asio::make_strand(pool_)){}
-//     void AsyncUpdate(bus::Event* event) override {
+//     MyComponent(boost::asio::thread_pool& pool): pool_(pool),
+//     strand_(boost::asio::make_strand(pool_)){} void AsyncUpdate(bus::Event*
+//     event) override {
 //         // Dynamic cast to access MyEvent data
 //         MyEvent* myEvent = dynamic_cast<MyEvent*>(event);
 //         if (myEvent) {
-//             std::cout << "MyComponent received event with data: " << myEvent->GetData() << std::endl;
+//             std::cout << "MyComponent received event with data: " <<
+//             myEvent->GetData() << std::endl;
 //         }
 //         // Release the event when done
 //         event->Release();
@@ -1300,14 +1302,15 @@
 // int main(){
 //     boost::asio::thread_pool pool(4);
 //     Bus bus(pool);
-    
+
 //     // Create components
 //     MyComponent component(pool);
 
 //     // Subscribe the component to MyEvent
 //     bus.Subscribe<MyEvent>(&component, &component);
 //     for (int i = 0; i < 5; ++i) {
-//         bus.Send(component, new MyEvent(i));  // Create new events dynamically
+//         bus.Send(component, new MyEvent(i));  // Create new events
+//         dynamically
 //     }
 //     bus.Join();
 //     return 0;
@@ -1315,7 +1318,8 @@
 //----------------------------------------------------------------------------------------
 // int main(){
 //     boost::asio::thread_pool pool;
-//     binance::OrderNewLimit3 executor_new_order(boost::asio::make_strand(pool), )
+//     binance::OrderNewLimit3
+//     executor_new_order(boost::asio::make_strand(pool), )
 //     // Create components
 //     bus.Join();
 //     return 0;
@@ -1357,7 +1361,7 @@
 //     fmtlog::setLogLevel(fmtlog::DBG);
 //     ExchangeTPs exchange_trading_pairs;
 //     ExchangeTPsJR exchange_trading_pairs_reverse;
-    
+
 //     using namespace binance;
 //     common::ExchangeId binance_id = common::ExchangeId::kBinance;
 //     common::TickerHashMap tickers;
@@ -1382,43 +1386,49 @@
 
 //     HTTPSSessionPool session_pools;
 //     binance::HttpsConnectionPoolFactory factory;
-    
-//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
 
-    
-//     auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange );
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+//     work_guard(ioc.get_executor());
+
+//     auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange
+//     );
 //     //::V2::ConnectionPool<HTTPSesionType>* pool = nullptr;
-//     std::thread t([&ioc] {      
+//     std::thread t([&ioc] {
 //         ioc.run();
 //     });
-    
+
 //     using namespace std::literals::chrono_literals;
 
 //     //std::this_thread::sleep_for(5s);
 //     //ioc.stop();
 //     session_pools[binance_id] = pool;
-    
+
 //     boost::asio::thread_pool asio_pool;
 //     aot::CoBus bus(asio_pool);
-//     using StrandExecutor = boost::asio::strand<boost::asio::thread_pool::executor_type>;
+//     using StrandExecutor =
+//     boost::asio::strand<boost::asio::thread_pool::executor_type>;
 
-//     //OrderNewLimit3 new_order(boost::asio::make_strand(asio_pool), &signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
-//     OrderNewLimitComponent<StrandExecutor> new_limit_order_executor(boost::asio::make_strand(asio_pool), 10000, &signer, type, exchange_trading_pairs[binance_id], exchange_trading_pairs_reverse[binance_id], pool);
-//     CancelOrderComponent<StrandExecutor> cancel_order_executor(boost::asio::make_strand(asio_pool), 10000, &signer, type, exchange_trading_pairs[binance_id], exchange_trading_pairs_reverse[binance_id], pool);
+//     //OrderNewLimit3 new_order(boost::asio::make_strand(asio_pool), &signer,
+//     type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1],
+//     pool); OrderNewLimitComponent<StrandExecutor>
+//     new_limit_order_executor(boost::asio::make_strand(asio_pool), 10000,
+//     &signer, type, exchange_trading_pairs[binance_id],
+//     exchange_trading_pairs_reverse[binance_id], pool);
+//     CancelOrderComponent<StrandExecutor>
+//     cancel_order_executor(boost::asio::make_strand(asio_pool), 10000,
+//     &signer, type, exchange_trading_pairs[binance_id],
+//     exchange_trading_pairs_reverse[binance_id], pool);
 
 //     auto main_executor = boost::asio::make_strand(asio_pool);
 
 //     // NewLimitOrderExecutors new_limit_order_executors;
-//     // new_limit_order_executors[1] = &new_order;  
+//     // new_limit_order_executors[1] = &new_order;
 
-//     // CancelOrder2 executor_cancel_order(&signer, type, exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
+//     // CancelOrder2 executor_cancel_order(&signer, type,
+//     exchange_trading_pairs[1], exchange_trading_pairs_reverse[1], pool);
 
 //     // CancelOrderExecutors cancel_order_executors;
 //     // cancel_order_executors[1] = &executor_cancel_order;
-
-
-
-
 
 // //     using namespace Trading;
 // //     Exchange::RequestNewLimitOrderLFQueue requests_new_order;
@@ -1433,11 +1443,12 @@
 //     request_new_order.price    = 4000000;
 //     request_new_order.qty      = 100;
 
-
 //     Trading::PositionKeeper keeper;
-//     exchange::PositionKeeper::ExchangePositionKeeper map{{binance_id, &keeper}};
-//     exchange::PositionKeeper positionKeeper(map);
-//     Trading::PositionKeeperComponent position_keeper_component(boost::asio::make_strand(asio_pool), &positionKeeper);
+//     exchange::PositionKeeper::ExchangePositionKeeper map{{binance_id,
+//     &keeper}}; exchange::PositionKeeper positionKeeper(map);
+//     Trading::PositionKeeperComponent
+//     position_keeper_component(boost::asio::make_strand(asio_pool),
+//     &positionKeeper);
 
 //     bus.Subscribe(&new_limit_order_executor, &position_keeper_component);
 //     bus.Subscribe(&cancel_order_executor, &position_keeper_component);
@@ -1445,37 +1456,43 @@
 //     std::atomic<int> counter_operations(0);
 
 //     OnHttpsResponce cb_on_request_new_limit_order =
-//             [&counter_operations, &binance_id, &new_limit_order_executor, &bus, &work_guard, &session_pools, &pairs, &exchange_trading_pairs_reverse](
+//             [&counter_operations, &binance_id, &new_limit_order_executor,
+//             &bus, &work_guard, &session_pools, &pairs,
+//             &exchange_trading_pairs_reverse](
 //                 boost::beast::http::response<boost::beast::http::string_body>&
 //                     buffer) ->void{
 //                 const auto& resut = buffer.body();
 //                 logi("{}", resut);
-//                 auto& reverse_value = exchange_trading_pairs_reverse[binance_id];
-//                 binance::detail::FamilyLimitOrder::ParserResponse parser(pairs, reverse_value);
-//                 auto answer    = parser.Parse(resut);
-//                 auto ptr = new_limit_order_executor.exchange_response_mem_pool_.Allocate();
+//                 auto& reverse_value =
+//                 exchange_trading_pairs_reverse[binance_id];
+//                 binance::detail::FamilyLimitOrder::ParserResponse
+//                 parser(pairs, reverse_value); auto answer    =
+//                 parser.Parse(resut); auto ptr =
+//                 new_limit_order_executor.exchange_response_mem_pool_.Allocate();
 //                 *ptr = std::move(answer);
 //                 /**
-//                  * @brief stop infinum ioc.run until 2 operations request_new_order and request cancel order complete 
-//                  * than wait until all close all session tasks will be completed
-//                  * 
+//                  * @brief stop infinum ioc.run until 2 operations
+//                  request_new_order and request cancel order complete
+//                  * than wait until all close all session tasks will be
+//                  completed
+//                  *
 //                  */
-//                 if (counter_operations.fetch_add(1, std::memory_order_acq_rel) == 1) {
-//                     std::cout << "stop ioc from cb of request new order" << "\n";
-//                     session_pools[binance_id]->CloseAllSessions();
+//                 if (counter_operations.fetch_add(1,
+//                 std::memory_order_acq_rel) == 1) {
+//                     std::cout << "stop ioc from cb of request new order" <<
+//                     "\n"; session_pools[binance_id]->CloseAllSessions();
 //                     work_guard.reset();
-//                 }           
-//                 auto bus_event_response = new_limit_order_executor.bus_event_response_mem_pool_.Allocate(ptr);
+//                 }
+//                 auto bus_event_response =
+//                 new_limit_order_executor.bus_event_response_mem_pool_.Allocate(ptr);
 //                 bus.AsyncSend(&new_limit_order_executor, bus_event_response);
 //             };
 
-//     Exchange::BusEventRequestNewLimitOrder bus_request_new_order(&request_new_order);
-//     boost::asio::co_spawn(main_executor, new_limit_order_executor.CoExec(&bus_request_new_order, cb_on_request_new_limit_order), boost::asio::detached);
-    
-
-    
-
-
+//     Exchange::BusEventRequestNewLimitOrder
+//     bus_request_new_order(&request_new_order);
+//     boost::asio::co_spawn(main_executor,
+//     new_limit_order_executor.CoExec(&bus_request_new_order,
+//     cb_on_request_new_limit_order), boost::asio::detached);
 
 //     Exchange::RequestCancelOrder order_for_cancel;
 //     order_for_cancel.exchange_id = binance_id;
@@ -1483,34 +1500,44 @@
 //     order_for_cancel.order_id = 6;
 
 //     OnHttpsResponce cb_on_request_cancel_order =
-//             [&counter_operations, &binance_id, &new_limit_order_executor, &bus, &work_guard, &session_pools, &pairs, &exchange_trading_pairs_reverse](
+//             [&counter_operations, &binance_id, &new_limit_order_executor,
+//             &bus, &work_guard, &session_pools, &pairs,
+//             &exchange_trading_pairs_reverse](
 //                 boost::beast::http::response<boost::beast::http::string_body>&
 //                     buffer) ->void{
 //                 const auto& resut = buffer.body();
 //                 logi("{}", resut);
-//                 auto& reverse_value = exchange_trading_pairs_reverse[binance_id];
-//                 binance::detail::FamilyCancelOrder::ParserResponse parser(reverse_value);
-//                 auto answer    = parser.Parse(resut);
-//                 auto ptr = new_limit_order_executor.exchange_response_mem_pool_.Allocate();
+//                 auto& reverse_value =
+//                 exchange_trading_pairs_reverse[binance_id];
+//                 binance::detail::FamilyCancelOrder::ParserResponse
+//                 parser(reverse_value); auto answer    = parser.Parse(resut);
+//                 auto ptr =
+//                 new_limit_order_executor.exchange_response_mem_pool_.Allocate();
 //                 *ptr = std::move(answer);
 //                 /**
-//                  * @brief stop infinum ioc.run until 2 operations request_new_order and request cancel order complete 
-//                  * than wait until all close all session tasks will be completed
-//                  * 
+//                  * @brief stop infinum ioc.run until 2 operations
+//                  request_new_order and request cancel order complete
+//                  * than wait until all close all session tasks will be
+//                  completed
+//                  *
 //                  */
-//                 if (counter_operations.fetch_add(1, std::memory_order_acq_rel) == 1) {
+//                 if (counter_operations.fetch_add(1,
+//                 std::memory_order_acq_rel) == 1) {
 //                     std::cout << "stop ioc from cb of cancel order" << "\n";
 //                     session_pools[binance_id]->CloseAllSessions();
 //                     work_guard.reset();
-//                 }   
+//                 }
 //                 work_guard.reset();
-//                 auto bus_event_response = new_limit_order_executor.bus_event_response_mem_pool_.Allocate(ptr);
+//                 auto bus_event_response =
+//                 new_limit_order_executor.bus_event_response_mem_pool_.Allocate(ptr);
 //                 bus.AsyncSend(&new_limit_order_executor, bus_event_response);
 //             };
 
-//     Exchange::BusEventRequestCancelOrder bus_request_cancel_order(&order_for_cancel);
-//     boost::asio::co_spawn(main_executor, cancel_order_executor.CoExec(&bus_request_cancel_order, cb_on_request_cancel_order), boost::asio::detached);
-
+//     Exchange::BusEventRequestCancelOrder
+//     bus_request_cancel_order(&order_for_cancel);
+//     boost::asio::co_spawn(main_executor,
+//     cancel_order_executor.CoExec(&bus_request_cancel_order,
+//     cb_on_request_cancel_order), boost::asio::detached);
 
 //      t.join();
 //      fmtlog::poll();
@@ -1523,74 +1550,61 @@
 // /**
 //  * @brief connect to binance using WssSession based on coroutines
 //  * , subscribe on diff depth stream and shutdown after 20s
-//  * 
-//  * @return int 
+//  *
+//  * @return int
 //  */
-// int main(){
-//     boost::asio::io_context ioc;
-//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
-    
-//     std::thread t([&ioc] {      
-//          ioc.run();
-//     });
-    
-//     ssl::context ssl_ctx{ssl::context::sslv23};
+int main() {
+    boost::asio::io_context io_context_binance;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+        work_guard(io_context_binance.get_executor());
 
-//     using WSS = WssSession<std::chrono::seconds>;
-//     auto host = "stream.binance.com";
-//     auto port = "443";
-//     auto defauld_endpoint = "/ws";
-//     WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
-//     OnWssResponse cb = [](boost::beast::flat_buffer& fb){
-//         auto result = boost::beast::buffers_to_string(fb.data());
-//         std::cout << result << std::endl;
-//     };
-//     std::string g = "{\"method\": \"SUBSCRIBE\",\
-//      \"params\": [\"btcusdt@depth\"],\
-//      \"id\": 1}";
-//     using namespace std::literals::chrono_literals;
-//     std::this_thread::sleep_for(10s);
-    
-//     boost::asio::thread_pool thread_pool;
+    std::thread t([&io_context_binance] { io_context_binance.run(); });
 
-//     boost::asio::co_spawn(thread_pool, ws.AsyncRequest(std::move(g), cb), boost::asio::detached );
-    
-//     std::this_thread::sleep_for(20s);
-//     ws.AsyncCloseSessionGracefully();
-//     work_guard.reset();
-//     t.join(); 
-//     return 0;
-// }
+    ssl::context ssl_ctx{ssl::context::sslv23};
+
+    ::V2::ConnectionPool<WSSesionType3, const std::string_view&>
+        session_pool_futures_binance{io_context_binance,
+                                     WSSesionType3::Timeout{30},
+                                     1,
+                                     "fstream.binance.com",
+                                     "443",
+                                     "/ws"};
+    t.join();
+    return 0;
+}
 //----------------------------------------------------------------------------------------
 // #include "aot/WS.h"
 // #include "aot/Https.h"
 // #include "string_view"
 // /**
-//  * @brief connect to binance using connection_pool with WssSession based on coroutines
+//  * @brief connect to binance using connection_pool with WssSession based on
+//  coroutines
 //  * , subscribe on diff depth stream and shutdown after 20s
-//  * 
-//  * @return int 
+//  *
+//  * @return int
 //  */
 // int main(){
 //     binance::testnet::HttpsExchange exchange;
 //     boost::asio::io_context ioc;
-//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work_guard(ioc.get_executor());
-    
-//     std::thread t([&ioc] {      
+//     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
+//     work_guard(ioc.get_executor());
+
+//     std::thread t([&ioc] {
 //          ioc.run();
 //     });
-    
+
 //     ssl::context ssl_ctx{ssl::context::sslv23};
 
 //     using WSS = WssSession<std::chrono::seconds>;
 //     const std::string_view host = "stream.binance.com";
 //     const std::string_view port = "443";
 //     const std::string_view default_endpoint = "/ws";
-//     V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc, WSS::Timeout(30), 3, host, port, default_endpoint);
+//     V2::ConnectionPool<WSS, const std::string_view&> connection_pool(ioc,
+//     WSS::Timeout(30), 3, host, port, default_endpoint);
 
-//     //binance::HttpsConnectionPoolFactory factory; 
-//     //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5, &exchange);
-
+//     //binance::HttpsConnectionPoolFactory factory;
+//     //auto pool = factory.Create(ioc, HTTPSesionType::Timeout{30}, 5,
+//     &exchange);
 
 //     auto ws = connection_pool.AcquireConnection();
 //     //WSS ws(ioc, ssl_ctx, host, port, defauld_endpoint, WSS::Timeout{30});
@@ -1603,52 +1617,58 @@
 //      \"id\": 1}";
 //     using namespace std::literals::chrono_literals;
 //     std::this_thread::sleep_for(10s);
-    
+
 //     boost::asio::thread_pool thread_pool;
 
-//     boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb), boost::asio::detached );
-    
+//     boost::asio::co_spawn(thread_pool, ws->AsyncRequest(std::move(g), cb),
+//     boost::asio::detached );
+
 //     std::this_thread::sleep_for(60s);
 //     ws->AsyncCloseSessionGracefully();
 //     work_guard.reset();
-//     t.join(); 
+//     t.join();
 //     return 0;
 // }
 
 //----------------------------------------------------------------------------------------
-//check cancellation coroutine
+// check cancellation coroutine
 // Define the cancellation handler function
 // void cancellation_handler(boost::asio::cancellation_type type) {
 //     std::cout << "Cancellation handler invoked. Type: "
-//               << (type == boost::asio::cancellation_type::all ? "all" : "partial") 
+//               << (type == boost::asio::cancellation_type::all ? "all" :
+//               "partial")
 //               << std::endl;
 // }
 
 // // A coroutine that performs repeated tasks, with cancellation support
-// boost::asio::awaitable<void> cancellable_coroutine(boost::asio::cancellation_slot slot) {
+// boost::asio::awaitable<void>
+// cancellable_coroutine(boost::asio::cancellation_slot slot) {
 //     auto executor = co_await boost::asio::this_coro::executor;
 
 //     // Install the cancellation handler
-//     slot.assign(cancellation_handler);  
+//     slot.assign(cancellation_handler);
 
 //     for (int i = 0; i < 10; ++i) {
 //         // Create a timer to simulate work
 //         boost::asio::steady_timer timer(executor, std::chrono::seconds(1));
-        
+
 //         // Wait asynchronously, respecting the cancellation slot
 //         boost::system::error_code ec;
-//         co_await timer.async_wait(boost::asio::bind_cancellation_slot(slot, boost::asio::redirect_error(boost::asio::use_awaitable, ec)));
+//         co_await timer.async_wait(boost::asio::bind_cancellation_slot(slot,
+//         boost::asio::redirect_error(boost::asio::use_awaitable, ec)));
 
 //         // Check for cancellation during or immediately after async_wait
 //         if (ec == boost::asio::error::operation_aborted) {
-//             std::cout << "Coroutine was canceled during async_wait on iteration " << i << "." << std::endl;
-//             co_return; // Exit the coroutine
+//             std::cout << "Coroutine was canceled during async_wait on
+//             iteration " << i << "." << std::endl; co_return; // Exit the
+//             coroutine
 //         }
 
 //         std::cout << "Completed iteration " << i << "." << std::endl;
 //     }
 
-//     std::cout << "Coroutine completed normally without cancellation." << std::endl;
+//     std::cout << "Coroutine completed normally without cancellation." <<
+//     std::endl;
 // }
 
 // int main() {
@@ -1659,13 +1679,15 @@
 //     boost::asio::cancellation_slot slot = cancel_signal.slot();
 
 //     // Spawn the cancellable coroutine
-//     boost::asio::co_spawn(io, cancellable_coroutine(slot), boost::asio::detached);
+//     boost::asio::co_spawn(io, cancellable_coroutine(slot),
+//     boost::asio::detached);
 
 //     // Schedule cancellation to be triggered after 3 seconds
 //     boost::asio::steady_timer cancel_timer(io, std::chrono::seconds(1));
 //     cancel_timer.async_wait([&](const boost::system::error_code&) {
-//         std::cout << "Requesting coroutine cancellation from main." << std::endl;
-//         cancel_signal.emit(boost::asio::cancellation_type::all);  // Trigger cancellation
+//         std::cout << "Requesting coroutine cancellation from main." <<
+//         std::endl; cancel_signal.emit(boost::asio::cancellation_type::all);
+//         // Trigger cancellation
 //     });
 
 //     // Run the io_context to start processing
@@ -1674,7 +1696,7 @@
 // }
 //----------------------------------------------------------------------------------------
 
-//multiple cancel requests for coroutine
+// multiple cancel requests for coroutine
 
 // namespace net = boost::asio;
 
@@ -1685,7 +1707,9 @@
 
 // namespace net = boost::asio;
 
-// net::cancellation_slot unify_cancellation_signals(net::cancellation_signal& unified_signal, std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {  
+// net::cancellation_slot unify_cancellation_signals(net::cancellation_signal&
+// unified_signal,
+// std::vector<std::reference_wrapper<net::cancellation_signal>>& signals) {
 
 //     for (auto& signal : signals) {
 //         signal.get().slot().assign([&](net::cancellation_type type) {
@@ -1702,8 +1726,8 @@
 //     net::steady_timer timer(executor, std::chrono::seconds(10));
 
 //     try {
-//         co_await timer.async_wait(net::bind_cancellation_slot(slot, net::use_awaitable));
-//         std::cout << "Operation completed.\n";
+//         co_await timer.async_wait(net::bind_cancellation_slot(slot,
+//         net::use_awaitable)); std::cout << "Operation completed.\n";
 //     } catch (const boost::system::system_error& e) {
 //         if (e.code() == net::error::operation_aborted) {
 //             std::cout << "Operation cancelled.\n";
@@ -1720,12 +1744,11 @@
 //     net::cancellation_signal signal1, signal2;
 //     net::cancellation_signal unified_signal;
 
+//     std::vector<std::reference_wrapper<net::cancellation_signal>> signals =
+//     {signal1, signal2};
 
-
-
-//     std::vector<std::reference_wrapper<net::cancellation_signal>> signals = {signal1, signal2};
-
-//     net::cancellation_slot unified_slot = unify_cancellation_signals(unified_signal, signals);
+//     net::cancellation_slot unified_slot =
+//     unify_cancellation_signals(unified_signal, signals);
 
 //     unified_slot.assign([](boost::asio::cancellation_type_t&) {
 //          std::cout << "Cancellation requested!" << std::endl;
@@ -1737,13 +1760,13 @@
 
 //     net::co_spawn(io, cancellable_operation(unified_slot), net::detached);
 //     //std::this_thread::sleep_for(std::chrono::seconds(3));
-    
+
 //     net::steady_timer delay_timer(io, std::chrono::nanoseconds(1));
 //     delay_timer.async_wait([&](const boost::system::error_code&) {
 //         std::cout << "Emitting cancellation signal...\n";
 //         signal2.emit(net::cancellation_type::all);
 //     });
-    
+
 //     //signal1.emit(net::cancellation_type::all);
 
 //     //io.run();
@@ -1756,7 +1779,7 @@
 //     MyClass() : ref_count_(0) {
 //         std::cout << "MyClass constructed." << std::endl;
 //     }
-    
+
 //     ~MyClass() {
 //         std::cout << "MyClass destructed." << std::endl;
 //     }
@@ -1767,8 +1790,8 @@
 //         ref_count_.fetch_add(1, std::memory_order_relaxed);
 //     }
 
-//     // Decrement reference count atomically and delete the object if count reaches zero
-//     void release() const {
+//     // Decrement reference count atomically and delete the object if count
+//     reaches zero void release() const {
 //         std::cout << "release" << "\n";
 //         if (ref_count_.fetch_sub(1, std::memory_order_release) == 1) {
 //             // Ensure proper synchronization before deletion
@@ -1782,7 +1805,8 @@
 //     }
 
 // private:
-//     mutable std::atomic<int> ref_count_;  // Atomic reference count for thread safety
+//     mutable std::atomic<int> ref_count_;  // Atomic reference count for
+//     thread safety
 // };
 
 // // Boost intrusive pointer reference counting functions
@@ -1818,17 +1842,17 @@
 //     return 0;
 // }
 //----------------------------------------------------------------------------------------
-#include <boost/intrusive_ptr.hpp>
-#include <iostream>
 #include <atomic>
+#include <boost/intrusive_ptr.hpp>
+#include <chrono>
+#include <iostream>
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <chrono>
-#include <mutex>
 
 // Base class for intrusive reference counting
 class RefCounted {
-public:
+  public:
     RefCounted() : ref_count_(0) {}
 
     friend void intrusive_ptr_add_ref(RefCounted* obj) {
@@ -1840,48 +1864,39 @@ public:
             delete obj;
         }
     }
-    
-    int GetRefCount(){
-        return ref_count_.load(std::memory_order_relaxed);
-    }
-protected:
+
+    int GetRefCount() { return ref_count_.load(std::memory_order_relaxed); }
+
+  protected:
     virtual ~RefCounted() = default;
 
-private:
+  private:
     std::atomic<int> ref_count_;
 };
 
 // Event class
 class Event : public RefCounted {
-public:
+  public:
     explicit Event(int id) : id_(id) {}
-    ~Event() {
-        std::cout << "Event destroyed: " << id_ << "\n";
-    }
+    ~Event() { std::cout << "Event destroyed: " << id_ << "\n"; }
 
-    int getId() const {
-        return id_;
-    }
+    int getId() const { return id_; }
 
-private:
+  private:
     int id_;
 };
 
 // BusEvent class
 class BusEvent : public RefCounted {
-public:
+  public:
     explicit BusEvent(boost::intrusive_ptr<Event> event)
         : event_(std::move(event)) {}
 
-    ~BusEvent() {
-        std::cout << "BusEvent destroyed\n";
-    }
+    ~BusEvent() { std::cout << "BusEvent destroyed\n"; }
 
-    const boost::intrusive_ptr<Event>& getEvent() const {
-        return event_;
-    }
+    const boost::intrusive_ptr<Event>& getEvent() const { return event_; }
 
-private:
+  private:
     boost::intrusive_ptr<Event> event_;
 };
 
@@ -1890,12 +1905,14 @@ boost::intrusive_ptr<Event> make_event(int id) {
     return boost::intrusive_ptr<Event>(new Event(id));
 }
 
-boost::intrusive_ptr<BusEvent> make_bus_event(boost::intrusive_ptr<Event> event) {
+boost::intrusive_ptr<BusEvent> make_bus_event(
+    boost::intrusive_ptr<Event> event) {
     return boost::intrusive_ptr<BusEvent>(new BusEvent(std::move(event)));
 }
 
 // Worker function
-void process_bus_events(std::vector<boost::intrusive_ptr<BusEvent>> bus_events) {
+void process_bus_events(
+    std::vector<boost::intrusive_ptr<BusEvent>> bus_events) {
     for (const auto& bus_event : bus_events) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::cout << "Processing BusEvent with Event ID: "
@@ -1903,46 +1920,47 @@ void process_bus_events(std::vector<boost::intrusive_ptr<BusEvent>> bus_events) 
     }
 }
 
-int main() {
-    // Synchronization for logging
-    std::mutex log_mutex;
+// int main() {
+//     // Synchronization for logging
+//     std::mutex log_mutex;
 
-    // Create a long-lived Event
-    auto event = make_event(42);
+//     // Create a long-lived Event
+//     auto event = make_event(42);
 
-    {
-        // Create BusEvents
-        auto bus_event1 = make_bus_event(event);
-        auto bus_event2 = make_bus_event(event);
+//     {
+//         // Create BusEvents
+//         auto bus_event1 = make_bus_event(event);
+//         auto bus_event2 = make_bus_event(event);
 
-        // Simulate multi-threaded processing
-        std::vector<boost::intrusive_ptr<BusEvent>> bus_events = {bus_event1, bus_event2};
+//         // Simulate multi-threaded processing
+//         std::vector<boost::intrusive_ptr<BusEvent>> bus_events = {bus_event1,
+//                                                                   bus_event2};
 
-        std::thread worker1([&] {
-            process_bus_events(bus_events);
-            std::lock_guard<std::mutex> lock(log_mutex);
-            std::cout << "Worker 1 finished\n";
-        });
+//         std::thread worker1([&] {
+//             process_bus_events(bus_events);
+//             std::lock_guard<std::mutex> lock(log_mutex);
+//             std::cout << "Worker 1 finished\n";
+//         });
 
-        std::thread worker2([&] {
-            process_bus_events(bus_events);
-            std::lock_guard<std::mutex> lock(log_mutex);
-            std::cout << "Worker 2 finished\n";
-        });
+//         std::thread worker2([&] {
+//             process_bus_events(bus_events);
+//             std::lock_guard<std::mutex> lock(log_mutex);
+//             std::cout << "Worker 2 finished\n";
+//         });
 
-        worker1.join();
-        worker2.join();
+//         worker1.join();
+//         worker2.join();
 
-        std::cout << "Resetting BusEvents\n";
-        bus_events.clear(); // Clear local references to BusEvent
-    }
+//         std::cout << "Resetting BusEvents\n";
+//         bus_events.clear();  // Clear local references to BusEvent
+//     }
 
-    std::cout << "BusEvents are destroyed, but Event is still alive.\n";
+//     std::cout << "BusEvents are destroyed, but Event is still alive.\n";
 
-    // Event reset after BusEvent scope
-    std::cout << "Resetting Event\n";
-    std::cout << event->GetRefCount() << std::endl;
-    event.reset();
+//     // Event reset after BusEvent scope
+//     std::cout << "Resetting Event\n";
+//     std::cout << event->GetRefCount() << std::endl;
+//     event.reset();
 
-    return 0;
-}
+//     return 0;
+// }

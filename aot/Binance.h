@@ -975,11 +975,13 @@ class BookEventGetter2 : public detail::FamilyBookEventGetter,
  * @tparam Executor The executor type used for asynchronous operations.
  */
 
-//using BookEventGetter3 = inner::BookEventGetter3<ThreadPoolType, detail::FamilyBookEventGetter::ArgsBody>
+// using BookEventGetter3 = inner::BookEventGetter3<ThreadPoolType,
+// detail::FamilyBookEventGetter::ArgsBody>
 
 template <typename ThreadPool, typename ArgsBody>
-class BookEventGetterComponent : public bus::Component,
-                                 public inner::BookEventGetter3<ThreadPool, ArgsBody> {
+class BookEventGetterComponent
+    : public bus::Component,
+      public inner::BookEventGetter3<ThreadPool, ArgsBody> {
     static constexpr std::string_view name_component_ =
         "binance::BookEventGetterComponent";
 
@@ -993,8 +995,8 @@ class BookEventGetterComponent : public bus::Component,
         ::V2::ConnectionPool<WSSesionType3, const std::string_view&>*
             session_pool,
         common::ExchangeId exchange_id)
-        : inner::BookEventGetter3<ThreadPool, ArgsBody>(thread_pool, session_pool, pairs,
-                                       exchange_id),
+        : inner::BookEventGetter3<ThreadPool, ArgsBody>(
+              thread_pool, session_pool, pairs, exchange_id),
           book_diff_mem_pool_(number_responses),
           bus_event_book_diff_snapshot_mem_pool_(number_responses) {}
     ~BookEventGetterComponent() override = default;
@@ -1002,14 +1004,15 @@ class BookEventGetterComponent : public bus::Component,
     void AsyncHandleEvent(
         boost::intrusive_ptr<Exchange::BusEventRequestDiffOrderBook> event)
         override {
-        boost::asio::co_spawn(inner::BookEventGetter3<ThreadPool, ArgsBody>::strand_,
-                              inner::BookEventGetter3<ThreadPool, ArgsBody>::CoExec(event),
-                              boost::asio::detached);
+        boost::asio::co_spawn(
+            inner::BookEventGetter3<ThreadPool, ArgsBody>::strand_,
+            inner::BookEventGetter3<ThreadPool, ArgsBody>::CoExec(event),
+            boost::asio::detached);
     };
-    void AsyncStop() override { inner::BookEventGetter3<ThreadPool, ArgsBody>::AsyncStop(); }
+    void AsyncStop() override {
+        inner::BookEventGetter3<ThreadPool, ArgsBody>::AsyncStop();
+    }
 };
-
-
 
 // class OrderNewLimit : public inner::OrderNewI, public
 // detail::FamilyLimitOrder {
@@ -1154,6 +1157,7 @@ class OrderNewLimit3 : public detail::FamilyLimitOrder {
     const Protocol protocol_              = Protocol::kHTTPS;
     const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
     Network network_                      = Network::kTestnet;
+    common::MarketType market_type_       = common::MarketType::kInvalid;
 
   protected:
     Executor& executor_;
@@ -1170,11 +1174,13 @@ class OrderNewLimit3 : public detail::FamilyLimitOrder {
 
   public:
     explicit OrderNewLimit3(Executor& executor, SignerI* signer,
-                            Network network, common::TradingPairHashMap& pairs,
+                            Network network, common::MarketType market_type,
+                            common::TradingPairHashMap& pairs,
                             common::TradingPairReverseHashMap& pairs_reverse,
                             ::V2::ConnectionPool<HTTPSesionType>* session_pool,
                             const EndpointManager& endpoint_manager)
         : network_(network),
+          market_type_(market_type),
           executor_(executor),
           signer_(signer),
           pairs_(pairs),
@@ -1205,7 +1211,7 @@ class OrderNewLimit3 : public detail::FamilyLimitOrder {
 
                 bool need_sign           = true;
                 auto exchange_connection = endpoint_manager_.GetEndpoint(
-                    exchange_id_, network_, protocol_);
+                    exchange_id_, network_, market_type_, protocol_);
                 if (!exchange_connection) {
                     logw("can't get exchange connection for {} {} {}",
                          exchange_id_, network_, protocol_);
@@ -1395,6 +1401,7 @@ class CancelOrder3 : public detail::FamilyCancelOrder {
     const Protocol protocol_              = Protocol::kHTTPS;
     const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
     Network network_                      = Network::kTestnet;
+    common::MarketType market_type_       = common::MarketType::kInvalid;
     common::TradingPairReverseHashMap& pairs_reverse_;
     SignerI* signer_;
     common::TradingPairHashMap& pairs_;
@@ -1406,6 +1413,7 @@ class CancelOrder3 : public detail::FamilyCancelOrder {
 
   public:
     explicit CancelOrder3(Executor&& executor, SignerI* signer, Network network,
+                          common::MarketType market_type,
                           common::TradingPairHashMap& pairs,
                           common::TradingPairReverseHashMap& pairs_reverse,
                           ::V2::ConnectionPool<HTTPSesionType>* session_pool,
@@ -1413,6 +1421,7 @@ class CancelOrder3 : public detail::FamilyCancelOrder {
         : executor_(std::move(executor)),
           signer_(signer),
           network_(network),
+          market_type_(market_type),
           pairs_(pairs),
           pairs_reverse_(pairs_reverse),
           session_pool_(session_pool),
@@ -1439,7 +1448,7 @@ class CancelOrder3 : public detail::FamilyCancelOrder {
                 ArgsOrder args(bus_event_request_cancel_order->request, pairs_);
                 bool need_sign           = true;
                 auto exchange_connection = endpoint_manager_.GetEndpoint(
-                    exchange_id_, network_, protocol_);
+                    exchange_id_, network_, market_type_, protocol_);
                 if (!exchange_connection) {
                     logw("can't get exchange connection for {} {} {}",
                          exchange_id_, network_, protocol_);
@@ -1505,7 +1514,20 @@ class CancelOrderComponent : public bus::Component,
 namespace detail {
 class FamilyBookSnapshot {
   public:
-    static constexpr std::string_view end_point = "/api/v3/depth";
+    static constexpr std::string_view end_point_invalid = "";
+    static constexpr std::string_view end_point_spot    = "/api/v3/depth";
+    static constexpr std::string_view end_point_futures = "/fapi/v1/depth";
+    static constexpr std::string_view GetEndPoint(
+        common::MarketType market_type) {
+        switch (market_type) {
+            case common::MarketType::kSpot:
+                return end_point_spot;
+            case common::MarketType::kFutures:
+                return end_point_futures;
+            default:
+                return end_point_invalid;
+        }
+    }
     class ParserResponse {
         common::TradingPairHashMap& trading_pairs_;
 
@@ -1594,6 +1616,7 @@ class BookSnapshot2 : public inner::BookSnapshotI {
     const Protocol protocol_              = Protocol::kHTTPS;
     const common::ExchangeId exchange_id_ = common::ExchangeId::kBinance;
     Network network_                      = Network::kTestnet;
+    common::MarketType market_type_       = common::MarketType::kInvalid;
     SignerI* signer_                      = nullptr;
     ::V2::ConnectionPool<HTTPSesionType3>* session_pool_;
     common::TradingPairHashMap& pairs_;
@@ -1609,9 +1632,11 @@ class BookSnapshot2 : public inner::BookSnapshotI {
   public:
     explicit BookSnapshot2(Executor&& executor, SignerI* signer,
                            ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
-                           Network network, common::TradingPairHashMap& pairs,
+                           Network network, common::MarketType market_type,
+                           common::TradingPairHashMap& pairs,
                            const EndpointManager& endpoint_manager)
         : network_(network),
+          market_type_(market_type),
           executor_(std::move(executor)),
           signer_(signer),
           session_pool_(session_pool),
@@ -1662,19 +1687,17 @@ class BookSnapshot2 : public inner::BookSnapshotI {
                     bus_event_request_new_snapshot->WrappedEvent(), pairs_);
                 bool need_sign           = false;
                 auto exchange_connection = endpoint_manager_.GetEndpoint(
-                    exchange_id_, network_, protocol_);
+                    exchange_id_, network_, market_type_, protocol_);
                 if (!exchange_connection) {
                     logw("can't get exchange connection for {} {} {}",
                          exchange_id_, network_, protocol_);
                     co_return;
                 }
+                auto end_point =
+                    detail::FamilyBookSnapshot::GetEndPoint(market_type_);
                 detail::FactoryRequest factory{
-                    exchange_connection.value(),
-                    detail::FamilyBookSnapshot::end_point,
-                    args,
-                    boost::beast::http::verb::get,
-                    signer_,
-                    need_sign};
+                    exchange_connection.value(),   end_point, args,
+                    boost::beast::http::verb::get, signer_,   need_sign};
                 logd("start prepare new snapshot request");
                 auto req = factory();
                 logd("end prepare new snapshot request");
@@ -1720,12 +1743,14 @@ class BookSnapshotComponent : public bus::Component,
         bus_event_response_snapshot_mem_pool_;
     explicit BookSnapshotComponent(
         Executor&& executor, size_t number_responses, SignerI* signer,
-        Network network, common::TradingPairHashMap& pairs,
+        Network network, common::MarketType market_type,
+        common::TradingPairHashMap& pairs,
         common::TradingPairReverseHashMap& pairs_reverse,
         ::V2::ConnectionPool<HTTPSesionType3>* session_pool,
         const EndpointManager& endpoint_manager)
         : BookSnapshot2<Executor>(std::move(executor), signer, session_pool,
-                                  network, pairs, endpoint_manager),
+                                  network, market_type, pairs,
+                                  endpoint_manager),
           snapshot_mem_pool_(number_responses),
           bus_event_response_snapshot_mem_pool_(number_responses) {}
     ~BookSnapshotComponent() override = default;
@@ -1747,13 +1772,39 @@ class BookSnapshotComponent : public bus::Component,
     }
 };
 
+struct SpotPolicy {
+    template <typename Diff, typename State>
+    static bool CheckPacketLoss(const Diff& diff, const State& state) {
+        logi("diff.first_id:{} state_last_id:{}", diff.first_id,
+             state.last_id_diff_book_event);
+        return (diff.first_id != state.last_id_diff_book_event + 1);
+    }
+    template <typename Diff, typename State>
+    static void SetLastProcessedDiffId(const Diff& diff, State& state) {
+        state.last_id_diff_book_event = diff.last_id;
+    }
+};
+
+struct FuturesPolicy {
+    template <typename Diff, typename State>
+    static bool CheckPacketLoss(const Diff& diff, const State& state) {
+        logi("diff.prev_id:{} state_last_id:{}", diff.prev_id,
+             state.last_id_diff_book_event);
+        return (diff.prev_id != state.last_id_diff_book_event);
+    }
+    template <typename Diff, typename State>
+    static void SetLastProcessedDiffId(const Diff& diff, State& state) {
+        state.last_id_diff_book_event = diff.last_id;
+    }
+};
+
 /**
  * @brief generator service new bid ask from exchange
  * the main aim of this class is pack new bids and asks to NewBidLFQueue and
  * NewAskLFQueue
  *
  */
-template <typename ThreadPool>
+template <typename ThreadPool, typename PolicyPacketLoss>
 class BidAskGeneratorComponent : public bus::Component {
   public:
     using SnapshotCallback = std::function<void(const Exchange::BookSnapshot&)>;
@@ -1908,6 +1959,7 @@ class BidAskGeneratorComponent : public bus::Component {
         // End the coroutine since the snapshot update is complete.
         co_return;
     }
+
     boost::asio::awaitable<void> HandleBookDiffSnapshotEvent(
         boost::intrusive_ptr<Exchange::BusEventBookDiffSnapshot> event) {
         const auto& diff = *event->WrappedEvent();
@@ -1925,17 +1977,12 @@ class BidAskGeneratorComponent : public bus::Component {
         logi("[CURRENT SNAPSHOT] {}, Snapshot LastUpdateId: {}",
              trading_pair.ToString(), state.snapshot.lastUpdateId);
 
-        // Check for packet loss
-        state.diff_packet_lost =
-            (diff.first_id != state.last_id_diff_book_event + 1);
-        state.last_id_diff_book_event = diff.last_id;
+        // Используем Policy для проверки потери пакетов
+        state.diff_packet_lost = PolicyPacketLoss::CheckPacketLoss(diff, state);
+        PolicyPacketLoss::SetLastProcessedDiffId(diff, state);
 
         if (state.diff_packet_lost) {
-            logw(
-                "[PACKET LOSS] {}, Expected First ID: {}, Actual "
-                "First ID: {}",
-                trading_pair.ToString(), state.last_id_diff_book_event + 1,
-                diff.first_id);
+            logw("[PACKET LOSS] {}", trading_pair.ToString());
         }
 
         if (state.need_make_snapshot) {
@@ -2077,21 +2124,6 @@ class BidAskGeneratorComponent : public bus::Component {
     }
 };
 
-// class HttpsConnectionPoolFactory : public ::HttpsConnectionPoolFactory {
-//     common::MemoryPool<::V2::ConnectionPool<::HTTPSesionType>> pool_;
-
-//   public:
-//     explicit HttpsConnectionPoolFactory(size_t default_number_session = 10)
-//         : pool_(default_number_session) {};
-//     ~HttpsConnectionPoolFactory() override = default;
-//     virtual ::V2::ConnectionPool<HTTPSesionType>* Create(
-//         boost::asio::io_context& io_context, HTTPSesionType::Timeout timeout,
-//         std::size_t pool_size, https::ExchangeI* exchange) override {
-//         return pool_.Allocate(io_context, timeout, pool_size,
-//         exchange->Host(),
-//                               exchange->Port());
-//     };
-// };
 class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     common::MemoryPool<::V2::ConnectionPool<HTTPSesionType3>> pool_;
     const Protocol protocol_              = Protocol::kHTTPS;
@@ -2103,10 +2135,10 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     ~HttpsConnectionPoolFactory2() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType3>* Create(
         boost::asio::io_context& io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, Network network,
+        std::size_t pool_size, Network network, common::MarketType market_type,
         const EndpointManager& endpoint_manager) override {
-        auto exchange_connection =
-            endpoint_manager.GetEndpoint(exchange_id_, network, protocol_);
+        auto exchange_connection = endpoint_manager.GetEndpoint(
+            exchange_id_, network, market_type, protocol_);
         if (!exchange_connection) {
             logw("can't get exchange connection for {} {} {}", exchange_id_,
                  network, protocol_);
@@ -2308,12 +2340,14 @@ ParserManager InitParserManager(
     ApiResponseParser& api_response_parser,
     detail::FamilyBookEventGetter::ParserResponse& parser_ob_diff);
 
-template <class ThreadPool1, class ThreadPool2, class ArgsBody>
+template <class ThreadPool1, class ThreadPool2, class ArgsBody,
+          class PolicyPacketLoss>
 class BookEventGetterComponentCallbackHandler {
   public:
     BookEventGetterComponentCallbackHandler(
         BookEventGetterComponent<ThreadPool1, ArgsBody>& event_getter_component,
-        BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator,
+        BidAskGeneratorComponent<ThreadPool2, PolicyPacketLoss>&
+            bid_ask_generator,
         aot::CoBus& bus, ParserManager& parser_manager)
         : event_getter_component_(event_getter_component),
           bid_ask_generator_(bid_ask_generator),
@@ -2361,7 +2395,7 @@ class BookEventGetterComponentCallbackHandler {
         auto request = event_getter_component_.book_diff_mem_pool_.Allocate(
             &event_getter_component_.book_diff_mem_pool_, result.exchange_id,
             result.trading_pair, std::move(result.bids), std::move(result.asks),
-            result.first_id, result.last_id);
+            result.first_id, result.last_id, result.prev_id);
         auto intr_ptr_request =
             boost::intrusive_ptr<Exchange::BookDiffSnapshot2>(request);
 
@@ -2379,25 +2413,26 @@ class BookEventGetterComponentCallbackHandler {
         // const auto& result = std::get<ApiResponseData>(data);
         logi("{}", data);
     }
-    BookEventGetterComponent<ThreadPool2, ArgsBody>& event_getter_component_;
-    BidAskGeneratorComponent<ThreadPool2>& bid_ask_generator_;
+    BookEventGetterComponent<ThreadPool1, ArgsBody>& event_getter_component_;
+    BidAskGeneratorComponent<ThreadPool2, PolicyPacketLoss>& bid_ask_generator_;
     aot::CoBus& bus_;
     ParserManager& parser_manager_;
 };
 
-template <class ThreadPool1>
+template <class ThreadPool1, class PolicyPacketLoss>
 class BidAskGeneratorCallbackHandler {
   public:
     BidAskGeneratorCallbackHandler(
         aot::CoBus& bus,
-        BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator)
+        BidAskGeneratorComponent<ThreadPool1, PolicyPacketLoss>&
+            bid_ask_generator)
         : bus_(bus), bid_ask_generator_(bid_ask_generator) {
         RegisterCallbacks();
     }
 
   private:
     aot::CoBus& bus_;
-    BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator_;
+    BidAskGeneratorComponent<ThreadPool1, PolicyPacketLoss>& bid_ask_generator_;
 
     void ProcessBookEntries(const auto& entries, common::ExchangeId exchange_id,
                             common::TradingPair trading_pair,
@@ -2441,19 +2476,20 @@ class BidAskGeneratorCallbackHandler {
     }
 };
 
-template <class ThreadPool1>
+template <class ThreadPool1, class PolicyPacketLoss>
 class BidAskGeneratorCallbackBatchHandler {
   public:
     BidAskGeneratorCallbackBatchHandler(
         aot::CoBus& bus,
-        BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator)
+        BidAskGeneratorComponent<ThreadPool1, PolicyPacketLoss>&
+            bid_ask_generator)
         : bus_(bus), bid_ask_generator_(bid_ask_generator) {
         RegisterCallbacks();
     }
 
   private:
     aot::CoBus& bus_;
-    BidAskGeneratorComponent<ThreadPool1>& bid_ask_generator_;
+    BidAskGeneratorComponent<ThreadPool1, PolicyPacketLoss>& bid_ask_generator_;
 
     void ProcessBookEntries(const Exchange::BusEventBookDiffSnapshot& diff) {}
     // Register snapshot and diff callbacks

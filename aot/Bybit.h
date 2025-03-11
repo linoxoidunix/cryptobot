@@ -1783,10 +1783,10 @@ class HttpsConnectionPoolFactory2 : public ::HttpsConnectionPoolFactory2 {
     ~HttpsConnectionPoolFactory2() override = default;
     virtual ::V2::ConnectionPool<HTTPSesionType3>* Create(
         boost::asio::io_context& io_context, HTTPSesionType3::Timeout timeout,
-        std::size_t pool_size, Network network,
+        std::size_t pool_size, Network network, common::MarketType market_type,
         const EndpointManager& endpoint_manager) override {
-        auto exchange_connection =
-            endpoint_manager.GetEndpoint(exchange_id_, network, protocol_);
+        auto exchange_connection = endpoint_manager.GetEndpoint(
+            exchange_id_, network, market_type, protocol_);
         if (!exchange_connection) {
             logw("can't get exchange connection for {} {} {}", exchange_id_,
                  network, protocol_);
