@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "aot/strategy/arbitrage/transaction_report.h"
 
 namespace aot {
@@ -11,4 +13,6 @@ struct TradeState {
     common::Nanos entry_time;
     common::Nanos exit_time;
 };
+
+using TradesState = std::unordered_map<size_t, TradeState>;
 };  // namespace aot

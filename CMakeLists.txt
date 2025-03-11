@@ -163,6 +163,7 @@ file(GLOB LIST_H
      "aot/proto/classes/*.h"
      "aot/strategy/*.h"
      "aot/pnl/*.h"
+     "aot/strategy/arbitrage/*.h"
      "aot/strategy/cross_arbitrage/*.h"
      "aot/third_party/*.h"
      "aot/python/*.h"
@@ -289,6 +290,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_A
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
 add_subdirectory(example)
+add_subdirectory(sandbox_algo)
 
 #if(CMAKE_BUILD_TYPE STREQUAL "Release")
     enable_testing()

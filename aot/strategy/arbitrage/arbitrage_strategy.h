@@ -157,20 +157,20 @@ struct BusEventArbitrageReport
     boost::intrusive_ptr<ArbitrageReport> wrapped_event_;
 };
 
+// key is arbitrage id
+
 template <typename ThreadPool>
 class ArbitrageStrategyComponent : public bus::Component {
     ThreadPool& thread_pool_;
     aot::CoBus& bus_;
-    using ExchangeBBOMap = std::unordered_map<size_t, Trading::BBO>;
-    ExchangeBBOMap exchange_bbo_map_;
-
+    Trading::ExchangeBBOMap exchange_bbo_map_;
     TradeDictionary exchange_trading_pair_arbitrage_map_;
     static constexpr std::string_view name_component_ =
         "ArbitrageStrategyComponent";
     ArbitrageReportPool arbitrage_report_pool_;
     BusEventArbitrageReportPool bus_event_arbitrage_report_pool_;
-    using TradesState = std::unordered_map<size_t, TradeState>;
-    TradesState trades_state_;
+    // using TradesState = std::unordered_map<size_t, TradeState>;
+    aot::TradesState trades_state_;
     ExchangeTradingPairs& exchange_trading_pairs_;
 
   public:
@@ -221,13 +221,6 @@ class ArbitrageStrategyComponent : public bus::Component {
             trade_state.transaction_states[step_hasher(step)] = {
                 step.exchange_id, step.trading_pair, step.operation};
         }
-        // Trading::BBO empty_bbo;
-        // for (auto& step : cycle){
-        //     auto key = common::HashCombined(wrapped_event->exchange_id,
-        //                                     wrapped_event->market_type,
-        //                                     wrapped_event->trading_pair);
-        //     AddOrUpdateBBO(key, wrapped_event->bbo);
-        // }
     }
     void AsyncHandleEvent(
         boost::intrusive_ptr<Trading::BusEventNewBBO> event) override {
@@ -380,8 +373,12 @@ class ArbitrageStrategyComponent : public bus::Component {
                 exit_buy_price_signed - buy_entry_price_signed;
 
             // Определение порога для прибыли и убытка в процентах
-            const double take_profit_threshold_percent = 1.0;  // 1% для прибыли
-            const double stop_loss_threshold_percent = -10.0;  // -1% для убытка
+            // const double take_profit_threshold_percent = 1.0;  // 1% для
+            // прибыли const double stop_loss_threshold_percent = -10.0;  // -1%
+            // для убытка
+
+            const double take_profit_threshold_percent = 0;  // 1% для прибыли
+            const double stop_loss_threshold_percent   = 0;  // -1% для убытка
 
             // Вычисляем разницу между ценами покупки и продажи
             double profit_or_loss_buy = static_cast<double>(exit_buy_price) -
@@ -463,7 +460,7 @@ class ArbitrageStrategyComponent : public bus::Component {
         }
     }
 
-    net::awaitable<void> HandleNewBBO(
+    boost::asio::awaitable<void> HandleNewBBO(
         boost::intrusive_ptr<Trading::NewBBO> wrapped_event) {
         auto key = common::HashCombined(wrapped_event->exchange_id,
                                         wrapped_event->market_type,

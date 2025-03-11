@@ -465,6 +465,10 @@ inline size_t HashCombined(common::ExchangeId exchange_id,
                         trading_pair));  // Используем TradingPairHash для пары
     return hash_value;
 };
+
+// each trading pair has markettype (spot, futures) exchange_id, tradingPair
+// TradingPairId is hash of markettype, exchange_id, tradingPair
+using TradingPairId = size_t;
 };  // namespace common
 
 template <>

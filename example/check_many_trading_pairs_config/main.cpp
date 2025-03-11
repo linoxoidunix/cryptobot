@@ -15,6 +15,7 @@
 #include "aot/config/config.h"
 #include "aot/redpanda_client/redpanda_client.h"
 #include "aot/strategy/arbitrage/arbitrage_strategy.h"
+#include "aot/strategy/cross_arbitrage/cross_arbitrage_strategy.h"
 #include "aot/strategy/market_order_book.h"
 
 std::list<common::TradingPair> FindCrossExchangePairs(
@@ -369,6 +370,8 @@ int main(int argc, char** argv) {
                                                exchange_trading_pairs);
     // --------------------------ArbitrageStrategyComponent--------------------------------
     auto cross_pairs = FindCrossExchangePairs(pairs_binance, pairs_bybit);
+    // declaration aot::ArbitrageStrategyComponent classic arbitrage strategy/
+    // now work always in minus
     aot::ArbitrageStrategyComponent arbitrage_strategy_component(
         thread_pool, bus, 1000, exchange_trading_pairs);
     for (auto& cross_pair : cross_pairs) {
@@ -422,6 +425,75 @@ int main(int argc, char** argv) {
     //     it.SerializeToJson(j);
     //     logi("{}", j.dump(4));
     // }
+    // следование за трендом
+    aot::CrossExchangeStrategyComponent cross_exchange_strategy_component(
+        thread_pool, bus, 1000, exchange_trading_pairs);
+    for (auto& cross_pair : cross_pairs) {
+        aot::TradingPairContext trading_pair_context_spot_binance(
+            common::ExchangeId::kBinance, common::MarketType::kSpot,
+            cross_pair);
+        aot::Step sell_on_bybit_futures(cross_pair, common::ExchangeId::kBybit,
+                                        common::MarketType::kFutures,
+                                        aot::Operation::kSell);
+        aot::Step sell_on_bybit_spot(cross_pair, common::ExchangeId::kBybit,
+                                     common::MarketType::kSpot,
+                                     aot::Operation::kSell);
+        aot::Step buy_on_bybit_futures(cross_pair, common::ExchangeId::kBybit,
+                                       common::MarketType::kFutures,
+                                       aot::Operation::kBuy);
+        aot::Step buy_on_bybit_spot(cross_pair, common::ExchangeId::kBybit,
+                                    common::MarketType::kSpot,
+                                    aot::Operation::kBuy);
+        cross_exchange::ArbitrageTrade trade_sell_on_bybit_futures(
+            trading_pair_context_spot_binance, sell_on_bybit_futures);
+        cross_exchange::ArbitrageTrade trade_sell_on_bybit_spot(
+            trading_pair_context_spot_binance, sell_on_bybit_spot);
+        cross_exchange::ArbitrageTrade trade_buy_on_bybit_futures(
+            trading_pair_context_spot_binance, buy_on_bybit_futures);
+        cross_exchange::ArbitrageTrade trade_buy_on_bybit_spot(
+            trading_pair_context_spot_binance, buy_on_bybit_spot);
+
+        aot::TradingPairContext trading_pair_context_spot_bybit(
+            common::ExchangeId::kBybit, common::MarketType::kSpot, cross_pair);
+        aot::Step sell_on_binance_futures(
+            cross_pair, common::ExchangeId::kBinance,
+            common::MarketType::kFutures, aot::Operation::kSell);
+        aot::Step sell_on_binance_spot(cross_pair, common::ExchangeId::kBinance,
+                                       common::MarketType::kSpot,
+                                       aot::Operation::kSell);
+        aot::Step buy_on_binance_futures(
+            cross_pair, common::ExchangeId::kBinance,
+            common::MarketType::kFutures, aot::Operation::kBuy);
+        aot::Step buy_on_binance_spot(cross_pair, common::ExchangeId::kBinance,
+                                      common::MarketType::kSpot,
+                                      aot::Operation::kBuy);
+        cross_exchange::ArbitrageTrade trade_sell_on_binance_futures(
+            trading_pair_context_spot_bybit, sell_on_binance_futures);
+        cross_exchange::ArbitrageTrade trade_sell_on_binance_spot(
+            trading_pair_context_spot_bybit, sell_on_binance_spot);
+        cross_exchange::ArbitrageTrade trade_buy_on_binance_futures(
+            trading_pair_context_spot_bybit, buy_on_binance_futures);
+        cross_exchange::ArbitrageTrade trade_buy_on_binance_spot(
+            trading_pair_context_spot_bybit, buy_on_binance_spot);
+
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_sell_on_bybit_futures);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_sell_on_bybit_spot);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_buy_on_bybit_futures);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_buy_on_bybit_spot);
+
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_sell_on_binance_futures);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_sell_on_binance_spot);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_buy_on_binance_futures);
+        cross_exchange_strategy_component.AddArbitrageTrade(
+            trade_buy_on_binance_spot);
+    }
     // ----------------------Register Connections Between
     // Components----------------- Establish bidirectional communication between
     // the bid-ask generator and book event getter This allows the bid-ask
