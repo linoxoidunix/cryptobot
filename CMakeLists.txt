@@ -290,8 +290,13 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "PYTHON_PATH=\"${CMAKE_CURREN
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_GENERATOR_BID_ASK_SERVICE=false")
 target_compile_definitions(${PROJECT_NAME} PUBLIC "MEASURE_T_FOR_TRADE_ENGINE=false")
 
-add_subdirectory(example)
-add_subdirectory(sandbox_algo)
+option(BUILD_EXAMPLES "Build examples" ON)
+if(BUILD_EXAMPLES)
+    add_subdirectory(example)
+    add_subdirectory(sandbox_algo)
+else()
+    message(STATUS "Examples are skipped.")
+endif()
 
 option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
