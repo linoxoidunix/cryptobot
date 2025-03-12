@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.28)
 set (PROJECT_NAME aot)
 project(${PROJECT_NAME} C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
+# Для Visual Studio или других IDE
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 
 # if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -96,7 +97,7 @@ FetchContent_MakeAvailable(magic_enum nlohmann_json prometheus-cpp tomlplusplus)
 # # Find rdkafka (ensure it is installed on your system)
 # find_package(RdKafka REQUIRED)
 
-
+set(CPPKAFKA_DISABLE_EXAMPLES TRUE CACHE BOOL "Disable examples in cppkafka" FORCE)
 # Fetch cppkafka
 FetchContent_Declare(
     cppkafka
@@ -105,13 +106,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cppkafka)
 
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
+set(BENCHMARK_ENABLE_EXAMPLES OFF CACHE BOOL "Disable benchmark examples")
 FetchContent_Declare(
     benchmark
     GIT_REPOSITORY https://github.com/google/benchmark.git
     GIT_TAG main
 )
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Suppressing benchmark's tests" FORCE)#ignore tests for benchmark
+
 FetchContent_MakeAvailable(benchmark)
+# Remove the benchmark targets if they were added
+set_target_properties(benchmark PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 FetchContent_Declare(gtest_main
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -281,6 +286,29 @@ target_link_libraries(${PROJECT_NAME}
         tomlplusplus::tomlplusplus
         protobuf
 )
+
+set_target_properties(benchmark PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(benchmark_main PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(core PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(util PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(civetweb PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(pull PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(gtest PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(gtest_main PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(gmock PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(gmock_main PROPERTIES FOLDER "Hide3rdPartyLibrary")
+
+set_target_properties(push PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(pull PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(cppkafka PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(uninstall PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(re2 PROPERTIES FOLDER "Hide3rdPartyLibrary")
+set_target_properties(simdjson PROPERTIES FOLDER "Hide3rdPartyLibrary")
+
+# set_target_properties(core PROPERTIES FOLDER "Hide3rdPartyLibrary")
+
+
+
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
