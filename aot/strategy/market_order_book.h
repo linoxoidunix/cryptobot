@@ -215,7 +215,9 @@ class MarketOrderBook2 {
         logi("call ~MarketOrderBook2()");
         ClearOrderBook();
     };
+    BidsatPriceMap &GetBidsatPriceMap() { return bids_at_price_map_; };
 
+    AsksatPriceMap &GetAsksatPriceMap() { return asks_at_price_map_; };
     /// Process market data update and update the limit order book.
     virtual void OnMarketUpdate(
         const Exchange::MEMarketUpdate2 *market_update) noexcept;
@@ -319,10 +321,9 @@ class MarketOrderBook2 {
     /// Remove the MarketOrdersAtPrice from the containers - the hash map and
     /// the doubly linked list of price levels.
     auto RemoveOrdersAtPrice(common::Side side, common::Price price) noexcept {
-        auto order_at_price =
-            (side == common::Side::kBid)
-                ? price_orders_at_price_bids_.at(price)
-                : price_orders_at_price_asks_.at(price);
+        auto order_at_price = (side == common::Side::kBid)
+                                  ? price_orders_at_price_bids_.at(price)
+                                  : price_orders_at_price_asks_.at(price);
         if (!order_at_price) {
             // https://github.com/binance/binance-spot-api-docs/blob/20f752900a3a7a63c72f5a1b18d762a1d5b001bd/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
             // How to manage a local order book correctly
@@ -359,14 +360,14 @@ class MarketOrderBook2 {
     /// Add a single order at the end of the FIFO queue at the price level that
     /// this order belongs in.
     auto AddOrder(MarketOrder *order) noexcept -> void {
-        bool is_bids = (order->side_ == common::Side::kBid)? true : false;
+        bool is_bids = (order->side_ == common::Side::kBid) ? true : false;
         auto orders_at_price = GetOrdersAtPrice(order->price_, is_bids);
 
         if (!orders_at_price) {
-            auto& orders_at_price_pool_ = (order->side_ == common::Side::kBid)
-                                             ? orders_at_price_pool_bids_
-                                             : orders_at_price_pool_asks_;
-            auto new_orders_at_price   = orders_at_price_pool_.Allocate(
+            auto &orders_at_price_pool_ = (order->side_ == common::Side::kBid)
+                                              ? orders_at_price_pool_bids_
+                                              : orders_at_price_pool_asks_;
+            auto new_orders_at_price    = orders_at_price_pool_.Allocate(
                 order->side_, order->price_, *order, nullptr, nullptr);
             AddOrdersAtPrice(new_orders_at_price);
         } else {
@@ -429,8 +430,63 @@ class OrderBookService : public common::ServiceI {
     Exchange::EventLFQueue *queue_ = nullptr;
 };
 
+/**
+ * @class IOrderBookComponent
+ * @brief Interface for components interacting with an order book.
+ *
+ * This interface defines the methods required for asynchronously retrieving
+ * price and quantity at a specific level for both the bid and ask sides
+ * of the order book.
+ */
+class IOrderBookComponent {
+  public:
+    /**
+     * @brief Asynchronously retrieves the price and quantity at a specific
+     * level on the bid side of the order book.
+     *
+     * This method is used to fetch the price and quantity at a given
+     * bid level in the order book for a specific trading pair and exchange.
+     * If the provided `level` is 0, it returns the best bid (the highest
+     * price).
+     *
+     * @param exchange_id The identifier of the exchange.
+     * @param trading_pair The trading pair for which the bid price and quantity
+     * are requested.
+     * @param level The level in the order book (starting from 0 for the top
+     * bid).
+     * @return A boost::asio::awaitable pair containing the price and quantity
+     * at the specified bid level. If `level` is 0, it returns the best bid.
+     */
+    virtual boost::asio::awaitable<std::pair<common::Price, common::Qty>>
+    AsyncGetPriceAndQtyAtLevelBid(const common::ExchangeId &exchange_id,
+                                  const common::TradingPair &trading_pair,
+                                  size_t level) = 0;
+
+    /**
+     * @brief Asynchronously retrieves the price and quantity at a specific
+     * level on the ask side of the order book.
+     *
+     * This method is used to fetch the price and quantity at a given
+     * ask level in the order book for a specific trading pair and exchange.
+     * If the provided `level` is 0, it returns the best offer (the lowest
+     * price).
+     *
+     * @param exchange_id The identifier of the exchange.
+     * @param trading_pair The trading pair for which the ask price and quantity
+     * are requested.
+     * @param level The level in the order book (starting from 0 for the top
+     * ask).
+     * @return A boost::asio::awaitable pair containing the price and quantity
+     * at the specified ask level. If `level` is 0, it returns the best offer.
+     */
+    virtual boost::asio::awaitable<std::pair<common::Price, common::Qty>>
+    AsyncGetPriceAndQtyAtLevelAsk(const common::ExchangeId &exchange_id,
+                                  const common::TradingPair &trading_pair,
+                                  size_t level) = 0;
+};
+
 template <typename Executor>
-class OrderBookComponent : public bus::Component {
+class OrderBookComponent : public bus::Component, public IOrderBookComponent {
     using OrderBookMap = std::unordered_map<
         common::ExchangeId,
         std::unordered_map<common::TradingPair, MarketOrderBook2,
@@ -445,7 +501,8 @@ class OrderBookComponent : public bus::Component {
 
   public:
     explicit OrderBookComponent(Executor &&executor, aot::CoBus &bus,
-                                uint64_t max_new_bbo_, common::MarketType market_type)
+                                uint64_t max_new_bbo_,
+                                common::MarketType market_type)
         : executor_(std::move(executor)),
           bus_(bus),
           market_type_(market_type),
@@ -476,6 +533,84 @@ class OrderBookComponent : public bus::Component {
         // Обработка событий типа MEMarketUpdate
         boost::asio::co_spawn(executor_, HandleNewDiff(event),
                               boost::asio::detached);
+    }
+
+    boost::asio::awaitable<std::pair<common::Price, common::Qty>>
+    AsyncGetPriceAndQtyAtLevelBid(const common::ExchangeId &exchange_id,
+                                  const common::TradingPair &trading_pair,
+                                  size_t level) override {
+        // Прямо внутри executor_ выполняем асинхронный код
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+
+        // Проверяем наличие книги ордеров для этого обмена и торговой пары
+        auto it_exchange = order_books_.find(exchange_id);
+        if (it_exchange == order_books_.end()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        auto it_pair = it_exchange->second.find(trading_pair);
+        if (it_pair == it_exchange->second.end()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        auto &order_book      = it_pair->second;
+
+        // Проверяем, на какой стороне (bid/ask) нужно извлекать информацию
+        const auto &price_map = order_book.GetBidsatPriceMap();
+
+        // Если уровень вне допустимого диапазона, возвращаем недопустимые
+        // значения
+        if (level >= price_map.size()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        // Перемещаем итератор на нужный уровень
+        auto it = price_map.begin();
+        std::advance(it, level);  // Перемещаем на (level-1)-й элемент
+
+        // Возвращаем пару (цена, объём)
+        const auto &order_at_price = *it;
+        co_return {order_at_price.first_mkt_order_.price_,
+                   order_at_price.first_mkt_order_.qty_};
+    }
+
+    boost::asio::awaitable<std::pair<common::Price, common::Qty>>
+    AsyncGetPriceAndQtyAtLevelAsk(const common::ExchangeId &exchange_id,
+                                  const common::TradingPair &trading_pair,
+                                  size_t level) override {
+        // Прямо внутри executor_ выполняем асинхронный код
+        co_await boost::asio::post(executor_, boost::asio::use_awaitable);
+
+        // Проверяем наличие книги ордеров для этого обмена и торговой пары
+        auto it_exchange = order_books_.find(exchange_id);
+        if (it_exchange == order_books_.end()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        auto it_pair = it_exchange->second.find(trading_pair);
+        if (it_pair == it_exchange->second.end()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        auto &order_book      = it_pair->second;
+
+        // Проверяем, на какой стороне (bid/ask) нужно извлекать информацию
+        const auto &price_map = order_book.GetAsksatPriceMap();
+
+        // Если уровень вне допустимого диапазона, возвращаем недопустимые
+        // значения
+        if (level >= price_map.size()) {
+            co_return {common::kPriceInvalid, common::kQtyInvalid};
+        }
+
+        // Перемещаем итератор на нужный уровень
+        auto it = price_map.begin();
+        std::advance(it, level);  // Перемещаем на (level-1)-й элемент
+
+        // Возвращаем пару (цена, объём)
+        const auto &order_at_price = *it;
+        co_return {order_at_price.first_mkt_order_.price_,
+                   order_at_price.first_mkt_order_.qty_};
     }
 
     // Method to add a new order book
@@ -610,8 +745,8 @@ class OrderBookComponent : public bus::Component {
                 .first->second;
 
         logi("[PROCESSING MARKET UPDATE] {}, {}, {}, b_size: {}, a_size: {}",
-             exchange_id, market_type_, trading_pair.ToString(), wrapped_event->bids.size(),
-             wrapped_event->asks.size());
+             exchange_id, market_type_, trading_pair.ToString(),
+             wrapped_event->bids.size(), wrapped_event->asks.size());
 
         order_book.OnMarketUpdate(wrapped_event);
 
