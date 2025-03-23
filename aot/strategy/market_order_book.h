@@ -545,12 +545,14 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
         // Проверяем наличие книги ордеров для этого обмена и торговой пары
         auto it_exchange = order_books_.find(exchange_id);
         if (it_exchange == order_books_.end()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         auto it_pair = it_exchange->second.find(trading_pair);
         if (it_pair == it_exchange->second.end()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         auto &order_book      = it_pair->second;
@@ -561,7 +563,8 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
         // Если уровень вне допустимого диапазона, возвращаем недопустимые
         // значения
         if (level >= price_map.size()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         // Перемещаем итератор на нужный уровень
@@ -570,8 +573,8 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
 
         // Возвращаем пару (цена, объём)
         const auto &order_at_price = *it;
-        co_return {order_at_price.first_mkt_order_.price_,
-                   order_at_price.first_mkt_order_.qty_};
+        co_return std::make_pair(order_at_price.first_mkt_order_.price_,
+                                 order_at_price.first_mkt_order_.qty_);
     }
 
     boost::asio::awaitable<std::pair<common::Price, common::Qty>>
@@ -584,12 +587,14 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
         // Проверяем наличие книги ордеров для этого обмена и торговой пары
         auto it_exchange = order_books_.find(exchange_id);
         if (it_exchange == order_books_.end()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         auto it_pair = it_exchange->second.find(trading_pair);
         if (it_pair == it_exchange->second.end()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         auto &order_book      = it_pair->second;
@@ -600,7 +605,8 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
         // Если уровень вне допустимого диапазона, возвращаем недопустимые
         // значения
         if (level >= price_map.size()) {
-            co_return {common::kPriceInvalid, common::kQtyInvalid};
+            co_return std::make_pair(common::kPriceInvalid,
+                                     common::kQtyInvalid);
         }
 
         // Перемещаем итератор на нужный уровень
@@ -609,8 +615,8 @@ class OrderBookComponent : public bus::Component, public IOrderBookComponent {
 
         // Возвращаем пару (цена, объём)
         const auto &order_at_price = *it;
-        co_return {order_at_price.first_mkt_order_.price_,
-                   order_at_price.first_mkt_order_.qty_};
+        co_return std::make_pair(order_at_price.first_mkt_order_.price_,
+                                 order_at_price.first_mkt_order_.qty_);
     }
 
     // Method to add a new order book
